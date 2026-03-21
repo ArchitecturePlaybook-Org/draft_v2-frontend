@@ -39,17 +39,10 @@ export interface LoginCredentials {
   password: string;
 }
 
-export type RoleType = "admin" | "editor" | "viewer" | "architect";
+export type RoleType = "architect" | "co_owner" | "constructor" | "client" | "admin" | "editor" | "viewer";
 
 // Role permission mappings (from backend seeded data)
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
-  admin: [
-    "users:create", "users:read", "users:update", "users:delete", "users:list",
-    "roles:create", "roles:read", "roles:update", "roles:delete", "roles:list",
-    "permissions:create", "permissions:read", "permissions:assign",
-    "posts:create", "posts:read", "posts:update", "posts:delete", "posts:list",
-    "reports:create", "reports:read", "reports:list",
-  ],
   architect: [
     "users:create", "users:read", "users:update", "users:delete", "users:list",
     "roles:create", "roles:read", "roles:update", "roles:delete", "roles:list",
@@ -57,22 +50,32 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     "posts:create", "posts:read", "posts:update", "posts:delete", "posts:list",
     "reports:create", "reports:read", "reports:list",
   ],
-  editor: [
+  co_owner: [
+    "users:create", "users:read", "users:update", "users:delete", "users:list",
+    "roles:create", "roles:read", "roles:update", "roles:delete", "roles:list",
+    "permissions:create", "permissions:read", "permissions:assign",
+    "posts:create", "posts:read", "posts:update", "posts:delete", "posts:list",
+    "reports:create", "reports:read", "reports:list",
+  ],
+  constructor: [
     "users:create", "users:read", "users:update", "users:list",
     "posts:create", "posts:read", "posts:update", "posts:delete", "posts:list",
     "reports:read", "reports:list",
   ],
-  viewer: [
+  client: [
     "users:read", "users:list",
     "posts:read", "posts:list",
     "reports:read", "reports:list",
-    "roles:read",
   ],
+  // Legacy/Internal aliases
+  admin: ["*"], 
+  editor: ["posts:*", "users:read"],
+  viewer: ["*:read"],
 };
 
 export const ROLE_DESCRIPTIONS: Record<string, string> = {
-  admin: "Full system access — manage users, roles, permissions, content and reports",
-  architect: "System design access — advanced configuration and infrastructure management",
-  editor: "Content management — create, edit, delete posts and view reports",
-  viewer: "Read-only access — browse users, posts and reports",
+  architect: "Full system access — manage users, roles, permissions, and professional workflows",
+  co_owner: "Partner access — Nearly full system control and high-level management",
+  constructor: "Project & User management — oversee construction workflows and team members",
+  client: "Client access — Monitor project progress and manage account/payments",
 };

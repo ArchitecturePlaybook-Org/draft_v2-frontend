@@ -29,7 +29,7 @@ export default function AdminDashboardPage() {
           { label: "Total Permissions", value: "21", icon: "🔑", accent: "#6c63ff" },
           { label: "Active Roles", value: "3", icon: "👥", accent: "#a78bfa" },
           { label: "Modules", value: "5", icon: "📦", accent: "#34d399" },
-          { label: "Your Level", value: "Admin", icon: "⭐", accent: "#fbbf24" },
+          { label: "Your Level", value: user?.role === "architect" ? "Architect" : "Admin", icon: "⭐", accent: "#fbbf24" },
         ].map((stat) => (
           <div key={stat.label} className="stat-card">
             <div style={{ fontSize: "1.5rem" }}>{stat.icon}</div>
@@ -55,7 +55,7 @@ export default function AdminDashboardPage() {
                 <th style={{ textAlign: "left", padding: ".5rem .75rem", color: "rgba(255,255,255,0.4)", fontWeight: 600, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                   Permission
                 </th>
-                {["admin", "editor", "viewer"].map((role) => (
+                {["architect", "co_owner", "constructor", "client"].map((role) => (
                   <th key={role} style={{ textAlign: "center", padding: ".5rem .75rem", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                     <span className={`badge badge-${role}`}>{role}</span>
                   </th>
@@ -73,7 +73,7 @@ export default function AdminDashboardPage() {
                       <td style={{ padding: ".5rem .75rem" }}>
                         <PermissionBadge permission={perm} />
                       </td>
-                      {["admin", "editor", "viewer"].map((role) => (
+                      {["architect", "co_owner", "constructor", "client"].map((role) => (
                         <td key={role} style={{ textAlign: "center", padding: ".5rem .75rem" }}>
                           {allPerms[role]?.includes(perm) ? (
                             <span style={{ color: "#34d399", fontSize: "1rem" }}>✓</span>
@@ -97,8 +97,10 @@ export default function AdminDashboardPage() {
           Role Definitions
         </h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
-          {(["admin", "editor", "viewer"] as const).map((role) => {
-            const perms = allPerms[role] ?? [];
+          {(["architect", "co_owner", "constructor", "client"] as const).map((role) => {
+            const perms = (Object.prototype.hasOwnProperty.call(allPerms, role)) 
+              ? allPerms[role] 
+              : [];
             return (
               <div key={role} className="card card-accent">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".75rem" }}>

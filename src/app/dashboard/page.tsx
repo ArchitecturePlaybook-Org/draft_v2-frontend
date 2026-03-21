@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 
 const ROLE_REDIRECT: Record<string, string> = {
-  admin: "/dashboard/admin",
   architect: "/dashboard/admin",
+  co_owner: "/dashboard/admin",
+  constructor: "/dashboard/editor",
+  client: "/dashboard/viewer",
+  admin: "/dashboard/admin",
   editor: "/dashboard/editor",
   viewer: "/dashboard/viewer",
 };
@@ -18,7 +21,9 @@ export default function DashboardRedirectPage() {
   useEffect(() => {
     if (!isLoading) {
       const destination = user?.role
-        ? (ROLE_REDIRECT[user.role] ?? "/dashboard/viewer")
+        ? (Object.prototype.hasOwnProperty.call(ROLE_REDIRECT, user.role)
+            ? ROLE_REDIRECT[user.role]
+            : "/dashboard/viewer")
         : "/login";
       router.replace(destination);
     }

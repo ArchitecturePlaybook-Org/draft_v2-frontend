@@ -7,9 +7,9 @@ const AUTH_ROUTES = ["/login"];
 
 // Role-based route restrictions
 const ROLE_ROUTES: Record<string, string[]> = {
-  "/dashboard/admin": ["admin", "architect"],
-  "/dashboard/editor": ["admin", "architect", "editor"],
-  "/dashboard/viewer": ["admin", "architect", "editor", "viewer"],
+  "/dashboard/admin": ["architect", "co_owner", "admin"],
+  "/dashboard/editor": ["architect", "co_owner", "constructor", "admin", "editor"],
+  "/dashboard/viewer": ["architect", "co_owner", "constructor", "client", "admin", "editor", "viewer"],
 };
 
 export function proxy(request: NextRequest) {

@@ -6,6 +6,10 @@ import { useAuthStore } from "@/store/auth-store";
 import { ROLE_DESCRIPTIONS } from "@/types/auth";
 
 const ROLE_DASHBOARD: Record<string, string> = {
+  architect: "/dashboard/admin",
+  co_owner: "/dashboard/admin",
+  constructor: "/dashboard/editor",
+  client: "/dashboard/viewer",
   admin: "/dashboard/admin",
   editor: "/dashboard/editor",
   viewer: "/dashboard/viewer",
@@ -25,10 +29,17 @@ export default function LoginPage() {
     setError("");
     try {
       const user = await login(email, password);
-      const destination = user.role
-        ? ROLE_DASHBOARD[user.role] ?? "/dashboard"
+      const userRole = (user && typeof user.role === "string") ? user.role : "unknown";
+      
+      // Safety: use hasOwnProperty to avoid collision with built-in 'constructor' property
+      const target = (Object.prototype.hasOwnProperty.call(ROLE_DASHBOARD, userRole))
+        ? ROLE_DASHBOARD[userRole]
         : "/dashboard";
-      router.push(destination);
+      
+      console.log("[Login] Success:", { email, role: userRole, target });
+
+      // Use window.location as a more robust alternative to router.push for cross-page navigation
+      window.location.href = target;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     }
@@ -95,7 +106,7 @@ export default function LoginPage() {
           <div style={{ fontWeight: 600, color: "#a78bfa", marginBottom: ".375rem" }}>
             Available Roles
           </div>
-          {Object.entries(ROLE_DESCRIPTIONS).map(([role, desc]) => (
+          {Object.entries(ROLE_DESCRIPTIONS).filter(([role]) => ["architect", "co_owner", "constructor", "client"].includes(role)).map(([role, desc]) => (
             <div key={role} style={{ display: "flex", gap: ".5rem", marginBottom: ".2rem" }}>
               <span className={`badge badge-${role}`}>{role}</span>
               <span style={{ fontSize: ".75rem" }}>{desc}</span>
