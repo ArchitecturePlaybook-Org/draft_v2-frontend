@@ -26,14 +26,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Root redirect
-  if (pathname === "/") {
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
   // Protect dashboard routes
   if (PROTECTED_ROUTES.some((r) => pathname.startsWith(r))) {
     if (!isAuthenticated) {

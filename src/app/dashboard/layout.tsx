@@ -14,6 +14,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { label: "Overview", href: "/dashboard", icon: "📊" },
+    { label: "Projects", href: "/dashboard/projects", icon: "🏗️" },
     { label: "Admin Space", href: "/dashboard/admin", icon: "🛡️" },
     { label: "Editor Space", href: "/dashboard/editor", icon: "✍️" },
     { label: "Viewer Space", href: "/dashboard/viewer", icon: "👁️" },
