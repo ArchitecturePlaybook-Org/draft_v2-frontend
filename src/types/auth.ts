@@ -13,14 +13,46 @@ export interface Role {
   permissions_count?: number;
 }
 
+export interface UserProfile {
+  phone_number?: string;
+  bio?: string;
+  profile_picture?: string;
+  address?: Record<string, any>;
+  metadata: Record<string, any>;
+  website?: string;
+  social_links?: Record<string, any>;
+}
+
 export interface User {
   id: number;
   email: string;
   name: string;
+  user_type: "architect" | "builder" | "contractor" | "supplier" | "client";
   is_active: boolean;
   role?: string | null;
+  profile?: UserProfile;
   created_at: string;
   updated_at?: string;
+}
+
+export interface Organization {
+  id: number;
+  name: string;
+  slug: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  logo?: string;
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: "admin" | "employee";
+  organization_name: string;
+  invited_by_email: string;
+  is_accepted: boolean;
+  expires_at: string;
 }
 
 export interface AuthTokens {
