@@ -7,7 +7,9 @@ const MODULE_COLORS: Record<string, string> = {
   users:       "rgba(59,130,246,0.15)",
   roles:       "rgba(168,85,247,0.15)",
   permissions: "rgba(236,72,153,0.15)",
-  posts:       "rgba(16,185,129,0.15)",
+  projects:    "rgba(16,185,129,0.15)",
+  tasks:       "rgba(96,165,250,0.15)",
+  payments:    "rgba(245,158,11,0.15)",
   reports:     "rgba(245,158,11,0.15)",
 };
 
@@ -15,7 +17,9 @@ const MODULE_TEXT: Record<string, string> = {
   users:       "#60a5fa",
   roles:       "#c084fc",
   permissions: "#f472b6",
-  posts:       "#34d399",
+  projects:    "#34d399",
+  tasks:       "#60a5fa",
+  payments:    "#fbbf24",
   reports:     "#fbbf24",
 };
 

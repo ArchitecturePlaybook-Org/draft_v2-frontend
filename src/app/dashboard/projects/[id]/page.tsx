@@ -1,164 +1,143 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
-import { useAuthStore } from "@/store/auth-store";
-import { TaskItem } from "@/components/projects/TaskItem";
-import { ProjectDetail, Task } from "@/types/projects";
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ProjectDetail } from "@/types/projects";
 import { apiClient } from "@/lib/api-client";
-import Link from "next/link";
+import { usePermissions } from "@/hooks/use-permissions";
+import { TaskItem } from "@/components/projects/TaskItem";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { Spinner } from "@/components/ui/Spinner";
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function ProjectDetailPage({ params }: PageProps) {
-  const { id } = use(params);
-  const { user } = useAuthStore();
+export default function ProjectDetailPage() {
+  const { id } = useParams();
+  const router = useRouter();
   const [project, setProject] = useState<ProjectDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { projectPermissions, canManageProject, canEditProject } = usePermissions();
 
   useEffect(() => {
-    async function fetchProjectDetail() {
+    async function fetchProject() {
       try {
         const data = await apiClient.get<ProjectDetail>(`/api/projects/projects/${id}/`);
         setProject(data);
       } catch (err) {
-        console.error("Failed to fetch project detail:", err);
-        setError("Unable to load project details.");
+        console.error("Failed to fetch project:", err);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     }
-    fetchProjectDetail();
+    fetchProject();
   }, [id]);
 
-  const canManageProject = user?.role === "architect" || user?.role === "admin";
-  const canManageTasks = canManageProject || user?.role === "constructor";
+  if (isLoading) return <div className="py-24 flex justify-center"><Spinner size="lg" label="Retrieving site plans..." /></div>;
+  if (!project) return <div className="text-center py-20 px-6 glass-card mt-8"><h2 className="text-xl font-bold mb-4">Project Not Found</h2><Button onClick={() => router.back()}>Go Back</Button></div>;
 
-  const handleTaskStatusUpdate = async (taskId: number, newStatus: string) => {
-    try {
-      await apiClient.patch(`/api/projects/tasks/${taskId}/`, { status: newStatus });
-      // Update local state
-      if (project) {
-        setProject({
-          ...project,
-          tasks: project.tasks.map(t => t.id === taskId ? { ...t, status: newStatus as any } : t)
-        });
-      }
-    } catch (err) {
-      console.error("Failed to update task status:", err);
-    }
-  };
-
-  if (loading) return <div style={{ padding: "4rem", textAlign: "center" }}><div className="spinner"></div></div>;
-  if (error || !project) return <div style={{ padding: "4rem", textAlign: "center", color: "#f87171" }}>{error || "Project not found"}</div>;
+  // perms variable removed as it was unused
+  const canManage = canManageProject(project);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
-      {/* Detail Header */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <Link href="/dashboard/projects" style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>
-          ← Back to Projects
-        </Link>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{ maxWidth: "800px" }}>
-            <h1 style={{ fontSize: "2.5rem", fontWeight: 700, margin: 0, marginBottom: "0.75rem" }}>
-              {project.title}
-            </h1>
-            <p style={{ fontSize: "1.125rem", color: "rgba(255,255,255,0.6)", margin: 0, lineHeight: 1.6 }}>
-              {project.description || "No description provided for this project."}
-            </p>
+    <div className="space-y-10 animate-fade-in pb-12">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-5">
+            <Badge variant="secondary" className="bg-(--surface-200)! border-(--surface-300)! text-(--gray-400)! normal-case! tracking-normal!">
+              🏢 {project.account.name}
+            </Badge>
+            <Badge variant={project.status === "Completed" ? "success" : "warning"}>
+              {project.status}
+            </Badge>
           </div>
-          <div style={{ 
-            padding: "0.5rem 1rem", 
-            borderRadius: "100px", 
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            fontSize: "0.875rem",
-            fontWeight: 600
-          }}>
-            Status: <span style={{ color: project.status === "Completed" ? "#34d399" : "#fbbf24" }}>{project.status}</span>
-          </div>
+          <h1 className="text-5xl font-extrabold text-foreground mb-4 leading-tight tracking-tight">{project.title}</h1>
+          <p className="text-(--gray-400) max-w-3xl text-lg leading-relaxed">
+            {project.description || "Detailed architectural overview and structural coordination for this mission-critical development."}
+          </p>
+        </div>
+
+        <div className="flex gap-4 shrink-0">
+          {canEditProject(project) && (
+            <Button variant="outline" className="px-6">Edit Blueprint</Button>
+          )}
+          {canManage && (
+            <Button variant="danger" className="px-6">Archive Project</Button>
+          )}
         </div>
       </div>
 
-      {/* Grid Content */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "2.5rem" }}>
-        {/* Tasks Section */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>Project Tasks</h2>
-            {canManageProject && (
-              <button className="button-secondary" style={{ fontSize: "0.8125rem" }}>Add Task</button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Task List (Primary Column) */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex justify-between items-center bg-white/[0.02] p-5 rounded-2xl border border-white/5">
+            <div>
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-3">
+                📋 Execution Roadmap
+                <Badge variant="secondary" className="text-[10px] opacity-70">{project.tasks.length} Phases</Badge>
+              </h2>
+            </div>
+            {canEditProject(project) && (
+              <Button size="sm" variant="primary" leftIcon={<span>+</span>}>New Task</Button>
             )}
           </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {project.tasks.length === 0 ? (
-              <div style={{ padding: "2rem", textAlign: "center", background: "rgba(255,255,255,0.02)", borderRadius: "1rem", color: "rgba(255,255,255,0.3)" }}>
-                No tasks defined yet.
-              </div>
-            ) : (
-              project.tasks.map(task => (
-                <TaskItem 
-                  key={task.id} 
-                  task={task} 
-                  canUpdateStatus={canManageTasks}
-                  onStatusUpdate={handleTaskStatusUpdate}
-                />
+
+          <div className="grid gap-5">
+            {project.tasks.length > 0 ? (
+              project.tasks.map((task) => (
+                <TaskItem key={task.uid} task={task} />
               ))
+            ) : (
+              <div className="py-20 border-2 border-dashed border-white/5 rounded-3xl text-center">
+                <p className="text-(--gray-600) font-medium">No tasks scheduled for this phase.</p>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Sidebar Context */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-          {/* Members Card */}
-          <div className="card">
-            <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "1rem" }}>Project Team</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              {project.members.map(member => (
-                <div key={member.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <div style={{ 
-                    width: "32px", height: "32px", borderRadius: "50%", 
-                    background: "rgba(255,255,255,0.1)", display: "flex",
-                    alignItems: "center", justifyContent: "center", fontSize: "0.875rem" 
-                  }}>
-                    {member.user.name?.[0] || "?"}
+        {/* Members & Stats (Secondary Column) */}
+        <div className="space-y-10">
+          <Card hover={false} className="p-8 bg-surface-100! border-(--surface-300)!">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-(--gray-600) mb-6">
+              Assigned Specialists
+            </h3>
+            <div className="space-y-5">
+              {project.memberships.map((member) => (
+                <div key={member.id} className="flex justify-between items-center group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-(--surface-200) flex items-center justify-center text-sm font-bold text-foreground border border-white/5 group-hover:border-(--primary)/30 transition-all">
+                      {member.user.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-foreground group-hover:text-(--primary) transition-colors">{member.user.name}</p>
+                      <p className="text-[10px] font-medium text-(--gray-600) tracking-wide">{member.user.email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: "0.875rem", fontWeight: 600 }}>{member.user.name}</div>
-                    <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>{member.project_role}</div>
-                  </div>
+                  <Badge variant="secondary" className="capitalize! text-[9px]! tracking-tighter!">{member.role}</Badge>
                 </div>
               ))}
             </div>
-            {canManageProject && (
-              <button className="button-secondary" style={{ width: "100%", marginTop: "1rem", fontSize: "0.8125rem" }}>
-                 Manage Team
-              </button>
-            )}
-          </div>
+          </Card>
 
-          {/* Stats Card */}
-          <div className="card card-accent">
-            <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "1rem" }}>Financial Overview</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem" }}>
-                <span style={{ color: "rgba(255,255,255,0.5)" }}>Total Budget</span>
-                <span style={{ fontWeight: 600 }}>
-                  ${project.tasks.reduce((acc, t) => acc + Number(t.cost), 0).toLocaleString()}
-                </span>
+          <Card hover={false} className="p-8 bg-linear-to-br from-(--primary)/10 to-(--accent)/10 border-(--primary)/10!">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-(--gray-600) mb-6">
+              Development Context
+            </h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-(--gray-400) font-medium">Structural Lead</span>
+                <span className="text-foreground font-bold">{project.created_by.name}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem" }}>
-                <span style={{ color: "rgba(255,255,255,0.5)" }}>Completed Work</span>
-                <span style={{ fontWeight: 600, color: "#34d399" }}>
-                  ${project.tasks.filter(t => t.status === "Done").reduce((acc, t) => acc + Number(t.cost), 0).toLocaleString()}
-                </span>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-(--gray-400) font-medium">Tenant Root</span>
+                <span className="text-(--primary) font-black uppercase tracking-tighter">{project.account.name}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs pt-4 border-t border-white/5">
+                <span className="text-(--gray-400) font-medium">Node Reference</span>
+                <span className="text-(--gray-600) font-mono text-[9px]">{project.uid}</span>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>

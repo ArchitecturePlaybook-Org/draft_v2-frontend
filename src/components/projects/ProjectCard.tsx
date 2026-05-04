@@ -1,76 +1,63 @@
 import React from "react";
 import Link from "next/link";
 import { Project } from "@/types/projects";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 
 interface ProjectCardProps {
   project: Project;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
-  const statusColor = {
-    "To Start": "#fbbf24",
-    "Work in Progress": "#60a5fa",
-    "Completed": "#34d399",
-  }[project.status] || "rgba(255,255,255,0.2)";
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case "Completed": return "success";
+      case "Work in Progress": return "info";
+      default: return "warning";
+    }
+  };
 
   return (
-    <Link href={`/dashboard/projects/${project.id}`} style={{ textDecoration: "none" }}>
-      <div className="card card-hover" style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1rem",
-        padding: "1.5rem",
-        border: "1px solid rgba(255,255,255,0.06)",
-        transition: "transform 0.2s, border-color 0.2s",
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{
-            padding: "0.25rem 0.75rem",
-            borderRadius: "100px",
-            fontSize: "0.7rem",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            background: `${statusColor}20`,
-            color: statusColor,
-            border: `1px solid ${statusColor}40`
-          }}>
-            {project.status}
+    <Link href={`/dashboard/projects/${project.uid}`} className="block transition-transform active:scale-[0.98]">
+      <Card className="p-6 flex flex-col gap-5 min-h-60 bg-surface-100! border-(--surface-300)!">
+        <div className="flex justify-between items-start">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={getStatusVariant(project.status)}>
+              {project.status}
+            </Badge>
+            <Badge variant="secondary">
+              🏢 {project.account.name}
+            </Badge>
           </div>
-          <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)" }}>
-            #{project.id}
-          </span>
         </div>
 
-        <div>
-          <h3 style={{ fontSize: "1.25rem", fontWeight: 700, margin: "0 0 0.5rem 0" }}>
+        <div className="flex-1">
+          <h3 className="text-xl font-bold text-foreground mb-2 leading-tight group-hover:text-(--primary) transition-colors">
             {project.title}
           </h3>
-          <p style={{ 
-            fontSize: "0.875rem", 
-            color: "rgba(255,255,255,0.5)", 
-            margin: 0,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-            lineHeight: 1.5
-          }}>
+          <p className="text-sm text-(--gray-400) line-clamp-2 leading-relaxed">
             {project.description || "No description provided."}
           </p>
         </div>
 
-        <div style={{ marginTop: "auto", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.04)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", gap: "1rem", fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>
-            <span title="Tasks">📋 {project.tasks_count}</span>
-            <span title="Members">👥 {project.members_count}</span>
+        <div className="mt-auto pt-5 border-t border-white/5 flex justify-between items-center bg-white/[0.01] -mx-6 -mb-6 px-6 py-4">
+          <div className="flex gap-5">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-(--gray-400)">
+               <span className="text-sm text-(--primary) opacity-90">📋</span>
+               <span className="text-foreground text-xs">{project.tasks_count}</span>
+               <span className="opacity-40">Tasks</span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-(--gray-400)">
+               <span className="text-sm text-(--accent) opacity-90">👥</span>
+               <span className="text-foreground text-xs">{project.memberships_count}</span>
+               <span className="opacity-40">Members</span>
+            </div>
           </div>
-          <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)" }}>
-            {new Date(project.created_at).toLocaleDateString()}
+          <div className="text-[10px] font-black text-(--gray-600) uppercase tracking-[0.2em]">
+            {new Date(project.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
           </div>
         </div>
-      </div>
+      </Card>
     </Link>
   );
 };

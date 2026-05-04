@@ -109,7 +109,7 @@ export default function HomeRedesign() {
   }, []);
 
   return (
-    <div className="relative bg-white selection:bg-accent/10 selection:text-accent">
+    <div className="relative bg-background selection:bg-accent/10 selection:text-accent min-h-screen text-foreground">
       
       {/* Side Progress Navigation */}
       <div className={`fixed right-12 top-1/2 -translate-y-1/2 z-[1001] hidden xl:flex flex-col gap-8 transition-opacity duration-1000 ${
@@ -134,7 +134,7 @@ export default function HomeRedesign() {
       </div>
 
       {/* Hero Section */}
-      <section id="hero" className="min-h-screen flex items-center justify-center relative overflow-hidden bg-white px-8">
+      <section id="hero" className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background px-8">
         <div className="absolute inset-0 arch-grid opacity-10" />
         
         <div className="container max-w-7xl mx-auto relative z-20 text-center space-y-16">
@@ -142,17 +142,17 @@ export default function HomeRedesign() {
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 200 200"
-              className="w-24 h-24 lg:w-32 lg:h-32"
+              className="w-24 h-24 lg:w-32 lg:h-32 text-primary"
             >
-              <polygon points="50,0 0,200 100,200" fill="#111827" />
-              <polygon points="100,0 100,100 200,50" fill="#111827" />
+              <polygon points="50,0 0,200 100,200" fill="currentColor" />
+              <polygon points="100,0 100,100 200,50" fill="currentColor" />
             </svg>
             
             <div className="space-y-6">
-              <h1 className="text-8xl lg:text-[10rem] font-bold tracking-tighter text-primary leading-none lowercase select-none">
+              <h1 className="text-8xl lg:text-[10rem] font-extrabold tracking-tighter text-foreground leading-none lowercase select-none">
                 archplaybook
               </h1>
-              <p className="text-xl lg:text-3xl text-surface-600 font-medium tracking-tight max-w-2xl mx-auto">
+              <p className="text-xl lg:text-3xl text-gray-600 font-medium tracking-tight max-w-2xl mx-auto">
                 The platform where <span className="text-primary font-bold">architectural intent</span> stays alive from screen to site.
               </p>
             </div>
@@ -160,7 +160,7 @@ export default function HomeRedesign() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-10">
               <button
                 onClick={() => document.getElementById("step1")?.scrollIntoView({ behavior: "smooth" })}
-                className="group relative flex items-center gap-6 text-[13px] font-bold uppercase tracking-[0.4em] text-primary"
+                className="group relative flex items-center gap-6 text-[13px] font-bold uppercase tracking-[0.4em] text-foreground/60 hover:text-foreground transition-colors"
               >
                 <span>Read the Narrative</span>
                 <div className="w-12 h-[1px] bg-accent transition-all group-hover:w-24" />
@@ -168,7 +168,7 @@ export default function HomeRedesign() {
               
               <Link
                 href="/login"
-                className="bg-primary text-white px-12 py-5 text-[12px] font-bold uppercase tracking-[0.3em] hover:bg-accent transition-colors"
+                className="bg-primary text-white px-12 py-5 text-[12px] font-bold uppercase tracking-[0.3em] hover:bg-primary-hover transition-all shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)]"
               >
                 Connect to Playbook
               </Link>
@@ -178,7 +178,6 @@ export default function HomeRedesign() {
 
         {/* Hero Decorative Visuals */}
         <div className="absolute inset-x-0 bottom-0 top-1/2 pointer-events-none opacity-[0.03]">
-             {/* Large ghostly wireframe */}
              <svg viewBox="0 0 1000 500" className="w-full h-full text-primary">
                 <path d="M0 500 L500 0 L1000 500" stroke="currentColor" strokeWidth="1" fill="none" />
                 <path d="M100 500 L500 100 L900 500" stroke="currentColor" strokeWidth="1" fill="none" />
@@ -193,23 +192,23 @@ export default function HomeRedesign() {
       ))}
 
       {/* Footer / Final CTA */}
-      <footer className="py-48 bg-primary text-white relative overflow-hidden">
+      <footer className="py-48 bg-surface-50 text-foreground relative overflow-hidden border-t border-surface-200">
         <div className="absolute inset-0 arch-grid opacity-5 pointer-events-none" />
         
         <div className="container max-w-4xl mx-auto px-8 relative z-10 text-center space-y-16">
           <div className="space-y-6">
-            <h2 className="text-5xl lg:text-7xl font-bold tracking-tight">Your project deserves to be built exactly as you imagined.</h2>
-            <p className="text-xl text-white/60 font-medium max-w-xl mx-auto">Join the movement where every detail matters and every brick has a purpose.</p>
+            <h2 className="text-5xl lg:text-7xl font-bold tracking-tight text-foreground">Your project deserves to be built exactly as you imagined.</h2>
+            <p className="text-xl text-gray-600 font-medium max-w-xl mx-auto">Join the movement where every detail matters and every brick has a purpose.</p>
           </div>
 
           <Link
             href="/login"
-            className="inline-block border-2 border-white px-16 py-6 text-sm font-bold uppercase tracking-[0.4em] hover:bg-white hover:text-primary transition-all"
+            className="inline-block border-2 border-primary text-primary px-16 py-6 text-sm font-bold uppercase tracking-[0.4em] hover:bg-primary hover:text-white transition-all shadow-lg shadow-primary/10"
           >
             Launch Playbook
           </Link>
           
-          <div className="pt-24 text-[11px] font-bold uppercase tracking-[0.5em] text-white/20">
+          <div className="pt-24 text-[11px] font-bold uppercase tracking-[0.5em] text-foreground/40">
             © Architecture Playbook — 2026
           </div>
         </div>

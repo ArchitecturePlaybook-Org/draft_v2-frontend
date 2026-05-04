@@ -5,13 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth-store";
 
-const ROLE_DASHBOARD: Record<string, string> = {
-  architect: "/dashboard/admin",
-  co_owner: "/dashboard/admin",
-  constructor: "/dashboard/admin", 
-  client: "/dashboard/viewer",
-  admin: "/dashboard/admin",
-};
+
 
 const Modal = ({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
   if (!isOpen) return null;
@@ -48,11 +42,7 @@ export default function LoginPage() {
     setError("");
     try {
       const user = await login(email, password);
-      const userRole = (user && typeof user.role === "string") ? user.role : "unknown";
-      
-      const target = (Object.prototype.hasOwnProperty.call(ROLE_DASHBOARD, userRole))
-        ? ROLE_DASHBOARD[userRole]
-        : "/dashboard";
+      const target = "/dashboard";
       
       router.push(target);
     } catch (err) {

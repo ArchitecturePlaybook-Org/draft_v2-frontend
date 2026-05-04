@@ -29,7 +29,7 @@ const Navbar = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 h-nav z-50 transition-all duration-300 border-b flex items-center ${
+      className={`fixed top-0 left-0 right-0 h-topbar z-50 transition-all duration-300 border-b flex items-center ${
         scrolled
           ? "bg-white/95 backdrop-blur-md border-surface-200 shadow-sm"
           : "bg-white/80 backdrop-blur-sm border-transparent"
@@ -109,7 +109,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div
-        className={`fixed inset-0 bg-white z-[999] lg:hidden flex flex-col pt-nav transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-0 bg-white z-[999] lg:hidden flex flex-col pt-topbar transition-transform duration-300 ease-in-out ${
           isMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

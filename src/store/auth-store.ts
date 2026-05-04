@@ -25,7 +25,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const data = await apiClient.login(email, password);
+      const data = await apiClient.login(email, password) as { user: User };
       set({ user: data.user, isAuthenticated: true, isLoading: false });
       return data.user;
     } catch (err) {
@@ -40,14 +40,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
       await apiClient.logout();
     } finally {
       set({ user: null, isAuthenticated: false, isLoading: false });
-      window.location.href = "/login";
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
     }
   },
 
   fetchCurrentUser: async () => {
     set({ isLoading: true });
     try {
-      const user = await apiClient.me();
+      const user = await apiClient.me() as User;
       set({ user, isAuthenticated: true, isLoading: false });
     } catch {
       set({ user: null, isAuthenticated: false, isLoading: false });

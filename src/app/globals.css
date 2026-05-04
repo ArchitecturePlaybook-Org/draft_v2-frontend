@@ -1,29 +1,43 @@
 @import "tailwindcss";
 
 :root {
-  /* Architecture Playbook Theme - Light (Source Ref: ap-app) */
-  --background: #ffffff;
-  --foreground: #111827;
+  --background: #ffffff; /* White background */
+  --foreground: #09090b;
   
-  --primary: #111827;
-  --primary-hover: #29ad4a; /* Modern green from login.html */
+  /* Primary Identity */
+  --primary: #000000; /* Black primary color */
+  --primary-hover: #27272a;
   
-  --accent: #0055ff;
-  --accent-light: #4d88ff;
+  /* Accent Colors */
+  --accent: #2563eb;
+  --accent-light: #60a5fa;
   
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-600: #4b5563;
-  --gray-800: #1f2937;
+  /* Surface Layers (Light Depth) */
+  --surface-50: #f8fafc;   /* Subtle background */
+  --surface-100: #f1f5f9;  /* Default card surface */
+  --surface-200: #e2e8f0;  /* Hover highlights */
+  --surface-300: #cbd5e1;  /* Muted borders */
   
-  --section-bg: #f8f8f8;
-  --user-bubble: #f0f0f0;
-  --ai-bubble: #e8e8e8;
+  /* Grays */
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-400: #94a3b8;
+  --gray-600: #475569;
+  --gray-800: #1e293b;
   
-  --nav-height: 70px;
-  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --radius-auth: 12px;
-  --shadow-auth: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  /* Design Tokens */
+  --nav-width: 280px;
+  --nav-width-collapsed: 80px;
+  --topbar-height: 70px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  
+  /* Effects */
+  --shadow-premium: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @theme {
@@ -36,14 +50,23 @@
   --color-accent: var(--accent);
   --color-accent-light: var(--accent-light);
   
-  --color-surface-100: var(--gray-100);
-  --color-surface-200: var(--gray-200);
-  --color-surface-600: var(--gray-600);
-  --color-surface-800: var(--gray-800);
+  --color-surface-50: var(--surface-50);
+  --color-surface-100: var(--surface-100);
+  --color-surface-200: var(--surface-200);
+  --color-surface-300: var(--surface-300);
   
-  --color-section: var(--section-bg);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-400: var(--gray-400);
+  --color-gray-600: var(--gray-600);
+  --color-gray-800: var(--gray-800);
   
-  --spacing-nav: var(--nav-height);
+  --radius-lg: var(--radius-lg);
+  --radius-md: var(--radius-md);
+  --radius-sm: var(--radius-sm);
+  
+  --spacing-nav: var(--nav-width);
+  --spacing-topbar: var(--topbar-height);
   
   --animate-fade-in-up: fade-in-up 1.2s ease forwards;
   --animate-float: float 20s infinite ease-in-out;
@@ -100,73 +123,117 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   margin: 0;
-  padding-top: var(--nav-height);
 }
 
-/* --- Architectural Grid Background --- */
-.arch-grid {
-  position: absolute;
+/* --- Shared Layout Classes --- */
+.dashboard-shell {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--background);
+}
+
+.sidebar {
+  width: var(--nav-width);
+  background: var(--surface-50);
+  border-right: 1px solid var(--surface-300);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  transition: width var(--transition-smooth);
+  position: fixed;
   top: 0;
+  bottom: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    linear-gradient(rgba(0, 85, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 85, 255, 0.05) 1px, transparent 1px);
-  background-size: 50px 50px;
-  z-index: 1;
-  pointer-events: none;
+  z-index: 50;
 }
 
-/* --- Custom Components (Migrated from ap-app for shared reuse) --- */
-
-.auth-card {
-  background: #fff;
-  width: 100%;
-  max-width: 440px;
-  padding: 2.5rem;
-  border-radius: var(--radius-auth);
-  box-shadow: var(--shadow-auth);
-  border: 1px solid var(--gray-200);
-  text-align: center;
+.main-area {
+  flex: 1;
+  margin-left: var(--nav-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.input-field {
+.topbar {
+  height: var(--topbar-height);
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--surface-300);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.page-content {
+  padding: 2rem;
+  max-width: 1400px;
   width: 100%;
+  margin: 0 auto;
+}
+
+/* --- Premium UI Utilities --- */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-premium);
+}
+
+.card-hover {
+  transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--gray-200);
-  border-radius: 8px;
-  font-size: 0.95rem;
-  transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
-  outline: none;
-  background: white;
+  border-radius: var(--radius-md);
+  color: var(--gray-400);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all var(--transition-smooth);
+}
+
+.nav-item:hover, .nav-item.active {
+  background: var(--surface-200);
   color: var(--foreground);
 }
 
-.input-field:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05);
+.nav-item.active {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--primary);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.btn-primary {
-  width: 100%;
-  padding: 0.875rem;
-  background-color: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
   font-weight: 600;
-  cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.025em;
-  transition: background-color 0.2s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-}
-
-.btn-primary:active {
-  transform: scale(0.98);
+/* --- Utilities --- */
+.text-muted { color: var(--gray-400); }
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

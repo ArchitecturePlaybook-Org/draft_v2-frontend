@@ -1,87 +1,72 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAuthStore } from "@/store/auth-store";
-import { ProjectCard } from "@/components/projects/ProjectCard";
 import { Project } from "@/types/projects";
 import { apiClient } from "@/lib/api-client";
+import { ProjectCard } from "@/components/projects/ProjectCard";
+import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function ProjectsPage() {
-  const { user } = useAuthStore();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { isAdmin } = usePermissions();
 
   useEffect(() => {
     async function fetchProjects() {
       try {
-        const data = await apiClient.get<Project[]>("/api/projects/projects/");
-        setProjects(data);
+        const data = await apiClient.get<unknown>("/api/projects/projects/");
+        const paginatedData = data as { results?: Project[] } | Project[];
+        
+        if (Array.isArray(paginatedData)) {
+          setProjects(paginatedData);
+        } else if (paginatedData && Array.isArray(paginatedData.results)) {
+          setProjects(paginatedData.results);
+        }
       } catch (err) {
         console.error("Failed to fetch projects:", err);
-        setError("Unable to load projects. Please try again later.");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     }
     fetchProjects();
   }, []);
 
-  const canCreate = user?.role === "architect" || user?.role === "admin";
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-      {/* Page Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+    <div className="space-y-10 animate-fade-in">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 style={{ fontSize: "2rem", fontWeight: 700, margin: 0, marginBottom: "0.25rem" }}>
-            Active Projects
-          </h1>
-          <p style={{ color: "rgba(255,255,255,0.45)", margin: 0, fontSize: "0.9375rem" }}>
-            Overview of architectural works and ongoing developments.
+          <h1 className="text-4xl font-extrabold text-foreground mb-3 tracking-tight">Projects</h1>
+          <p className="text-(--gray-400) max-w-2xl leading-relaxed">
+            {isAdmin 
+              ? "System-wide overview of all active architectural projects, accounts, and cross-tenant collaborations across the platform." 
+              : "Manage and oversee your active architectural designs, construction workflows, and collaborative project data."}
           </p>
         </div>
-        {canCreate && (
-          <button className="button-primary" style={{ padding: "0.75rem 1.25rem", borderRadius: "100px" }}>
-             Initiate New Project
-          </button>
-        )}
+        <Button leftIcon={<span className="text-xl">+</span>} className="w-full md:w-auto">
+          New Project
+        </Button>
       </div>
 
-      {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "4rem" }}>
-          <div className="spinner"></div>
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-32">
+          <Spinner size="lg" label="Syncing project universe..." />
         </div>
-      ) : error ? (
-        <div style={{ 
-          padding: "2rem", 
-          background: "rgba(239,68,68,0.05)", 
-          border: "1px solid rgba(239,68,68,0.1)", 
-          borderRadius: "1rem",
-          color: "#f87171",
-          textAlign: "center"
-        }}>
-          {error}
-        </div>
-      ) : projects.length === 0 ? (
-        <div style={{ 
-          padding: "4rem", 
-          textAlign: "center", 
-          background: "rgba(255,255,255,0.02)", 
-          border: "1px dashed rgba(255,255,255,0.08)",
-          borderRadius: "1.5rem"
-        }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🏙️</div>
-          <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>No projects found</h3>
-          <p style={{ color: "rgba(255,255,255,0.4)" }}>
-            Get started by creating your first architectural project.
-          </p>
+      ) : projects.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+          {projects.map((project) => (
+            <ProjectCard key={project.uid} project={project} />
+          ))}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}>
-          {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
+        <div className="text-center py-24 glass-card border-(--surface-300)! bg-surface-100/50!">
+          <div className="text-4xl mb-6 opacity-40">🏗️</div>
+          <h3 className="text-xl font-bold text-foreground mb-2">No Projects Found</h3>
+          <p className="text-(--gray-400) max-w-sm mx-auto mb-8">
+            You don&apos;t have any active projects yet. start by creating your first architectural blueprint.
+          </p>
+          <Button variant="outline">Start Your First Project</Button>
         </div>
       )}
     </div>

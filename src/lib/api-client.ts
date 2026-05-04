@@ -46,6 +46,15 @@ async function fetchWithRefresh(
   return res;
 }
 
+async function safeJson<T>(res: Response): Promise<T> {
+  const text = await res.text().catch(() => "");
+  try {
+    return text ? JSON.parse(text) : {} as T;
+  } catch {
+    return {} as T;
+  }
+}
+
 export const apiClient = {
   async login(email: string, password: string) {
     const res = await fetchWithRefresh("/api/auth/login", {
@@ -54,10 +63,10 @@ export const apiClient = {
       skipAuth: true,
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
+      const err = await safeJson<Record<string, string>>(res);
       throw new Error(err.detail || err.message || "Login failed");
     }
-    return res.json();
+    return safeJson(res);
   },
 
   async logout() {
@@ -67,6 +76,50 @@ export const apiClient = {
   async me() {
     const res = await fetchWithRefresh("/api/auth/me");
     if (!res.ok) throw new Error("Failed to fetch user");
-    return res.json();
+    return safeJson(res);
+  },
+
+  // Generic methods
+  async get<T>(url: string, options: FetchOptions = {}): Promise<T> {
+    const res = await fetchWithRefresh(url, { ...options, method: "GET" });
+    if (!res.ok) {
+      const err = await safeJson<Record<string, string>>(res);
+      throw new Error(err.detail || err.message || "Request failed");
+    }
+    return safeJson<T>(res);
+  },
+
+  async post<T>(url: string, body: unknown, options: FetchOptions = {}): Promise<T> {
+    const res = await fetchWithRefresh(url, {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await safeJson<Record<string, string>>(res);
+      throw new Error(err.detail || err.message || "Request failed");
+    }
+    return safeJson<T>(res);
+  },
+
+  async patch<T>(url: string, body: unknown, options: FetchOptions = {}): Promise<T> {
+    const res = await fetchWithRefresh(url, {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await safeJson<Record<string, string>>(res);
+      throw new Error(err.detail || err.message || "Request failed");
+    }
+    return safeJson<T>(res);
+  },
+
+  async delete(url: string, options: FetchOptions = {}): Promise<void> {
+    const res = await fetchWithRefresh(url, { ...options, method: "DELETE" });
+    if (!res.ok) {
+      const err = await safeJson<Record<string, string>>(res);
+      throw new Error(err.detail || err.message || "Request failed");
+    }
   },
 };
