@@ -22,6 +22,16 @@ export interface Role {
   permissions_count?: number;
 }
 
+export interface UserProfile {
+  phone_number?: string;
+  bio?: string;
+  profile_picture?: string;
+  address?: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  website?: string;
+  social_links?: Record<string, unknown>;
+}
+
 export interface User {
   id: number;
   uid: string;
@@ -29,9 +39,31 @@ export interface User {
   name: string;
   category?: string; // Pulled from profile category slug
   role?: string | null;
+  user_type?: "architect" | "builder" | "contractor" | "supplier" | "client";
+  profile?: UserProfile;
   is_active: boolean;
   created_at: string;
   updated_at?: string;
+}
+
+export interface Organization {
+  id: number;
+  name: string;
+  slug: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  logo?: string;
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: "admin" | "employee";
+  organization_name: string;
+  invited_by_email: string;
+  is_accepted: boolean;
+  expires_at: string;
 }
 
 export interface AuthTokens {

@@ -122,4 +122,59 @@ export const apiClient = {
       throw new Error(err.detail || err.message || "Request failed");
     }
   },
+
+  async register(data: any) {
+    const res = await fetchWithRefresh("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+      skipAuth: true,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || "Registration failed");
+    }
+    return res.json();
+  },
+
+  async updateProfile(data: any) {
+    const res = await fetchWithRefresh("/api/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to update profile");
+    return res.json();
+  },
+
+  // Organizations
+  async createOrg(data: any) {
+    const res = await fetchWithRefresh("/api/orgs", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to create organization");
+    return res.json();
+  },
+
+  async listOrgs() {
+    const res = await fetchWithRefresh("/api/orgs");
+    if (!res.ok) throw new Error("Failed to fetch organizations");
+    return res.json();
+  },
+
+  async sendInvitation(orgId: number, data: any) {
+    const res = await fetchWithRefresh(`/api/orgs/${orgId}/invite`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to send invitation");
+    return res.json();
+  },
+
+  async acceptInvitation(token: string) {
+    const res = await fetchWithRefresh(`/api/orgs/invite/accept/${token}`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error("Failed to accept invitation");
+    return res.json();
+  },
 };
