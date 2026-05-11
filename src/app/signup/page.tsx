@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiClient } from "@/lib/api-client";
+import { authApi } from "@/domains/auth/api";
 import { useAuthStore } from "@/store/auth-store";
 
 type Step = 1 | 2 | 3;
@@ -23,7 +23,7 @@ export default function SignupPage() {
     password_confirm: "",
     name: "",
     user_type: "client",
-    metadata: {} as Record<string, any>,
+    metadata: {} as Record<string, unknown>,
   });
 
   const nextStep = () => setStep((s) => (s + 1) as Step);
@@ -35,7 +35,7 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      const data = await apiClient.register(formData);
+      const data = await authApi.register(formData);
       // Auto login after registration (mocked logic or separate login)
       // For now, redirect to login
       router.push("/login?registered=true");

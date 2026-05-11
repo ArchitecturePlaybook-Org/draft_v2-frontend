@@ -1,0 +1,35 @@
+import { fetchFromBff } from "@/shared/api/fetchFromBff";
+import { LoginResponse, User } from "@/types/auth";
+
+export const authApi = {
+  login: async (email: string, password: string) => {
+    return fetchFromBff<LoginResponse>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+      skipAuth: true,
+    });
+  },
+
+  logout: async () => {
+    return fetchFromBff<void>("/api/auth/logout", { method: "POST" });
+  },
+
+  me: async () => {
+    return fetchFromBff<User>("/api/auth/me", { method: "GET" });
+  },
+
+  register: async (data: Record<string, unknown>) => {
+    return fetchFromBff<LoginResponse>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+      skipAuth: true,
+    });
+  },
+
+  updateProfile: async (data: Record<string, unknown>) => {
+    return fetchFromBff<User>("/api/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+};

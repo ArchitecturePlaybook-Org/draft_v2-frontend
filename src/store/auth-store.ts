@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { User } from "@/types/auth";
-import { apiClient } from "@/lib/api-client";
+import { authApi } from "@/domains/auth/api";
 
 interface AuthStore {
   user: User | null;
@@ -25,7 +25,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const data = await apiClient.login(email, password) as { user: User };
+      const data = await authApi.login(email, password);
       set({ user: data.user, isAuthenticated: true, isLoading: false });
       return data.user;
     } catch (err) {
@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   logout: async () => {
     set({ isLoading: true });
     try {
-      await apiClient.logout();
+      await authApi.logout();
     } finally {
       set({ user: null, isAuthenticated: false, isLoading: false });
       if (typeof window !== "undefined") {
@@ -49,7 +49,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   fetchCurrentUser: async () => {
     set({ isLoading: true });
     try {
-      const user = await apiClient.me() as User;
+      const user = await authApi.me();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch {
       set({ user: null, isAuthenticated: false, isLoading: false });

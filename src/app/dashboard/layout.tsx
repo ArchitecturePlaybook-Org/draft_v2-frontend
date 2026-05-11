@@ -1,7 +1,6 @@
 "use client";
 
 import { Sidebar } from "@/components/layout/dashboard/Sidebar";
-import { Topbar } from "@/components/layout/dashboard/Topbar";
 
 export default function DashboardLayout({
   children,
@@ -15,8 +14,6 @@ export default function DashboardLayout({
 
       {/* Main Execution Area */}
       <main className="main-area">
-        <Topbar />
-        
         <div className="page-content">
           {children}
         </div>

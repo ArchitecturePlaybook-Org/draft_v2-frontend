@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api-client";
+import { orgsApi } from "@/domains/orgs/api";
 import { Organization, Invitation } from "@/types/auth";
 
 export default function OrganizationPage() {
@@ -24,7 +24,7 @@ export default function OrganizationPage() {
   async function loadOrgs() {
     setIsLoading(true);
     try {
-      const data = await apiClient.listOrgs();
+      const data = await orgsApi.listOrgs();
       setOrgs(data);
       if (data.length > 0) setSelectedOrg(data[0]);
     } catch (err) {
@@ -37,7 +37,7 @@ export default function OrganizationPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await apiClient.createOrg({ name: newOrgName, email: newOrgEmail });
+      await orgsApi.createOrg({ name: newOrgName, email: newOrgEmail });
       setNewOrgName("");
       setNewOrgEmail("");
       setShowCreate(false);
@@ -51,7 +51,7 @@ export default function OrganizationPage() {
     e.preventDefault();
     if (!selectedOrg) return;
     try {
-      await apiClient.sendInvitation(selectedOrg.id, { email: inviteEmail, role: "employee" });
+      await orgsApi.sendInvitation(selectedOrg.id, { email: inviteEmail, role: "employee" });
       setInviteEmail("");
       alert("Invitation sent successfully!");
     } catch (err) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
-import { apiClient } from "@/lib/api-client";
+import { authApi } from "@/domains/auth/api";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -10,7 +10,7 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState("");
 
-  const [metadata, setMetadata] = useState<Record<string, any>>({});
+  const [metadata, setMetadata] = useState<Record<string, unknown>>({});
   const [bio, setBio] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -26,7 +26,7 @@ export default function ProfilePage() {
     setIsLoading(true);
     setSuccess("");
     try {
-      const updatedProfile = await apiClient.updateProfile({
+      const updatedProfile = await authApi.updateProfile({
         bio,
         phone_number: phone,
         metadata,

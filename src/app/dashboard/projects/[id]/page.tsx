@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ProjectDetail } from "@/types/projects";
-import { apiClient } from "@/lib/api-client";
+import { projectsApi } from "@/domains/projects/api";
 import { usePermissions } from "@/hooks/use-permissions";
 import { TaskItem } from "@/components/projects/TaskItem";
 import { Button } from "@/components/ui/Button";
@@ -21,7 +21,7 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     async function fetchProject() {
       try {
-        const data = await apiClient.get<ProjectDetail>(`/api/projects/projects/${id}/`);
+        const data = await projectsApi.getProjectDetails(id);
         setProject(data);
       } catch (err) {
         console.error("Failed to fetch project:", err);

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Project } from "@/types/projects";
-import { apiClient } from "@/lib/api-client";
+import { projectsApi } from "@/domains/projects/api";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
@@ -16,7 +16,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     async function fetchProjects() {
       try {
-        const data = await apiClient.get<unknown>("/api/projects/projects/");
+        const data = await projectsApi.getProjects();
         const paginatedData = data as { results?: Project[] } | Project[];
         
         if (Array.isArray(paginatedData)) {
