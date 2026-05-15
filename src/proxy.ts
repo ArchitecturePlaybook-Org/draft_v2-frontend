@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Routes that require authentication
 const PROTECTED_ROUTES = ["/dashboard"];
-// Routes that authenticated users should not see
-const AUTH_ROUTES = ["/login", "/signup"];
+// Routes that authenticated users should not see (Guest only)
+const GUEST_ROUTES = ["/login", "/signup"];
+// Routes accessible to everyone
+const PUBLIC_ROUTES = ["/"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -11,23 +13,25 @@ export function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const isAuthenticated = !!accessToken || !!refreshToken;
 
-  // Redirect authenticated users away from auth pages
-  if (AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+  // Handle Guest Routes
+  if (GUEST_ROUTES.some((r) => pathname.startsWith(r))) {
     if (isAuthenticated) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.next();
   }
 
-  // Protect dashboard routes
+  // Handle Protected Routes
   if (PROTECTED_ROUTES.some((r) => pathname.startsWith(r))) {
     if (!isAuthenticated) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
+    return NextResponse.next();
   }
 
+  // Handle Public Routes (or implicitly fallback to next)
   return NextResponse.next();
 }
 

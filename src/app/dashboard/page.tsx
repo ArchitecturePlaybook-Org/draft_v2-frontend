@@ -36,9 +36,9 @@ export default function DashboardPage() {
           </div>
           
           <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-(--gray-400)">Role</span>
+            <span className="text-sm font-medium text-(--gray-400)">Classification</span>
             <span className="text-lg font-semibold text-foreground capitalize">
-              {user?.role ? user.role.replace("_", " ") : "N/A"}
+              {user?.category || user?.profile?.category_path?.main || "Professional"}
             </span>
           </div>
           

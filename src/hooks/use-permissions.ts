@@ -9,6 +9,13 @@ import { ProjectDetail, ProjectMembership } from "@/types/projects";
  * 1. Global Role (Architect, Client, etc.)
  * 2. Account-level Role (Owner, Member)
  * 3. Project-level Role (Manager, Editor, Viewer)
+ * 
+
+ * manager = {
+    "allowed" : ["billing", "communications", "project", "calendar"]
+    "denied" : ["subscription"]     
+}
+
  */
 export function usePermissions() {
   const { user } = useAuthStore();

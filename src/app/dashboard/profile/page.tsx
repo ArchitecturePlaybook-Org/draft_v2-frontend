@@ -64,7 +64,9 @@ export default function ProfilePage() {
           <div className="pb-4">
             <h1 className="text-3xl font-bold text-primary">{user.name}</h1>
             <div className="flex items-center gap-3 mt-1">
-                <span className="text-sm font-bold uppercase tracking-widest text-accent">{user.user_type}</span>
+                <span className="text-sm font-bold uppercase tracking-widest text-accent">
+                    {user.category || user.profile?.category_path?.main || "Professional"}
+                </span>
                 <span className="text-surface-600">•</span>
                 <span className="text-sm text-surface-600">{user.email}</span>
             </div>
@@ -130,6 +132,27 @@ export default function ProfilePage() {
                 )}
                 {success && <p className="text-green-600 text-sm font-medium">{success}</p>}
             </section>
+
+            {/* Industry Classifications Section */}
+            {user.profile?.category_path?.selected && Object.keys(user.profile.category_path.selected).length > 0 && (
+                <section className="bg-surface-50 p-8 border border-surface-200 rounded-2xl space-y-6">
+                    <h2 className="text-lg font-bold text-primary uppercase tracking-tighter">Industry Specializations</h2>
+                    <div className="space-y-6">
+                        {Object.entries(user.profile.category_path.selected).map(([group, specializations]) => (
+                            <div key={group} className="space-y-3">
+                                <h3 className="text-[11px] font-bold text-surface-600 uppercase tracking-widest border-b border-surface-200 pb-2">{group}</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {Array.isArray(specializations) ? specializations.map((spec, idx) => (
+                                        <span key={idx} className="px-3 py-1.5 bg-white border border-surface-200 text-primary text-sm font-medium rounded-md shadow-sm">
+                                            {spec}
+                                        </span>
+                                    )) : null}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
         </div>
 
         {/* Right Col: Metadata Specs */}

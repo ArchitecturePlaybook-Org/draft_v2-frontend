@@ -13,7 +13,14 @@ export const Sidebar: React.FC = () => {
   const memberLinks = [
     { label: "Overview", href: "/dashboard", icon: "📊" },
     { label: "My Projects", href: "/dashboard/projects", icon: "🏗️", permission: "projects:read" },
+    { label: "Calendar", href: "/dashboard/calendar", icon: "📅" },
+    { label: "Inbox", href: "/dashboard/inbox", icon: "📨" },
   ].filter(link => !link.permission || hasGlobalPermission(link.permission.split(":")[0], link.permission.split(":")[1]));
+
+  const settingsLinks = [
+    { label: "My Profile", href: "/dashboard/profile", icon: "👤" },
+    { label: "Subscription", href: "/dashboard/subscription", icon: "💳" },
+  ];
 
   return (
     <aside className="sidebar">
@@ -24,14 +31,27 @@ export const Sidebar: React.FC = () => {
         <span className="text-xl font-bold tracking-tight text-foreground">ArchPlaybook</span>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-1">
+      <nav className="flex-1 flex flex-col gap-6">
         <div>
           <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-(--gray-600) font-bold">
             Workplace
           </h4>
-          {memberLinks.map((link) => (
-            <SidebarLink key={link.href} {...link} active={pathname === link.href} />
-          ))}
+          <div className="flex flex-col gap-1">
+            {memberLinks.map((link) => (
+              <SidebarLink key={link.href} {...link} active={pathname === link.href} />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-(--gray-600) font-bold">
+            Settings
+          </h4>
+          <div className="flex flex-col gap-1">
+            {settingsLinks.map((link) => (
+              <SidebarLink key={link.href} {...link} active={pathname === link.href} />
+            ))}
+          </div>
         </div>
       </nav>
 

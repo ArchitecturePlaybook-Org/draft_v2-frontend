@@ -53,4 +53,22 @@ export const API_ROUTES: ApiRouteConfig[] = [
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     auth: true,
   },
+  {
+    prefix: "events",
+    target: "/api/events/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  {
+    prefix: "communications",
+    target: "/api/communications/inbox/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  {
+    prefix: "billing",
+    target: "/api/billing/subscription/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
 ];

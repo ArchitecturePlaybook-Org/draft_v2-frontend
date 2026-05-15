@@ -28,6 +28,10 @@ export interface UserProfile {
   profile_picture?: string;
   address?: Record<string, unknown>;
   metadata: Record<string, unknown>;
+  category_path?: {
+    main?: string;
+    selected?: Record<string, string[]>;
+  } | null;
   website?: string;
   social_links?: Record<string, unknown>;
 }

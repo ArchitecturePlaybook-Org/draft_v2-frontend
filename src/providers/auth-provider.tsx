@@ -13,13 +13,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Skip fetching user if already on the login page, but clear loading state
-    if (pathname === "/login") {
-      useAuthStore.getState().setUser(null);
-    } else {
-      fetchCurrentUser();
-    }
-  }, [pathname, fetchCurrentUser]);
+    // Middleware handles all route protection and redirects now.
+    // We just hydrate the state globally on page load.
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
 
   return <>{children}</>;
 }

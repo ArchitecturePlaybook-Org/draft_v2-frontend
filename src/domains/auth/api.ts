@@ -15,7 +15,7 @@ export const authApi = {
   },
 
   me: async () => {
-    return fetchFromBff<User>("/api/auth/me", { method: "GET" });
+    return fetchFromBff<User>("/api/auth/me", { method: "GET", skipAuth: true });
   },
 
   register: async (data: Record<string, unknown>) => {
