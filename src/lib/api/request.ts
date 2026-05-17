@@ -12,7 +12,10 @@ export async function buildBackendRequest(req: NextRequest): Promise<RequestInit
   if (["POST", "PUT", "PATCH"].includes(method)) {
     const contentType = req.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
-      body = await req.formData();
+      // We must buffer the form data if we want to be able to retry the request (e.g. on 401 refresh)
+      // because the raw req.body stream can only be consumed once.
+      const formData = await req.formData();
+      body = formData;
       headers.delete("content-type"); // let fetch handle boundary
     } else {
       body = await req.text();

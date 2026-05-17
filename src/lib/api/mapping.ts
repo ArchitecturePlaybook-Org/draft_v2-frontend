@@ -48,6 +48,12 @@ export const API_ROUTES: ApiRouteConfig[] = [
     auth: true,
   },
   {
+    prefix: "projects/task-asset-links",
+    target: "/api/projects/task-asset-links/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  {
     prefix: "projects",
     target: "/api/projects/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
@@ -68,6 +74,18 @@ export const API_ROUTES: ApiRouteConfig[] = [
   {
     prefix: "billing",
     target: "/api/billing/subscription/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  {
+    prefix: "users/leads",
+    target: "/api/users/leads/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  {
+    prefix: "users",
+    target: "/api/users/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     auth: true,
   },

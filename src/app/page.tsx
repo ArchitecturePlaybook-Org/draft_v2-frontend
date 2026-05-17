@@ -150,7 +150,7 @@ export default function HomeRedesign() {
             
             <div className="space-y-6">
               <h1 className="text-8xl lg:text-[10rem] font-extrabold tracking-tighter text-foreground leading-none lowercase select-none">
-                archplaybook
+                architecture playbook
               </h1>
               <p className="text-xl lg:text-3xl text-gray-600 font-medium tracking-tight max-w-2xl mx-auto">
                 The platform where <span className="text-primary font-bold">architectural intent</span> stays alive from screen to site.

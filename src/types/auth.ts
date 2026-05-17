@@ -52,12 +52,17 @@ export interface User {
 
 export interface Organization {
   id: number;
+  uid: string;
   name: string;
   slug: string;
+  tagline?: string;
   email?: string;
   phone?: string;
   website?: string;
+  address?: string;
   logo?: string;
+  metadata?: Record<string, unknown>;
+  social_links?: Record<string, string>;
 }
 
 export interface Invitation {

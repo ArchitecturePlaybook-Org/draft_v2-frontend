@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ArchPlaybook",
+  title: "Architecture Playbook",
   description: "Architecture Playbook — RBAC powered platform",
 };
 

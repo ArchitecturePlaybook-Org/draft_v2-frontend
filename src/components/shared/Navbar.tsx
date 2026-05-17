@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuthStore } from "@/store/auth-store";
 
 const Navbar = () => {
+  const { user, isAuthenticated } = useAuthStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
@@ -73,18 +75,30 @@ const Navbar = () => {
 
         {/* Action Buttons */}
         <div className="hidden lg:flex items-center gap-3">
-          <Link
-            href="/login"
-            className="text-[13px] font-semibold px-4 py-2 hover:bg-surface-100 rounded-md transition-colors"
-          >
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            className="bg-primary text-white text-[13px] font-semibold px-4 py-2 rounded-md hover:bg-primary-hover transition-colors"
-          >
-            Get Started
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="bg-primary text-white text-[13px] font-semibold px-6 py-2.5 rounded-full hover:bg-accent transition-all shadow-lg shadow-primary/10 flex items-center gap-2"
+            >
+              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">👤</div>
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-[13px] font-semibold px-4 py-2 hover:bg-surface-100 rounded-md transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                className="bg-primary text-white text-[13px] font-semibold px-4 py-2 rounded-md hover:bg-primary-hover transition-colors"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Hamburger Menu (Mobile) */}

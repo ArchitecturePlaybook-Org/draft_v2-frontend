@@ -1,63 +1,54 @@
 import React from "react";
 import Link from "next/link";
 import { Project } from "@/types/projects";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 
 interface ProjectCardProps {
   project: Project;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case "Completed": return "success";
-      case "Work in Progress": return "info";
-      default: return "warning";
-    }
-  };
-
   return (
-    <Link href={`/dashboard/projects/${project.uid}`} className="block transition-transform active:scale-[0.98]">
-      <Card className="p-6 flex flex-col gap-5 min-h-60 bg-surface-100! border-(--surface-300)!">
-        <div className="flex justify-between items-start">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant={getStatusVariant(project.status)}>
-              {project.status}
-            </Badge>
-            <Badge variant="secondary">
-              🏢 {project.account.name}
-            </Badge>
+    <Link href={`/dashboard/projects/${project.uid}`} className="block group h-full">
+      <div className="bg-white p-8 rounded-2xl border border-surface-200 hover:border-accent/40 shadow-sm hover:shadow-2xl transition-all h-full flex flex-col relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-full bg-primary/5 arch-grid opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" />
+        
+        <div className="flex justify-between items-start mb-6 relative z-10">
+          <div className="space-y-1">
+            <h3 className="font-bold text-lg text-primary tracking-tight group-hover:text-accent transition-colors">
+              {project.title}
+            </h3>
+            <p className="text-[9px] uppercase tracking-widest font-bold text-surface-400">
+              {project.uid} · {project.account.name}
+            </p>
           </div>
+          <span className={`px-3 py-1 text-[9px] font-bold uppercase tracking-[0.15em] rounded-md shadow-sm shrink-0 ${
+            project.status === 'Completed' ? 'bg-emerald-500 text-white' : 
+            project.status === 'Work in Progress' ? 'bg-primary text-white' : 'bg-surface-200 text-surface-600'
+          }`}>
+            {project.status}
+          </span>
         </div>
 
-        <div className="flex-1">
-          <h3 className="text-xl font-bold text-foreground mb-2 leading-tight group-hover:text-(--primary) transition-colors">
-            {project.title}
-          </h3>
-          <p className="text-sm text-(--gray-400) line-clamp-2 leading-relaxed">
-            {project.description || "No description provided."}
-          </p>
-        </div>
+        <p className="text-sm text-surface-500 line-clamp-2 leading-relaxed mb-8 flex-1 relative z-10">
+          {project.description || "No architectural specification provided."}
+        </p>
 
-        <div className="mt-auto pt-5 border-t border-white/5 flex justify-between items-center bg-white/[0.01] -mx-6 -mb-6 px-6 py-4">
-          <div className="flex gap-5">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-(--gray-400)">
-               <span className="text-sm text-(--primary) opacity-90">📋</span>
-               <span className="text-foreground text-xs">{project.tasks_count}</span>
-               <span className="opacity-40">Tasks</span>
+        <div className="pt-5 border-t border-surface-100 flex justify-between items-center mt-auto relative z-10">
+          <div className="flex gap-4">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-surface-400">
+               <span className="text-xs text-primary">📋</span>
+               <span>{project.tasks_count}</span>
             </div>
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-(--gray-400)">
-               <span className="text-sm text-(--accent) opacity-90">👥</span>
-               <span className="text-foreground text-xs">{project.memberships_count}</span>
-               <span className="opacity-40">Members</span>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-surface-400">
+               <span className="text-xs text-accent">👥</span>
+               <span>{project.memberships_count}</span>
             </div>
           </div>
-          <div className="text-[10px] font-black text-(--gray-600) uppercase tracking-[0.2em]">
+          <div className="text-[9px] font-bold text-surface-300 uppercase tracking-widest">
             {new Date(project.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
           </div>
         </div>
-      </Card>
+      </div>
     </Link>
   );
 };

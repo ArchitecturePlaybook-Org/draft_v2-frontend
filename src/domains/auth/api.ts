@@ -26,10 +26,19 @@ export const authApi = {
     });
   },
 
-  updateProfile: async (data: Record<string, unknown>) => {
+  updateProfile: async (data: any) => {
     return fetchFromBff<User>("/api/auth/profile", {
       method: "PATCH",
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
+    });
+  },
+
+  uploadAvatar: async (file: File) => {
+    const formData = new FormData();
+    formData.append("profile_picture", file);
+    return fetchFromBff<User>("/api/auth/profile", {
+      method: "PATCH",
+      body: formData,
     });
   },
 };

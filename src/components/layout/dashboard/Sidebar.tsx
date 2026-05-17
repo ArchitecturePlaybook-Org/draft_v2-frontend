@@ -11,11 +11,12 @@ export const Sidebar: React.FC = () => {
   const { isAdmin, hasGlobalPermission } = usePermissions();
 
   const memberLinks = [
-    { label: "Overview", href: "/dashboard", icon: "📊" },
-    { label: "My Projects", href: "/dashboard/projects", icon: "🏗️", permission: "projects:read" },
+    { label: "Dashboard", href: "/dashboard", icon: "📊" },
+    { label: "Business Leads", href: "/dashboard/leads", icon: "💼" },
+    { label: "Project Registry", href: "/dashboard/projects", icon: "🏗️" },
     { label: "Calendar", href: "/dashboard/calendar", icon: "📅" },
-    { label: "Inbox", href: "/dashboard/inbox", icon: "📨" },
-  ].filter(link => !link.permission || hasGlobalPermission(link.permission.split(":")[0], link.permission.split(":")[1]));
+    { label: "Messenger", href: "/dashboard/inbox", icon: "💬" },
+  ].filter(link => !(link as any).permission || hasGlobalPermission((link as any).permission.split(":")[0], (link as any).permission.split(":")[1]));
 
   const settingsLinks = [
     { label: "My Profile", href: "/dashboard/profile", icon: "👤" },
@@ -28,7 +29,7 @@ export const Sidebar: React.FC = () => {
         <div className="w-10 h-10 rounded-xl bg-(--primary) flex items-center justify-center text-xl shadow-lg shadow-(--primary)/20">
           🏗
         </div>
-        <span className="text-xl font-bold tracking-tight text-foreground">ArchPlaybook</span>
+        <span className="text-xl font-bold tracking-tight text-foreground">Architecture Playbook</span>
       </div>
 
       <nav className="flex-1 flex flex-col gap-6">

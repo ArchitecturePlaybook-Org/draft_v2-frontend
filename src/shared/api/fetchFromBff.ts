@@ -25,7 +25,7 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
     ...options,
     credentials: "include", // Essential for sending HttpOnly cookies to the BFF
     headers: {
-      "Content-Type": "application/json",
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...options.headers,
     },
   });
@@ -36,7 +36,15 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
     try {
       backendData = await res.json();
       const bd = backendData as Record<string, unknown>;
-      errorDetail = (bd.detail as string) || (bd.message as string) || errorDetail;
+      
+      if (bd.detail || bd.message) {
+        errorDetail = (bd.detail as string) || (bd.message as string);
+      } else {
+        // Handle field-specific validation errors: {"field": ["error"]}
+        errorDetail = Object.entries(bd)
+          .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(", ") : val}`)
+          .join(" | ");
+      }
     } catch {
       // ignore
     }
