@@ -49,6 +49,8 @@ export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
       response = status === 204 
         ? new NextResponse(null, { status: 204 })
         : NextResponse.json(data, { status });
+    } else if (currentStatus === 204) {
+      response = new NextResponse(null, { status: 204 });
     } else {
       // Stream binary data directly (images, pdfs, etc)
       const blob = await finalRes.blob();

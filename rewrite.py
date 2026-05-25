@@ -1,20 +1,18 @@
-import React, { useState, useRef } from "react";
-import { Task, ProjectAsset, TaskChecklistItem, SpatialZone, MilestonePhase } from "@/types/projects";
+import os
+
+file_path = "src/components/projects/TaskExecutionModal.tsx"
+content = """import React, { useState, useRef } from "react";
+import { Task, ProjectAsset, TaskChecklistItem } from "@/types/projects";
 import { usePermissions } from "@/hooks/use-permissions";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 import { FloorPlanGridViewer } from "./FloorPlanGridViewer";
-import { TaskMaterialTab } from "./TaskMaterialTab";
-import { TaskCommunicationPanel } from "./TaskCommunicationPanel";
-import ModelViewer from "@/components/ModelViewer";
-import { ImageLightbox } from "@/components/ui/ImageLightbox";
 
 interface TaskExecutionModalProps {
   task: Task;
   projectAssets: ProjectAsset[];
   onClose: () => void;
   onTaskUpdated: () => void;
-  projectUid?: string;
 }
 
 type TaskTab = "execution" | "boq" | "checklist" | "issues" | "drawing" | "comments";
@@ -23,8 +21,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   task: initialTask, 
   projectAssets,
   onClose,
-  onTaskUpdated,
-  projectUid
+  onTaskUpdated
 }) => {
   const { hasGlobalPermission, canEditProject } = usePermissions();
   const [task, setTask] = useState<Task>(initialTask);
@@ -38,50 +35,8 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   const [newIssueTitle, setNewIssueTitle] = useState("");
   const [newIssueDesc, setNewIssueDesc] = useState("");
   const [newIssueSeverity, setNewIssueSeverity] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
-  const [newIssueType, setNewIssueType] = useState("QUALITY");
-  const [newRootCause, setNewRootCause] = useState("POOR_WORKMANSHIP");
   const [showIssueForm, setShowIssueForm] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
-
-  const [zones, setZones] = useState<SpatialZone[]>([]);
-  const [phases, setPhases] = useState<MilestonePhase[]>([]);
-  const [selectedZoneId, setSelectedZoneId] = useState<string>("");
-  const [selectedPhaseId, setSelectedPhaseId] = useState<string>("");
-
-  // Drawing state
-  const [selectedAssetToLink, setSelectedAssetToLink] = useState<string>("");
-  const [fullScreenDrawingId, setFullScreenDrawingId] = useState<string | null>(null);
-  const [isFullScreen3D, setIsFullScreen3D] = useState(false);
-  const [isLinking, setIsLinking] = useState(false);
-  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
-  
-  React.useEffect(() => {
-    if (projectUid) {
-      projectsApi.getMatrix(projectUid).then(data => {
-        setZones(data.zones);
-        setPhases(data.phases);
-        if (task.block) {
-          const b = data.blocks.find(b => b.id === task.block);
-          if (b) {
-            setSelectedZoneId(b.zone_id.toString());
-            setSelectedPhaseId(b.phase_id.toString());
-          }
-        }
-      }).catch(err => console.error("Failed to fetch matrix data", err));
-    }
-  }, [projectUid, task.block]);
-
-  const handleUpdateMatrixLocation = async (zId: string, pId: string) => {
-    if (zId && pId) {
-      try {
-        await projectsApi.updateTask(task.uid, { zone_id: parseInt(zId), phase_id: parseInt(pId) });
-        await refreshTask();
-        toast.success("Matrix location updated.");
-      } catch (err: any) {
-        toast.error("Failed to update matrix location.");
-      }
-    }
-  };
 
   const isMatrixTask = task.block !== null && task.block !== undefined;
   // TODO: Use true roles from auth context, using generic flags for now
@@ -149,7 +104,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   const handleAddChecklistItem = async () => {
     if (!newChecklistDesc.trim()) return;
     try {
-      await projectsApi.createChecklistItem(task.uid, newChecklistDesc.trim());
+      await projectsApi.createChecklistItem(task.uid, newChecklistDesc.trim(), (task.checklists || []).length);
       setNewChecklistDesc("");
       await refreshTask();
       toast.success("Checklist item added.");
@@ -165,27 +120,22 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
     }
     setIsUpdating(true);
     try {
-      const files = photoRef.current?.files ? Array.from(photoRef.current.files) : [];
-      await projectsApi.createPunchListItem({
+      const photoFile = photoRef.current?.files?.[0];
+      await projectsApi.createTaskIssue({
         task: task.uid,
         title: newIssueTitle.trim(),
         description: newIssueDesc.trim(),
         severity: newIssueSeverity,
-        issue_type: newIssueType,
-        root_cause: newRootCause,
-        attachments: files,
+        photo_evidence: photoFile,
       });
       setNewIssueTitle("");
       setNewIssueDesc("");
       setNewIssueSeverity("MEDIUM");
-      setNewIssueType("QUALITY");
-      setNewRootCause("POOR_WORKMANSHIP");
-      if (photoRef.current) photoRef.current.value = "";
       setShowIssueForm(false);
       await refreshTask();
-      toast.success("Issue Tracker item raised successfully.");
+      toast.success("Issue raised successfully.");
     } catch (err: any) {
-      toast.error(err.message || "Failed to raise Issue Tracker item.");
+      toast.error(err.message || "Failed to raise issue.");
     } finally {
       setIsUpdating(false);
     }
@@ -193,11 +143,11 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
 
   const handleResolveIssue = async (issueId: number) => {
     try {
-      await projectsApi.resolvePunchListItem(issueId);
+      await projectsApi.resolveTaskIssue(issueId);
       await refreshTask();
-      toast.success("Issue Tracker item resolved.");
+      toast.success("Issue resolved.");
     } catch (err: any) {
-      toast.error(err.message || "Failed to resolve item.");
+      toast.error(err.message || "Failed to resolve issue.");
     }
   };
 
@@ -207,37 +157,9 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
     toast.success("Share link copied to clipboard!");
   };
 
-  const handleLinkDrawing = async () => {
-    if (!selectedAssetToLink) return;
-    setIsLinking(true);
-    try {
-      await projectsApi.linkAssetToTask(task.uid, selectedAssetToLink);
-      await refreshTask();
-      toast.success("Drawing linked successfully.");
-      setSelectedAssetToLink("");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to link drawing.");
-    } finally {
-      setIsLinking(false);
-    }
-  };
-
-  const handleUnlinkDrawing = async (linkId: number) => {
-    setIsLinking(true);
-    try {
-      await projectsApi.unlinkAssetFromTask(linkId);
-      await refreshTask();
-      toast.success("Drawing unlinked.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to unlink drawing.");
-    } finally {
-      setIsLinking(false);
-    }
-  };
-
   // Matrix variables
   const checklists = task.checklists || [];
-  const issues = task.punch_list_items || [];
+  const issues = task.issues || [];
   const uncheckedCount = checklists.filter((i: any) => !i.is_completed).length;
   const openIssueCount = issues.filter((i: any) => !i.is_resolved).length;
   
@@ -250,15 +172,10 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
     { id: "execution", label: isMatrixTask ? "Progress & Timeline" : "Execution Details" },
     { id: "checklist", label: "Checklists & QA" },
     { id: "issues", label: "Issue Tracker" },
-    { id: "boq", label: "Materials & Requisition", hidden: isContractor },
-    { id: "drawing", label: "Context & Models", hidden: !isMatrixTask },
+    { id: "boq", label: "Cost & BoQ", hidden: isContractor },
+    { id: "drawing", label: "BIM Context", hidden: !isMatrixTask },
+    { id: "comments", label: "Communications" },
   ];
-
-  const linked2dPlanLinks = task.asset_links?.filter(l => l.latest_asset?.category === "2d_plan") || [];
-  const linked3dModelLink = task.asset_links?.find(l => l.latest_asset?.category === "3d_model");
-  const linked3dModel = linked3dModelLink?.latest_asset;
-
-  const linked2dPlanUids = new Set(linked2dPlanLinks.map(l => l.latest_asset?.canonical_uid));
 
   return (
     <div className="fixed inset-0 z-50 flex animate-fade-in bg-surface-900/60 backdrop-blur-md overflow-hidden">
@@ -271,8 +188,8 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
           <div className="relative z-10 flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border ${
-                currentStatus === "DONE" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
-                currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
+                currentStatus === "Done" || currentStatus === "DONE" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
+                currentStatus === "In Progress" || currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
                 currentStatus === "QA" ? "bg-amber-50 text-amber-600 border-amber-200" :
                 "bg-surface-200 text-surface-600 border-surface-300"
               }`}>
@@ -351,10 +268,8 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
               
               {/* EXECUTION / PROGRESS TAB */}
               {activeTab === "execution" && (
-                <div className="flex flex-col lg:flex-row gap-8 max-w-[1400px] h-[calc(100vh-280px)]">
-                  {/* Main Execution Content */}
-                  <div className="flex-1 space-y-8 overflow-y-auto pr-2 pb-8 max-w-4xl">
-                    {/* If Matrix, show quantity progress */}
+                <div className="max-w-4xl space-y-8">
+                  {/* If Matrix, show quantity progress */}
                   {isMatrixTask && (
                     <div className="bg-white rounded-2xl border border-surface-200 p-6 flex items-center gap-6 shadow-sm">
                       <div className="relative w-20 h-20 shrink-0">
@@ -414,47 +329,6 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                     </div>
                   )}
 
-                  {/* Matrix Location */}
-                  <div>
-                    <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Matrix Location</h3>
-                    <div className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm space-y-8">
-                      <div className="grid grid-cols-2 gap-8">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Zone</label>
-                          <select 
-                            value={selectedZoneId}
-                            onChange={(e) => {
-                              setSelectedZoneId(e.target.value);
-                              handleUpdateMatrixLocation(e.target.value, selectedPhaseId);
-                            }}
-                            className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none"
-                          >
-                            <option value="" disabled>Select Zone...</option>
-                            {zones.map(z => (
-                              <option key={z.id} value={z.id}>{z.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Phase</label>
-                          <select 
-                            value={selectedPhaseId}
-                            onChange={(e) => {
-                              setSelectedPhaseId(e.target.value);
-                              handleUpdateMatrixLocation(selectedZoneId, e.target.value);
-                            }}
-                            className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none"
-                          >
-                            <option value="" disabled>Select Phase...</option>
-                            {phases.map(p => (
-                              <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Standard Directives & Timeline */}
                   <div>
                     <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Timeline & Directives</h3>
@@ -500,12 +374,6 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                         />
                       </div>
                     </div>
-                  </div>
-                  </div>
-
-                  {/* Communication Side Panel */}
-                  <div className="w-[380px] shrink-0 border-l border-surface-200 pl-8 hidden lg:flex flex-col h-full">
-                    <TaskCommunicationPanel task={task} onCommentAdded={refreshTask} />
                   </div>
                 </div>
               )}
@@ -595,30 +463,14 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                             }`}>
                               {issue.severity === "HIGH" ? "🚨 Blocker" : issue.severity}
                             </span>
-                            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 border border-surface-200">
-                              {issue.issue_type} | {issue.root_cause}
-                            </span>
                             {issue.is_resolved && (
                               <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">✓ Resolved</span>
                             )}
                           </div>
                           <h5 className="font-bold text-sm text-primary">{issue.title}</h5>
                           <p className="text-xs text-surface-500 mt-1 leading-relaxed">{issue.description}</p>
-                          {issue.attachments && issue.attachments.length > 0 && (
-                            <div className="flex gap-2 mt-3">
-                              {issue.attachments.map((att: any) => (
-                                <button 
-                                  key={att.id} 
-                                  onClick={() => setLightboxImageUrl(att.file)}
-                                  className="w-16 h-16 rounded-lg overflow-hidden border border-surface-200 block hover:opacity-80 transition-opacity cursor-pointer focus:outline-none"
-                                >
-                                  <img src={att.file} className="w-full h-full object-cover" />
-                                </button>
-                              ))}
-                            </div>
-                          )}
                         </div>
-                        {!issue.is_resolved && isAdmin && (
+                        {!issue.is_resolved && (isAdmin || isQA) && (
                           <button
                             onClick={() => handleResolveIssue(issue.id)}
                             className="shrink-0 h-8 px-3 bg-emerald-100 text-emerald-700 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-emerald-500 hover:text-white transition-all"
@@ -633,72 +485,46 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   {issues.length === 0 && !showIssueForm && (
                     <div className="bg-white rounded-2xl border border-surface-200 p-10 text-center shadow-sm">
                       <p className="text-3xl mb-2">🟢</p>
-                      <p className="text-sm font-bold text-surface-400">No issue tracker items reported</p>
+                      <p className="text-sm font-bold text-surface-400">No issues reported</p>
                     </div>
                   )}
 
                   {showIssueForm ? (
                     <div className="bg-white rounded-2xl border border-surface-200 p-5 space-y-4 shadow-sm">
-                      <h4 className="text-sm font-bold text-primary">Add Issue Tracker Item</h4>
+                      <h4 className="text-sm font-bold text-primary">Report New Issue</h4>
                       <input
                         type="text"
                         value={newIssueTitle}
                         onChange={e => setNewIssueTitle(e.target.value)}
-                        placeholder="Observation title..."
+                        placeholder="Issue title..."
                         className="w-full h-11 bg-surface-50 border border-surface-200 rounded-xl px-4 outline-none focus:border-accent text-sm font-medium"
                       />
                       <textarea
                         value={newIssueDesc}
                         onChange={e => setNewIssueDesc(e.target.value)}
-                        placeholder="Describe the observation..."
+                        placeholder="Describe the issue in detail..."
                         rows={3}
                         className="w-full bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 outline-none focus:border-accent text-sm font-medium resize-none"
                       />
-                      <div className="grid grid-cols-3 gap-3 items-center">
-                        <select
-                          value={newIssueType}
-                          onChange={e => setNewIssueType(e.target.value)}
-                          className="h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-bold text-primary"
-                        >
-                          <option value="QUALITY">Quality</option>
-                          <option value="SAFETY">Safety</option>
-                          <option value="DESIGN">Design</option>
-                          <option value="PROCUREMENT">Procurement</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                        <select
-                          value={newRootCause}
-                          onChange={e => setNewRootCause(e.target.value)}
-                          className="h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-bold text-primary"
-                        >
-                          <option value="POOR_WORKMANSHIP">Poor Workmanship</option>
-                          <option value="WEATHER">Weather</option>
-                          <option value="MATERIAL_DEFECT">Material Defect</option>
-                          <option value="SCOPE_GAP">Scope Gap</option>
-                          <option value="OTHER">Other</option>
-                        </select>
+                      <div className="flex gap-3 items-center">
                         <select
                           value={newIssueSeverity}
                           onChange={e => setNewIssueSeverity(e.target.value as any)}
-                          className="h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-bold text-primary"
+                          className="h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-bold text-primary flex-1"
                         >
                           <option value="LOW">Low</option>
                           <option value="MEDIUM">Medium</option>
                           <option value="HIGH">High / Blocker</option>
                         </select>
                       </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest block mb-2">Photo Evidence</label>
-                        <input type="file" ref={photoRef} accept="image/*" multiple className="text-sm font-bold text-surface-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-100 file:text-primary hover:file:bg-surface-200" />
-                      </div>
-                      <div className="flex gap-2 justify-end mt-4">
+                      <div className="flex gap-2 justify-end">
                         <button onClick={() => setShowIssueForm(false)} className="h-9 px-4 text-surface-500 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-100 transition-all">Cancel</button>
                         <button
                           onClick={handleCreateIssue}
                           disabled={isUpdating}
                           className="h-9 px-5 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all disabled:opacity-40"
                         >
-                          {isUpdating ? "Saving..." : "Add Item"}
+                          {isUpdating ? "Saving..." : "Raise Issue"}
                         </button>
                       </div>
                     </div>
@@ -707,193 +533,85 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                       onClick={() => setShowIssueForm(true)}
                       className="w-full py-3 border-2 border-dashed border-surface-300 rounded-xl text-surface-500 font-bold text-xs uppercase tracking-widest hover:border-red-400 hover:text-red-500 transition-colors"
                     >
-                      + Add Issue Tracker Item
+                      + Report Issue / Snag
                     </button>
                   )}
                 </div>
               )}
 
-              {/* BOQ / MATERIALS TAB */}
+              {/* BOQ TAB */}
               {activeTab === "boq" && (
                 <div className="max-w-4xl space-y-4">
-                  <TaskMaterialTab 
-                    task={task}
-                    isMatrixTask={isMatrixTask}
-                    estimatedCost={estimatedCost}
-                    burnCost={burnCost}
-                    variance={variance}
-                    isOverBudget={isOverBudget}
-                    onRefreshTask={refreshTask}
-                    isContractor={isContractor}
-                    isAdmin={isAdmin}
-                    phaseId={selectedPhaseId ? parseInt(selectedPhaseId) : undefined}
-                  />
+                  {isMatrixTask ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        {[
+                          { label: "Estimated Cost", value: `$${estimatedCost.toLocaleString("en", { minimumFractionDigits: 2 })}`, color: "text-primary", bg: "bg-white" },
+                          { label: "Actual Burn", value: `$${burnCost.toLocaleString("en", { minimumFractionDigits: 2 })}`, color: "text-primary", bg: "bg-white" },
+                          {
+                            label: "Variance",
+                            value: `${variance >= 0 ? "+" : ""}$${Math.abs(variance).toLocaleString("en", { minimumFractionDigits: 2 })}`,
+                            color: isOverBudget ? "text-red-600" : "text-emerald-600",
+                            bg: isOverBudget ? "bg-red-50" : "bg-emerald-50",
+                          },
+                        ].map(m => (
+                          <div key={m.label} className={`${m.bg} rounded-2xl border border-surface-200 p-5 shadow-sm`}>
+                            <p className="text-[9px] font-bold text-surface-400 uppercase tracking-widest mb-2">{m.label}</p>
+                            <p className={`text-2xl font-black tabular-nums ${m.color}`}>{m.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm">
+                        <p className="text-[9px] font-bold text-surface-400 uppercase tracking-widest mb-3">Pricing Detail</p>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-surface-500 font-medium">Unit Rate</span>
+                            <span className="font-bold text-primary">${parseFloat(task.unit_rate as any || '0').toFixed(2)} / {task.quantity_unit || "unit"}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-surface-500 font-medium">Target Qty</span>
+                            <span className="font-bold text-primary">{task.quantity_target ?? "—"} {task.quantity_unit}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-surface-500 font-medium">Completed Qty</span>
+                            <span className="font-bold text-primary">{task.quantity_completed || 0} {task.quantity_unit}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl border border-surface-200 p-8 text-center shadow-sm">
+                      <p className="text-sm font-bold text-surface-400">Bill of Quantities is only available for field Matrix tasks.</p>
+                      <p className="text-xs text-surface-400 mt-2">Generic task budget is: ${Number(task.cost || 0).toLocaleString()}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* DRAWING TAB */}
-              {activeTab === "drawing" && isMatrixTask && (
-                <div className="w-full h-full overflow-y-auto pb-4">
-                  <div className={`grid gap-6 h-full min-h-0 ${(linked2dPlanLinks.length > 0) && linked3dModel ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 max-w-4xl'}`}>
-                  {/* 2D Plan Section */}
-                  {linked2dPlanLinks.length > 0 && (
-                    <div className="flex-none flex flex-col min-h-[500px] bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden p-4 shrink-0">
-                      <div className="flex justify-between items-center mb-4 shrink-0">
-                        <div>
-                          <h4 className="text-sm font-bold text-primary">Linked 2D Plans</h4>
-                          <p className="text-[10px] text-surface-400 uppercase tracking-widest font-bold">{linked2dPlanLinks.length} drawing{linked2dPlanLinks.length > 1 ? 's' : ''} attached</p>
-                        </div>
-                      </div>
-                      <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-                        {linked2dPlanLinks.map(link => {
-                          const asset = link.latest_asset;
-                          if (!asset) return null;
-                          return (
-                            <div key={link.id} className="border border-surface-200 rounded-xl overflow-hidden bg-surface-50 p-3 shadow-sm">
-                              <div className="flex justify-between items-center mb-3">
-                                <h5 className="text-xs font-bold text-primary truncate pr-4">{asset.title}</h5>
-                                <button 
-                                  onClick={() => handleUnlinkDrawing(link.id)}
-                                  disabled={isLinking}
-                                  className="h-7 px-3 shrink-0 bg-red-50 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
-                                >
-                                  Unlink
-                                </button>
-                              </div>
-                              <div className="relative min-h-[350px]">
-                                <FloorPlanGridViewer 
-                                  asset={asset} 
-                                  inline 
-                                  onRefresh={refreshTask} 
-                                  onToggleFullScreen={() => setFullScreenDrawingId(asset.canonical_uid)}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 3D Model Section */}
-                  {linked3dModel && (
-                    <div className="flex-none flex flex-col min-h-[500px] bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden p-4 shrink-0">
-                      <div className="flex justify-between items-center mb-4">
-                        <div>
-                          <h4 className="text-sm font-bold text-primary">{linked3dModel.title}</h4>
-                          <p className="text-[10px] text-surface-400 uppercase tracking-widest font-bold">Linked 3D Model</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => setIsFullScreen3D(true)}
-                            className="h-8 px-4 bg-surface-100 text-surface-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-surface-200 hover:text-primary transition-all"
-                          >
-                            Full Screen
-                          </button>
-                          <button 
-                            onClick={() => handleUnlinkDrawing(linked3dModelLink!.id)}
-                            disabled={isLinking}
-                            className="h-8 px-4 bg-red-50 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
-                          >
-                            Unlink
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex-1 relative min-h-[400px] rounded-xl overflow-hidden border border-surface-200 bg-slate-50">
-                        {!isFullScreen3D && (
-                          <ModelViewer 
-                            url={linked3dModel.file} 
-                            format={linked3dModel.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'} 
-                          />
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Linking UI */}
-                  {projectAssets.filter(a => 
-                    (a.category === "2d_plan" && !linked2dPlanUids.has(a.canonical_uid)) || 
-                    (a.category === "3d_model" && !linked3dModel)
-                  ).length > 0 && (
-                    <div className="bg-white rounded-2xl border border-surface-200 p-10 text-center shadow-sm space-y-6 shrink-0">
-                      <div>
-                        <p className="text-3xl mb-2">📐</p>
-                        <p className="text-sm font-bold text-surface-400">Context & Models</p>
-                        <p className="text-xs text-surface-400 mt-2">Link 2D Floorplans or 3D Models to this task.</p>
-                      </div>
-                      
-                      <div className="max-w-sm mx-auto p-5 bg-surface-50 rounded-xl border border-surface-200 text-left space-y-4">
-                        <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-widest">Select Asset to Link</label>
-                        <select 
-                          value={selectedAssetToLink}
-                          onChange={e => setSelectedAssetToLink(e.target.value)}
-                          className="w-full h-11 bg-white border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
-                        >
-                          <option value="" disabled>Select Asset...</option>
-                          {projectAssets
-                            .filter(a => 
-                              (a.category === "2d_plan" && !linked2dPlanUids.has(a.canonical_uid)) || 
-                              (a.category === "3d_model" && !linked3dModel)
-                            )
-                            .map(a => (
-                              <option key={a.canonical_uid} value={a.canonical_uid}>{a.category === "3d_model" ? "🏛️ " : "📐 "}{a.title}</option>
-                          ))}
-                        </select>
-                        <button 
-                          onClick={handleLinkDrawing}
-                          disabled={!selectedAssetToLink || isLinking}
-                          className="w-full h-11 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
-                        >
-                          {isLinking ? "Linking..." : "Link Asset"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+              {/* COMMENTS / DRAWING TABS */}
+              {activeTab === "comments" && (
+                <div className="max-w-4xl bg-white rounded-2xl border border-surface-200 p-10 text-center shadow-sm">
+                  <p className="text-3xl mb-2">💬</p>
+                  <p className="text-sm font-bold text-surface-400">Communications feature coming soon.</p>
                 </div>
-              </div>
-            )}
+              )}
+              {activeTab === "drawing" && isMatrixTask && (
+                <div className="max-w-4xl bg-white rounded-2xl border border-surface-200 p-10 text-center shadow-sm">
+                  <p className="text-3xl mb-2">📐</p>
+                  <p className="text-sm font-bold text-surface-400">BIM and Drawing Context View</p>
+                  <p className="text-xs text-surface-400 mt-2">Web-IFC Viewer will be integrated here.</p>
+                </div>
+              )}
 
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Full Screen Drawing Modal Overlay */}
-      {fullScreenDrawingId && (
-        <FloorPlanGridViewer 
-          asset={linked2dPlanLinks.find(l => l.latest_asset?.canonical_uid === fullScreenDrawingId)?.latest_asset!} 
-          onClose={() => setFullScreenDrawingId(null)} 
-          onRefresh={refreshTask} 
-        />
-      )}
-
-      {/* Full Screen 3D Model Modal Overlay */}
-      {isFullScreen3D && linked3dModel && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-6xl h-[80vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl relative">
-            <button 
-              onClick={() => setIsFullScreen3D(false)}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/50 hover:bg-white rounded-full flex items-center justify-center text-lg shadow-sm transition-colors text-surface-900 font-bold"
-            >
-              ✕
-            </button>
-            <div className="flex-1 w-full h-full bg-slate-100">
-              <ModelViewer 
-                url={linked3dModel.file} 
-                format={linked3dModel.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'} 
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Image Lightbox */}
-      {lightboxImageUrl && (
-        <ImageLightbox 
-          imageUrl={lightboxImageUrl} 
-          onClose={() => setLightboxImageUrl(null)} 
-        />
-      )}
     </div>
   );
 };
+"""
+
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(content)
+print("Done")

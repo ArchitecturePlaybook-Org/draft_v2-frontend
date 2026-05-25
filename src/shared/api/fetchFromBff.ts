@@ -22,6 +22,7 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
   const fullUrl = `${baseURL}${path}`;
 
   const res = await fetch(fullUrl, {
+    cache: "no-store",
     ...options,
     credentials: "include", // Essential for sending HttpOnly cookies to the BFF
     headers: {

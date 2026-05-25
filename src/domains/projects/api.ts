@@ -1,11 +1,22 @@
 import { fetchFromBff } from "@/shared/api/fetchFromBff";
-import { Project, ProjectDetail, TaskAssetLink } from "@/types/projects";
+import {
+  Project, ProjectDetail, TaskAssetLink,
+  MatrixPayload, ExpandedFeedPayload, Task,
+  WorkPackageTemplate, SpatialZone, MilestonePhase, AIZoneResult,
+  BOQItem, TaskMaterialAllocation, TaskComment
+} from "@/types/projects";
 
 export interface PaginatedResponse<T> {
   count: number;
   next: string | null;
   previous: string | null;
   results: T[];
+}
+
+function unpackArray<T>(res: any): T[] {
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.results)) return res.results;
+  return [];
 }
 
 export const projectsApi = {
@@ -35,15 +46,89 @@ export const projectsApi = {
     return fetchFromBff<void>(`/api/projects/projects/${projectId}/members/${userId}/`, { method: "DELETE" });
   },
 
-  createTask: async (data: { project: number; title: string; description?: string; cost?: number; start_date?: string; end_date?: string }) => {
+  getTask: async (taskId: string) => {
+    return fetchFromBff<any>(`/api/projects/tasks/${taskId}/`, { method: "GET" });
+  },
+
+  createTask: async (data: { project: number; title: string; [key: string]: any }) => {
     return fetchFromBff<any>("/api/projects/tasks/", { method: "POST", body: JSON.stringify(data) });
   },
 
-  updateTask: async (taskId: string, data: Partial<{ title: string; description: string; cost: number; status: string; start_date: string; end_date: string }>) => {
+  updateTask: async (taskId: string, data: Partial<any>) => {
     return fetchFromBff<any>(`/api/projects/tasks/${taskId}/`, { method: "PATCH", body: JSON.stringify(data) });
   },
 
+  // ── Checklist Items ───────────────────────────────────────────────────────
+  createChecklistItem: async (taskUid: string, title: string) => {
+    return fetchFromBff<any>(`/api/projects/task-checklists/`, {
+      method: "POST",
+      body: JSON.stringify({ task: taskUid, title: title, is_completed: false })
+    });
+  },
+
+  updateChecklistItem: async (itemId: number, isCompleted: boolean) => {
+    // Assuming backend checklist update expects just is_completed or toggles it
+    return fetchFromBff<any>(`/api/projects/task-checklists/${itemId}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_completed: isCompleted })
+    });
+  },
+
+  // ── Issues ────────────────────────────────────────────────────────────────
+  getPunchListItems: async (projectUid: string) => {
+    const res = await fetchFromBff<any>(`/api/projects/punch-list-items/?project_uid=${projectUid}`, { method: "GET" });
+    return unpackArray<any>(res);
+  },
+
+  createPunchListItem: async (data: { 
+    task: string | number; 
+    title: string; 
+    description: string; 
+    severity: string; 
+    issue_type: string;
+    root_cause: string;
+    attachments?: File[] 
+  }) => {
+    const formData = new FormData();
+    formData.append("task", data.task.toString());
+    formData.append("title", data.title);
+    formData.append("description", data.description);
+    formData.append("severity", data.severity);
+    formData.append("issue_type", data.issue_type);
+    formData.append("root_cause", data.root_cause);
+    if (data.attachments && data.attachments.length > 0) {
+      data.attachments.forEach((file) => {
+        formData.append("attachments", file);
+      });
+    }
+    
+    return fetchFromBff<any>(`/api/projects/punch-list-items/`, {
+      method: "POST",
+      body: formData
+    });
+  },
+
+  resolvePunchListItem: async (itemId: number) => {
+    return fetchFromBff<any>(`/api/projects/punch-list-items/${itemId}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_resolved: true })
+    });
+  },
+
+  // ── Task Comments ────────────────────────────────────────────────────────
+  getTaskComments: async (taskUid: string) => {
+    const res = await fetchFromBff<any>(`/api/projects/task-comments/?task=${taskUid}`, { method: "GET" });
+    return unpackArray<TaskComment>(res);
+  },
+  createTaskComment: async (taskUid: string, content: string) => {
+    return fetchFromBff<TaskComment>(`/api/projects/task-comments/`, {
+      method: "POST",
+      body: JSON.stringify({ task: taskUid, content })
+    });
+  },
+
   // ── Asset Management ─────────────────────────────────────────────────
+
 
   uploadProjectAsset: async (projectId: number, category: string, file: File, title: string, thumbnail?: Blob) => {
     const formData = new FormData();
@@ -137,5 +222,202 @@ export const projectsApi = {
 
   getSecureAssetUrl: (assetId: number) => {
     return `/api/projects/assets/${assetId}/secure-view/`;
-  }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MATRIX ENGINE API
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── Matrix View 1 (Compact grid payload) ─────────────────────────────────
+  getMatrix: async (projectUid: string): Promise<MatrixPayload> => {
+    return fetchFromBff<MatrixPayload>(`/api/projects/projects/${projectUid}/matrix/`, { method: "GET" });
+  },
+
+  // ── Matrix View 2 (Expanded feed, paginated by phase) ────────────────────
+  getExpandedFeed: async (projectUid: string, page: number = 1): Promise<ExpandedFeedPayload> => {
+    return fetchFromBff<ExpandedFeedPayload>(
+      `/api/projects/projects/${projectUid}/expanded-feed/?page=${page}`,
+      { method: "GET" }
+    );
+  },
+
+  // ── Spatial Zones ─────────────────────────────────────────────────────────
+  getZones: async (projectId: number): Promise<SpatialZone[]> => {
+    const res = await fetchFromBff<any>(`/api/projects/zones/?project=${projectId}`, { method: "GET" });
+    return unpackArray<SpatialZone>(res);
+  },
+
+  createZone: async (data: { project: number; name: string; order?: number; zone_type?: string; bim_element_id?: string }) => {
+    return fetchFromBff<SpatialZone>("/api/projects/zones/", { method: "POST", body: JSON.stringify(data) });
+  },
+
+  updateZone: async (zoneId: number, data: Partial<SpatialZone>) => {
+    return fetchFromBff<SpatialZone>(`/api/projects/zones/${zoneId}/`, { method: "PATCH", body: JSON.stringify(data) });
+  },
+
+  deleteZone: async (zoneId: number) => {
+    return fetchFromBff<void>(`/api/projects/zones/${zoneId}/`, { method: "DELETE" });
+  },
+
+  uploadZoneDrawing: async (zoneId: number, file: File) => {
+    const formData = new FormData();
+    formData.append("drawing_snapshot", file);
+    return fetchFromBff<SpatialZone>(`/api/projects/zones/${zoneId}/`, { method: "PATCH", body: formData });
+  },
+
+  // ── Milestone Phases ──────────────────────────────────────────────────────
+  getPhases: async (projectId: number): Promise<MilestonePhase[]> => {
+    const res = await fetchFromBff<any>(`/api/projects/phases/?project=${projectId}`, { method: "GET" });
+    return unpackArray<MilestonePhase>(res);
+  },
+
+  createPhase: async (data: { project: number; name: string; sequence_order: number; color_hex?: string }) => {
+    return fetchFromBff<MilestonePhase>("/api/projects/phases/", { method: "POST", body: JSON.stringify(data) });
+  },
+
+  updatePhase: async (phaseId: number, data: Partial<MilestonePhase>) => {
+    return fetchFromBff<MilestonePhase>(`/api/projects/phases/${phaseId}/`, { method: "PATCH", body: JSON.stringify(data) });
+  },
+
+  deletePhase: async (phaseId: number) => {
+    return fetchFromBff<void>(`/api/projects/phases/${phaseId}/`, { method: "DELETE" });
+  },
+
+  // ── Unified Tasks for Matrix ────────────────────────────────────────────────
+  getBlockTasks: async (blockId: number): Promise<Task[]> => {
+    const res = await fetchFromBff<any>(`/api/projects/tasks/?block=${blockId}`, { method: "GET" });
+    return unpackArray<Task>(res);
+  },
+
+  getConstructionTask: async (taskId: string) => {
+    return fetchFromBff<Task>(`/api/projects/tasks/${taskId}/`, { method: "GET" });
+  },
+
+  createConstructionTask: async (data: Partial<Task> & { block: number; title: string }) => {
+    // Determine project from block or context
+    return fetchFromBff<Task>("/api/projects/tasks/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateConstructionTask: async (taskId: string, data: Partial<Task>) => {
+    return fetchFromBff<Task>(`/api/projects/tasks/${taskId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  moveConstructionTask: async (taskId: string, newStatus: string) => {
+    return fetchFromBff<Task>(`/api/projects/tasks/${taskId}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: newStatus })
+    });
+  },
+
+  logProgress: async (taskId: string, quantityDelta: number) => {
+    return fetchFromBff<Task>(`/api/projects/tasks/${taskId}/log-progress/`, {
+      method: "POST",
+      body: JSON.stringify({ quantity_delta: quantityDelta })
+    });
+  },
+
+  deleteConstructionTask: async (taskId: string) => {
+    return fetchFromBff<void>(`/api/projects/tasks/${taskId}/`, { method: "DELETE" });
+  },
+
+  // ── Procurement ───────────────────────────────────────────────────────────
+  getBOQItems: async () => {
+    const res = await fetchFromBff<any>(`/api/projects/boq-items/`, { method: "GET" });
+    return unpackArray<BOQItem>(res);
+  },
+
+  createBOQItem: async (data: { project: number; phase?: number | null; material_code: string; total_budgeted_qty: string | number; unit_rate: string | number }) => {
+    return fetchFromBff<BOQItem>(`/api/projects/boq-items/`, {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateBOQItem: async (id: number, data: Partial<{ phase: number | null; material_code: string; total_budgeted_qty: string | number; unit_rate: string | number }>) => {
+    return fetchFromBff<BOQItem>(`/api/projects/boq-items/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  getProcurementAggregation: async (projectUid?: string) => {
+    const url = projectUid ? `/api/projects/procurement/aggregator/?project_uid=${projectUid}` : `/api/projects/procurement/aggregator/`;
+    return fetchFromBff<any[]>(url, { method: "GET" });
+  },
+
+  createMaterialAllocation: async (data: { task: string; boq_item: number; allocated_qty: string | number; req_status?: string; notes?: string; expected_on_site_by?: string }) => {
+    return fetchFromBff<TaskMaterialAllocation>(`/api/projects/material-allocations/`, {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateMaterialAllocation: async (allocationId: number, data: Partial<TaskMaterialAllocation>) => {
+    return fetchFromBff<TaskMaterialAllocation>(`/api/projects/material-allocations/${allocationId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateMaterialAllocationStatus: async (allocationId: number, reqStatus: string, notes?: string, expectedOnSiteBy?: string) => {
+    return fetchFromBff<TaskMaterialAllocation>(`/api/projects/material-allocations/${allocationId}/status/`, {
+      method: "PATCH",
+      body: JSON.stringify({ req_status: reqStatus, notes, expected_on_site_by: expectedOnSiteBy })
+    });
+  },
+
+  bulkUpdateMaterialAllocationStatus: async (ids: number[], reqStatus: string) => {
+    return fetchFromBff<any>(`/api/projects/material-allocations/bulk-update-status/`, {
+      method: "POST",
+      body: JSON.stringify({ ids, req_status: reqStatus })
+    });
+  },
+
+
+
+  // ── Work Package Templates ────────────────────────────────────────────────
+  getWorkPackages: async (): Promise<WorkPackageTemplate[]> => {
+    const res = await fetchFromBff<any>("/api/projects/work-packages/", { method: "GET" });
+    return unpackArray<WorkPackageTemplate>(res);
+  },
+
+  createWorkPackage: async (data: Partial<WorkPackageTemplate>) => {
+    return fetchFromBff<WorkPackageTemplate>("/api/projects/work-packages/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  // ── Workspace Generator ───────────────────────────────────────────────────
+  generateWorkspace: async (projectUid: string, payload: {
+    zones: { name: string; order?: number; zone_type?: string; bim_element_id?: string }[];
+    phases: { name: string; sequence_order: number; color_hex?: string }[];
+    zone_package_mapping?: Record<string, number>;
+  }) => {
+    return fetchFromBff<{ zones: number; phases: number; blocks: number; tasks: number }>(
+      `/api/projects/projects/${projectUid}/generate-workspace/`,
+      { method: "POST", body: JSON.stringify(payload) }
+    );
+  },
+
+  // ── AI Zone Parser (Gemini Vision) ───────────────────────────────────────
+  parseZonesFromDrawing: async (projectUid: string, file: File): Promise<{ zones: AIZoneResult[] }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetchFromBff<{ zones: AIZoneResult[] }>(
+      `/api/projects/projects/${projectUid}/parse-zones/`,
+      { method: "POST", body: formData }
+    );
+  },
+
+  // ── Block unlock (admin override) ─────────────────────────────────────────
+  unlockBlock: async (blockId: number) => {
+    return fetchFromBff<any>(`/api/projects/blocks/${blockId}/unlock/`, { method: "POST" });
+  },
 };

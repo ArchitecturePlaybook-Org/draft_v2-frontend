@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ProjectDetail, Task, ProjectAsset } from "@/types/projects";
+import { ProjectDetail, Task, ProjectAsset, TaskTemplate, SpatialZone, MilestonePhase } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { orgsApi } from "@/domains/orgs/api";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -12,9 +12,124 @@ import { Spinner } from "@/components/ui/Spinner";
 import { SketchBoard } from "@/components/sketch/SketchBoard";
 import { RevisionHistoryModal } from "@/components/projects/RevisionHistoryModal";
 import { FloorPlanGridViewer } from "@/components/projects/FloorPlanGridViewer";
+import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
+import { ExpandedFeedView } from "@/components/matrix/ExpandedFeedView";
+import ModelViewer from "@/components/ModelViewer";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 
-type TabView = "data_hub" | "kanban" | "gantt";
+type TabView = "data_hub" | "kanban" | "gantt" | "matrix" | "issues";
 type HubCategory = "sketch" | "2d_plan" | "3d_model" | "document";
+
+const GanttTaskBar = ({ task, totalDays, minDate, onTaskUpdate, onClick }: { task: Task, totalDays: number, minDate: Date, onTaskUpdate: (uid: string, start: string, end: string) => void, onClick: () => void }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  const hasDates = task.start_date && task.end_date;
+  const startMs = hasDates ? new Date(task.start_date!).getTime() : 0;
+  const endMs = hasDates ? new Date(task.end_date!).getTime() : 0;
+  
+  const [draftStart, setDraftStart] = useState(startMs);
+  const [draftEnd, setDraftEnd] = useState(endMs);
+  const [mode, setMode] = useState<"idle" | "move" | "resize">("idle");
+  const dragStartX = useRef(0);
+  const initialStart = useRef(0);
+  const initialEnd = useRef(0);
+
+  useEffect(() => {
+    if (mode === "idle" && hasDates) {
+      setDraftStart(new Date(task.start_date!).getTime());
+      setDraftEnd(new Date(task.end_date!).getTime());
+    }
+  }, [task.start_date, task.end_date, mode, hasDates]);
+
+  if (!hasDates) {
+    return (
+      <button 
+        onClick={onClick}
+        className="mx-auto text-[9px] font-bold text-accent uppercase tracking-widest bg-accent/5 px-4 py-2 rounded-full border border-accent/10 hover:bg-accent hover:text-white transition-all"
+      >
+        Initialize Timeline Protocol
+      </button>
+    );
+  }
+
+  const msPerPixel = containerRef.current 
+    ? (totalDays * 24 * 60 * 60 * 1000) / containerRef.current.offsetWidth 
+    : 0;
+
+  const handlePointerDown = (e: React.PointerEvent, dragMode: "move" | "resize") => {
+    e.stopPropagation();
+    setMode(dragMode);
+    dragStartX.current = e.clientX;
+    initialStart.current = draftStart;
+    initialEnd.current = draftEnd;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (mode === "idle" || !msPerPixel) return;
+    const deltaMs = (e.clientX - dragStartX.current) * msPerPixel;
+    
+    const deltaDays = Math.round(deltaMs / (24 * 60 * 60 * 1000));
+    const snappedDeltaMs = deltaDays * 24 * 60 * 60 * 1000;
+
+    if (mode === "move") {
+      setDraftStart(initialStart.current + snappedDeltaMs);
+      setDraftEnd(initialEnd.current + snappedDeltaMs);
+    } else if (mode === "resize") {
+      const newEnd = initialEnd.current + snappedDeltaMs;
+      if (newEnd >= draftStart) {
+        setDraftEnd(newEnd);
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (mode === "idle") return;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    
+    if (draftStart !== startMs || draftEnd !== endMs) {
+      const format = (ms: number) => new Date(ms).toISOString().split('T')[0];
+      onTaskUpdate(task.uid, format(draftStart), format(draftEnd));
+    }
+    setMode("idle");
+  };
+
+  const taskDays = Math.max(1, Math.ceil((draftEnd - draftStart) / (1000 * 60 * 60 * 24)));
+  const offsetDays = Math.ceil((draftStart - minDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  const width = `${(taskDays / totalDays) * 100}%`;
+  const left = `${(offsetDays / totalDays) * 100}%`;
+
+  return (
+    <div 
+      ref={containerRef}
+      className="flex-1 relative h-12 bg-surface-50/50 rounded-2xl border border-dashed border-surface-100 flex items-center px-2"
+    >
+      <div 
+        onPointerDown={(e) => handlePointerDown(e, "move")}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        className={`absolute h-8 rounded-xl shadow-lg transition-colors cursor-grab active:cursor-grabbing flex items-center px-4 group/bar hover:scale-[1.02] ${
+          task.status === "DONE" ? "bg-emerald-500 shadow-emerald-200" : task.status === "WIP" ? "bg-accent shadow-accent/20" : "bg-primary shadow-primary/20"
+        }`}
+        style={{ width, left, touchAction: "none" }}
+      >
+        <div onClick={(e) => { e.stopPropagation(); onClick(); }} className="flex-1 truncate">
+          <span className="text-[10px] text-white font-extrabold uppercase tracking-widest">{task.status}</span>
+        </div>
+        
+        <div 
+          onPointerDown={(e) => handlePointerDown(e, "resize")}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          className="absolute right-0 top-0 bottom-0 w-4 cursor-col-resize hover:bg-black/10 rounded-r-xl flex items-center justify-center"
+        >
+          <div className="w-1 h-3 border-l-2 border-r-2 border-white/50" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -25,6 +140,7 @@ export default function ProjectDetailPage() {
 
   const [activeTab, setActiveTab] = useState<TabView>("kanban");
   const [activeHubCategory, setActiveHubCategory] = useState<HubCategory>("sketch");
+  const [matrixView, setMatrixView] = useState<"grid" | "feed">("grid");
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [firmMembers, setFirmMembers] = useState<any[]>([]);
@@ -49,13 +165,32 @@ export default function ProjectDetailPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [projectIntId, setProjectIntId] = useState<number | null>(null);
   const [surveyAsset, setSurveyAsset] = useState<ProjectAsset | null>(null);
+  const [viewerAsset, setViewerAsset] = useState<ProjectAsset | null>(null);
+  const [manageLinksAsset, setManageLinksAsset] = useState<ProjectAsset | null>(null);
+
+  const [zones, setZones] = useState<SpatialZone[]>([]);
+  const [phases, setPhases] = useState<MilestonePhase[]>([]);
+  const [selectedZoneId, setSelectedZoneId] = useState("");
+  const [selectedPhaseId, setSelectedPhaseId] = useState("");
+
+  const [globalPunchList, setGlobalPunchList] = useState<any[]>([]);
+  const [isLoadingPunchList, setIsLoadingPunchList] = useState(false);
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
 
   const fetchProject = async () => {
     try {
-      const data = await projectsApi.getProjectDetails(id);
+      const data = await projectsApi.getProjectDetails(id as string);
       setProject(data);
       setProjectIntId(data.id); // cache the integer PK for uploads
+      
+      try {
+        const matrixData = await projectsApi.getMatrix(data.uid);
+        setZones(matrixData.zones);
+        setPhases(matrixData.phases);
+      } catch (err) {
+        console.error("Failed to fetch matrix data:", err);
+      }
     } catch (err) {
 
       console.error("Failed to fetch project:", err);
@@ -78,8 +213,16 @@ export default function ProjectDetailPage() {
     } else if (asset.category === "2d_plan") {
       // Launch the interactive Site Survey Grid
       setSurveyAsset(asset);
+    } else if (asset.category === "3d_model") {
+      setViewerAsset(asset);
     } else {
-      window.open(asset.file, "_blank");
+      // For general documents
+      const isImage = /\.(png|jpg|jpeg|gif)$/i.test(asset.file);
+      if (isImage) {
+        setLightboxImageUrl(asset.file);
+      } else {
+        window.open(asset.file, "_blank");
+      }
     }
   };
 
@@ -96,6 +239,35 @@ export default function ProjectDetailPage() {
     fetchProject();
     fetchTemplates();
   }, [id]);
+
+  useEffect(() => {
+    if (activeTab === "issues" && project) {
+      fetchGlobalPunchList();
+    }
+  }, [activeTab, project?.uid]);
+
+  const fetchGlobalPunchList = async () => {
+    if (!project) return;
+    setIsLoadingPunchList(true);
+    try {
+      const data = await projectsApi.getPunchListItems(project.uid);
+      setGlobalPunchList(data);
+    } catch (err) {
+      console.error("Failed to fetch project issue tracker", err);
+    } finally {
+      setIsLoadingPunchList(false);
+    }
+  };
+
+  const handleResolveGlobalItem = async (itemId: number) => {
+    try {
+      await projectsApi.resolvePunchListItem(itemId);
+      fetchGlobalPunchList();
+      fetchProject();
+    } catch (err) {
+      alert("Failed to resolve issue tracker item.");
+    }
+  };
 
   useEffect(() => {
     if (showAssignModal && project && firmMembers.length === 0) {
@@ -136,9 +308,16 @@ export default function ProjectDetailPage() {
     
     setIsCreatingTask(true);
     try {
-      await projectsApi.createTask({ project: project.id, title });
+      await projectsApi.createTask({ 
+        project: project.id, 
+        title,
+        zone_id: selectedZoneId ? parseInt(selectedZoneId) : undefined,
+        phase_id: selectedPhaseId ? parseInt(selectedPhaseId) : undefined
+      });
       setNewTaskTitle("");
       setSelectedTemplate("");
+      setSelectedZoneId("");
+      setSelectedPhaseId("");
       fetchProject();
     } catch(err: any) {
       alert(err.message || "Failed to queue execution phase");
@@ -228,8 +407,35 @@ export default function ProjectDetailPage() {
       maxDate.setDate(maxDate.getDate() + 30);
     }
 
-    const totalDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
+    const totalDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
     
+    const handleTaskUpdate = async (taskId: string, start: string, end: string) => {
+      // Optimistic update
+      setProject(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tasks: prev.tasks.map(t => t.uid === taskId ? { ...t, start_date: start, end_date: end } : t)
+        };
+      });
+
+      try {
+        await projectsApi.updateTask(taskId, { start_date: start, end_date: end });
+      } catch (err) {
+        console.error(err);
+        fetchProject(); // revert on error
+      }
+    };
+
+    // Group tasks by Phase
+    const phasesMap = new Map<string, Task[]>();
+    project.tasks.forEach(task => {
+      const phaseName = task.phase_name || "Unphased";
+      if (!phasesMap.has(phaseName)) phasesMap.set(phaseName, []);
+      phasesMap.get(phaseName)!.push(task);
+    });
+    const groupedPhases = Array.from(phasesMap.entries());
+
     return (
       <div className="w-full overflow-x-auto bg-white p-10 rounded-[2.5rem] border border-surface-200 shadow-2xl shadow-primary/5 animate-in fade-in duration-700">
         <div className="min-w-[1200px]">
@@ -254,63 +460,43 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
-          {/* Task Rows */}
-          <div className="space-y-6">
-            {project.tasks.map((task) => {
-              const hasDates = task.start_date && task.end_date;
-              let width = "0%";
-              let left = "0%";
-
-              if (hasDates) {
-                const start = new Date(task.start_date!).getTime();
-                const end = new Date(task.end_date!).getTime();
-                const taskDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-                const offsetDays = Math.ceil((start - minDate.getTime()) / (1000 * 60 * 60 * 24));
-                
-                width = `${(taskDays / totalDays) * 100}%`;
-                left = `${((offsetDays) / totalDays) * 100}%`;
-              }
-
-              return (
-                <div key={task.uid} className="flex items-center group">
-                  <div className="w-1/4 pr-10 py-2">
-                    <h4 className="text-sm font-bold text-primary truncate group-hover:text-accent transition-colors">{task.title}</h4>
-                    <p className="text-[9px] font-bold text-surface-400 uppercase tracking-tighter mt-0.5">
-                      {hasDates ? `${task.start_date} → ${task.end_date}` : "Timeline Not Defined"}
-                    </p>
-                  </div>
-                  <div className="flex-1 relative h-12 bg-surface-50/50 rounded-2xl border border-dashed border-surface-100 flex items-center px-2">
-                    {hasDates ? (
-                      <div 
-                        onClick={() => setActiveTask(task)}
-                        className={`absolute h-8 rounded-xl shadow-lg transition-all cursor-pointer flex items-center px-4 group/bar hover:scale-[1.02] ${
-                          task.status === "Done" ? "bg-emerald-500 shadow-emerald-200" : task.status === "In Progress" ? "bg-accent shadow-accent/20" : "bg-primary shadow-primary/20"
-                        }`}
-                        style={{ width, left }}
-                      >
-                        <span className="text-[10px] text-white font-extrabold truncate uppercase tracking-widest">{task.status}</span>
-                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/bar:opacity-100 transition-opacity rounded-xl" />
+          {/* Task Rows Grouped by Phase */}
+          <div className="space-y-10">
+            {groupedPhases.map(([phaseName, phaseTasks]) => (
+              <div key={phaseName} className="space-y-4">
+                <h4 className="text-sm font-black uppercase tracking-widest text-surface-500 border-b border-surface-100 pb-2">{phaseName}</h4>
+                <div className="space-y-6">
+                  {phaseTasks.map((task) => (
+                    <div key={task.uid} className="flex items-center group">
+                      <div className="w-1/4 pr-10 py-2">
+                        <div className="flex items-baseline gap-2">
+                          <h4 className="text-sm font-bold text-primary truncate group-hover:text-accent transition-colors">{task.title}</h4>
+                          {task.zone_name && <span className="text-[10px] font-bold text-surface-400 uppercase truncate">({task.zone_name})</span>}
+                        </div>
+                        <p className="text-[9px] font-bold text-surface-400 uppercase tracking-tighter mt-0.5">
+                          {task.start_date && task.end_date ? `${task.start_date} → ${task.end_date}` : "Timeline Not Defined"}
+                        </p>
                       </div>
-                    ) : (
-                      <button 
-                        onClick={() => setActiveTask(task)}
-                        className="mx-auto text-[9px] font-bold text-accent uppercase tracking-widest bg-accent/5 px-4 py-2 rounded-full border border-accent/10 hover:bg-accent hover:text-white transition-all"
-                      >
-                        Initialize Timeline Protocol
-                      </button>
-                    )}
-                  </div>
-                  <div className="ml-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={() => setActiveTask(task)}
-                      className="w-10 h-10 rounded-xl bg-surface-100 text-surface-500 hover:bg-primary hover:text-white transition-all flex items-center justify-center text-xs"
-                    >
-                      ⚙️
-                    </button>
-                  </div>
+                      <GanttTaskBar 
+                        task={task} 
+                        totalDays={totalDays} 
+                        minDate={minDate} 
+                        onTaskUpdate={handleTaskUpdate} 
+                        onClick={() => setActiveTask(task)} 
+                      />
+                      <div className="ml-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => setActiveTask(task)}
+                          className="w-10 h-10 rounded-xl bg-surface-100 text-surface-500 hover:bg-primary hover:text-white transition-all flex items-center justify-center text-xs"
+                        >
+                          ⚙️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -333,6 +519,12 @@ export default function ProjectDetailPage() {
         </div>
 
         <div className="relative z-10 flex gap-4 shrink-0">
+          <button 
+            onClick={() => router.push(`/dashboard/projects/${id}/procurement`)}
+            className="h-10 px-6 bg-surface-100 text-primary font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200 flex items-center gap-2"
+          >
+            🛒 Procurement Ledger
+          </button>
           {canManage && (
             <button onClick={() => setShowAssignModal(true)} className="h-10 px-6 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md">
               + Assign Personnel
@@ -345,8 +537,10 @@ export default function ProjectDetailPage() {
       <div className="flex gap-2 border-b border-surface-200 pb-px">
         {[
           { id: "data_hub", label: "Master Data Hub" },
+          { id: "matrix", label: "Construction Matrix" },
           { id: "kanban", label: "Advanced Kanban" },
-          { id: "gantt", label: "Gantt Timeline" }
+          { id: "gantt", label: "Gantt Timeline" },
+          { id: "issues", label: "Project Issue Tracker" }
         ].map(tab => (
           <button
             key={tab.id}
@@ -521,31 +715,23 @@ export default function ProjectDetailPage() {
                               </div>
                             </div>
 
-                            {/* Task Link Dropdown */}
-                            {activeHubCategory === "2d_plan" && (
+                            {/* Task Link Button */}
+                            {(activeHubCategory === "2d_plan" || activeHubCategory === "3d_model") && (
                               <div className="mt-2.5 pt-2.5 border-t border-surface-100">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-surface-400 block mb-1">Linked Task</label>
-                                <select
-                                  className="w-full text-xs font-bold bg-surface-50 border border-surface-200 rounded-lg px-2 py-1.5 outline-none focus:border-accent text-primary cursor-pointer"
-                                  value={project.tasks.find(t => t.asset_links?.some(l => String(l.canonical_uid) === String(asset.canonical_uid)))?.uid || ""}
-                                  onChange={async (e) => {
-                                    const newTaskUid = e.target.value;
-                                    // Remove existing link for this canonical uid
-                                    for (const task of project.tasks) {
-                                      const link = task.asset_links?.find(l => String(l.canonical_uid) === String(asset.canonical_uid));
-                                      if (link) { await projectsApi.unlinkAssetFromTask(link.id); }
-                                    }
-                                    if (newTaskUid) {
-                                      await projectsApi.linkAssetToTask(newTaskUid, asset.canonical_uid);
-                                    }
-                                    fetchProject();
-                                  }}
-                                >
-                                  <option value="">— Not linked to any task —</option>
-                                  {project.tasks.map(t => (
-                                    <option key={t.uid} value={t.uid}>{t.title}</option>
-                                  ))}
-                                </select>
+                                {(() => {
+                                  const linkedTasksCount = project.tasks.filter(t => t.asset_links?.some(l => String(l.canonical_uid) === String(asset.canonical_uid))).length;
+                                  return (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setManageLinksAsset(asset); }}
+                                      className="w-full text-xs font-bold bg-surface-50 border border-surface-200 rounded-lg px-2 py-1.5 outline-none hover:border-accent text-primary transition-colors flex justify-between items-center cursor-pointer"
+                                    >
+                                      <span className="text-[9px] uppercase tracking-widest text-surface-500">Linked Tasks</span>
+                                      <span className={`px-2 py-0.5 rounded-full text-[9px] ${linkedTasksCount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-200 text-surface-500'}`}>
+                                        {linkedTasksCount}
+                                      </span>
+                                    </button>
+                                  );
+                                })()}
                               </div>
                             )}
                           </div>
@@ -591,10 +777,30 @@ export default function ProjectDetailPage() {
                     className="flex-2 h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none font-medium text-sm text-primary min-w-[200px]"
                   />
                 )}
+
+                <select 
+                  required
+                  value={selectedZoneId} 
+                  onChange={e => setSelectedZoneId(e.target.value)}
+                  className="h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none text-sm font-bold text-primary w-[140px]"
+                >
+                  <option value="" disabled>Zone...</option>
+                  {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+                </select>
+
+                <select 
+                  required
+                  value={selectedPhaseId} 
+                  onChange={e => setSelectedPhaseId(e.target.value)}
+                  className="h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none text-sm font-bold text-primary w-[140px]"
+                >
+                  <option value="" disabled>Phase...</option>
+                  {phases.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
                 
                 <button 
                   type="submit"
-                  disabled={isCreatingTask || (!selectedTemplate && !newTaskTitle)}
+                  disabled={isCreatingTask || (!selectedTemplate && !newTaskTitle) || !selectedZoneId || !selectedPhaseId}
                   className="h-12 px-8 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-50 ml-auto"
                 >
                   {isCreatingTask ? "Adding..." : "+ Add Task"}
@@ -602,19 +808,28 @@ export default function ProjectDetailPage() {
               </form>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {["Pending", "In Progress", "Done"].map(status => (
+            <div className="flex overflow-x-auto gap-6 pb-4">
+              {[
+                { id: "TODO", label: "To Do", color: "bg-surface-50 border-surface-200", dot: "bg-surface-400" },
+                { id: "WIP", label: "In Progress", color: "bg-blue-50 border-blue-200", dot: "bg-accent" },
+                { id: "QA", label: "Under Inspection", color: "bg-amber-50 border-amber-200", dot: "bg-amber-500" },
+                { id: "DONE", label: "Done", color: "bg-emerald-50 border-emerald-200", dot: "bg-emerald-500" },
+              ].map(col => (
                 <div 
-                  key={status} 
+                  key={col.id} 
                   onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, status)}
-                  className="bg-surface-50 p-4 rounded-2xl border border-surface-200 min-h-[500px]"
+                  onDrop={(e) => handleDrop(e, col.id)}
+                  className={`flex flex-col min-w-[300px] flex-1 p-4 rounded-2xl border min-h-[500px] ${col.color}`}
                 >
-                  <h4 className="font-extrabold text-[11px] uppercase tracking-widest text-surface-500 mb-4 px-2">
-                    {status} <span className="ml-2 bg-surface-200 text-surface-600 px-2 py-0.5 rounded-full">{project.tasks.filter(t => t.status === status).length}</span>
+                  <h4 className="flex items-center font-extrabold text-[11px] uppercase tracking-widest text-surface-600 mb-4 px-2">
+                    <span className={`w-2 h-2 rounded-full mr-2 ${col.dot}`} />
+                    {col.label} 
+                    <span className="ml-auto bg-white border border-surface-200 text-surface-600 px-2 py-0.5 rounded-full shadow-sm">
+                      {project.tasks.filter(t => t.status === col.id).length}
+                    </span>
                   </h4>
                   <div className="space-y-3 min-h-full pb-8">
-                    {project.tasks.filter(t => t.status === status).map(task => (
+                    {project.tasks.filter(t => t.status === col.id).map(task => (
                       <TaskItem 
                         key={task.uid} 
                         task={task} 
@@ -629,8 +844,111 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
+        {/* MATRIX VIEW */}
+        {activeTab === "matrix" && (
+          <div className="w-full">
+            <div className="flex gap-4 mb-6 bg-surface-50 p-2 rounded-xl border border-surface-200 w-fit">
+              <button 
+                onClick={() => setMatrixView('grid')} 
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${matrixView === 'grid' ? 'bg-primary text-white shadow-md' : 'text-surface-500 hover:bg-surface-200'}`}
+              >
+                Master Gate Matrix
+              </button>
+              <button 
+                onClick={() => setMatrixView('feed')} 
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${matrixView === 'feed' ? 'bg-primary text-white shadow-md' : 'text-surface-500 hover:bg-surface-200'}`}
+              >
+                Expanded Milestone Feed
+              </button>
+            </div>
+            {matrixView === 'grid' ? (
+              <MilestoneMatrixView projectUid={project.uid} onTaskChange={fetchProject} />
+            ) : (
+              <ExpandedFeedView projectUid={project.uid} />
+            )}
+          </div>
+        )}
+
         {/* GANTT VIEW */}
         {activeTab === "gantt" && renderGantt()}
+
+        {/* ISSUES VIEW */}
+        {activeTab === "issues" && (
+          <div className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm animate-fade-in">
+            <h3 className="text-xl font-extrabold text-primary mb-6 tracking-tight">Project Issue Tracker</h3>
+            
+            {isLoadingPunchList ? (
+              <div className="py-20 flex justify-center"><Spinner size="lg" label="Loading issue tracker..." /></div>
+            ) : globalPunchList.length === 0 ? (
+              <div className="py-20 text-center flex flex-col items-center">
+                <span className="text-4xl opacity-20 mb-3">✅</span>
+                <p className="text-sm font-bold text-surface-400">No issue tracker items reported for this project.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {globalPunchList.map(item => (
+                  <div key={item.id} className="p-4 border border-surface-200 rounded-xl flex items-start gap-4 hover:border-surface-300 transition-colors bg-surface-50/30">
+                    <div className="shrink-0 pt-1">
+                      <span className={`w-3 h-3 rounded-full block ${item.is_resolved ? 'bg-emerald-500' : item.severity === 'HIGH' ? 'bg-red-500 animate-pulse' : item.severity === 'MEDIUM' ? 'bg-amber-500' : 'bg-blue-400'}`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex gap-2 items-center mb-1">
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${item.is_resolved ? 'bg-surface-100 text-surface-500' : item.severity === 'HIGH' ? 'bg-red-100 text-red-600' : item.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {item.severity}
+                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 border border-surface-200">
+                              {item.issue_type} | {item.root_cause}
+                            </span>
+                            <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">{new Date(item.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <h4 className="font-bold text-primary text-sm">{item.title}</h4>
+                          <p className="text-xs text-surface-500 mt-1">{item.description}</p>
+                          
+                          {/* Attachments rendering */}
+                          {item.attachments && item.attachments.length > 0 && (
+                            <div className="flex gap-2 mt-3">
+                              {item.attachments.map((att: any) => (
+                                <button 
+                                  key={att.id} 
+                                  onClick={() => setLightboxImageUrl(att.file)}
+                                  className="w-16 h-16 rounded-lg overflow-hidden border border-surface-200 block hover:opacity-80 transition-opacity cursor-pointer focus:outline-none"
+                                >
+                                  <img src={att.file} className="w-full h-full object-cover" />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {!item.is_resolved && canManage && (
+                          <button 
+                            onClick={() => handleResolveGlobalItem(item.id)}
+                            className="px-4 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-emerald-100 transition-colors shrink-0"
+                          >
+                            Resolve
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="mt-3 pt-3 border-t border-surface-100 flex items-center justify-between">
+                        <div className="text-[10px] font-bold text-surface-400 uppercase">
+                          Task: <span className="text-primary cursor-pointer hover:text-accent hover:underline" onClick={() => { setActiveTask(project?.tasks.find(t => t.uid === item.task_uid) || null) }}>{item.task_title || "Unknown Task"}</span>
+                        </div>
+                        {item.reported_by && (
+                          <div className="text-[10px] font-bold text-surface-400 flex items-center gap-1.5">
+                            Reported by <img src={item.reported_by.avatar || `https://ui-avatars.com/api/?name=${item.reported_by.first_name}+${item.reported_by.last_name}&background=f3f4f6&color=1e293b`} className="w-4 h-4 rounded-full" /> {item.reported_by.first_name} {item.reported_by.last_name}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
 
@@ -679,6 +997,7 @@ export default function ProjectDetailPage() {
       {activeTask && (
         <TaskExecutionModal 
           task={activeTask} 
+          projectUid={project.uid}
           projectAssets={project.assets || []}
           onClose={() => setActiveTask(null)} 
           onTaskUpdated={() => {
@@ -702,6 +1021,107 @@ export default function ProjectDetailPage() {
           onClose={() => setSurveyAsset(null)}
           onRefresh={fetchProject}
         />
+      )}
+      {/* 3D Model Viewer Modal */}
+      {viewerAsset && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-6xl h-[80vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl relative">
+            <button 
+              onClick={() => setViewerAsset(null)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/50 hover:bg-white rounded-full flex items-center justify-center text-lg shadow-sm transition-colors text-surface-900 font-bold"
+            >
+              ✕
+            </button>
+            <div className="flex-1 w-full h-full bg-slate-100">
+              <ModelViewer 
+                url={viewerAsset.file} 
+                format={viewerAsset.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxImageUrl && (
+        <ImageLightbox 
+          imageUrl={lightboxImageUrl} 
+          onClose={() => setLightboxImageUrl(null)} 
+        />
+      )}
+
+      {/* Manage Links Modal */}
+      {manageLinksAsset && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-surface-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-surface-200 flex flex-col max-h-[80vh]">
+            <div className="p-6 border-b border-surface-100 bg-surface-50 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-primary tracking-tight">Manage Task Links</h3>
+                <p className="text-[10px] uppercase tracking-widest font-bold text-surface-400 mt-1 truncate max-w-[250px]">{manageLinksAsset.title}</p>
+              </div>
+              <button onClick={() => setManageLinksAsset(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-200/50 text-surface-500 hover:bg-surface-200 hover:text-red-500 transition-colors text-lg">✕</button>
+            </div>
+            
+            <div className="p-2 overflow-y-auto flex-1">
+              {project.tasks.length === 0 ? (
+                <div className="p-10 flex flex-col items-center justify-center text-center">
+                   <span className="text-4xl mb-3 opacity-20">📋</span>
+                   <div className="text-surface-400 text-sm font-bold">No tasks in this project yet.</div>
+                </div>
+              ) : (
+                <div className="space-y-1 p-2">
+                  {project.tasks.map(task => {
+                    const link = task.asset_links?.find(l => String(l.canonical_uid) === String(manageLinksAsset.canonical_uid));
+                    const isLinked = !!link;
+                    
+                    return (
+                      <label 
+                        key={task.uid} 
+                        className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer hover:shadow-sm ${isLinked ? 'border-accent bg-accent/5' : 'border-surface-200 hover:bg-surface-50'}`}
+                      >
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded text-accent focus:ring-accent accent-accent cursor-pointer"
+                          checked={isLinked}
+                          onChange={async (e) => {
+                            try {
+                              if (e.target.checked) {
+                                await projectsApi.linkAssetToTask(task.uid, manageLinksAsset.canonical_uid);
+                              } else {
+                                if (link) {
+                                  await projectsApi.unlinkAssetFromTask(link.id);
+                                }
+                              }
+                              fetchProject();
+                            } catch (err) {
+                              alert("Failed to update task link.");
+                            }
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-bold truncate ${isLinked ? 'text-accent' : 'text-primary'}`}>{task.title}</p>
+                          <p className="text-[9px] uppercase tracking-widest font-bold text-surface-400 truncate mt-0.5">
+                            <span className={task.status === "DONE" ? "text-emerald-500" : task.status === "WIP" ? "text-accent" : ""}>{task.status}</span>
+                            {task.zone_name ? ` • ${task.zone_name}` : ''}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-surface-100 bg-surface-50 flex justify-end">
+              <button 
+                onClick={() => setManageLinksAsset(null)} 
+                className="px-6 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-primary text-white hover:bg-accent transition-colors shadow-md hover:shadow-lg"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

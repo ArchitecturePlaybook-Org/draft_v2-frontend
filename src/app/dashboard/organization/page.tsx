@@ -263,7 +263,7 @@ export default function OrganizationPage() {
                             <div className="absolute top-0 right-0 w-20 h-full bg-white/5 arch-grid opacity-10" />
                             <h3 className="font-bold text-sm tracking-tight mb-1 truncate">{org.name}</h3>
                             <p className={`text-[10px] uppercase tracking-widest font-bold ${selectedOrg?.id === org.id ? "opacity-60" : "text-accent"}`}>
-                                {org.uid.split('ap')[1]} · {org.account_type}
+                                {org.uid.split('ap')[1]} · organization
                             </p>
                         </div>
                     ))}
@@ -309,7 +309,7 @@ export default function OrganizationPage() {
                                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Verified Entity
                                 </span>
                                 <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">
-                                    EST {new Date(selectedOrg.created_at).getFullYear()}
+                                    EST {new Date(selectedOrg.created_at || new Date().toISOString()).getFullYear()}
                                 </span>
                             </div>
                         </div>
@@ -389,7 +389,7 @@ export default function OrganizationPage() {
                                             </div>
                                             <div className="space-y-1">
                                                 <label className="text-[9px] font-bold uppercase opacity-30 tracking-[0.2em]">Entity Type</label>
-                                                <p className="text-xs font-bold text-white/90 uppercase tracking-widest">{selectedOrg.account_type}</p>
+                                                <p className="text-xs font-bold text-white/90 uppercase tracking-widest">organization</p>
                                             </div>
                                         </div>
                                     </div>

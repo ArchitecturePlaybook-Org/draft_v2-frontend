@@ -1,24 +1,61 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ProjectAsset } from "@/types/projects";
 import { ProtectedFloorPlanViewer } from "./ProtectedFloorPlanViewer";
 import { CellPhotoDrawer } from "./CellPhotoDrawer";
 
 interface FloorPlanGridViewerProps {
   asset: ProjectAsset;
-  onClose: () => void;
+  onClose?: () => void;
   onRefresh: () => void;
+  inline?: boolean;
+  onToggleFullScreen?: () => void;
 }
 
-export function FloorPlanGridViewer({ asset, onClose, onRefresh }: FloorPlanGridViewerProps) {
+export function FloorPlanGridViewer({ asset, onClose, onRefresh, inline = false, onToggleFullScreen }: FloorPlanGridViewerProps) {
   const [selectedCell, setSelectedCell] = useState<{ col: number; row: number } | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [showInstructions, setShowInstructions] = useState(true);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const rows = 8;
   const cols = 8;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowInstructions(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // If inline and no modifier key is pressed, allow normal scrolling
+      if (inline && !e.ctrlKey && !e.metaKey) return;
+      
+      // Prevent page scroll
+      e.preventDefault();
+
+      // Adjust zoom based on scroll direction
+      const delta = e.deltaY < 0 ? 0.2 : -0.2;
+      const newZoom = Math.min(Math.max(zoom + delta, 1), 5);
+      
+      setZoom(newZoom);
+      if (newZoom === 1) {
+        setOffset({ x: 0, y: 0 });
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [inline, zoom]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (zoom === 1) return;
@@ -46,11 +83,13 @@ export function FloorPlanGridViewer({ asset, onClose, onRefresh }: FloorPlanGrid
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-surface-900 flex flex-col no-print">
+    <div className={inline ? "flex flex-col bg-surface-900 w-full h-full min-h-[500px] rounded-2xl overflow-hidden shadow-inner no-print border border-surface-200" : "fixed inset-0 z-50 bg-surface-900 flex flex-col no-print"}>
       {/* Header */}
-      <div className="h-16 px-6 bg-white border-b border-surface-200 flex items-center justify-between z-50">
+      <div className="h-16 px-6 bg-white border-b border-surface-200 flex items-center justify-between z-40 shrink-0">
         <div className="flex items-center gap-4">
-          <button onClick={onClose} className="p-2 hover:bg-surface-50 rounded-xl transition-colors text-lg">←</button>
+          {!inline && onClose && (
+            <button onClick={onClose} className="p-2 hover:bg-surface-50 rounded-xl transition-colors text-lg">←</button>
+          )}
           <div>
             <h2 className="font-black text-primary text-sm uppercase tracking-tighter">{asset.title}</h2>
             <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Site Survey Grid (8×8)</p>
@@ -63,13 +102,21 @@ export function FloorPlanGridViewer({ asset, onClose, onRefresh }: FloorPlanGrid
             <div className="px-3 flex items-center text-[10px] font-black text-primary uppercase">{(zoom * 100).toFixed(0)}%</div>
             <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold text-lg">＋</button>
           </div>
-          <button onClick={onClose} className="px-4 h-10 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20">Done Viewing</button>
+          {inline && onToggleFullScreen && (
+            <button onClick={onToggleFullScreen} className="px-4 h-10 bg-surface-100 text-surface-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200">
+              ⛶ Full Screen
+            </button>
+          )}
+          {!inline && onClose && (
+            <button onClick={onClose} className="px-4 h-10 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20">Done Viewing</button>
+          )}
         </div>
       </div>
 
       {/* Main Grid View */}
       <div className="flex-1 relative overflow-hidden bg-surface-50">
         <div 
+          ref={containerRef}
           className="w-full h-full flex items-center justify-center"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -136,13 +183,24 @@ export function FloorPlanGridViewer({ asset, onClose, onRefresh }: FloorPlanGrid
         </div>
 
         {/* Legend / Tooltip */}
-        <div className="absolute bottom-6 left-6 p-4 bg-white/80 backdrop-blur-md border border-white rounded-2xl shadow-xl z-40 max-w-xs">
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Instructions</p>
-          <ul className="space-y-2 text-[10px] font-bold text-surface-500">
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full" /> Click any zone (A1–H8) to add site photos</li>
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full" /> Use ± or scroll to zoom for precision</li>
-            <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full" /> Drag to pan when zoomed in</li>
-          </ul>
+        <div 
+          className={`absolute bottom-6 left-6 bg-white/90 backdrop-blur-md border border-white shadow-xl z-40 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col justify-center ${showInstructions ? 'p-4 max-w-xs rounded-2xl' : 'w-12 h-12 rounded-full items-center'}`}
+          onMouseEnter={() => setShowInstructions(true)}
+          onMouseLeave={() => setShowInstructions(false)}
+          onClick={() => setShowInstructions(prev => !prev)}
+        >
+          {!showInstructions ? (
+            <span className="text-xl text-primary font-black">ℹ️</span>
+          ) : (
+            <div className="w-64 animate-fade-in">
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Instructions</p>
+              <ul className="space-y-2 text-[10px] font-bold text-surface-500">
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Click any zone (A1–H8) to add site photos</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Use ± or {inline ? "Ctrl + Scroll" : "Scroll"} to zoom for precision</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Drag to pan when zoomed in</li>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 

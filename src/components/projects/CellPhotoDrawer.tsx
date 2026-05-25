@@ -149,7 +149,7 @@ export function CellPhotoDrawer({ asset, col, row, onClose, onPhotoUploaded }: C
                     <span className="text-[10px] font-bold text-emerald-600">±{gpsData.acc.toFixed(0)}m accuracy</span>
                   </div>
                 ) : (
-                  <button onClick={captureGps} className="text-sm font-bold text-accent hover:underline">GPS Unavailable - Try Again</button>
+                  <button onClick={() => captureGps()} className="text-sm font-bold text-accent hover:underline">GPS Unavailable - Try Again</button>
                 )}
               </div>
             </div>

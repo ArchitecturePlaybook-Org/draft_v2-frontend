@@ -41,6 +41,8 @@ export interface User {
   uid: string;
   email: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
   category?: string; // Pulled from profile category slug
   role?: string | null;
   user_type?: "architect" | "builder" | "contractor" | "supplier" | "client";
@@ -63,6 +65,7 @@ export interface Organization {
   logo?: string;
   metadata?: Record<string, unknown>;
   social_links?: Record<string, string>;
+  created_at?: string;
 }
 
 export interface Invitation {

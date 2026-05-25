@@ -1,17 +1,29 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Project } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { orgsApi } from "@/domains/orgs/api";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { usePermissions } from "@/hooks/use-permissions";
-
 import { useSearchParams } from "next/navigation";
 
-export default function ProjectsPage() {
+// ── Inner component that safely uses useSearchParams() ──────────────────────
+function SearchParamsReader({ onParams }: { onParams: (leadId: string | null, title: string | null, clientName: string | null) => void }) {
   const searchParams = useSearchParams();
+  useEffect(() => {
+    onParams(
+      searchParams.get('lead_id'),
+      searchParams.get('title'),
+      searchParams.get('client_name'),
+    );
+  }, [searchParams]);
+  return null;
+}
+
+// ── Main page component ──────────────────────────────────────────────────────
+function ProjectsPageInner() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isAdmin } = usePermissions();
@@ -25,11 +37,8 @@ export default function ProjectsPage() {
   });
   const [isCreating, setIsCreating] = useState(false);
 
-  useEffect(() => {
-    const leadId = searchParams.get('lead_id');
+  const handleSearchParams = (leadId: string | null, leadTitle: string | null, clientName: string | null) => {
     if (leadId) {
-      const leadTitle = searchParams.get('title');
-      const clientName = searchParams.get('client_name');
       setNewProject(prev => ({
         ...prev,
         title: leadTitle ? `Blueprint: ${leadTitle}` : `New Project for ${clientName}`,
@@ -37,7 +46,7 @@ export default function ProjectsPage() {
       }));
       setShowCreateModal(true);
     }
-  }, [searchParams]);
+  };
 
   const fetchProjects = async () => {
     setIsLoading(true);
@@ -94,6 +103,11 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-10 animate-fade-in pb-12">
+      {/* Read search params safely inside Suspense */}
+      <Suspense fallback={null}>
+        <SearchParamsReader onParams={handleSearchParams} />
+      </Suspense>
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-white p-10 border border-surface-200 rounded-2xl shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-full arch-grid opacity-[0.03] pointer-events-none" />
         <div className="relative z-10">
@@ -209,5 +223,13 @@ export default function ProjectsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense fallback={<div className="py-32 flex justify-center"><Spinner size="lg" label="Loading..." /></div>}>
+      <ProjectsPageInner />
+    </Suspense>
   );
 }
