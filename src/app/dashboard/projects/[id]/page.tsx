@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ProjectDetail, Task, ProjectAsset, TaskTemplate, SpatialZone, MilestonePhase } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { orgsApi } from "@/domains/orgs/api";
@@ -134,6 +134,8 @@ const GanttTaskBar = ({ task, totalDays, minDate, onTaskUpdate, onClick }: { tas
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const taskParam = searchParams.get("task");
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { canManageProject, canEditProject } = usePermissions();
@@ -163,6 +165,7 @@ export default function ProjectDetailPage() {
   // File upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const [projectIntId, setProjectIntId] = useState<number | null>(null);
   const [surveyAsset, setSurveyAsset] = useState<ProjectAsset | null>(null);
   const [viewerAsset, setViewerAsset] = useState<ProjectAsset | null>(null);
@@ -176,6 +179,24 @@ export default function ProjectDetailPage() {
   const [globalPunchList, setGlobalPunchList] = useState<any[]>([]);
   const [isLoadingPunchList, setIsLoadingPunchList] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+
+  // Project Deletion
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project || deleteConfirmText !== project.title) return;
+    setIsDeleting(true);
+    try {
+      await projectsApi.deleteProject(project.uid);
+      router.push("/dashboard/projects");
+    } catch (err: any) {
+      alert(err.message || "Failed to delete project.");
+      setIsDeleting(false);
+    }
+  };
 
 
   const fetchProject = async () => {
@@ -239,6 +260,16 @@ export default function ProjectDetailPage() {
     fetchProject();
     fetchTemplates();
   }, [id]);
+
+  useEffect(() => {
+    if (project && taskParam && !activeTask) {
+      const taskToOpen = project.tasks.find(t => t.uid === taskParam);
+      if (taskToOpen) {
+        setActiveTask(taskToOpen);
+        router.replace(`/dashboard/projects/${project.uid}`, { scroll: false });
+      }
+    }
+  }, [project, taskParam, activeTask, router]);
 
   useEffect(() => {
     if (activeTab === "issues" && project) {
@@ -526,9 +557,14 @@ export default function ProjectDetailPage() {
             🛒 Procurement Ledger
           </button>
           {canManage && (
-            <button onClick={() => setShowAssignModal(true)} className="h-10 px-6 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md">
-              + Assign Personnel
-            </button>
+            <>
+              <button onClick={() => setShowAssignModal(true)} className="h-10 px-6 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md">
+                + Assign Personnel
+              </button>
+              <button onClick={() => setShowDeleteModal(true)} className="h-10 px-4 bg-white text-red-500 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-50 hover:text-red-600 transition-all shadow-sm border border-red-200 flex items-center gap-2">
+                <span className="text-sm">🗑️</span> Delete Blueprint
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -599,21 +635,30 @@ export default function ProjectDetailPage() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/gif,.pdf"
+                      multiple
+                      accept={activeHubCategory === "3d_model" ? ".obj,.glb" : "image/png,image/jpeg,image/jpg,image/gif,.pdf"}
                       className="hidden"
                       onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file || !projectIntId) return;
+                        const files = Array.from(e.target.files || []);
+                        if (!files.length || !projectIntId) return;
                         setIsUploading(true);
+                        setUploadProgress(`0 / ${files.length}`);
+                        let successCount = 0;
                         try {
-                          const title = file.name.replace(/\.[^/.]+$/, ""); // strip extension
-                          await projectsApi.uploadProjectAsset(projectIntId, activeHubCategory, file, title);
+                          for (let i = 0; i < files.length; i++) {
+                            const file = files[i];
+                            const title = file.name.replace(/\.[^/.]+$/, ""); // strip extension
+                            await projectsApi.uploadProjectAsset(projectIntId, activeHubCategory, file, title);
+                            successCount++;
+                            setUploadProgress(`${successCount} / ${files.length}`);
+                          }
                           fetchProject();
                         } catch (err: any) {
-                          alert(`Upload failed: ${err.message}`);
+                          alert(`Upload failed on file ${successCount + 1}: ${err.message}`);
                         } finally {
                           setIsUploading(false);
-                          e.target.value = ""; // reset so same file can be re-selected
+                          setUploadProgress("");
+                          e.target.value = ""; // reset so same files can be re-selected
                         }
                       }}
                     />
@@ -622,7 +667,7 @@ export default function ProjectDetailPage() {
                       disabled={isUploading}
                       className="px-4 py-2 bg-surface-100 text-primary font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-surface-200 transition-colors disabled:opacity-50"
                     >
-                      {isUploading ? "Uploading..." : "Upload File"}
+                      {isUploading ? `Uploading ${uploadProgress}...` : "Upload File"}
                     </button>
                   </div>
                 </div>
@@ -1123,6 +1168,48 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
+      
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-surface-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-8 border-b border-surface-100 bg-red-50/50">
+              <div className="w-12 h-12 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center text-xl mb-4">🗑️</div>
+              <h2 className="text-2xl font-extrabold text-red-600 tracking-tight">Delete Blueprint</h2>
+              <p className="text-sm text-red-400 mt-2">
+                This action cannot be undone. This will permanently delete the project <strong className="text-red-500">{project.title}</strong>, including all tasks, uploaded files, floor plans, and assets.
+              </p>
+            </div>
+            <form onSubmit={handleDeleteProject} className="p-8">
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-surface-500 uppercase tracking-widest mb-2">
+                  Please type <span className="text-primary">{project.title}</span> to confirm.
+                </label>
+                <input 
+                  type="text" 
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value)}
+                  className="w-full bg-surface-50 border-2 border-surface-200 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-red-400 focus:bg-white transition-all"
+                  placeholder="Project Title"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-surface-100">
+                <button type="button" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }} className="px-6 py-3 text-xs font-bold text-surface-500 uppercase tracking-widest hover:bg-surface-50 rounded-xl transition-colors">
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isDeleting || deleteConfirmText !== project.title}
+                  className="px-6 py-3 bg-red-500 text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-red-500/20"
+                >
+                  {isDeleting ? "Deleting..." : "Permanently Delete"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

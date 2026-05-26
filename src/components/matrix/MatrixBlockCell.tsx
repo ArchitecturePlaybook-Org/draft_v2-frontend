@@ -33,9 +33,13 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneNam
   if (!block) {
     // Empty cell — no block exists for this zone/phase
     return (
-      <div className="h-[88px] border border-dashed border-surface-200 rounded-xl bg-surface-50/50 flex items-center justify-center">
-        <span className="text-[9px] text-surface-300 font-bold uppercase tracking-widest">—</span>
-      </div>
+      <button 
+        onClick={onClick}
+        className="w-full h-[88px] border border-dashed border-surface-200 rounded-xl bg-surface-50/50 hover:bg-surface-100 hover:border-surface-300 transition-all flex flex-col items-center justify-center group"
+      >
+        <span className="text-[14px] text-surface-300 group-hover:text-accent font-black transition-colors leading-none">+</span>
+        <span className="text-[8px] text-surface-300 group-hover:text-accent font-bold uppercase tracking-widest transition-colors mt-0.5">Plan Tasks</span>
+      </button>
     );
   }
 

@@ -43,6 +43,9 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   const [showIssueForm, setShowIssueForm] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
 
+  const [checklistProofModal, setChecklistProofModal] = useState<TaskChecklistItem | null>(null);
+  const checklistPhotoRef = useRef<HTMLInputElement>(null);
+
   const [zones, setZones] = useState<SpatialZone[]>([]);
   const [phases, setPhases] = useState<MilestonePhase[]>([]);
   const [selectedZoneId, setSelectedZoneId] = useState<string>("");
@@ -138,11 +141,38 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   };
 
   const handleToggleChecklist = async (item: TaskChecklistItem) => {
+    if (!item.is_completed && item.requires_visual_proof) {
+      setChecklistProofModal(item);
+      return;
+    }
+    setIsUpdating(true);
     try {
-      await projectsApi.updateChecklistItem(item.id, !item.is_completed);
+      await projectsApi.updateChecklistItemWithAttachments(item.id, !item.is_completed);
       await refreshTask();
     } catch (err: any) {
       toast.error(err.message || "Failed to update checklist.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleConfirmChecklistProof = async () => {
+    if (!checklistProofModal) return;
+    const files = checklistPhotoRef.current?.files ? Array.from(checklistPhotoRef.current.files) : [];
+    if (files.length === 0) {
+      toast.error("Please upload at least one photo as proof.");
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      await projectsApi.updateChecklistItemWithAttachments(checklistProofModal.id, true, files);
+      await refreshTask();
+      setChecklistProofModal(null);
+      toast.success("Checklist item verified with proof.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to complete checklist with proof.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -289,7 +319,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   🚨 Blocker
                 </span>
               )}
-              <span className="text-[10px] font-mono text-surface-400">ID: {task.uid}</span>
+              <span className="text-[10px] font-mono text-surface-400">ID: {task.task_code || task.uid}</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold text-primary tracking-tight truncate" title={task.title}>{task.title}</h2>
           </div>
@@ -522,28 +552,48 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                     ) : (
                       <div className="divide-y divide-surface-100">
                         {checklists.map((item: any) => (
-                          <label
-                            key={item.id}
-                            className="flex items-start gap-4 p-4 hover:bg-surface-50 cursor-pointer transition-colors group"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={item.is_completed}
-                              onChange={() => handleToggleChecklist(item)}
-                              disabled={isContractor && task.status !== "WIP"}
-                              className="w-5 h-5 mt-0.5 rounded border-surface-300 accent-accent shrink-0"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-semibold transition-colors ${item.is_completed ? "line-through text-surface-400" : "text-primary group-hover:text-accent"}`}>
-                                {item.title || item.description}
-                              </p>
-                            </div>
-                            {item.is_completed && (
-                              <svg className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                              </svg>
+                          <div key={item.id} className="flex flex-col gap-2 p-4 hover:bg-surface-50 transition-colors group border-b border-surface-100 last:border-0">
+                            <label className="flex items-start gap-4 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={item.is_completed}
+                                onChange={() => handleToggleChecklist(item)}
+                                disabled={isContractor && task.status !== "WIP" || isUpdating}
+                                className="w-5 h-5 mt-0.5 rounded border-surface-300 accent-accent shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className={`text-sm font-semibold transition-colors ${item.is_completed ? "line-through text-surface-400" : "text-primary group-hover:text-accent"}`}>
+                                    {item.title || item.description}
+                                  </p>
+                                  {item.requires_visual_proof && (
+                                    <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">📸 Proof Req.</span>
+                                  )}
+                                </div>
+                                {item.is_completed && item.completed_by && (
+                                  <p className="text-[10px] text-surface-400 mt-1">Completed by {item.completed_by.email}</p>
+                                )}
+                              </div>
+                              {item.is_completed && (
+                                <svg className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </label>
+                            {item.attachments && item.attachments.length > 0 && (
+                              <div className="flex gap-2 ml-9 mt-1">
+                                {item.attachments.map((att: any) => (
+                                  <button 
+                                    key={att.id} 
+                                    onClick={() => setLightboxImageUrl(att.file)}
+                                    className="w-12 h-12 rounded overflow-hidden border border-surface-200 block hover:opacity-80 transition-opacity cursor-pointer focus:outline-none shrink-0"
+                                  >
+                                    <img src={att.file} className="w-full h-full object-cover" />
+                                  </button>
+                                ))}
+                              </div>
                             )}
-                          </label>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -882,6 +932,36 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                 url={linked3dModel.file} 
                 format={linked3dModel.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'} 
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checklist Proof Modal */}
+      {checklistProofModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-2xl flex flex-col overflow-hidden shadow-2xl relative p-6 space-y-6">
+            <h3 className="text-xl font-bold text-primary tracking-tight">Visual Proof Required</h3>
+            <p className="text-sm text-surface-600 leading-relaxed">
+              To verify <strong className="text-primary">"{checklistProofModal.title}"</strong>, please upload photo evidence of the completed work.
+            </p>
+            <div>
+              <input type="file" ref={checklistPhotoRef} accept="image/*" multiple className="w-full text-sm font-bold text-surface-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-100 file:text-primary hover:file:bg-surface-200" />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button 
+                onClick={() => setChecklistProofModal(null)}
+                className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest text-surface-500 hover:bg-surface-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleConfirmChecklistProof}
+                disabled={isUpdating}
+                className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest bg-accent text-white shadow-lg shadow-accent/20 hover:bg-primary transition-all disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+              >
+                {isUpdating ? "Verifying..." : "Verify & Complete"}
+              </button>
             </div>
           </div>
         </div>

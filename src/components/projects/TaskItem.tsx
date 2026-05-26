@@ -55,7 +55,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         className="bg-white p-6 rounded-2xl border border-surface-200 hover:border-accent hover:shadow-lg transition-all group flex flex-col md:flex-row justify-between items-start md:items-center gap-6 cursor-pointer"
       >
         <div className="flex-1 space-y-2">
-          <h4 className="text-sm font-bold text-primary tracking-tight group-hover:text-accent transition-colors">{task.title}</h4>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-medium text-surface-400 bg-surface-50 px-2 py-0.5 rounded border border-surface-200 shrink-0">{task.task_code || task.uid}</span>
+            <h4 className="text-sm font-bold text-primary tracking-tight group-hover:text-accent transition-colors truncate">{task.title}</h4>
+          </div>
           <p className="text-[11px] text-surface-500 leading-relaxed font-medium line-clamp-2">
             {task.description || "No specific architectural requirements detailed."}
           </p>
@@ -130,9 +133,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
       {/* Card header */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h4 className="font-bold text-[11px] text-primary leading-tight flex-1 min-w-0 line-clamp-2 group-hover:text-accent transition-colors">
-          {task.title}
-        </h4>
+        <div className="flex-1 min-w-0">
+          <div className="text-[9px] font-mono text-surface-400 mb-0.5 truncate">{task.task_code || task.uid}</div>
+          <h4 className="font-bold text-[11px] text-primary leading-tight line-clamp-2 group-hover:text-accent transition-colors">
+            {task.title}
+          </h4>
+        </div>
         <span className={`shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${statusColor}`}>
           {statusLabel}
         </span>

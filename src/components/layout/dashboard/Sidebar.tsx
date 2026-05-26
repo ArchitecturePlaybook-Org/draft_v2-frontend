@@ -5,10 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { usePermissions } from "@/hooks/use-permissions";
 import { ProfileBanner } from "@/components/layout/dashboard/ProfileBanner";
+import { useCommandPaletteStore } from "@/store/command-palette-store";
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const { isAdmin, hasGlobalPermission } = usePermissions();
+  const setIsCommandPaletteOpen = useCommandPaletteStore((state) => state.setIsOpen);
 
   const memberLinks = [
     { label: "Dashboard", href: "/dashboard", icon: "📊" },
@@ -31,6 +33,22 @@ export const Sidebar: React.FC = () => {
           🏗
         </div>
         <span className="text-xl font-bold tracking-tight text-foreground">Architecture Playbook</span>
+      </div>
+
+      <div className="px-2 mb-6">
+        <button 
+          onClick={() => setIsCommandPaletteOpen(true)}
+          className="w-full flex items-center justify-between px-3 py-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl transition-all text-sm text-surface-500 shadow-sm"
+        >
+          <div className="flex items-center gap-2">
+            <span className="opacity-70">🔍</span>
+            <span className="font-semibold">Search...</span>
+          </div>
+          <div className="flex items-center gap-1 opacity-70">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white border border-surface-200 rounded text-surface-500">Cmd</kbd>
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white border border-surface-200 rounded text-surface-500">K</kbd>
+          </div>
+        </button>
       </div>
 
       <nav className="flex-1 flex flex-col gap-6">

@@ -29,6 +29,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   const [selectedBlock, setSelectedBlock] = useState<MilestoneBlockExpanded | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loadingBlockId, setLoadingBlockId] = useState<number | null>(null);
+  const [loadingCellId, setLoadingCellId] = useState<string | null>(null);
   
   const [isAddingZone, setIsAddingZone] = useState(false);
   const [isAddingPhase, setIsAddingPhase] = useState(false);
@@ -99,6 +100,28 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
       toast.error("Failed to load block details.");
     } finally {
       setLoadingBlockId(null);
+    }
+  };
+
+  const handleEmptyCellClick = async (zone: SpatialZone, phase: MilestonePhase) => {
+    const cellId = `${zone.id}-${phase.id}`;
+    setLoadingCellId(cellId);
+    try {
+      const block = await projectsApi.getOrCreateBlock(zone.id, phase.id);
+      fetchMatrix();
+      
+      const expandedBlock: MilestoneBlockExpanded = {
+        ...block,
+        tasks: [],
+        zone_name: zone.name,
+        phase_name: phase.name,
+      };
+      setSelectedBlock(expandedBlock);
+      setDrawerOpen(true);
+    } catch (err: any) {
+      toast.error("Failed to initialize block.");
+    } finally {
+      setLoadingCellId(null);
     }
   };
 
@@ -329,7 +352,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                     {/* Zone cells */}
                     {zones.map(zone => {
                       const block = getBlock(zone.id, phase.id);
-                      const isLoading = loadingBlockId === block?.id;
+                      const cellId = `${zone.id}-${phase.id}`;
+                      const isLoading = loadingBlockId === block?.id || loadingCellId === cellId;
                       return (
                         <td
                           key={zone.id}
@@ -344,7 +368,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                             <MatrixBlockCell
                               block={block}
                               zoneName={zone.name}
-                              onClick={block ? () => handleCellClick(block, zone, phase) : undefined}
+                              onClick={block ? () => handleCellClick(block, zone, phase) : () => handleEmptyCellClick(zone, phase)}
                             />
                           )}
                         </td>

@@ -19,6 +19,12 @@ export interface Project {
   description: string;
   status: ProjectStatus;
   account: Account;
+  project_code?: string;
+  kind?: string;
+  location?: string;
+  client_name?: string;
+  client_phone?: string;
+  client_email?: string;
   created_by: User;
   memberships_count: number;
   tasks_count: number;
@@ -79,6 +85,7 @@ export interface TaskAssetLink {
 export interface Task {
   id: number;
   uid: string;
+  task_code?: string;
   project: string;
   title: string;
   description: string;
@@ -210,14 +217,25 @@ export interface WorkPackageTemplate {
   tasks: any[];
 }
 
+export interface ChecklistAttachment {
+  id: number;
+  checklist_item: number;
+  file: string;
+  uploaded_by: User | null;
+  created_at: string;
+}
+
 export interface TaskChecklistItem {
   id: number;
   task: string;
-  description: string;
+  title: string;
   is_completed: boolean;
+  requires_visual_proof: boolean;
   completed_at: string | null;
-  completed_by: any | null;
+  completed_by: User | null;
+  attachments?: ChecklistAttachment[];
   order: number;
+  created_at?: string;
 }
 
 export interface PunchListItemAttachment {

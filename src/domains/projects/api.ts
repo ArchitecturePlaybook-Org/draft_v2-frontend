@@ -28,10 +28,43 @@ export const projectsApi = {
     return fetchFromBff<ProjectDetail>(`/api/projects/projects/${id}/`, { method: "GET" });
   },
 
-  createProject: async (data: { title: string; description?: string; account_id: number }) => {
+  createProject: async (data: { 
+    title: string; 
+    description?: string; 
+    account_id: number;
+    project_code?: string;
+    kind?: string;
+    location?: string;
+    client_name?: string;
+    client_phone?: string;
+    client_email?: string;
+  }) => {
     return fetchFromBff<Project>("/api/projects/projects/", {
       method: "POST",
-      body: JSON.stringify({ title: data.title, description: data.description, account: data.account_id })
+      body: JSON.stringify({ 
+        title: data.title, 
+        description: data.description, 
+        account: data.account_id,
+        project_code: data.project_code,
+        kind: data.kind,
+        location: data.location,
+        client_name: data.client_name,
+        client_phone: data.client_phone,
+        client_email: data.client_email
+      })
+    });
+  },
+
+  updateProject: async (uid: string, data: Partial<Project>) => {
+    return fetchFromBff<Project>(`/api/projects/projects/${uid}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteProject: async (uid: string) => {
+    return fetchFromBff<void>(`/api/projects/projects/${uid}/`, {
+      method: "DELETE"
     });
   },
 
@@ -59,6 +92,11 @@ export const projectsApi = {
   },
 
   // ── Checklist Items ───────────────────────────────────────────────────────
+  getProjectChecklists: async (projectUid: string) => {
+    const res = await fetchFromBff<any>(`/api/projects/task-checklists/?project_uid=${projectUid}`, { method: "GET" });
+    return unpackArray<any>(res);
+  },
+
   createChecklistItem: async (taskUid: string, title: string) => {
     return fetchFromBff<any>(`/api/projects/task-checklists/`, {
       method: "POST",
@@ -67,10 +105,21 @@ export const projectsApi = {
   },
 
   updateChecklistItem: async (itemId: number, isCompleted: boolean) => {
-    // Assuming backend checklist update expects just is_completed or toggles it
     return fetchFromBff<any>(`/api/projects/task-checklists/${itemId}/`, {
       method: "PATCH",
       body: JSON.stringify({ is_completed: isCompleted })
+    });
+  },
+
+  updateChecklistItemWithAttachments: async (itemId: number, isCompleted: boolean, files?: File[]) => {
+    const formData = new FormData();
+    formData.append("is_completed", isCompleted ? "true" : "false");
+    if (files && files.length > 0) {
+      files.forEach(f => formData.append("attachments", f));
+    }
+    return fetchFromBff<any>(`/api/projects/task-checklists/${itemId}/`, {
+      method: "PATCH",
+      body: formData
     });
   },
 
@@ -284,6 +333,13 @@ export const projectsApi = {
   },
 
   // ── Unified Tasks for Matrix ────────────────────────────────────────────────
+  getOrCreateBlock: async (zoneId: number, phaseId: number) => {
+    return fetchFromBff<any>(`/api/projects/blocks/get_or_create_empty/`, {
+      method: "POST",
+      body: JSON.stringify({ zone_id: zoneId, phase_id: phaseId })
+    });
+  },
+
   getBlockTasks: async (blockId: number): Promise<Task[]> => {
     const res = await fetchFromBff<any>(`/api/projects/tasks/?block=${blockId}`, { method: "GET" });
     return unpackArray<Task>(res);

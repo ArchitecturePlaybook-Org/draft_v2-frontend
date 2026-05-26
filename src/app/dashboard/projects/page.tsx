@@ -5,6 +5,7 @@ import { Project } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { orgsApi } from "@/domains/orgs/api";
 import { ProjectCard } from "@/components/projects/ProjectCard";
+import { EstablishBlueprintModal } from "@/components/projects/EstablishBlueprintModal";
 import { Spinner } from "@/components/ui/Spinner";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useSearchParams } from "next/navigation";
@@ -30,20 +31,14 @@ function ProjectsPageInner() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [orgs, setOrgs] = useState<any[]>([]);
-  const [newProject, setNewProject] = useState({ 
-    title: "", 
-    description: "", 
-    account_id: "" 
-  });
-  const [isCreating, setIsCreating] = useState(false);
+  const [initialData, setInitialData] = useState({ title: "", description: "" });
 
   const handleSearchParams = (leadId: string | null, leadTitle: string | null, clientName: string | null) => {
     if (leadId) {
-      setNewProject(prev => ({
-        ...prev,
+      setInitialData({
         title: leadTitle ? `Blueprint: ${leadTitle}` : `New Project for ${clientName}`,
         description: `Originating from Business Lead ID: ${leadId}`
-      }));
+      });
       setShowCreateModal(true);
     }
   };
@@ -78,28 +73,7 @@ function ProjectsPageInner() {
     }
   }, [showCreateModal, orgs.length]);
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProject.title || !newProject.account_id) {
-      alert("Please enter a Project Title and select a Professional Entity from the list.");
-      return;
-    }
-    setIsCreating(true);
-    try {
-      await projectsApi.createProject({
-        title: newProject.title,
-        description: newProject.description,
-        account_id: parseInt(newProject.account_id)
-      });
-      setShowCreateModal(false);
-      setNewProject({ title: "", description: "", account_id: "" });
-      fetchProjects();
-    } catch (err: any) {
-      alert(`Failed to establish project blueprint: ${err.message || 'Unknown error'}`);
-    } finally {
-      setIsCreating(false);
-    }
-  };
+
 
   return (
     <div className="space-y-10 animate-fade-in pb-12">
@@ -152,76 +126,13 @@ function ProjectsPageInner() {
         </div>
       )}
 
-      {/* Creation Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-surface-200">
-            <div className="p-8 border-b border-surface-100 bg-surface-50 flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-bold text-primary tracking-tight">Establish New Blueprint</h3>
-                <p className="text-[10px] uppercase tracking-widest font-bold text-surface-400 mt-1">Map project to a tenant entity</p>
-              </div>
-              <button onClick={() => setShowCreateModal(false)} className="text-surface-400 hover:text-red-500 transition-colors">
-                ✕
-              </button>
-            </div>
-            
-            <form onSubmit={handleCreateProject} className="p-8 space-y-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Project Title</label>
-                <input 
-                  type="text" 
-                  value={newProject.title}
-                  onChange={e => setNewProject({...newProject, title: e.target.value})}
-                  className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-medium text-sm transition-colors" 
-                  placeholder="e.g. Neo-Gothic Skyscraper Extension"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Architectural Scope (Optional)</label>
-                <textarea 
-                  value={newProject.description}
-                  onChange={e => setNewProject({...newProject, description: e.target.value})}
-                  className="w-full h-24 bg-surface-50 border border-surface-200 p-4 rounded-xl outline-none focus:border-accent font-medium text-sm transition-colors resize-none" 
-                  placeholder="Detailed context regarding the project..."
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Map to Professional Entity</label>
-                <select 
-                  value={newProject.account_id}
-                  onChange={e => setNewProject({...newProject, account_id: e.target.value})}
-                  className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none"
-                >
-                  <option value="" disabled>Select Firm / Tenant...</option>
-                  {orgs.map(org => (
-                    <option key={org.id} value={org.id}>{org.name} ({org.account_type})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="pt-6 flex justify-end gap-3 border-t border-surface-100">
-                <button 
-                  type="button" 
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-6 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest text-surface-500 hover:bg-surface-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isCreating}
-                  className="px-6 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-primary text-white hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCreating ? "Initializing..." : "Establish Node"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <EstablishBlueprintModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={fetchProjects}
+        orgs={orgs}
+        initialData={initialData}
+      />
     </div>
   );
 }
