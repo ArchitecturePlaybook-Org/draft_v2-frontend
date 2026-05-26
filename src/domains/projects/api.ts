@@ -3,7 +3,7 @@ import {
   Project, ProjectDetail, TaskAssetLink,
   MatrixPayload, ExpandedFeedPayload, Task,
   WorkPackageTemplate, SpatialZone, MilestonePhase, AIZoneResult,
-  BOQItem, TaskMaterialAllocation, TaskComment
+  BOQItem, TaskMaterialAllocation, TaskComment, ChecklistTemplate
 } from "@/types/projects";
 
 export interface PaginatedResponse<T> {
@@ -121,6 +121,41 @@ export const projectsApi = {
       method: "PATCH",
       body: formData
     });
+  },
+
+  getChecklistTemplates: async () => {
+    const res = await fetchFromBff<any>(`/api/projects/checklist-templates/`, { method: "GET" });
+    return unpackArray<ChecklistTemplate>(res);
+  },
+
+  createChecklistTemplate: async (data: { name: string; description?: string }) => {
+    const res = await fetchFromBff<any>(`/api/projects/checklist-templates/`, {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+    return res.data;
+  },
+
+  deleteChecklistTemplate: async (templateId: number) => {
+    await fetchFromBff<any>(`/api/projects/checklist-templates/${templateId}/`, {
+      method: "DELETE"
+    });
+  },
+
+  syncChecklistTemplateItems: async (templateId: number, items: { title: string; requires_visual_proof: boolean }[]) => {
+    const res = await fetchFromBff<any>(`/api/projects/checklist-templates/${templateId}/sync-items/`, {
+      method: "POST",
+      body: JSON.stringify({ items })
+    });
+    return res.data;
+  },
+
+  importChecklistTemplate: async (taskUid: string, templateId: number) => {
+    const res = await fetchFromBff<any>(`/api/projects/tasks/${taskUid}/import-checklist/`, {
+      method: "POST",
+      body: JSON.stringify({ template_id: templateId })
+    });
+    return unpackArray<any>(res);
   },
 
   // ── Issues ────────────────────────────────────────────────────────────────
@@ -256,7 +291,8 @@ export const projectsApi = {
   },
 
   getSitePhotos: async (floorPlanId: number) => {
-    return fetchFromBff<any[]>(`/api/projects/site-photos/?floor_plan=${floorPlanId}`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/projects/site-photos/?floor_plan=${floorPlanId}`, { method: "GET" });
+    return unpackArray<any>(res);
   },
 
   deleteSitePhoto: async (photoId: number) => {
@@ -428,6 +464,26 @@ export const projectsApi = {
     });
   },
 
+  logMaterialConsumption: async (allocationId: number | null, actualQty: number | string, totalCost: number | string, receipt?: File | null, taskUid?: string, boqItemId?: number) => {
+    const formData = new FormData();
+    formData.append("actual_consumed_qty", actualQty.toString());
+    formData.append("total_cost", totalCost.toString());
+    if (taskUid) formData.append("task_uid", taskUid);
+    if (boqItemId) formData.append("boq_item_id", boqItemId.toString());
+    if (receipt) {
+      formData.append("receipt", receipt);
+    }
+    
+    const url = allocationId 
+      ? `/api/projects/material-allocations/${allocationId}/log/`
+      : `/api/projects/material-allocations/log-lazy/`;
+      
+    return fetchFromBff<TaskMaterialAllocation>(url, {
+      method: "POST",
+      body: formData
+    });
+  },
+
   bulkUpdateMaterialAllocationStatus: async (ids: number[], reqStatus: string) => {
     return fetchFromBff<any>(`/api/projects/material-allocations/bulk-update-status/`, {
       method: "POST",
@@ -475,5 +531,21 @@ export const projectsApi = {
   // ── Block unlock (admin override) ─────────────────────────────────────────
   unlockBlock: async (blockId: number) => {
     return fetchFromBff<any>(`/api/projects/blocks/${blockId}/unlock/`, { method: "POST" });
+  },
+
+  // ── Share Links ───────────────────────────────────────────────────────────
+  getShareLinks: async (projectId: string) => {
+    return fetchFromBff<any[]>(`/api/projects/projects/${projectId}/share/`, { method: "GET" });
+  },
+
+  createShareLink: async (projectId: string, expiresInDays: number | null) => {
+    return fetchFromBff<any>(`/api/projects/projects/${projectId}/share/`, {
+      method: "POST",
+      body: JSON.stringify({ expires_in_days: expiresInDays })
+    });
+  },
+
+  revokeShareLink: async (projectId: string, token: string) => {
+    return fetchFromBff<void>(`/api/projects/projects/${projectId}/share/${token}/`, { method: "DELETE" });
   },
 };

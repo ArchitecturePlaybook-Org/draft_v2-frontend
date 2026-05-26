@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Task, ProjectAsset, TaskChecklistItem, SpatialZone, MilestonePhase } from "@/types/projects";
+import { Task, ProjectAsset, TaskChecklistItem, SpatialZone, MilestonePhase, ChecklistTemplate } from "@/types/projects";
 import { usePermissions } from "@/hooks/use-permissions";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
@@ -57,6 +57,14 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   const [isFullScreen3D, setIsFullScreen3D] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  
+  const isMatrixTask = task.block !== null && task.block !== undefined;
+  // TODO: Use true roles from auth context, using generic flags for now
+  const isAdmin = true;
+  const isContractor = false;
+  const isQA = false;
   
   React.useEffect(() => {
     if (projectUid) {
@@ -72,7 +80,14 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
         }
       }).catch(err => console.error("Failed to fetch matrix data", err));
     }
-  }, [projectUid, task.block]);
+    
+    // Fetch checklist templates if admin/QA
+    if (isAdmin || isQA) {
+      projectsApi.getChecklistTemplates().then(data => {
+        setChecklistTemplates(data);
+      }).catch(err => console.error("Failed to fetch checklist templates", err));
+    }
+  }, [projectUid, task.block, isAdmin, isQA]);
 
   const handleUpdateMatrixLocation = async (zId: string, pId: string) => {
     if (zId && pId) {
@@ -85,12 +100,6 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
       }
     }
   };
-
-  const isMatrixTask = task.block !== null && task.block !== undefined;
-  // TODO: Use true roles from auth context, using generic flags for now
-  const isAdmin = true;
-  const isContractor = false;
-  const isQA = false;
 
   const refreshTask = async () => {
     try {
@@ -185,6 +194,21 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
       toast.success("Checklist item added.");
     } catch (err: any) {
       toast.error(err.message || "Failed to add item.");
+    }
+  };
+
+  const handleImportTemplate = async () => {
+    if (!selectedTemplateId) return;
+    setIsUpdating(true);
+    try {
+      await projectsApi.importChecklistTemplate(task.uid, parseInt(selectedTemplateId));
+      setSelectedTemplateId("");
+      await refreshTask();
+      toast.success("Checklist template imported successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to import template.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -616,6 +640,27 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                           className="h-10 px-4 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
                         >
                           + Add
+                        </button>
+                      </div>
+                      
+                      {/* Import Template Section */}
+                      <div className="mt-4 pt-4 border-t border-surface-200 flex gap-3 items-center">
+                        <select
+                          value={selectedTemplateId}
+                          onChange={(e) => setSelectedTemplateId(e.target.value)}
+                          className="flex-1 h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-medium text-primary appearance-none"
+                        >
+                          <option value="" disabled>Import from global template...</option>
+                          {checklistTemplates.map(t => (
+                            <option key={t.id} value={t.id}>{t.name} ({t.items?.length || 0} items)</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={handleImportTemplate}
+                          disabled={!selectedTemplateId || isUpdating}
+                          className="h-10 px-4 bg-surface-200 text-surface-700 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-300 transition-all disabled:opacity-40 whitespace-nowrap"
+                        >
+                          {isUpdating ? "Importing..." : "Import"}
                         </button>
                       </div>
                     </div>

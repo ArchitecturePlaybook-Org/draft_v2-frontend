@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["jspdf", "fflate"],
   async rewrites() {
     return [
       {

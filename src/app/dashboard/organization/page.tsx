@@ -4,7 +4,9 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { orgsApi, OrgUpdateData } from "@/domains/orgs/api";
 import { Organization, Invitation } from "@/types/auth";
 
-type OrgTabType = "overview" | "team" | "brand" | "compliance";
+import { ChecklistTemplateManager } from "./ChecklistTemplateManager";
+
+type OrgTabType = "overview" | "team" | "brand" | "compliance" | "templates";
 
 const ROLE_DISPLAY: Record<string, { label: string; color: string }> = {
   owner: { label: "Account Owner", color: "bg-red-500" },
@@ -322,7 +324,7 @@ export default function OrganizationPage() {
 
                     {/* Navigation Tabs */}
                     <div className="flex border-b border-surface-200 overflow-x-auto no-scrollbar scroll-smooth">
-                        {(["overview", "team", "brand", "compliance"] as OrgTabType[]).map((tab) => (
+                        {(["overview", "team", "brand", "compliance", "templates"] as OrgTabType[]).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -628,6 +630,12 @@ export default function OrganizationPage() {
                                         </button>
                                     </div>
                                 </section>
+                            </div>
+                        )}
+                        
+                        {activeTab === "templates" && (
+                            <div className="animate-in fade-in duration-500">
+                                <ChecklistTemplateManager />
                             </div>
                         )}
                     </div>

@@ -23,11 +23,25 @@ export function CellPhotoDrawer({ asset, col, row, onClose, onPhotoUploaded }: C
   const colLetter = String.fromCharCode(65 + col);
   const rowNum = row + 1;
 
+  const fetchPhotos = async () => {
+    try {
+      const allPhotos = await projectsApi.getSitePhotos(asset.id);
+      const cellPhotos = allPhotos.filter(p => p.grid_col === col && p.grid_row === row);
+      setPhotos(cellPhotos);
+    } catch (err) {
+      console.error("Failed to fetch cell photos:", err);
+    }
+  };
+
   useEffect(() => {
-    const cellPhotos = asset.site_photos.filter(p => p.grid_col === col && p.grid_row === row);
+    // Initial populate from asset props (for instant display)
+    const cellPhotos = asset.site_photos?.filter(p => p.grid_col === col && p.grid_row === row) || [];
     setPhotos(cellPhotos);
+    
+    // Then fetch fresh data from backend
+    fetchPhotos();
     captureGps();
-  }, [asset, col, row]);
+  }, [asset.id, col, row]);
 
   const captureGps = (highAccuracy = true) => {
     if (!navigator.geolocation) return;
@@ -72,13 +86,17 @@ export function CellPhotoDrawer({ asset, col, row, onClose, onPhotoUploaded }: C
       let source = gpsData ? "browser" : "none";
       let accuracy = gpsData?.acc;
 
-      // If browser GPS failed, try EXIF
+      // If browser GPS failed, try EXIF safely
       if (!lat) {
-        const exifGps = await exifr.gps(file);
-        if (exifGps) {
-          lat = exifGps.latitude;
-          lng = exifGps.longitude;
-          source = "exif";
+        try {
+          const exifGps = await exifr.gps(file);
+          if (exifGps) {
+            lat = exifGps.latitude;
+            lng = exifGps.longitude;
+            source = "exif";
+          }
+        } catch (exifErr) {
+          console.warn("Could not read EXIF GPS data:", exifErr);
         }
       }
 
@@ -95,6 +113,7 @@ export function CellPhotoDrawer({ asset, col, row, onClose, onPhotoUploaded }: C
       });
 
       setCaption("");
+      await fetchPhotos();
       onPhotoUploaded();
     } catch (err: any) {
       alert(`Upload failed: ${err.message}`);

@@ -11,7 +11,7 @@ export default function ProcurementDashboard() {
   const params = useParams();
   const projectId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<"BOQ" | "SIGNALS">("BOQ");
+  const [activeTab, setActiveTab] = useState<"BOQ" | "SIGNALS" | "TRACKING">("BOQ");
   
   const [items, setItems] = useState<ProcurementAggregatorItem[]>([]);
   const [phases, setPhases] = useState<MilestonePhase[]>([]);
@@ -173,6 +173,14 @@ export default function ProcurementDashboard() {
           >
             Buy Signals & POs
           </button>
+          <button
+            onClick={() => setActiveTab("TRACKING")}
+            className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+              activeTab === "TRACKING" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
+            }`}
+          >
+            Material Tracking
+          </button>
         </div>
       </div>
 
@@ -259,7 +267,7 @@ export default function ProcurementDashboard() {
                     <tbody>
                       {items.filter(item => {
                         if (!boqForm.phase) return true; // Show all if no phase selected in form
-                        return item.phase == boqForm.phase;
+                        return item.phase?.toString() === boqForm.phase;
                       }).map((item) => (
                         <tr key={item.id} className="border-b border-surface-100 hover:bg-surface-50">
                           <td className="py-4 px-6 font-extrabold text-primary">{item.material_code}</td>
@@ -376,6 +384,138 @@ export default function ProcurementDashboard() {
                                               )}
                                             </td>
                                           </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "TRACKING" && (
+            <div className="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
+              {loading ? (
+                <div className="p-10 text-center text-surface-500 font-bold">Loading ledger...</div>
+              ) : items.length === 0 ? (
+                <div className="p-10 text-center text-surface-500">
+                  <p className="font-bold">No material items found.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface-50 border-b border-surface-200 text-[10px] font-black text-surface-400 uppercase tracking-widest">
+                        <th className="py-4 px-6 font-black w-8"></th>
+                        <th className="py-4 px-6 font-black">BOQ Item</th>
+                        <th className="py-4 px-6 font-black">Phase</th>
+                        <th className="py-4 px-6 font-black text-emerald-600">Remaining Phase Qty</th>
+                        <th className="py-4 px-6 font-black">Allocations</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item) => {
+                        const isExpanded = expandedRows[item.id];
+                        const allocations = item.allocations || [];
+                        const anomalyCount = allocations.filter(a => a.is_anomaly).length;
+
+                        return (
+                          <React.Fragment key={item.id}>
+                            <tr className={`border-b border-surface-100 hover:bg-surface-50 transition-colors ${isExpanded ? "bg-surface-50" : ""}`}>
+                              <td className="py-4 px-6">
+                                <button 
+                                  onClick={() => toggleRow(item.id)}
+                                  className="w-6 h-6 rounded-md bg-surface-200 text-surface-600 flex items-center justify-center hover:bg-accent hover:text-white transition-all font-bold"
+                                >
+                                  {isExpanded ? "v" : ">"}
+                                </button>
+                              </td>
+                              <td className="py-4 px-6 font-extrabold text-primary">{item.material_code}</td>
+                              <td className="py-4 px-6 font-bold text-surface-500">
+                                {item.phase ? phases.find(p => p.id == item.phase)?.name || `Phase ${item.phase}` : "Global"}
+                              </td>
+                              <td className="py-4 px-6 font-black tabular-nums text-emerald-600">
+                                {item.remaining_phase_qty ?? item.remaining_budget}
+                              </td>
+                              <td className="py-4 px-6 font-bold tabular-nums">
+                                {allocations.length} {anomalyCount > 0 && <span className="text-red-500 ml-2">({anomalyCount} Anomalies 🚨)</span>}
+                              </td>
+                            </tr>
+
+                            {isExpanded && allocations.length > 0 && (
+                              <tr>
+                                <td colSpan={5} className="p-0 border-b border-surface-200">
+                                  <div className="bg-surface-50/50 px-14 py-4 border-l-4 border-surface-300">
+                                    <table className="w-full text-left">
+                                      <thead>
+                                        <tr className="text-[10px] text-surface-400 uppercase tracking-widest font-black border-b border-surface-200">
+                                          <th className="pb-2 px-4">Task</th>
+                                          <th className="pb-2 px-4">Target Qty</th>
+                                          <th className="pb-2 px-4">Actual Qty</th>
+                                          <th className="pb-2 px-4">Status</th>
+                                          <th className="pb-2 px-4">Total Cost</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {allocations.map(alloc => (
+                                          <React.Fragment key={alloc.id}>
+                                            <tr className={`border-b border-surface-100 hover:bg-white transition-colors ${alloc.is_anomaly ? "bg-red-50/50" : ""}`}>
+                                              <td className="py-3 px-4 font-bold text-sm text-primary flex items-center gap-2">
+                                                <span className="text-surface-400">↳</span>
+                                                {alloc.task_zone_name ? `${alloc.task_zone_name} (${alloc.task_title})` : alloc.task_title}
+                                              </td>
+                                              <td className="py-3 px-4 font-black tabular-nums text-surface-600 w-32">
+                                                {alloc.allocated_qty}
+                                              </td>
+                                              <td className={`py-3 px-4 font-black tabular-nums w-32 ${alloc.is_anomaly ? "text-red-600" : "text-emerald-600"}`}>
+                                                {alloc.is_logged ? alloc.actual_consumed_qty : "—"}
+                                              </td>
+                                              <td className="py-3 px-4 w-40">
+                                                {alloc.is_logged ? (
+                                                  alloc.is_anomaly ? (
+                                                    <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-red-100 text-red-600">🚨 Anomaly</span>
+                                                  ) : (
+                                                    <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-emerald-100 text-emerald-600">✅ Logged</span>
+                                                  )
+                                                ) : (
+                                                  <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-surface-200 text-surface-600">⏳ Pending</span>
+                                                )}
+                                              </td>
+                                              <td className="py-3 px-4 w-32 font-bold text-emerald-600">
+                                                {alloc.logs && alloc.logs.length > 0 ? (
+                                                  `$${alloc.logs.reduce((sum, log) => sum + parseFloat(log.total_cost as string), 0).toFixed(2)}`
+                                                ) : "—"}
+                                              </td>
+                                            </tr>
+                                            {alloc.logs && alloc.logs.length > 0 && (
+                                              <tr className="bg-surface-50 border-b border-surface-100">
+                                                <td colSpan={5} className="py-2 px-8">
+                                                  <div className="space-y-1">
+                                                    {alloc.logs.map(log => (
+                                                      <div key={log.id} className="text-[10px] flex items-center gap-4 text-surface-500 font-medium">
+                                                        <span className="w-24 border-r border-surface-200">{new Date(log.created_at).toLocaleDateString()}</span>
+                                                        <span className="w-24 border-r border-surface-200">Qty: {log.consumed_qty}</span>
+                                                        <span className="w-24 border-r border-surface-200">Cost: ${log.total_cost}</span>
+                                                        <span>
+                                                          {log.receipt ? (
+                                                            <a href={log.receipt} target="_blank" rel="noreferrer" className="text-accent underline hover:text-primary">View Proof</a>
+                                                          ) : "No Receipt"}
+                                                        </span>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </td>
+                                              </tr>
+                                            )}
+                                          </React.Fragment>
                                         ))}
                                       </tbody>
                                     </table>

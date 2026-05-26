@@ -16,8 +16,9 @@ import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
 import { ExpandedFeedView } from "@/components/matrix/ExpandedFeedView";
 import ModelViewer from "@/components/ModelViewer";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import ProjectShareManager from "@/components/projects/ProjectShareManager";
 
-type TabView = "data_hub" | "kanban" | "gantt" | "matrix" | "issues";
+type TabView = "data_hub" | "kanban" | "gantt" | "matrix" | "issues" | "share";
 type HubCategory = "sketch" | "2d_plan" | "3d_model" | "document";
 
 const GanttTaskBar = ({ task, totalDays, minDate, onTaskUpdate, onClick }: { task: Task, totalDays: number, minDate: Date, onTaskUpdate: (uid: string, start: string, end: string) => void, onClick: () => void }) => {
@@ -551,6 +552,12 @@ export default function ProjectDetailPage() {
 
         <div className="relative z-10 flex gap-4 shrink-0">
           <button 
+            onClick={() => window.open(`/dashboard/projects/${id}/report/project-summary`, "_blank")}
+            className="h-10 px-6 bg-emerald-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2"
+          >
+            📄 Generate Report
+          </button>
+          <button 
             onClick={() => router.push(`/dashboard/projects/${id}/procurement`)}
             className="h-10 px-6 bg-surface-100 text-primary font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200 flex items-center gap-2"
           >
@@ -576,7 +583,8 @@ export default function ProjectDetailPage() {
           { id: "matrix", label: "Construction Matrix" },
           { id: "kanban", label: "Advanced Kanban" },
           { id: "gantt", label: "Gantt Timeline" },
-          { id: "issues", label: "Project Issue Tracker" }
+          { id: "issues", label: "Project Issue Tracker" },
+          { id: "share", label: "Share Dashboard" }
         ].map(tab => (
           <button
             key={tab.id}
@@ -995,6 +1003,13 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
+        {/* SHARE DASHBOARD VIEW */}
+        {activeTab === "share" && (
+          <div className="animate-fade-in">
+            <ProjectShareManager projectId={project.uid} />
+          </div>
+        )}
+
       </div>
 
       {/* Assignment Modal */}
@@ -1118,16 +1133,21 @@ export default function ProjectDetailPage() {
                   {project.tasks.map(task => {
                     const link = task.asset_links?.find(l => String(l.canonical_uid) === String(manageLinksAsset.canonical_uid));
                     const isLinked = !!link;
+
+                    const is3DModel = manageLinksAsset.category === '3d_model';
+                    const taskHas3DModelAlready = task.asset_links?.some(l => l.latest_asset?.category === '3d_model');
+                    const disabled = !isLinked && is3DModel && taskHas3DModelAlready;
                     
                     return (
                       <label 
                         key={task.uid} 
-                        className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer hover:shadow-sm ${isLinked ? 'border-accent bg-accent/5' : 'border-surface-200 hover:bg-surface-50'}`}
+                        className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'} ${isLinked ? 'border-accent bg-accent/5' : 'border-surface-200 hover:bg-surface-50'}`}
                       >
                         <input 
                           type="checkbox" 
-                          className="w-4 h-4 rounded text-accent focus:ring-accent accent-accent cursor-pointer"
+                          className="w-4 h-4 rounded text-accent focus:ring-accent accent-accent cursor-pointer disabled:cursor-not-allowed"
                           checked={isLinked}
+                          disabled={disabled}
                           onChange={async (e) => {
                             try {
                               if (e.target.checked) {
@@ -1138,8 +1158,8 @@ export default function ProjectDetailPage() {
                                 }
                               }
                               fetchProject();
-                            } catch (err) {
-                              alert("Failed to update task link.");
+                            } catch (err: any) {
+                              alert(err?.response?.data?.non_field_errors?.[0] || err.message || "Failed to update task link.");
                             }
                           }}
                         />
@@ -1148,6 +1168,7 @@ export default function ProjectDetailPage() {
                           <p className="text-[9px] uppercase tracking-widest font-bold text-surface-400 truncate mt-0.5">
                             <span className={task.status === "DONE" ? "text-emerald-500" : task.status === "WIP" ? "text-accent" : ""}>{task.status}</span>
                             {task.zone_name ? ` • ${task.zone_name}` : ''}
+                            {disabled && <span className="ml-2 text-red-500">🚫 Already has 3D model</span>}
                           </p>
                         </div>
                       </label>

@@ -58,7 +58,7 @@ export const ChecklistManager: React.FC<ChecklistManagerProps> = ({ projectUid }
         <h2 className="text-xl font-extrabold text-primary mb-6">Master Checklists</h2>
         
         <div className="space-y-8">
-          {Object.entries(groupedByTask).map(([taskTitle, items]) => (
+          {(Object.entries(groupedByTask) as [string, any[]][]).map(([taskTitle, items]) => (
             <div key={taskTitle} className="space-y-4">
               <h3 className="text-sm font-bold text-surface-500 uppercase tracking-widest border-b border-surface-100 pb-2">
                 Task: {taskTitle}

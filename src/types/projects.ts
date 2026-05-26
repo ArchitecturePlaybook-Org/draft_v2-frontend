@@ -188,6 +188,7 @@ export interface MilestoneBlockExpanded extends MilestoneBlockCompact {
 }
 
 export interface MatrixPayload {
+  project_id?: number;
   zones: SpatialZone[];
   phases: MilestonePhase[];
   blocks: MilestoneBlockCompact[];
@@ -238,6 +239,22 @@ export interface TaskChecklistItem {
   created_at?: string;
 }
 
+export interface ChecklistTemplateItem {
+  id: number;
+  title: string;
+  requires_visual_proof: boolean;
+  order: number;
+}
+
+export interface ChecklistTemplate {
+  id: number;
+  account: number;
+  name: string;
+  description: string;
+  items: ChecklistTemplateItem[];
+  created_at: string;
+}
+
 export interface PunchListItemAttachment {
   id: number;
   punch_list_item: number;
@@ -279,8 +296,18 @@ export interface BOQItem {
   total_budgeted_qty: string | number;
   unit_rate: string | number;
   remaining_budget?: string | number;
+  remaining_phase_qty?: string | number;
   created_at: string;
   updated_at: string;
+}
+
+export interface MaterialConsumptionLog {
+  id: number;
+  consumed_qty: string | number;
+  total_cost: string | number;
+  receipt?: string | null;
+  logged_by?: User | null;
+  created_at: string;
 }
 
 export interface TaskMaterialAllocation {
@@ -292,6 +319,11 @@ export interface TaskMaterialAllocation {
   boq_item: number;
   boq_item_detail?: BOQItem;
   allocated_qty: string | number;
+  actual_consumed_qty?: string | number | null;
+  is_logged?: boolean;
+  is_anomaly?: boolean;
+  suggested_consumption_range?: { min: number; max: number };
+  logs?: MaterialConsumptionLog[];
   req_status: "DRAFT" | "REQUISITIONED" | "ORDERED" | "DELIVERED";
   expected_on_site_by?: string | null;
   notes?: string;
@@ -300,6 +332,7 @@ export interface TaskMaterialAllocation {
 }
 
 export interface ProcurementAggregatorItem extends BOQItem {
+  project_name?: string;
   draft_qty: string | number;
   requisitioned_qty: string | number;
   ordered_qty: string | number;

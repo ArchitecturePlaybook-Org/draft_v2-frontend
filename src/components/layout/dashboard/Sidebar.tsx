@@ -18,7 +18,6 @@ export const Sidebar: React.FC = () => {
     { label: "Project Registry", href: "/dashboard/projects", icon: "🏗️" },
     { label: "Procurement Ledger", href: "/dashboard/procurement", icon: "🛒" },
     { label: "Calendar", href: "/dashboard/calendar", icon: "📅" },
-    { label: "Messenger", href: "/dashboard/inbox", icon: "💬" },
   ].filter(link => !(link as any).permission || hasGlobalPermission((link as any).permission.split(":")[0], (link as any).permission.split(":")[1]));
 
   const settingsLinks = [
