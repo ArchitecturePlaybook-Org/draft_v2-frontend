@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Pathtrace Preview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Use import maps to pin versions -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "three-gpu-pathtracer": "https://unpkg.com/three-gpu-pathtracer@0.0.23/build/index.module.js"
+    }
+  }
+  </script>
+  <style>
+    html,body {height:100%;margin:0;background:#0b0f14;color:#e5e7eb;font:14px/1.4 system-ui}
+    #ui {position:fixed;left:12px;top:12px;z-index:10;background:#111827cc;border:1px solid #1f2937;padding:8px 10px;border-radius:10px}
+    label {display:block;margin:4px 0}
+    canvas {display:block;width:100%;height:100%}
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <label>Samples/frame <input id="spf" type="range" min="1" max="8" value="1"/></label>
+    <label>Bounces <input id="bounces" type="range" min="1" max="12" value="6"/></label>
+    <button id="reset">Reset</button>
+  </div>
+  <canvas id="c"></canvas>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RGBELoader }  from 'three/addons/loaders/RGBELoader.js';
+    import { OBJLoader }   from 'three/addons/loaders/OBJLoader.js';
+    import { WebGLPathTracer, BlurredEnvMapGenerator } from 'three-gpu-pathtracer';
+
+    // --- renderer
+    const canvas = document.getElementById('c');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+    // --- scene & camera
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 2000);
+    camera.position.set(3, 2, 3);
+
+    // controls (moving the camera invalidates samples)
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.addEventListener('change', () => pathTracer && pathTracer.updateCamera());
+
+    // simple ground so interiors don’t float if model has no floor
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(100, 64).rotateX(-Math.PI/2),
+      new THREE.MeshStandardMaterial({ color: 0x404040, metalness: 0, roughness: 1 })
+    );
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // --- env lighting (blurred for faster convergence)
+    let envMap = null;
+    try {
+      const hdr = await new RGBELoader().setPath('https://raw.githubusercontent.com/gkjohnson/three-gpu-pathtracer/main/example/assets/env/').loadAsync('royal_esplanade_1k.hdr');
+      hdr.mapping = THREE.EquirectangularReflectionMapping;
+      const generator = new BlurredEnvMapGenerator(renderer);
+      envMap = generator.generate(hdr, 0.35);
+      scene.environment = envMap;
+      scene.background  = envMap;
+    } catch(e) {
+      console.warn('Env map optional:', e);
+    }
+
+    // --- path tracer
+    const pathTracer = new WebGLPathTracer(renderer);
+    pathTracer.setScene(scene, camera); // basic usage per README
+    // UI hooks
+    const spf = document.getElementById('spf');
+    const bounces = document.getElementById('bounces');
+    const resetBtn = document.getElementById('reset');
+    spf.oninput = () => {}; // samples per frame is just how many times we call renderSample()
+    bounces.oninput = () => { pathTracer.bounces = parseInt(bounces.value, 10); };
+    resetBtn.onclick = () => { pathTracer.reset(); };
+
+    // --- load the OBJ from the opener (blob url + optional camera seed)
+    function loadOBJ(url) {
+      return new Promise((resolve, reject) => {
+        new OBJLoader().load(url, group => {
+          // normalize scale to a reasonable size, center, and add PBR-ish material
+          const box = new THREE.Box3().setFromObject(group);
+          const size = box.getSize(new THREE.Vector3()).length() || 1;
+          const scale = 2.0 / size;
+          group.scale.setScalar(scale);
+
+          // center
+          box.setFromObject(group);
+          const center = box.getCenter(new THREE.Vector3());
+          group.position.sub(center);
+
+          group.traverse(o => {
+            if (o.isMesh) {
+              o.material = new THREE.MeshPhysicalMaterial({
+                color: 0xdddddd, metalness: 0.0, roughness: 0.3,
+                transmission: 0.0, thickness: 0.01, envMapIntensity: 1.0
+              });
+            }
+          });
+
+          scene.add(group);
+          resolve();
+        }, undefined, reject);
+      });
+    }
+
+    // receive message with { objUrl, camera?: {pos:[x,y,z], target:[x,y,z], fov:number} }
+    window.addEventListener('message', async (e) => {
+      const { objUrl, camera:camSeed } = e.data || {};
+      if (!objUrl) return;
+
+      if (camSeed) {
+        camera.position.fromArray(camSeed.pos);
+        controls.target.fromArray(camSeed.target);
+        camera.fov = camSeed.fov || camera.fov;
+        camera.updateProjectionMatrix();
+        controls.update();
+        pathTracer.updateCamera();
+      }
+
+      await loadOBJ(objUrl);
+      animate();
+    }, { once:true });
+
+    // fallback: if the page was opened with a query ?obj=<blobUrl>
+    const fallback = new URLSearchParams(location.search).get('obj');
+    if (fallback) {
+      await loadOBJ(fallback);
+      animate();
+    }
+
+    // resize
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      pathTracer.updateCamera();
+    });
+
+    function animate(){
+      requestAnimationFrame(animate);
+      // render N samples per frame to converge faster at rest
+      const n = parseInt(spf.value, 10) || 1;
+      for (let i=0;i<n;i++) pathTracer.renderSample();  // core call from README
+    }
+  </script>
+</body>
+</html>
+
+

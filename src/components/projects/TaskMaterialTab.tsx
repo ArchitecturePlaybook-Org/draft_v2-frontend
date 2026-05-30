@@ -34,28 +34,10 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
   const [receipts, setReceipts] = useState<Record<number, File>>({});
   
   // New Allocation State
-  const [boqItems, setBoqItems] = useState<BOQItem[]>([]);
   const [newAllocBoq, setNewAllocBoq] = useState("");
   const [newAllocQty, setNewAllocQty] = useState("");
   const [newAllocNotes, setNewAllocNotes] = useState("");
   const [newAllocDate, setNewAllocDate] = useState("");
-
-  useEffect(() => {
-    projectsApi.getBOQItems().then(items => {
-      // Filter BOQ items to only include global items (phase is null) or items matching the task's phase
-      const filtered = items.filter(item => {
-        if (!item.phase) return true;
-        return item.phase === phaseId;
-      });
-      // If phaseId is provided, sort phase-specific items first
-      const sorted = filtered.sort((a, b) => {
-        if (a.phase === phaseId && b.phase !== phaseId) return -1;
-        if (a.phase !== phaseId && b.phase === phaseId) return 1;
-        return 0;
-      });
-      setBoqItems(sorted);
-    }).catch(console.error);
-  }, [phaseId]);
 
   const handleLogConsumption = async (allocId: number | null, boqItemId: number) => {
     // We use boqItemId as the key in quantities and totalCosts if allocId is null
@@ -101,21 +83,7 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
     }
   };
 
-  const mergedItems = boqItems.map(boq => {
-    const existingAlloc = task.material_allocations?.find(a => a.boq_item === boq.id || a.boq_item_detail?.id === boq.id);
-    if (existingAlloc) return existingAlloc;
-    
-    return {
-      id: null,
-      boq_item: boq.id,
-      boq_item_detail: boq,
-      allocated_qty: "Auto (Evenly Divided)",
-      actual_consumed_qty: 0,
-      is_logged: false,
-      is_anomaly: false,
-      logs: []
-    } as any;
-  });
+  const mergedItems = task.material_allocations || [];
 
 
 

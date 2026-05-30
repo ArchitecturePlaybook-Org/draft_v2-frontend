@@ -201,6 +201,10 @@ export default function ProjectDetailPage() {
 
 
   const fetchProject = async () => {
+    if (!id) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const data = await projectsApi.getProjectDetails(id as string);
       setProject(data);
@@ -211,11 +215,12 @@ export default function ProjectDetailPage() {
         setZones(matrixData.zones);
         setPhases(matrixData.phases);
       } catch (err) {
-        console.error("Failed to fetch matrix data:", err);
+        console.warn("Failed to fetch matrix data:", err);
       }
-    } catch (err) {
-
-      console.error("Failed to fetch project:", err);
+    } catch (err: any) {
+      if (err?.status !== 404) {
+        console.error("Failed to fetch project:", err);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -706,7 +711,7 @@ export default function ProjectDetailPage() {
                         >
                           {asset.thumbnail ? (
                             <img src={asset.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          ) : asset.file.match(/\.(png|jpg|jpeg|gif)$/i) ? (
+                          ) : asset.file?.match(/\.(png|jpg|jpeg|gif)$/i) ? (
                             <img src={asset.file} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
                           ) : asset.category === "sketch" ? (
                             <div className="flex flex-col items-center gap-2">
@@ -1036,8 +1041,8 @@ export default function ProjectDetailPage() {
                   <option value="" disabled>Choose firm member...</option>
                   {firmMembers
                     .filter(m => !project.memberships.some(pm => pm.user.id === m.user.id))
-                    .map(member => (
-                    <option key={member.user.id} value={member.user.id}>{member.user.name} ({member.role})</option>
+                    .map((member, index) => (
+                    <option key={member.id || `${member.user.id}-${index}`} value={member.user.id}>{member.user.name} ({member.role})</option>
                   ))}
                 </select>
               </div>

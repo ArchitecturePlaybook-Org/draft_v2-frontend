@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32px" height="px" viewBox="0 0 32 32" version="1.1">
+<g id="surface1">
+<path style="fill-rule:nonzero;fill:rgb(100%,100%,100%);fill-opacity:1;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 11.5 0.5 L 7.5 0.5 L 2.5 5.5 L 2.5 15.595703 L 14.5 15.595703 L 14.5 8.099609 " transform="matrix(-2,0,0,2,34,0)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 2.5 -0.000000000000000444 L 2.5 5 " transform="matrix(-2,0.000000000000000245,0.000000000000000245,2,10,2)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 4.267767 1.232233 L 4.267767 4.767767 C 1.911665 4.767767 0.732233 4.767767 0.732233 4.767767 " transform="matrix(1.414214,-1.414214,-1.414214,-1.414214,5.707107,13.778175)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 9.5 0.5 L 9.5 5.5 L 14.5 5.5 " transform="matrix(2,0,0,2,0,0)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 8 7 L 8 1.5 M 2.984375 0.380859 L 0 1.5 L 0 7 " transform="matrix(2,0,0,2,9,11)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 0 1.5 L 4 3 L 8 1.5 " transform="matrix(2,0,0,2,9,11)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 4 3 L 4 8.5 L 8 7 " transform="matrix(2,0,0,2,9,11)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 0 7 L 4 8.5 " transform="matrix(2,0,0,2,9,11)"/>
+</g>
+</svg>

@@ -15,9 +15,41 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173';
+
 export const metadata: Metadata = {
-  title: "Architecture Playbook",
-  description: "Architecture Playbook — RBAC powered platform",
+  title: {
+    default: "Architecture Playbook",
+    template: "%s | Architecture Playbook",
+  },
+  description: "Discover exceptional architectural and construction professionals. Browse portfolios, connect with talent, and build your next project.",
+  metadataBase: new URL(APP_URL),
+  openGraph: {
+    title: "Architecture Playbook",
+    description: "Discover exceptional architectural and construction professionals.",
+    url: APP_URL,
+    siteName: "Architecture Playbook",
+    images: [
+      {
+        url: "/api/og/default",
+        width: 1200,
+        height: 630,
+        alt: "Architecture Playbook — Professional Portfolio Directory",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Architecture Playbook",
+    description: "Discover exceptional architectural and construction professionals.",
+    images: [`${APP_URL}/api/og/default`],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32px" height="px" viewBox="0 0 32 32" version="1.1">
+<g id="surface1">
+<path style="fill-rule:nonzero;fill:rgb(100%,100%,100%);fill-opacity:1;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 8.489112 1.732233 L 12.474874 1.732233 L 12.524592 5.267767 L 7.525126 5.267767 L 7.489218 2.745937 C 7.480932 2.19351 7.922874 1.740519 8.475301 1.732233 C 8.480825 1.732233 8.483587 1.732233 8.489112 1.732233 Z M 8.489112 1.732233 " transform="matrix(1.414214,1.414214,-1.414214,1.414214,10.807612,-12.091883)"/>
+<path style="fill-rule:nonzero;fill:rgb(100%,100%,100%);fill-opacity:1;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 3.910848 3.379397 L 10.037266 3.379397 L 10.109081 7.616513 L 3.949518 7.616513 C 3.403997 7.617895 2.957912 7.180096 2.949625 6.633193 L 2.910955 4.395863 C 2.902669 3.843436 3.34323 3.389064 3.894276 3.379397 C 3.8998 3.379397 3.905324 3.379397 3.910848 3.379397 Z M 3.910848 3.379397 " transform="matrix(1.414214,1.414214,-1.414214,1.414214,11.584352,-5.974026)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 2.25 7.775126 L 2.25 12.724874 " transform="matrix(-1.414214,1.414214,-1.414214,-1.414214,22.17767,31.813708)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 4.521484 8.984375 L 4.5 12.5 L 0.984375 12.521484 " transform="matrix(2,0.00000000000000049,-0.00000000000000049,2,0.000000000000005329,0)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;" d="M 10 2.221825 L 10 17.778175 " transform="matrix(1.414214,1.414214,-1.414214,1.414214,20,-8.284271)"/>
+</g>
+</svg>

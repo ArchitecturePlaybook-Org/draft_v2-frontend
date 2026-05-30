@@ -26,6 +26,7 @@ function SearchParamsReader({ onParams }: { onParams: (leadId: string | null, ti
 // ── Main page component ──────────────────────────────────────────────────────
 function ProjectsPageInner() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [sharedTasks, setSharedTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isAdmin } = usePermissions();
 
@@ -48,13 +49,21 @@ function ProjectsPageInner() {
     try {
       const data = await projectsApi.getProjects();
       const paginatedData = data as { results?: Project[] } | Project[];
+      let projs: Project[] = [];
       if (Array.isArray(paginatedData)) {
-        setProjects(paginatedData);
+        projs = paginatedData;
       } else if (paginatedData && Array.isArray(paginatedData.results)) {
-        setProjects(paginatedData.results);
+        projs = paginatedData.results;
       }
+      setProjects(projs);
+
+      // Fetch all tasks and filter out the ones belonging to external projects
+      const allTasks = await projectsApi.getTasks();
+      const projIds = new Set(projs.map(p => p.id));
+      const shared = allTasks.filter(t => typeof t.project === "object" ? !projIds.has(t.project.id) : !projIds.has(t.project));
+      setSharedTasks(shared);
     } catch (err) {
-      console.error("Failed to fetch projects:", err);
+      console.error("Failed to fetch projects/tasks:", err);
     } finally {
       setIsLoading(false);
     }
@@ -133,6 +142,44 @@ function ProjectsPageInner() {
         orgs={orgs}
         initialData={initialData}
       />
+
+      {/* Shared Tasks Section */}
+      {sharedTasks.length > 0 && (
+        <div className="mt-16">
+          <h2 className="text-2xl font-extrabold text-primary mb-6 tracking-tight">Shared Tasks</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {sharedTasks.map((task) => (
+              <a href={`/share/task/${task.uid}`} key={task.uid} className="block group h-full">
+                <div className="bg-amber-50 p-8 rounded-2xl border border-amber-200 hover:border-accent/40 shadow-sm hover:shadow-2xl transition-all h-full flex flex-col relative">
+                  <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+                    <div className="absolute top-0 right-0 w-32 h-full bg-amber-500/5 arch-grid opacity-10 group-hover:opacity-20 transition-opacity" />
+                  </div>
+                  
+                  <div className="flex justify-between items-start mb-4 relative z-10">
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-lg text-amber-900 tracking-tight group-hover:text-accent transition-colors">
+                        {task.title}
+                      </h3>
+                      <p className="text-[9px] uppercase tracking-widest font-bold text-amber-700">
+                        {typeof task.project === "object" ? task.project.title : `Project ${task.project}`}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className="px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest rounded-md bg-amber-500 text-white">
+                        Shared Task
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-amber-800/70 line-clamp-2 leading-relaxed mb-8 flex-1 relative z-10">
+                    {task.description || "No description provided."}
+                  </p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

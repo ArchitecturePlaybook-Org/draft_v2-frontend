@@ -1,0 +1,242 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { portfoliosApi, PortfolioItem } from '@/domains/portfolios/api';
+import { LeadGenerationModal } from '@/shared/components/LeadGenerationModal';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { ShareButtons } from './ShareButtons';
+
+export default function PortfolioDetailClient() {
+  const { id } = useParams();
+  const [item, setItem] = useState<PortfolioItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      fetchItem(Number(id));
+    }
+  }, [id]);
+
+  const fetchItem = async (itemId: number) => {
+    setIsLoading(true);
+    try {
+      const data = await portfoliosApi.getPublicPortfolioItem(itemId);
+      setItem(data);
+      setIsSaved(data.is_saved || false);
+      // Increment view count asynchronously
+      portfoliosApi.incrementViewCount(itemId).catch(console.error);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleSave = async () => {
+    if (!item) return;
+    setIsSaving(true);
+    try {
+      const res = await portfoliosApi.toggleSavePortfolio(item.id);
+      setIsSaved(res.is_saved);
+    } catch (err) {
+      alert("Please login to save portfolios.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-surface-50 pt-32 pb-20 px-6 flex items-center justify-center">
+        <div className="animate-pulse space-y-8 w-full max-w-4xl mx-auto">
+          <div className="w-full h-[500px] bg-white rounded-3xl" />
+          <div className="h-10 bg-white w-1/3 rounded-xl" />
+          <div className="h-32 bg-white w-full rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!item) {
+    return (
+      <div className="min-h-screen bg-surface-50 pt-32 pb-20 px-6 flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <h2 className="text-2xl font-bold text-primary">Portfolio Not Found</h2>
+          <Link href="/portfolio" className="text-accent underline">
+            Back to Portfolios
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+  return (
+    <div className="min-h-screen bg-surface-50 pt-32 pb-20 px-6">
+      <div className="max-w-[1200px] mx-auto space-y-12">
+        {/* Back Link */}
+        <Link
+          href="/portfolio"
+          className="inline-flex items-center gap-2 text-sm font-bold text-surface-400 uppercase tracking-widest hover:text-primary transition-all"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Directory
+        </Link>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Left Column (Image & Details) */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="aspect-[16/10] relative rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/10">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-surface-200 flex items-center justify-center text-surface-400">
+                  No Image Available
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white p-10 rounded-[2rem] border border-surface-200 shadow-xl shadow-primary/5 space-y-6">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                <h1 className="text-4xl font-bold text-primary leading-tight flex-1">{item.title}</h1>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-2 text-surface-400 font-bold text-sm bg-surface-50 px-4 py-2 rounded-xl">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    {item.views_count || 0} Views
+                  </div>
+                  <button
+                    onClick={handleToggleSave}
+                    disabled={isSaving}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${isSaved ? 'bg-red-50 text-red-500' : 'bg-surface-50 text-surface-400 hover:bg-red-50 hover:text-red-500'}`}
+                    title={isSaved ? "Saved" : "Save"}
+                  >
+                    <svg className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Social Share Buttons */}
+              <ShareButtons
+                url={pageUrl}
+                title={item.title}
+                description={`Check out ${item.title} by ${item.user.name} on Architecture Playbook`}
+                imageUrl={`/api/og/portfolio/${item.id}?format=square`}
+              />
+
+              <div className="flex gap-4">
+                {item.project_date && (
+                  <div className="text-xs font-bold text-surface-400 uppercase tracking-widest">
+                    Project Date: {new Date(item.project_date).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+              <div className="prose prose-lg text-surface-600 max-w-none">
+                <p>{item.description || 'No description provided.'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column (Author & CTA) */}
+          <div className="space-y-6">
+            <div className="bg-white p-8 rounded-[2rem] border border-surface-200 shadow-xl shadow-primary/5 space-y-8 sticky top-32">
+              <div className="space-y-2">
+                <div className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">
+                  Professional Info
+                </div>
+                <h3 className="text-2xl font-bold text-primary">{item.user.name}</h3>
+                <div className="flex gap-2 items-center text-surface-500 text-sm">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {item.user.city || 'Location Unknown'}, {item.user.country || 'Global'}
+                </div>
+                {item.user.completed_projects !== undefined && (
+                  <div className="flex gap-2 items-center text-surface-500 text-sm">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                    {item.user.completed_projects} Completed Projects
+                  </div>
+                )}
+              </div>
+
+              <div className="inline-block px-4 py-2 bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest rounded-lg">
+                {item.user.category || 'Professional'}
+              </div>
+
+              <div className="pt-6 border-t border-surface-100">
+                <button
+                  onClick={() => setShowLeadModal(true)}
+                  className="w-full h-14 bg-accent text-white rounded-xl font-bold uppercase text-xs tracking-[0.2em] hover:bg-primary transition-all shadow-lg shadow-accent/20"
+                >
+                  Express Interest
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Related Projects */}
+        {item.related_items && item.related_items.length > 0 && (
+          <div className="pt-20 space-y-8">
+            <h2 className="text-3xl font-bold text-primary">More from this Professional</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {item.related_items.map(relatedItem => (
+                <Link key={relatedItem.id} href={`/portfolio/${relatedItem.id}`} className="group bg-white border border-surface-200 rounded-3xl overflow-hidden hover:shadow-xl hover:border-accent/30 transition-all duration-500 flex flex-col">
+                  <div className="aspect-[16/10] relative overflow-hidden">
+                    {relatedItem.image ? (
+                      <img
+                        src={relatedItem.image}
+                        alt={relatedItem.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-surface-100 flex items-center justify-center text-xs text-surface-400">No Image</div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                    <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+                      <h3 className="text-white font-bold text-sm leading-tight drop-shadow-md">{relatedItem.title}</h3>
+                      <div className="flex items-center gap-1 text-white/80 text-[10px] font-bold tracking-wider">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {relatedItem.views_count || 0}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <LeadGenerationModal
+        isOpen={showLeadModal}
+        onClose={() => setShowLeadModal(false)}
+        professionalName={item.user.name}
+        professionalId={item.user.uid}
+        portfolioItemId={item.id}
+        portfolioItemTitle={item.title}
+      />
+    </div>
+  );
+}

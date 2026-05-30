@@ -256,7 +256,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   };
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/dashboard/projects/1/tasks/${task.uid}`;
+    const url = `${window.location.origin}/share/task/${task.uid}`;
     navigator.clipboard.writeText(url);
     toast.success("Share link copied to clipboard!");
   };

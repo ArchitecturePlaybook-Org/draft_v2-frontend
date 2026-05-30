@@ -15,21 +15,31 @@ const CATEGORIES = [
 export default function PublicPortfoliosPage() {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     category: "",
     city: "",
-    q: ""
+    country: "",
+    q: "",
+    sort: "recent"
   });
 
   useEffect(() => {
-    fetchPortfolios();
-  }, [filters.category, filters.city]);
+    setCurrentPage(1);
+    fetchPortfolios(1);
+  }, [filters.category, filters.city, filters.country, filters.sort]);
 
-  const fetchPortfolios = async () => {
+  useEffect(() => {
+    fetchPortfolios(currentPage);
+  }, [currentPage]);
+
+  const fetchPortfolios = async (page: number) => {
     setIsLoading(true);
     try {
-      const data = await portfoliosApi.searchPublicPortfolios(filters);
-      setItems(data);
+      const data = await portfoliosApi.searchPublicPortfolios({ ...filters, page });
+      setItems(data.results);
+      setTotalPages(Math.ceil(data.count / 12));
     } catch (err) {
       console.error(err);
     } finally {
@@ -39,8 +49,11 @@ export default function PublicPortfoliosPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchPortfolios();
+    setCurrentPage(1);
+    fetchPortfolios(1);
   };
+
+
 
   return (
     <div className="min-h-screen bg-surface-50 pt-32 pb-20 px-6">
@@ -81,16 +94,33 @@ export default function PublicPortfoliosPage() {
               ))}
             </select>
 
+            <select 
+              className="h-14 px-6 bg-surface-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-accent/20 text-sm font-bold text-primary uppercase tracking-widest cursor-pointer"
+              value={filters.sort}
+              onChange={(e) => setFilters({...filters, sort: e.target.value})}
+            >
+              <option value="recent">Most Recent</option>
+              <option value="popular">Most Popular</option>
+            </select>
+
             <input 
               type="text" 
-              placeholder="City/Location"
-              className="h-14 px-6 bg-surface-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-accent/20 text-sm font-bold text-primary uppercase tracking-widest"
+              placeholder="City"
+              className="h-14 px-6 bg-surface-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-accent/20 text-sm font-bold text-primary uppercase tracking-widest w-32"
               value={filters.city}
               onChange={(e) => setFilters({...filters, city: e.target.value})}
             />
 
+            <input 
+              type="text" 
+              placeholder="Country"
+              className="h-14 px-6 bg-surface-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-accent/20 text-sm font-bold text-primary uppercase tracking-widest w-32"
+              value={filters.country}
+              onChange={(e) => setFilters({...filters, country: e.target.value})}
+            />
+
             <button 
-              onClick={fetchPortfolios}
+              onClick={handleSearch}
               className="h-14 px-8 bg-primary text-white rounded-2xl font-bold uppercase text-[11px] tracking-[0.2em] hover:bg-accent transition-all shadow-lg shadow-primary/20"
             >
               Search
@@ -106,10 +136,35 @@ export default function PublicPortfoliosPage() {
             ))}
           </div>
         ) : items.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {items.map(item => (
-              <PortfolioCard key={item.id} item={item} />
-            ))}
+          <div className="space-y-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {items.map(item => (
+                <PortfolioCard key={item.id} item={item} />
+              ))}
+            </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 pt-8 border-t border-surface-200">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-surface-50 text-surface-500 hover:bg-primary hover:text-white disabled:opacity-50 disabled:hover:bg-surface-50 disabled:hover:text-surface-500 transition-all"
+                >
+                  Previous
+                </button>
+                <span className="text-sm font-bold text-primary uppercase tracking-widest">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-surface-50 text-surface-500 hover:bg-primary hover:text-white disabled:opacity-50 disabled:hover:bg-surface-50 disabled:hover:text-surface-500 transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="py-32 text-center space-y-6">
@@ -123,7 +178,10 @@ export default function PublicPortfoliosPage() {
               <p className="text-surface-500">Try adjusting your filters or search terms to broaden your results.</p>
             </div>
             <button 
-              onClick={() => setFilters({category: "", city: "", q: ""})}
+              onClick={() => {
+                setFilters({category: "", city: "", country: "", q: "", sort: "recent"});
+                setCurrentPage(1);
+              }}
               className="text-sm font-bold text-accent uppercase tracking-widest border-b-2 border-accent/20 hover:border-accent"
             >
               Clear all filters

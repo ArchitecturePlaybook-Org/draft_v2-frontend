@@ -6,15 +6,18 @@ import Link from "next/link";
 import { ProcurementAggregatorItem, MilestonePhase } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
+import TakeOffTab from "@/components/procurement/TakeOffTab";
+import EstimationTab from "@/components/procurement/EstimationTab";
 
 export default function ProcurementDashboard() {
   const params = useParams();
   const projectId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<"BOQ" | "SIGNALS" | "TRACKING">("BOQ");
+  const [activeTab, setActiveTab] = useState<"TAKE_OFF" | "ESTIMATION" | "BOQ" | "SIGNALS" | "TRACKING">("TAKE_OFF");
   
   const [items, setItems] = useState<ProcurementAggregatorItem[]>([]);
   const [phases, setPhases] = useState<MilestonePhase[]>([]);
+  const [projectAssets, setProjectAssets] = useState<any[]>([]);
   const [projectIntId, setProjectIntId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
@@ -28,6 +31,8 @@ export default function ProcurementDashboard() {
     unit_rate: "",
     phase: ""
   });
+  
+  const [subItemForm, setSubItemForm] = useState<Record<number, {material_code: string, description: string, quantity: string, unit_rate: string}>>({});
 
   const fetchData = async () => {
     setLoading(true);
@@ -40,6 +45,7 @@ export default function ProcurementDashboard() {
       setItems(aggData);
       setProjectIntId(projectData.id);
       setPhases(matrixData.phases);
+      setProjectAssets(projectData.assets || []);
     } catch (err) {
       toast.error("Failed to load procurement data.");
     } finally {
@@ -94,12 +100,50 @@ export default function ProcurementDashboard() {
   const handleUpdateBOQPhase = async (id: number, newPhase: string) => {
     try {
       await projectsApi.updateBOQItem(id, { phase: newPhase ? parseInt(newPhase) : null });
-      toast.success("Phase updated successfully.");
+      toast.success("Updated BOQ Item phase.");
       await fetchData();
     } catch (err: any) {
-      toast.error(err.message || "Failed to update phase.");
+      toast.error("Failed to update phase.");
     }
   };
+
+  const handleAddSubItem = async (e: React.FormEvent, parentId: number) => {
+    e.preventDefault();
+    const form = subItemForm[parentId];
+    if (!form || !form.material_code || !form.quantity || !form.unit_rate) {
+      toast.error("Please fill in required fields for the sub-item.");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await projectsApi.createBOQSubItem({
+        parent: parentId,
+        material_code: form.material_code,
+        description: form.description || "",
+        quantity: form.quantity,
+        unit_rate: form.unit_rate
+      });
+      toast.success("Sub-item added successfully!");
+      setSubItemForm(prev => ({...prev, [parentId]: {material_code: "", description: "", quantity: "", unit_rate: ""}}));
+      await fetchData();
+    } catch (err: any) {
+      toast.error("Failed to add sub-item");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteSubItem = async (subItemId: number) => {
+    if (!confirm("Are you sure you want to delete this sub-item?")) return;
+    try {
+      await projectsApi.deleteBOQSubItem(subItemId);
+      toast.success("Sub-item deleted.");
+      await fetchData();
+    } catch (err: any) {
+      toast.error("Failed to delete sub-item.");
+    }
+  };
+
 
   const handleGeneratePO = async () => {
     const idsToOrder = Object.entries(selectedAllocations)
@@ -157,6 +201,22 @@ export default function ProcurementDashboard() {
         
         {/* Tabs */}
         <div className="mt-6 flex gap-4">
+          <button
+            onClick={() => setActiveTab("TAKE_OFF")}
+            className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+              activeTab === "TAKE_OFF" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
+            }`}
+          >
+            Take-Off
+          </button>
+          <button
+            onClick={() => setActiveTab("ESTIMATION")}
+            className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+              activeTab === "ESTIMATION" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
+            }`}
+          >
+            Estimation
+          </button>
           <button
             onClick={() => setActiveTab("BOQ")}
             className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
@@ -257,6 +317,7 @@ export default function ProcurementDashboard() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-surface-50 border-b border-surface-200 text-[10px] font-black text-surface-400 uppercase tracking-widest">
+                        <th className="py-4 px-6 font-black w-8"></th>
                         <th className="py-4 px-6 font-black">Material Code</th>
                         <th className="py-4 px-6 font-black">Phase</th>
                         <th className="py-4 px-6 font-black">Budget Qty</th>
@@ -268,26 +329,132 @@ export default function ProcurementDashboard() {
                       {items.filter(item => {
                         if (!boqForm.phase) return true; // Show all if no phase selected in form
                         return item.phase?.toString() === boqForm.phase;
-                      }).map((item) => (
-                        <tr key={item.id} className="border-b border-surface-100 hover:bg-surface-50">
-                          <td className="py-4 px-6 font-extrabold text-primary">{item.material_code}</td>
-                          <td className="py-2 px-6 font-bold text-surface-500">
-                            <select 
-                              value={item.phase || ""}
-                              onChange={(e) => handleUpdateBOQPhase(item.id, e.target.value)}
-                              className="w-full h-8 px-2 border border-surface-300 rounded-md text-xs font-bold bg-surface-50 focus:bg-white focus:border-accent outline-none"
-                            >
-                              <option value="">-- Global --</option>
-                              {phases.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="py-4 px-6 font-bold tabular-nums text-surface-600">{item.total_budgeted_qty}</td>
-                          <td className="py-4 px-6 font-bold tabular-nums text-surface-600">${item.unit_rate}</td>
-                          <td className="py-4 px-6 font-bold tabular-nums text-emerald-600">{item.remaining_budget}</td>
-                        </tr>
-                      ))}
+                      }).map((item) => {
+                        const isExpanded = expandedRows[item.id];
+                        const sForm = subItemForm[item.id] || {material_code: "", description: "", quantity: "", unit_rate: ""};
+                        
+                        return (
+                        <React.Fragment key={item.id}>
+                          <tr className={`border-b border-surface-100 hover:bg-surface-50 ${isExpanded ? "bg-surface-50" : ""}`}>
+                            <td className="py-4 px-6">
+                              <button 
+                                onClick={() => toggleRow(item.id)}
+                                className="w-6 h-6 rounded-md bg-surface-200 text-surface-600 flex items-center justify-center hover:bg-accent hover:text-white transition-all font-bold"
+                              >
+                                {isExpanded ? "v" : ">"}
+                              </button>
+                            </td>
+                            <td className="py-4 px-6 font-extrabold text-primary">{item.material_code}</td>
+                            <td className="py-2 px-6 font-bold text-surface-500">
+                              <select 
+                                value={item.phase || ""}
+                                onChange={(e) => handleUpdateBOQPhase(item.id, e.target.value)}
+                                className="w-full h-8 px-2 border border-surface-300 rounded-md text-xs font-bold bg-surface-50 focus:bg-white focus:border-accent outline-none"
+                              >
+                                <option value="">-- Global --</option>
+                                {phases.map(p => (
+                                  <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="py-4 px-6 font-bold tabular-nums text-surface-600">{item.total_budgeted_qty}</td>
+                            <td className="py-4 px-6 font-bold tabular-nums text-surface-600">${item.unit_rate}</td>
+                            <td className="py-4 px-6 font-bold tabular-nums text-emerald-600">{item.remaining_budget}</td>
+                          </tr>
+                          
+                          {isExpanded && (
+                            <tr>
+                              <td colSpan={6} className="p-0 border-b border-surface-200">
+                                <div className="bg-surface-100/50 px-14 py-4 border-l-4 border-accent">
+                                  <h4 className="text-[10px] font-black uppercase text-surface-500 mb-2">Detailed Breakdown</h4>
+                                  <table className="w-full text-left bg-white rounded-lg border border-surface-200 overflow-hidden mb-4">
+                                    <thead className="bg-surface-50 border-b border-surface-200">
+                                      <tr>
+                                        <th className="py-2 px-3 text-[10px] font-black text-surface-400 uppercase w-[25%]">Sub Material Code</th>
+                                        <th className="py-2 px-3 text-[10px] font-black text-surface-400 uppercase w-[35%]">Description</th>
+                                        <th className="py-2 px-3 text-[10px] font-black text-surface-400 uppercase w-[15%]">Qty / Unit</th>
+                                        <th className="py-2 px-3 text-[10px] font-black text-surface-400 uppercase w-[15%]">Unit Cost</th>
+                                        <th className="py-2 px-3 text-[10px] font-black text-surface-400 uppercase text-right w-[10%]"></th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.sub_items?.map(sub => (
+                                        <tr key={sub.id} className="border-b border-surface-100 last:border-0 hover:bg-surface-50 transition-colors">
+                                          <td className="py-2 px-3 font-bold text-sm text-primary">{sub.material_code}</td>
+                                          <td className="py-2 px-3 text-xs font-medium text-surface-500">{sub.description || "-"}</td>
+                                          <td className="py-2 px-3 font-black text-sm tabular-nums text-surface-600">{sub.quantity}</td>
+                                          <td className="py-2 px-3 font-bold text-sm tabular-nums text-surface-600">${sub.unit_rate}</td>
+                                          <td className="py-2 px-3 text-right">
+                                            <button onClick={() => handleDeleteSubItem(sub.id)} className="w-6 h-6 rounded text-surface-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors text-lg leading-none" title="Delete Row">×</button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                      
+                                      {/* Ghost Row for adding new sub-item */}
+                                      <tr 
+                                        className="bg-surface-50 border-t border-surface-200"
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleAddSubItem(e as any, item.id);
+                                          }
+                                        }}
+                                      >
+                                        <td className="p-1">
+                                          <input 
+                                            type="text" 
+                                            value={sForm.material_code} 
+                                            onChange={e => setSubItemForm(prev => ({...prev, [item.id]: {...sForm, material_code: e.target.value}}))} 
+                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white rounded text-sm font-bold outline-none transition-all" 
+                                            placeholder="Code *" 
+                                          />
+                                        </td>
+                                        <td className="p-1">
+                                          <input 
+                                            type="text" 
+                                            value={sForm.description} 
+                                            onChange={e => setSubItemForm(prev => ({...prev, [item.id]: {...sForm, description: e.target.value}}))} 
+                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white rounded text-sm font-bold outline-none transition-all" 
+                                            placeholder="Description" 
+                                          />
+                                        </td>
+                                        <td className="p-1">
+                                          <input 
+                                            type="number" step="any" 
+                                            value={sForm.quantity} 
+                                            onChange={e => setSubItemForm(prev => ({...prev, [item.id]: {...sForm, quantity: e.target.value}}))} 
+                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white rounded text-sm font-bold outline-none transition-all" 
+                                            placeholder="Qty *" 
+                                          />
+                                        </td>
+                                        <td className="p-1">
+                                          <input 
+                                            type="number" step="any" 
+                                            value={sForm.unit_rate} 
+                                            onChange={e => setSubItemForm(prev => ({...prev, [item.id]: {...sForm, unit_rate: e.target.value}}))} 
+                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white rounded text-sm font-bold outline-none transition-all" 
+                                            placeholder="Cost *" 
+                                          />
+                                        </td>
+                                        <td className="p-1 text-right pr-2">
+                                          <button 
+                                            onClick={(e) => handleAddSubItem(e as any, item.id)} 
+                                            disabled={isProcessing} 
+                                            className="px-3 h-7 rounded bg-primary text-white text-[10px] font-black uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                          >
+                                            Add
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -531,6 +698,14 @@ export default function ProcurementDashboard() {
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === "TAKE_OFF" && (
+            <TakeOffTab projectAssets={projectAssets} />
+          )}
+
+          {activeTab === "ESTIMATION" && (
+            <EstimationTab onPushToBoq={fetchData} />
           )}
 
           {/* Action Footer */}

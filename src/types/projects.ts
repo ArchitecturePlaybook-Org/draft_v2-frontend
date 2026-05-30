@@ -288,6 +288,17 @@ export interface TaskComment {
   created_at: string;
 }
 
+export interface BOQSubItem {
+  id: number;
+  parent: number;
+  material_code: string;
+  description: string;
+  quantity: string | number;
+  unit_rate: string | number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface BOQItem {
   id: number;
   project: string;
@@ -297,6 +308,7 @@ export interface BOQItem {
   unit_rate: string | number;
   remaining_budget?: string | number;
   remaining_phase_qty?: string | number;
+  sub_items?: BOQSubItem[];
   created_at: string;
   updated_at: string;
 }

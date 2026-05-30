@@ -1,0 +1,422 @@
+<!--
+   SweetHome3DJSViewerInOverlay.html  version 7.5.2
+   
+   Sweet Home 3D, Copyright (c) 2024 Space Mushrooms <info@sweethome3d.com>
+   
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+ 
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>View home with Sweet Home 3D JS Viewer</title>
+<!-- Mobile-friendly viewport -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+
+<!--  Copy the following scripts in your page header -->
+<script type="text/javascript" src="lib/big.min.js"></script>
+<script type="text/javascript" src="lib/gl-matrix-min.js"></script>
+<script type="text/javascript" src="lib/jszip.min.js"></script>
+<script type="text/javascript" src="lib/core.min.js"></script>
+<script type="text/javascript" src="lib/geom.min.js"></script>
+<script type="text/javascript" src="lib/stroke.min.js"></script>
+<script type="text/javascript" src="lib/batik-svgpathparser.min.js"></script>
+<script type="text/javascript" src="lib/jsXmlSaxParser.min.js"></script>
+<script type="text/javascript" src="lib/triangulator.min.js"></script>
+<script type="text/javascript" src="lib/viewmodel.min.js"></script>
+<script type="text/javascript" src="lib/viewhome.min.js"></script>
+
+<style type="text/css">
+
+#viewerControls {
+  background: #1a1a1a !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500 !important;
+}
+
+#viewerControls * {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+#viewerControls button,
+#viewerControls select,
+#viewerControls input {
+  background: #2a2a2a !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  padding: 6px 12px !important;
+  transition: all 0.3s ease !important;
+  font-weight: 500 !important;
+}
+
+#viewerControls button:hover,
+#viewerControls select:hover,
+#viewerControls input:hover {
+  background: #3a3a3a !important;
+  transform: translateY(-1px) !important;
+}
+
+#viewerControls button:active {
+  background: #4a4a4a !important;
+  transform: translateY(0) !important;
+}
+
+#viewerControls label {
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-weight: 500 !important;
+}
+
+
+
+#viewerControls select option {
+  background: #1a1a1a !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+  
+/* The class of components handled by the viewer */
+.viewerComponent {
+}
+
+/* Mobile-friendly styles */
+html, body { 
+  height: 100%; 
+  margin: 0; 
+  padding: 0;
+  background: #000; 
+  font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; 
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+#viewerCanvas { 
+  position: fixed; 
+  top: 0;
+  left: 0;
+  width: 100vw; 
+  height: 100vh; 
+  display: block; 
+  background: #000; 
+  z-index: 1;
+}
+
+/* Loading indicator */
+#loadingIndicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 20px 30px;
+  border-radius: 10px;
+  z-index: 10;
+  font-size: 18px;
+  text-align: center;
+  display: none;
+}
+
+/* Error message */
+#errorMessage {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: #ff6b6b;
+  padding: 20px 30px;
+  border-radius: 10px;
+  z-index: 10;
+  font-size: 16px;
+  text-align: center;
+  max-width: 80%;
+  display: none;
+}
+
+/* Simple header */
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+  padding: 15px 20px;
+  z-index: 3;
+  text-align: center;
+  pointer-events: none;
+}
+
+#header h1 {
+  color: white;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+/* Touch gesture instructions */
+#gestureHelp {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  z-index: 2;
+  pointer-events: none;
+  padding: 0 20px;
+}
+
+/* Hide gesture help after a few seconds */
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+#gestureHelp.fade-out {
+  animation: fadeOut 5s forwards;
+}
+
+/* Original button styling - hidden by default on mobile */
+.original-ui {
+  display: none;
+}
+
+/* Show original UI on larger screens */
+@media (min-width: 768px) {
+  .original-ui {
+    display: block;
+  }
+  
+  #header, #gestureHelp {
+    display: none;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  #header {
+    padding: 10px 15px;
+  }
+  
+  #header h1 {
+    font-size: 16px;
+  }
+  
+  #gestureHelp {
+    bottom: 10px;
+    font-size: 12px;
+  }
+}
+</style>
+</head>
+
+<body>
+<!-- Simple header -->
+
+
+<!-- Gesture instructions -->
+<div id="gestureHelp">Drag to look around • Pinch to zoom</div>
+
+<!-- Loading and error indicators -->
+<div id="loadingIndicator">Loading 3D Model...</div>
+<div id="errorMessage"></div>
+
+<!-- Canvas for 3D rendering -->
+<canvas id="viewerCanvas" aria-hidden="true"></canvas>
+
+<!-- Original UI elements - hidden on mobile by default -->
+<div class="original-ui">
+  <div>
+    <button onclick='viewHomeInOverlay("default.sh3d",               
+                {roundsPerMinute:    1,                              
+                 widthByHeightRatio: 4/3,                            
+                 navigationPanel: "none",                            
+                 aerialViewButtonText: "Aerial view",                
+                 virtualVisitButtonText: "Virtual visit",            
+                 activateCameraSwitchKey: true,                      
+                 viewerControlsAdditionalHTML: "",                   
+                 readingHomeText: "Reading",                         
+                 readingModelText: "Model",                          
+                 noWebGLSupportError: "No WebGL support"             
+                })'>View home</button>
+  </div>
+
+  <div style="position: absolute; bottom: 5px; text-align: center; width: 95%; z-index: -1">
+    <a href="http://www.sweethome3d.com">Sweet Home 3D</a> JS Viewer / Version 7.5.2 - Distributed under GNU General Public License
+  </div>
+</div>
+
+<!-- Script for automatic model loading -->
+<script>
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const raw = qs.get('home') || qs.get('file') || qs.get('model') || 'default.sh3d';
+  
+  function resolveUrl(path){ 
+    return new URL(path, location.href).toString(); 
+  }
+  
+  const modelUrl = resolveUrl(raw);
+
+  let viewerApi = null;
+
+  // --- safer waitForFunction: resolves with fn or null on timeout
+  function waitForFunction(name, attempts=120, interval=25){
+    return new Promise((resolve)=>{
+      let tries=0;
+      const id = setInterval(()=> {
+        tries++;
+        if (typeof window[name] === 'function') { 
+          clearInterval(id); 
+          resolve(window[name]); 
+        }
+        else if (tries >= attempts) { 
+          clearInterval(id);
+          resolve(null);
+        }
+      }, interval);
+    });
+  }
+
+  function resizeCanvas(canvasEl){
+    if (!canvasEl) return;
+    const w = Math.max(1, Math.round(window.innerWidth));
+    const h = Math.max(1, Math.round(window.innerHeight));
+    canvasEl.style.width = w + 'px';
+    canvasEl.style.height = h + 'px';
+    const dpr = window.devicePixelRatio || 1;
+    const pixelW = Math.round(w * dpr), pixelH = Math.round(h * dpr);
+    if (canvasEl.width !== pixelW || canvasEl.height !== pixelH) { 
+      canvasEl.width = pixelW; 
+      canvasEl.height = pixelH; 
+    }
+  }
+
+  function showLoading(message) {
+    const indicator = document.getElementById('loadingIndicator');
+    if (indicator) {
+      indicator.textContent = message;
+      indicator.style.display = 'block';
+    }
+  }
+
+  function hideLoading() {
+    const indicator = document.getElementById('loadingIndicator');
+    if (indicator) {
+      indicator.style.display = 'none';
+    }
+  }
+
+  function showError(message) {
+    const errorEl = document.getElementById('errorMessage');
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+    }
+  }
+
+  function hideError() {
+    const errorEl = document.getElementById('errorMessage');
+    if (errorEl) {
+      errorEl.style.display = 'none';
+    }
+  }
+
+  function setupUI() {
+    // Hide gesture help after a delay
+    const gestureHelp = document.getElementById('gestureHelp');
+    if (gestureHelp) {
+      setTimeout(() => {
+        gestureHelp.classList.add('fade-out');
+      }, 3000);
+    }
+  }
+
+  (async function boot(){
+    const canvasEl = document.getElementById('viewerCanvas');
+    if (!canvasEl) {
+      console.error('Canvas element not found');
+      return;
+    }
+    
+    resizeCanvas(canvasEl);
+    setupUI();
+    
+    window.addEventListener('resize', ()=> { 
+      resizeCanvas(canvasEl); 
+      if (viewerApi && typeof viewerApi.resize === 'function') { 
+        try { viewerApi.resize(window.innerWidth, window.innerHeight); } catch(e) { console.error('api.resize threw', e); }
+      } 
+    });
+    
+    window.addEventListener('orientationchange', ()=> setTimeout(()=> resizeCanvas(canvasEl), 50));
+
+    // Show loading indicator
+    showLoading("Loading 3D Viewer...");
+
+    const fn = await waitForFunction('viewHomeInOverlay', 100, 30);
+    if (!fn) {
+      console.error('viewHomeInOverlay() not found — check viewhome.min.js path and script load order.');
+      showError("3D Viewer failed to load. Please check console for details.");
+      hideLoading();
+      return;
+    }
+
+    const OPTIONS = {
+      container: canvasEl,
+      widthByHeightRatio: window.innerWidth / Math.max(1, window.innerHeight),
+      roundsPerMinute: 1,
+      navigationPanel: "none",
+      aerialViewButtonText: "Aerial view",
+      virtualVisitButtonText: "Virtual visit",
+      activateCameraSwitchKey: true,
+      viewerControlsAdditionalHTML: "",
+      readingHomeText: "Reading",
+      readingModelText: "Model",
+      noWebGLSupportError: "No WebGL support"
+    };
+
+    try {
+      showLoading("Loading 3D Model...");
+      const api = fn(modelUrl, OPTIONS) || null;
+      if (api) {
+        viewerApi = api;
+        window.viewerApi = api;
+        
+        if (typeof api.resize === 'function') { 
+          try { api.resize(window.innerWidth, window.innerHeight); } catch(e) { console.error('api.resize threw', e); }
+        }
+        
+        // Hide loading indicator after a short delay to ensure model is rendered
+        setTimeout(() => {
+          hideLoading();
+        }, 1000);
+        
+      } else {
+        console.info('viewHomeInOverlay returned no API object; the viewer may still render using its own canvas.');
+        hideLoading();
+      }
+    } catch (err) {
+      console.error('Error during viewer bootstrap:', err);
+      showError("Failed to load 3D model: " + err.message);
+      hideLoading();
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>
+
