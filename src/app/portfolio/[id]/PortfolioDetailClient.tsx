@@ -182,6 +182,31 @@ export default function PortfolioDetailClient() {
                 {item.user.category || 'Professional'}
               </div>
 
+              {item.contributors && item.contributors.length > 0 && (
+                <div className="pt-6 border-t border-surface-100 space-y-4">
+                  <div className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">
+                    Project Stakeholders
+                  </div>
+                  <div className="space-y-3">
+                    {item.contributors.map(c => (
+                      <div key={c.id} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-surface-100 overflow-hidden flex items-center justify-center shrink-0">
+                          {c.avatar ? (
+                            <img src={c.avatar} alt={c.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-surface-400">{c.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-primary truncate">{c.name}</p>
+                          {c.role && <p className="text-[10px] font-bold text-surface-400 uppercase truncate">{c.role}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="pt-6 border-t border-surface-100">
                 <button
                   onClick={() => setShowLeadModal(true)}

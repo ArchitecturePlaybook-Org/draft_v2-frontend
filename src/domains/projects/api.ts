@@ -639,4 +639,8 @@ export const projectsApi = {
   revokeShareLink: async (projectId: string, token: string) => {
     return fetchFromBff<void>(`/api/projects/projects/${projectId}/share/${token}/`, { method: "DELETE" });
   },
+
+  publishPortfolio: async (projectUid: string) => {
+    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/publish-portfolio/`, { method: "POST" });
+  },
 };

@@ -1,12 +1,14 @@
 import React from "react";
 import Link from "next/link";
-import { Project } from "@/types/projects";
+import { Project, ProjectStatus } from "@/types/projects";
+import { ProjectStatusDropdown } from "@/components/projects/ProjectStatusDropdown";
 
 interface ProjectCardProps {
   project: Project;
+  onStatusChange?: (uid: string, newStatus: ProjectStatus) => void;
 }
 
-export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
+export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChange }) => {
   return (
     <Link href={`/dashboard/projects/${project.uid}`} className="block group h-full">
       <div className="bg-white p-8 rounded-2xl border border-surface-200 hover:border-accent/40 shadow-sm hover:shadow-2xl transition-all h-full flex flex-col relative">
@@ -27,12 +29,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
             )}
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
-            <span className={`px-3 py-1 text-[9px] font-bold uppercase tracking-[0.15em] rounded-md shadow-sm outline-none border-r-4 border-transparent ${
-              project.status === 'Completed' ? 'bg-emerald-500 text-white' : 
-              project.status === 'Work in Progress' ? 'bg-primary text-white' : 'bg-surface-200 text-surface-600'
-            }`}>
-              {project.status}
-            </span>
+            <ProjectStatusDropdown 
+              uid={project.uid} 
+              status={project.status as ProjectStatus} 
+              onChange={onStatusChange} 
+            />
             {project.kind && (
               <span className="px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest rounded-md bg-accent/10 text-accent border border-accent/20">
                 {project.kind}

@@ -10,6 +10,8 @@ interface TakeOffTabProps {
   projectAssets: ProjectAsset[];
 }
 
+type UnitSystem = "metric" | "imperial";
+
 interface EstimationRow {
   id?: number;
   floor_plan: number;
@@ -25,8 +27,14 @@ interface EstimationRow {
   net_qty: string;
 }
 
+// Unit label maps for each system
+const UNIT_LABELS: Record<UnitSystem, { linear: string; area: string; volume: string }> = {
+  metric:   { linear: "m",   area: "m²",   volume: "m³"   },
+  imperial: { linear: "ft",  area: "ft²",  volume: "ft³"  },
+};
+
 // Helper for calculation
-const calculateQuantities = (row: Partial<EstimationRow>) => {
+const calculateQuantities = (row: Partial<EstimationRow>, unitSystem: UnitSystem = "metric") => {
   const no = parseFloat(row.no_of_items || "1") || 1;
   const l = parseFloat(row.length || "");
   const w = parseFloat(row.width || "");
@@ -36,17 +44,18 @@ const calculateQuantities = (row: Partial<EstimationRow>) => {
   const hasW = !isNaN(w);
   const hasD = !isNaN(d);
 
+  const labels = UNIT_LABELS[unitSystem];
   let unit = "pcs";
   let gross = no;
 
   if (hasL && hasW && hasD) {
-    unit = "m³";
+    unit = labels.volume;
     gross = no * l * w * d;
   } else if (hasL && hasW) {
-    unit = "m²";
+    unit = labels.area;
     gross = no * l * w;
   } else if (hasL) {
-    unit = "m";
+    unit = labels.linear;
     gross = no * l;
   } else {
     gross = no;
@@ -79,12 +88,14 @@ const EditableRow = ({
   initialData, 
   onSave, 
   onDelete, 
-  isGhost = false 
+  isGhost = false,
+  unitSystem = "metric"
 }: { 
   initialData: EstimationRow, 
   onSave: (data: EstimationRow) => Promise<boolean>, 
   onDelete?: (id: number) => void,
-  isGhost?: boolean 
+  isGhost?: boolean,
+  unitSystem?: UnitSystem
 }) => {
   const [rowData, setRowData] = useState<EstimationRow>(initialData);
   const [isSaving, setIsSaving] = useState(false);
@@ -96,7 +107,7 @@ const EditableRow = ({
   // Auto-calculation on every change
   const handleChange = (field: keyof EstimationRow, value: any) => {
     const newData = { ...rowData, [field]: value };
-    const { unit, gross_qty, net_qty } = calculateQuantities(newData);
+    const { unit, gross_qty, net_qty } = calculateQuantities(newData, unitSystem);
     setRowData({ ...newData, unit, gross_qty, net_qty });
     setIsDirty(true);
   };
@@ -237,7 +248,7 @@ const EditableRow = ({
 
 
 // Component for a single Floor Plan's Take-Off Section
-const FloorPlanTakeOffSection = ({ plan }: { plan: ProjectAsset }) => {
+const FloorPlanTakeOffSection = ({ plan, unitSystem }: { plan: ProjectAsset; unitSystem: UnitSystem }) => {
   const [estimations, setEstimations] = useState<EstimationRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -293,6 +304,8 @@ const FloorPlanTakeOffSection = ({ plan }: { plan: ProjectAsset }) => {
       toast.error("Failed to delete row");
     }
   };
+
+  const dimLabel = UNIT_LABELS[unitSystem];
 
   const ghostRowData: EstimationRow = {
     floor_plan: plan.id,
@@ -354,9 +367,9 @@ const FloorPlanTakeOffSection = ({ plan }: { plan: ProjectAsset }) => {
                 <th className="py-3 px-3 w-[20%] border-r border-surface-200/50">Description</th>
                 <th className="py-3 px-3 w-[10%] border-r border-surface-200/50">Type</th>
                 <th className="py-3 px-3 w-[8%] text-center border-r border-surface-200/50">No.</th>
-                <th className="py-3 px-3 w-[9%] text-right border-r border-surface-200/50">L</th>
-                <th className="py-3 px-3 w-[9%] text-right border-r border-surface-200/50">W</th>
-                <th className="py-3 px-3 w-[9%] text-right border-r border-surface-200/50">D</th>
+                <th className="py-3 px-3 w-[9%] text-right border-r border-surface-200/50">L ({dimLabel.linear})</th>
+                <th className="py-3 px-3 w-[9%] text-right border-r border-surface-200/50">W ({dimLabel.linear})</th>
+                <th className="py-3 px-3 w-[9%] text-right border-r border-surface-200/50">D ({dimLabel.linear})</th>
                 <th className="py-3 px-4 w-[12%] text-right border-r border-surface-200/50">Net Qty</th>
                 <th className="py-3 px-3 w-[11%] text-right"></th>
               </tr>
@@ -371,7 +384,8 @@ const FloorPlanTakeOffSection = ({ plan }: { plan: ProjectAsset }) => {
                       key={row.id} 
                       initialData={row} 
                       onSave={handleSaveRow} 
-                      onDelete={handleDeleteRow} 
+                      onDelete={handleDeleteRow}
+                      unitSystem={unitSystem}
                     />
                   ))}
                   
@@ -380,7 +394,8 @@ const FloorPlanTakeOffSection = ({ plan }: { plan: ProjectAsset }) => {
                     key={`ghost-${estimations.length}`} 
                     initialData={ghostRowData} 
                     onSave={handleSaveRow} 
-                    isGhost={true} 
+                    isGhost={true}
+                    unitSystem={unitSystem}
                   />
                 </>
               )}
@@ -396,6 +411,7 @@ const FloorPlanTakeOffSection = ({ plan }: { plan: ProjectAsset }) => {
 
 export default function TakeOffTab({ projectAssets }: TakeOffTabProps) {
   const floorPlans = useMemo(() => projectAssets.filter(a => a.category === "2d_plan"), [projectAssets]);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>("metric");
 
   if (floorPlans.length === 0) {
     return (
@@ -407,9 +423,40 @@ export default function TakeOffTab({ projectAssets }: TakeOffTabProps) {
   }
 
   return (
-    <div className="flex flex-col gap-10 pb-20">
+    <div className="flex flex-col gap-6 pb-20">
+
+      {/* Unit System Toggle */}
+      <div className="flex items-center justify-between bg-white px-6 py-3 rounded-2xl border border-surface-200 shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-widest text-surface-500">Measurement System</span>
+          <span className="text-[10px] font-medium text-surface-400">— select the unit for dimensions (L, W, D)</span>
+        </div>
+        <div className="flex items-center gap-1 bg-surface-100 p-1 rounded-xl">
+          <button
+            onClick={() => setUnitSystem("metric")}
+            className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
+              unitSystem === "metric"
+                ? "bg-primary text-white shadow-sm"
+                : "text-surface-500 hover:text-primary"
+            }`}
+          >
+            Metric (m)
+          </button>
+          <button
+            onClick={() => setUnitSystem("imperial")}
+            className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
+              unitSystem === "imperial"
+                ? "bg-accent text-white shadow-sm"
+                : "text-surface-500 hover:text-accent"
+            }`}
+          >
+            Imperial (ft)
+          </button>
+        </div>
+      </div>
+
       {floorPlans.map(plan => (
-        <FloorPlanTakeOffSection key={plan.id} plan={plan} />
+        <FloorPlanTakeOffSection key={plan.id} plan={plan} unitSystem={unitSystem} />
       ))}
     </div>
   );

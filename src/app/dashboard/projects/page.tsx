@@ -44,6 +44,17 @@ function ProjectsPageInner() {
     }
   };
 
+  const handleStatusChange = async (uid: string, newStatus: string) => {
+    // Optimistic UI update
+    setProjects(prev => prev.map(p => p.uid === uid ? { ...p, status: newStatus as any } : p));
+    try {
+      await projectsApi.updateProject(uid, { status: newStatus as any });
+    } catch (err: any) {
+      alert("Failed to update project status.");
+      fetchProjects();
+    }
+  };
+
   const fetchProjects = async () => {
     setIsLoading(true);
     try {
@@ -116,7 +127,7 @@ function ProjectsPageInner() {
       ) : projects.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {projects.map((project) => (
-            <ProjectCard key={project.uid} project={project} />
+            <ProjectCard key={project.uid} project={project} onStatusChange={handleStatusChange} />
           ))}
         </div>
       ) : (

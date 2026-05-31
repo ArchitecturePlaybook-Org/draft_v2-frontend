@@ -17,6 +17,8 @@ import { ExpandedFeedView } from "@/components/matrix/ExpandedFeedView";
 import ModelViewer from "@/components/ModelViewer";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import ProjectShareManager from "@/components/projects/ProjectShareManager";
+import { ProjectStatusDropdown } from "@/components/projects/ProjectStatusDropdown";
+import { ProjectStatus } from "@/types/projects";
 
 type TabView = "data_hub" | "kanban" | "gantt" | "matrix" | "issues" | "share";
 type HubCategory = "sketch" | "2d_plan" | "3d_model" | "document";
@@ -199,6 +201,30 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handlePublishPortfolio = async () => {
+    if (!project) return;
+    try {
+      const res = await projectsApi.publishPortfolio(project.uid);
+      // The backend returns the new/existing PortfolioItem
+      // Redirect to the user's portfolio page or profile to edit the image
+      alert("Project published to portfolio successfully!");
+      router.push("/dashboard/profile");
+    } catch (err: any) {
+      alert(err.message || "Failed to publish portfolio.");
+    }
+  };
+
+  const handleProjectStatusChange = async (uid: string, newStatus: ProjectStatus) => {
+    if (!project) return;
+    try {
+      // Optimistic update
+      setProject({ ...project, status: newStatus as any });
+      await projectsApi.updateProject(uid, { status: newStatus as any });
+    } catch (err: any) {
+      alert("Failed to update project status.");
+      fetchProject(); // revert
+    }
+  };
 
   const fetchProject = async () => {
     if (!id) {
@@ -551,6 +577,11 @@ export default function ProjectDetailPage() {
             <span className="px-3 py-1 bg-surface-100 text-surface-600 text-[9px] font-bold uppercase tracking-widest rounded-md border border-surface-200">
               🏢 {project.account.name}
             </span>
+            <ProjectStatusDropdown 
+              uid={project.uid} 
+              status={project.status as ProjectStatus} 
+              onChange={handleProjectStatusChange} 
+            />
           </div>
           <h1 className="text-5xl font-extrabold text-primary mb-4 leading-tight tracking-tight">{project.title}</h1>
         </div>
@@ -568,8 +599,16 @@ export default function ProjectDetailPage() {
           >
             🛒 Procurement Ledger
           </button>
-          {canManage && (
+          {canManageProject(project) && (
             <>
+              {project.status === "Completed" && (
+                <button 
+                  onClick={handlePublishPortfolio}
+                  className="h-10 px-6 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all shadow-md"
+                >
+                  🚀 Publish to Portfolio
+                </button>
+              )}
               <button onClick={() => setShowAssignModal(true)} className="h-10 px-6 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md">
                 + Assign Personnel
               </button>

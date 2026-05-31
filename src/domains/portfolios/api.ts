@@ -20,6 +20,13 @@ export interface PortfolioItem {
     country: string;
     completed_projects?: number;
   };
+  contributors?: {
+    id: number;
+    name: string;
+    avatar: string | null;
+    role?: string;
+  }[];
+  is_owner?: boolean;
 }
 
 export interface PaginatedResponse<T> {
