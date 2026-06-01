@@ -11,6 +11,7 @@ export interface DetectedWall {
   start: Point;
   end: Point;
   lengthPixels: number;
+  thicknessPixels?: number;
 }
 
 // Merges collinear and overlapping lines to prevent double-drawing thick walls
@@ -140,6 +141,46 @@ export async function detectWallsFromCanvas(canvasElement: HTMLCanvasElement): P
 
     // Cluster and merge double lines/broken segments
     const mergedWalls = mergeLines(walls, 25, 0.15);
+    
+    // Extract structural thickness by firing a perpendicular ray across the binary mask
+    for (let w of mergedWalls) {
+       let dx = w.end.x - w.start.x;
+       let dy = w.end.y - w.start.y;
+       let len = w.lengthPixels;
+       if (len === 0) {
+          w.thicknessPixels = 0;
+          continue;
+       }
+       
+       let nx = -dy / len;
+       let ny = dx / len;
+       
+       let cx = (w.start.x + w.end.x) / 2;
+       let cy = (w.start.y + w.end.y) / 2;
+       
+       let t1 = 0;
+       while (true) {
+          let px = Math.round(cx + nx * t1);
+          let py = Math.round(cy + ny * t1);
+          if (px < 0 || px >= dst.cols || py < 0 || py >= dst.rows) break;
+          if (dst.ucharPtr(py, px)[0] === 0) break; // Reached black background
+          t1++;
+          if (t1 > 100) break; // Max 100px thickness safeguard
+       }
+       
+       let t2 = 0;
+       while (true) {
+          let px = Math.round(cx - nx * t2);
+          let py = Math.round(cy - ny * t2);
+          if (px < 0 || px >= dst.cols || py < 0 || py >= dst.rows) break;
+          if (dst.ucharPtr(py, px)[0] === 0) break; // Reached black background
+          t2++;
+          if (t2 > 100) break; // Max 100px thickness safeguard
+       }
+       
+       // t1 + t2 represents total pixel thickness traversed
+       w.thicknessPixels = t1 + t2;
+    }
     
     // Filter out tiny artifacts that survived
     return mergedWalls.filter(w => w.lengthPixels > 60);

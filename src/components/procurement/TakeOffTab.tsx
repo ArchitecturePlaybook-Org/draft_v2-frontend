@@ -193,7 +193,7 @@ const EditableRow = ({
       <td className="p-1 w-[9%]">
         <input 
           type="number" step="0.01" 
-          value={rowData.length} 
+          value={rowData.length || ""} 
           onChange={e => handleChange('length', e.target.value)} 
           placeholder="L"
           className={`${inputClass} text-right`} 
@@ -202,7 +202,7 @@ const EditableRow = ({
       <td className="p-1 w-[9%]">
         <input 
           type="number" step="0.01" 
-          value={rowData.width} 
+          value={rowData.width || ""} 
           onChange={e => handleChange('width', e.target.value)} 
           placeholder="W"
           className={`${inputClass} text-right`} 
@@ -211,7 +211,7 @@ const EditableRow = ({
       <td className="p-1 w-[9%]">
         <input 
           type="number" step="0.01" 
-          value={rowData.depth_height} 
+          value={rowData.depth_height || ""} 
           onChange={e => handleChange('depth_height', e.target.value)} 
           placeholder="D"
           className={`${inputClass} text-right`} 
@@ -249,7 +249,7 @@ const EditableRow = ({
 
 
 // Component for a single Floor Plan's Take-Off Section
-const FloorPlanTakeOffSection = ({ plan, unitSystem }: { plan: ProjectAsset; unitSystem: UnitSystem }) => {
+const FloorPlanTakeOffSection = ({ plan, unitSystem, cvLoaded }: { plan: ProjectAsset; unitSystem: UnitSystem; cvLoaded: boolean }) => {
   const [estimations, setEstimations] = useState<EstimationRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -355,6 +355,7 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem }: { plan: ProjectAsset; uni
           isExpanded={isExpanded}
           onToggleExpand={() => setIsExpanded(!isExpanded)}
           existingEstimations={estimations}
+          cvLoaded={cvLoaded}
         />
       ) : (
         <div className={`bg-surface-100 border-b border-surface-200 relative flex items-center justify-center ${isExpanded ? 'h-[800px]' : 'h-[400px]'}`}>
@@ -429,9 +430,18 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem }: { plan: ProjectAsset; uni
 };
 
 
+import Script from "next/script";
+
 export default function TakeOffTab({ projectAssets }: TakeOffTabProps) {
   const floorPlans = useMemo(() => projectAssets.filter(a => a.category === "2d_plan"), [projectAssets]);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>("metric");
+  const [cvLoaded, setCvLoaded] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).cv) {
+      setCvLoaded(true);
+    }
+  }, []);
 
   if (floorPlans.length === 0) {
     return (
@@ -444,6 +454,11 @@ export default function TakeOffTab({ projectAssets }: TakeOffTabProps) {
 
   return (
     <div className="flex flex-col gap-6 pb-20">
+      <Script 
+        src="https://docs.opencv.org/4.8.0/opencv.js" 
+        onLoad={() => setCvLoaded(true)} 
+        strategy="lazyOnload"
+      />
 
       {/* Unit System Toggle */}
       <div className="flex items-center justify-between bg-white px-6 py-3 rounded-2xl border border-surface-200 shadow-sm">
@@ -476,8 +491,9 @@ export default function TakeOffTab({ projectAssets }: TakeOffTabProps) {
       </div>
 
       {floorPlans.map(plan => (
-        <FloorPlanTakeOffSection key={plan.id} plan={plan} unitSystem={unitSystem} />
+        <FloorPlanTakeOffSection key={plan.id} plan={plan} unitSystem={unitSystem} cvLoaded={cvLoaded} />
       ))}
     </div>
   );
 }
+

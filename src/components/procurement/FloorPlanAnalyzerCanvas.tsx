@@ -6,7 +6,8 @@ import { ProjectAsset } from "@/types/projects";
 import { detectWallsFromCanvas, detectRoomsFromWalls, DetectedWall, DetectedRoom, Point } from "@/lib/cv/wallDetection";
 import { detectScaleFromImage } from "@/lib/cv/scaleCalibration";
 import { toast } from "sonner";
-import { Bot, Maximize2, Loader2, Ruler, CheckCircle2, MousePointer2, Pencil, Eraser, Trash2, Hexagon } from "lucide-react";
+import { Bot, Maximize2, Loader2, Ruler, CheckCircle2, MousePointer2, Pencil, Eraser, Trash2, Hexagon, Hand, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 interface FloorPlanAnalyzerCanvasProps {
   plan: ProjectAsset;
@@ -15,6 +16,7 @@ interface FloorPlanAnalyzerCanvasProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   existingEstimations: any[];
+  cvLoaded: boolean;
 }
 
 // Helper to calculate area of a simple polygon
@@ -44,7 +46,8 @@ export function FloorPlanAnalyzerCanvas({
   onAIDataExtracted,
   isExpanded,
   onToggleExpand,
-  existingEstimations
+  existingEstimations,
+  cvLoaded
 }: FloorPlanAnalyzerCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,7 +55,6 @@ export function FloorPlanAnalyzerCanvas({
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState("");
-  const [cvLoaded, setCvLoaded] = useState(false);
   
   // Calibration State
   const [detectedWalls, setDetectedWalls] = useState<DetectedWall[]>([]);
@@ -75,14 +77,27 @@ export function FloorPlanAnalyzerCanvas({
   }, [existingEstimations]);
 
   // Editing Modes
-  const [toolMode, setToolMode] = useState<'idle' | 'draw' | 'delete' | 'draw-area'>('idle');
+  const [toolMode, setToolMode] = useState<'idle' | 'draw' | 'delete' | 'draw-area' | 'pan'>('idle');
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawingStart, setDrawingStart] = useState<Point | null>(null);
   const [drawingEnd, setDrawingEnd] = useState<Point | null>(null);
   const [drawingAreaPoints, setDrawingAreaPoints] = useState<Point[]>([]);
+  const [isSpaceDown, setIsSpaceDown] = useState(false);
   
   type ActiveHandle = { type: 'wall', idx: number, node: 'start'|'end' } | { type: 'room', idx: number, vertexIdx: number };
   const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(null);
+
+  // Keyboard events for Spacebar panning
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.code === 'Space') setIsSpaceDown(true); };
+    const handleKeyUp = (e: KeyboardEvent) => { if (e.code === 'Space') setIsSpaceDown(false); };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   useEffect(() => {
     if (!plan.file) return;
@@ -136,7 +151,8 @@ export function FloorPlanAnalyzerCanvas({
           ctx.font = "bold 12px Inter, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          const label = est.item_code.includes('-') ? est.item_code.split('-')[1] : "✓";
+          const match = est.description?.match(/Wall (\d+)/i);
+          const label = match ? match[1] : "✓";
           ctx.fillText(label, cx, cy + 1);
         } else if (est.trace_data.polygon) {
           // It's a room
@@ -319,6 +335,7 @@ export function FloorPlanAnalyzerCanvas({
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (toolMode === 'pan' || isSpaceDown) return; // Prevent drawing if panning
     const coords = getCanvasCoords(e);
     
     if (toolMode === 'idle') {
@@ -374,6 +391,7 @@ export function FloorPlanAnalyzerCanvas({
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (toolMode === 'pan' || isSpaceDown) return;
     let coords = getCanvasCoords(e);
 
     if (activeHandle !== null) {
@@ -418,6 +436,8 @@ export function FloorPlanAnalyzerCanvas({
       setActiveHandle(null);
       return;
     }
+
+    if (toolMode === 'pan' || isSpaceDown) return;
 
     if (toolMode === 'draw' && isDrawing && drawingStart && drawingEnd) {
       const dist = Math.sqrt(Math.pow(drawingEnd.x - drawingStart.x, 2) + Math.pow(drawingEnd.y - drawingStart.y, 2));
@@ -552,7 +572,7 @@ export function FloorPlanAnalyzerCanvas({
         setCalibrationWallIndex(0);
         setProcessingStatus("Running Spatial OCR Auto-Scaling...");
         try {
-           const ocr = await detectScaleFromImage(plan.file, unitSystem, walls);
+           const ocr = await detectScaleFromImage(plan.file, unitSystem, filteredWalls);
            if (ocr && ocr.pixelsPerUnit && ocr.bestWallIndex !== null) {
                setCalibrationWallIndex(ocr.bestWallIndex);
                setCalibrationLength(ocr.estimatedLength ? ocr.estimatedLength.toString() : "");
@@ -612,16 +632,68 @@ export function FloorPlanAnalyzerCanvas({
     const newRows: any[] = [];
     const baseItemIndex = existingEstimations.length;
 
+    // 1. Cluster thicknesses into types A, B, C...
+    const thicknesses = detectedWalls
+        .filter(w => !w.id.startsWith("manual") && w.thicknessPixels)
+        .map(w => w.thicknessPixels as number)
+        .sort((a, b) => b - a);
+        
+    const clusters: { avg: number, typeLabel: string }[] = [];
+    const TYPE_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    let currentCluster: number[] = [];
+    
+    for (let i = 0; i < thicknesses.length; i++) {
+        if (currentCluster.length === 0) {
+            currentCluster.push(thicknesses[i]);
+        } else {
+            // Group if within 30% tolerance
+            if (currentCluster[0] - thicknesses[i] < currentCluster[0] * 0.3) {
+                currentCluster.push(thicknesses[i]);
+            } else {
+                const avg = currentCluster.reduce((sum, val) => sum + val, 0) / currentCluster.length;
+                clusters.push({ avg, typeLabel: TYPE_LABELS[clusters.length] || 'X' });
+                currentCluster = [thicknesses[i]];
+            }
+        }
+    }
+    if (currentCluster.length > 0) {
+        const avg = currentCluster.reduce((sum, val) => sum + val, 0) / currentCluster.length;
+        clusters.push({ avg, typeLabel: TYPE_LABELS[clusters.length] || 'X' });
+    }
+    
+    const getThicknessType = (t: number) => {
+        if (!t) return "MANUAL";
+        let bestCluster = clusters[0];
+        let minDiff = Infinity;
+        for (const c of clusters) {
+             const diff = Math.abs(c.avg - t);
+             if (diff < minDiff) {
+                 minDiff = diff;
+                 bestCluster = c;
+             }
+        }
+        return bestCluster ? bestCluster.typeLabel : "UNKNOWN";
+    };
+
     // Add Walls
     detectedWalls.forEach((w, idx) => {
       const lengthUnits = w.lengthPixels / scale;
+      const thicknessUnits = w.thicknessPixels ? (w.thicknessPixels / scale) : null;
+      
+      let typeLabel = "MANUAL";
+      if (thicknessUnits && w.thicknessPixels) {
+         typeLabel = getThicknessType(w.thicknessPixels);
+      }
+      
+      const isManual = w.id.startsWith("manual");
+
       newRows.push({
         floor_plan: plan.id,
-        item_code: `WALL-${idx + 1 + baseItemIndex}`,
-        description: w.id.startsWith("manual") ? "[Manual] Drawn Wall" : "[AI] Detected Wall",
+        item_code: `WALL-TYPE-${typeLabel}`,
+        description: `Wall ${idx + 1 + baseItemIndex} - ${isManual ? '[Manual] Drawn Wall' : '[AI] Detected Wall'}`,
         no_of_items: "1",
         length: lengthUnits.toFixed(2),
-        width: "",
+        width: thicknessUnits ? thicknessUnits.toFixed(2) : "",
         depth_height: "",
         gross_qty: lengthUnits.toFixed(2),
         is_deduction: false,
@@ -630,7 +702,8 @@ export function FloorPlanAnalyzerCanvas({
         trace_data: {
           start: w.start,
           end: w.end,
-          lengthPixels: w.lengthPixels
+          lengthPixels: w.lengthPixels,
+          thicknessPixels: w.thicknessPixels
         }
       });
     });
@@ -668,44 +741,141 @@ export function FloorPlanAnalyzerCanvas({
     setForceRecalibrate(false);
   };
 
+  const getCursorStyle = () => {
+    if (toolMode === 'pan' || isSpaceDown) return 'cursor-grab active:cursor-grabbing';
+    if (toolMode === 'draw' || toolMode === 'draw-area') return 'cursor-crosshair';
+    if (toolMode === 'delete') return 'cursor-not-allowed';
+    if (activeHandle) return 'cursor-grabbing';
+    return 'cursor-default';
+  };
+
+  const isPanningAllowed = toolMode === 'pan' || isSpaceDown;
+
   return (
     <div 
       ref={containerRef} 
       className={`bg-surface-900 relative overflow-hidden transition-all duration-300 w-full flex items-center justify-center ${isExpanded ? 'h-[800px]' : 'h-[400px]'}`}
     >
-      <Script 
-        src="https://docs.opencv.org/4.8.0/opencv.js" 
-        onLoad={() => setCvLoaded(true)} 
-        strategy="lazyOnload"
-      />
+      {/* 
+        Global OpenCV Script is loaded by TakeOffTab.tsx to prevent 
+        race conditions when multiple floor plans are open. 
+      */}
 
-      <div className="w-full h-full overflow-auto flex items-center justify-center relative">
-        <canvas 
-          ref={canvasRef} 
-          className={`max-w-full max-h-full object-contain drop-shadow-lg shadow-black/50 ${toolMode === 'draw' || toolMode === 'draw-area' ? 'cursor-crosshair' : toolMode === 'delete' ? 'cursor-not-allowed' : activeHandle ? 'cursor-grabbing' : 'cursor-default'}`}
-          style={{ width: "auto", height: "100%" }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={() => { 
-            setIsDrawing(false); 
-            setDrawingStart(null); 
-            setDrawingEnd(null); 
-            setActiveHandle(null); 
-          }}
-        />
-      </div>
+      <TransformWrapper 
+        disabled={!isPanningAllowed}
+        initialScale={1}
+        minScale={0.1}
+        maxScale={5}
+        centerOnInit
+        wheel={{ step: 0.1, disabled: !isPanningAllowed }}
+        pinch={{ disabled: !isPanningAllowed }}
+        doubleClick={{ disabled: true }}
+      >
+        {({ zoomIn, zoomOut, resetTransform }) => (
+          <>
+            <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <canvas 
+                ref={canvasRef} 
+                className={`max-w-full max-h-full object-contain drop-shadow-lg shadow-black/50 ${getCursorStyle()}`}
+                style={{ width: "auto", height: "100%" }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={() => { 
+                  setIsDrawing(false); 
+                  setDrawingStart(null); 
+                  setDrawingEnd(null); 
+                  setActiveHandle(null); 
+                }}
+              />
+            </TransformComponent>
 
+            {/* Always-on Toolbar (Zoom & Panning & Draw tools) */}
+            <div className="absolute top-4 right-4 flex items-center gap-2 bg-white p-2 rounded-2xl shadow-xl border border-gray-200 z-50 animate-in slide-in-from-top-4 duration-300">
+              
+              <button onClick={() => zoomIn()} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500 transition-all" title="Zoom In"><ZoomIn className="w-5 h-5"/></button>
+              <button onClick={() => zoomOut()} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500 transition-all" title="Zoom Out"><ZoomOut className="w-5 h-5"/></button>
+              <button onClick={() => resetTransform()} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500 transition-all" title="Reset View"><RotateCcw className="w-5 h-5"/></button>
+              
+              <div className="w-px h-8 bg-gray-200 mx-1"></div>
+
+              <button 
+                onClick={() => { setToolMode('pan'); setDrawingAreaPoints([]); }}
+                className={`p-2.5 rounded-xl transition-all ${toolMode === 'pan' ? 'bg-orange-100 text-orange-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
+                title="Pan Canvas (Or hold Spacebar)"
+              ><Hand className="w-5 h-5"/></button>
+
+              <button 
+                 onClick={() => { setToolMode('idle'); setDrawingAreaPoints([]); }}
+                 className={`p-2.5 rounded-xl transition-all ${toolMode === 'idle' ? 'bg-emerald-100 text-emerald-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
+                 title="Select & Adjust"
+              ><MousePointer2 className="w-5 h-5"/></button>
+              
+              <button 
+                 onClick={() => { setToolMode('draw'); setDrawingAreaPoints([]); }}
+                 className={`p-2.5 rounded-xl transition-all ${toolMode === 'draw' ? 'bg-blue-100 text-blue-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
+                 title="Draw Manual Wall (Line)"
+              ><Pencil className="w-5 h-5"/></button>
+
+              <button 
+                 onClick={() => setToolMode('draw-area')}
+                 className={`p-2.5 rounded-xl transition-all ${toolMode === 'draw-area' ? 'bg-purple-100 text-purple-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
+                 title="Draw Manual Area (Polygon)"
+              ><Hexagon className="w-5 h-5"/></button>
+              
+              <div className="w-px h-8 bg-gray-200 mx-1"></div>
+
+              <button 
+                 onClick={() => { setToolMode('delete'); setDrawingAreaPoints([]); }}
+                 className={`p-2.5 rounded-xl transition-all ${toolMode === 'delete' ? 'bg-red-100 text-red-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
+                 title="Delete Wall/Area"
+              ><Eraser className="w-5 h-5"/></button>
+
+              <div className="w-px h-8 bg-gray-200 mx-1"></div>
+
+              {/* Collapsed AI Takeoff Action */}
+              <button
+                onClick={handleAIAnalyze}
+                disabled={isProcessing || !cvLoaded || (detectedWalls.length > 0 || detectedRooms.length > 0)}
+                className={`p-2.5 rounded-xl transition-all ${
+                  isProcessing ? 'animate-pulse bg-gray-100 text-gray-400' : 
+                  (detectedWalls.length > 0 || detectedRooms.length > 0) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
+                  'bg-indigo-100 hover:bg-indigo-200 text-indigo-600 shadow-sm'
+                }`}
+                title="AI Takeoff"
+              >
+                {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bot className="w-5 h-5" />}
+              </button>
+
+              {(detectedWalls.length > 0 || detectedRooms.length > 0) && (
+                <>
+                  <div className="w-px h-8 bg-gray-200 mx-1"></div>
+                  <button 
+                     onClick={() => { setDetectedWalls([]); setDetectedRooms([]); setDrawingAreaPoints([]); setToolMode('idle'); setForceRecalibrate(false); }}
+                     className="p-2.5 rounded-xl hover:bg-red-50 text-red-500 transition-all"
+                     title="Clear Unsaved Traces"
+                  ><Trash2 className="w-5 h-5"/></button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </TransformWrapper>
+
+      {/* Primary Action Button / Calibration Card */}
       <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-auto z-50">
         {detectedWalls.length === 0 && detectedRooms.length === 0 ? (
-          <button
-            onClick={handleAIAnalyze}
-            disabled={isProcessing || !cvLoaded}
-            className="bg-accent hover:bg-accent/90 disabled:bg-surface-700 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 font-black uppercase tracking-widest text-xs transition-all"
-          >
-            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
-            {isProcessing ? "Processing..." : "🤖 Auto-Detect Take-Offs"}
-          </button>
+           // Only show giant button if they haven't drawn/saved anything yet
+           existingEstimations.length === 0 && (
+             <button
+               onClick={handleAIAnalyze}
+               disabled={isProcessing || !cvLoaded}
+               className="bg-accent hover:bg-accent/90 disabled:bg-surface-700 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 font-black uppercase tracking-widest text-xs transition-all"
+             >
+               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
+               {isProcessing ? "Processing..." : "🤖 AI Takeoff"}
+             </button>
+           )
         ) : (
           <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-2xl w-80 animate-in slide-in-from-top-4 duration-300">
             {existingScale && !forceRecalibrate ? (
@@ -779,46 +949,6 @@ export function FloorPlanAnalyzerCanvas({
           </div>
         )}
       </div>
-
-      {(detectedWalls.length > 0 || detectedRooms.length > 0) && (
-        <div className="absolute top-4 right-4 flex items-center gap-2 bg-white p-2 rounded-2xl shadow-xl border border-gray-200 z-50 animate-in slide-in-from-top-4 duration-300">
-          <button 
-             onClick={() => { setToolMode('idle'); setDrawingAreaPoints([]); }}
-             className={`p-2.5 rounded-xl transition-all ${toolMode === 'idle' ? 'bg-emerald-100 text-emerald-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
-             title="Select & Adjust"
-          ><MousePointer2 className="w-5 h-5"/></button>
-          
-          <div className="w-px h-8 bg-gray-200 mx-1"></div>
-
-          <button 
-             onClick={() => { setToolMode('draw'); setDrawingAreaPoints([]); }}
-             className={`p-2.5 rounded-xl transition-all ${toolMode === 'draw' ? 'bg-blue-100 text-blue-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
-             title="Draw Manual Wall (Line)"
-          ><Pencil className="w-5 h-5"/></button>
-
-          <button 
-             onClick={() => setToolMode('draw-area')}
-             className={`p-2.5 rounded-xl transition-all ${toolMode === 'draw-area' ? 'bg-purple-100 text-purple-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
-             title="Draw Manual Area (Polygon)"
-          ><Hexagon className="w-5 h-5"/></button>
-          
-          <div className="w-px h-8 bg-gray-200 mx-1"></div>
-
-          <button 
-             onClick={() => { setToolMode('delete'); setDrawingAreaPoints([]); }}
-             className={`p-2.5 rounded-xl transition-all ${toolMode === 'delete' ? 'bg-red-100 text-red-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
-             title="Delete Wall/Area"
-          ><Eraser className="w-5 h-5"/></button>
-
-          <div className="w-px h-8 bg-gray-200 mx-1"></div>
-          
-          <button 
-             onClick={() => { setDetectedWalls([]); setDetectedRooms([]); setDrawingAreaPoints([]); setToolMode('idle'); }}
-             className="p-2.5 rounded-xl hover:bg-red-50 text-red-500 transition-all"
-             title="Clear All & Restart"
-          ><Trash2 className="w-5 h-5"/></button>
-        </div>
-      )}
 
       {isProcessing && (
         <div className="absolute top-4 left-4 bg-surface-900/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-surface-700 text-emerald-400 text-[10px] font-black uppercase tracking-widest animate-pulse z-50">
