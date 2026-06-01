@@ -8,7 +8,9 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { FloorPlanAnalyzerCanvas } from "./FloorPlanAnalyzerCanvas";
 
 interface TakeOffTabProps {
+  projectUid: string;
   projectAssets: ProjectAsset[];
+  initialUnitSystem?: "metric" | "imperial";
 }
 
 type UnitSystem = "metric" | "imperial";
@@ -30,8 +32,8 @@ interface EstimationRow {
 
 // Unit label maps for each system
 const UNIT_LABELS: Record<UnitSystem, { linear: string; area: string; volume: string }> = {
-  metric:   { linear: "m",   area: "m²",   volume: "m³"   },
-  imperial: { linear: "ft",  area: "ft²",  volume: "ft³"  },
+  metric:   { linear: "m",   area: "sq m",   volume: "cu m"   },
+  imperial: { linear: "ft",  area: "sq ft",  volume: "cu ft"  },
 };
 
 // Helper for calculation
@@ -327,8 +329,9 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem, cvLoaded }: { plan: Project
         const saved = await projectsApi.createEstimation(row);
         setEstimations(prev => prev.map(est => est === row ? saved : est));
         successCount++;
-      } catch (err) {
-        console.error("Failed to save row:", row);
+      } catch (err: any) {
+        console.error("Failed to save row:", row, err);
+        toast.error(`Failed to save ${row.item_code}: ${err.message || "Unknown error"}`);
       }
     }
     if (successCount === unsaved.length) {
@@ -432,9 +435,24 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem, cvLoaded }: { plan: Project
 
 import Script from "next/script";
 
-export default function TakeOffTab({ projectAssets }: TakeOffTabProps) {
+export default function TakeOffTab({ projectUid, projectAssets, initialUnitSystem = "metric" }: TakeOffTabProps) {
   const floorPlans = useMemo(() => projectAssets.filter(a => a.category === "2d_plan"), [projectAssets]);
-  const [unitSystem, setUnitSystem] = useState<UnitSystem>("metric");
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>(initialUnitSystem as UnitSystem);
+
+  useEffect(() => {
+    setUnitSystem(initialUnitSystem as UnitSystem);
+  }, [initialUnitSystem]);
+
+  const handleUnitSystemChange = async (newSystem: UnitSystem) => {
+    setUnitSystem(newSystem);
+    try {
+      await projectsApi.updateProject(projectUid, { unit_system: newSystem } as any);
+      toast.success("Measurement System saved");
+    } catch (err) {
+      toast.error("Failed to save Measurement System");
+    }
+  };
+
   const [cvLoaded, setCvLoaded] = useState(false);
 
   useEffect(() => {
@@ -468,7 +486,7 @@ export default function TakeOffTab({ projectAssets }: TakeOffTabProps) {
         </div>
         <div className="flex items-center gap-1 bg-surface-100 p-1 rounded-xl">
           <button
-            onClick={() => setUnitSystem("metric")}
+            onClick={() => handleUnitSystemChange("metric")}
             className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
               unitSystem === "metric"
                 ? "bg-primary text-white shadow-sm"
@@ -478,7 +496,7 @@ export default function TakeOffTab({ projectAssets }: TakeOffTabProps) {
             Metric (m)
           </button>
           <button
-            onClick={() => setUnitSystem("imperial")}
+            onClick={() => handleUnitSystemChange("imperial")}
             className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
               unitSystem === "imperial"
                 ? "bg-accent text-white shadow-sm"

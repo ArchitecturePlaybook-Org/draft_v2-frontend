@@ -351,11 +351,25 @@ export const projectsApi = {
     net_qty: number | string;
     trace_data?: any;
   }) => {
-    return fetchFromBff<any>("/api/projects/estimations/", { method: "POST", body: JSON.stringify(data) });
+    const payload = { ...data };
+    if (payload.length === "") payload.length = null;
+    if (payload.width === "") payload.width = null;
+    if (payload.depth_height === "") payload.depth_height = null;
+    if (payload.gross_qty === "") payload.gross_qty = null;
+    if (payload.net_qty === "") payload.net_qty = null;
+    if (payload.no_of_items === "") payload.no_of_items = null;
+    return fetchFromBff<any>("/api/projects/estimations/", { method: "POST", body: JSON.stringify(payload) });
   },
 
   updateEstimation: async (estimationId: number, data: Partial<any>) => {
-    return fetchFromBff<any>(`/api/projects/estimations/${estimationId}/`, { method: "PATCH", body: JSON.stringify(data) });
+    const payload = { ...data };
+    if (payload.length === "") payload.length = null;
+    if (payload.width === "") payload.width = null;
+    if (payload.depth_height === "") payload.depth_height = null;
+    if (payload.gross_qty === "") payload.gross_qty = null;
+    if (payload.net_qty === "") payload.net_qty = null;
+    if (payload.no_of_items === "") payload.no_of_items = null;
+    return fetchFromBff<any>(`/api/projects/estimations/${estimationId}/`, { method: "PATCH", body: JSON.stringify(payload) });
   },
 
   deleteEstimation: async (estimationId: number) => {

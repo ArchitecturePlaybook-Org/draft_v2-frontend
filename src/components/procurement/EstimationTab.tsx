@@ -148,8 +148,8 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
               </tr>
             </thead>
             <tbody>
-              {data.items.map((item) => (
-                <tr key={item.item_code} className="border-b border-surface-100 hover:bg-surface-50 group">
+              {data.items.map((item, index) => (
+                <tr key={`${item.item_code}-${index}`} className="border-b border-surface-100 hover:bg-surface-50 group">
                   <td className="py-2 px-6 font-black text-primary text-sm">{item.item_code}</td>
                   <td className="py-2 px-6 font-bold text-surface-600 text-sm truncate max-w-xs" title={item.description}>
                     {item.description}

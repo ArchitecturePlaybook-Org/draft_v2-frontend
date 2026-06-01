@@ -723,7 +723,7 @@ export function FloorPlanAnalyzerCanvas({
         gross_qty: areaUnits.toFixed(2),
         is_deduction: false,
         net_qty: areaUnits.toFixed(2),
-        unit: unitSystem === "metric" ? "m²" : "ft²",
+        unit: unitSystem === "metric" ? "sq m" : "sq ft",
         trace_data: {
           polygon: r.polygon,
           areaPixels: r.areaPixels,

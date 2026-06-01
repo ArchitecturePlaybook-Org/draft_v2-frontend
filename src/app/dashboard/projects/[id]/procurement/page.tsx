@@ -19,6 +19,7 @@ export default function ProcurementDashboard() {
   const [phases, setPhases] = useState<MilestonePhase[]>([]);
   const [projectAssets, setProjectAssets] = useState<any[]>([]);
   const [projectIntId, setProjectIntId] = useState<number | null>(null);
+  const [project, setProject] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [selectedAllocations, setSelectedAllocations] = useState<Record<number, boolean>>({});
@@ -44,6 +45,7 @@ export default function ProcurementDashboard() {
       ]);
       setItems(aggData);
       setProjectIntId(projectData.id);
+      setProject(projectData);
       setPhases(matrixData.phases);
       setProjectAssets(projectData.assets || []);
     } catch (err) {
@@ -701,7 +703,11 @@ export default function ProcurementDashboard() {
           )}
 
           {activeTab === "TAKE_OFF" && (
-            <TakeOffTab projectAssets={projectAssets} />
+            <TakeOffTab 
+              projectUid={projectId}
+              projectAssets={projectAssets} 
+              initialUnitSystem={project?.unit_system || "metric"} 
+            />
           )}
 
           {activeTab === "ESTIMATION" && (

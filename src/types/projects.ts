@@ -25,6 +25,7 @@ export interface Project {
   client_name?: string;
   client_phone?: string;
   client_email?: string;
+  unit_system: "metric" | "imperial";
   created_by: User;
   memberships_count: number;
   tasks_count: number;
