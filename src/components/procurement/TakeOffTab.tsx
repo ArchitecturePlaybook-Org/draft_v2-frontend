@@ -5,6 +5,7 @@ import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 import { ProjectAsset } from "@/types/projects";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { FloorPlanAnalyzerCanvas } from "./FloorPlanAnalyzerCanvas";
 
 interface TakeOffTabProps {
   projectAssets: ProjectAsset[];
@@ -314,6 +315,29 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem }: { plan: ProjectAsset; uni
     gross_qty: "1.00", is_deduction: false, net_qty: "1.00", unit: "pcs"
   };
 
+  const handleBulkSave = async () => {
+    const unsaved = estimations.filter(e => !e.id);
+    if (unsaved.length === 0) {
+      toast.info("No unsaved estimations found.");
+      return;
+    }
+    let successCount = 0;
+    for (const row of unsaved) {
+      try {
+        const saved = await projectsApi.createEstimation(row);
+        setEstimations(prev => prev.map(est => est === row ? saved : est));
+        successCount++;
+      } catch (err) {
+        console.error("Failed to save row:", row);
+      }
+    }
+    if (successCount === unsaved.length) {
+      toast.success(`Successfully saved all ${successCount} estimations!`);
+    } else {
+      toast.warning(`Saved ${successCount} out of ${unsaved.length} estimations.`);
+    }
+  };
+
   return (
     <div className="flex flex-col bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
       
@@ -322,41 +346,37 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem }: { plan: ProjectAsset; uni
         <h2 className="text-xl font-black text-primary uppercase tracking-tight">{plan.title}</h2>
       </div>
 
-      {/* Floor Plan Viewer (Dynamic Height) */}
-      <div className={`bg-surface-100 border-b border-surface-200 relative overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-300 ${isExpanded ? 'h-[800px]' : 'h-[400px]'}`}>
-        {plan.file ? (
-          <TransformWrapper initialScale={1} minScale={0.5} maxScale={10} centerOnInit limitToBounds={false}>
-            <TransformComponent wrapperClass="w-full h-full" contentClass="w-full h-full flex items-center justify-center">
-              <img 
-                src={plan.file} 
-                alt={plan.title} 
-                className="max-w-full max-h-full object-contain pointer-events-none drop-shadow-sm"
-              />
-            </TransformComponent>
-          </TransformWrapper>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <p className="text-surface-400 font-bold">No image available</p>
-          </div>
-        )}
-        <div className="absolute bottom-4 right-4 flex items-center gap-2 pointer-events-auto">
-          <div className="bg-surface-800/90 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-sm pointer-events-none">
-            <p className="text-[10px] text-white font-bold uppercase tracking-widest">Scroll to zoom • Drag to pan</p>
-          </div>
-          <button 
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="bg-primary text-white hover:bg-primary-dark px-4 py-1.5 rounded-lg shadow-sm text-[10px] font-black uppercase tracking-widest transition-all"
-          >
-            {isExpanded ? 'Collapse View' : 'Expand View'}
-          </button>
+      {/* Floor Plan AI Analyzer Canvas */}
+      {plan.file ? (
+        <FloorPlanAnalyzerCanvas
+          plan={plan}
+          unitSystem={unitSystem}
+          onAIDataExtracted={(newRows) => setEstimations(prev => [...prev, ...newRows])}
+          isExpanded={isExpanded}
+          onToggleExpand={() => setIsExpanded(!isExpanded)}
+          existingEstimations={estimations}
+        />
+      ) : (
+        <div className={`bg-surface-100 border-b border-surface-200 relative flex items-center justify-center ${isExpanded ? 'h-[800px]' : 'h-[400px]'}`}>
+          <p className="text-surface-400 font-bold">No image available</p>
         </div>
-      </div>
+      )}
 
       {/* Full-Width DataGrid */}
       <div className="flex flex-col bg-white">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200 bg-white">
-          <h3 className="text-sm font-black text-primary uppercase tracking-tight">Estimation DataGrid</h3>
-          <div className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Auto-saves as you type</div>
+          <div>
+            <h3 className="text-sm font-black text-primary uppercase tracking-tight">Estimation DataGrid</h3>
+            <div className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Auto-saves as you type</div>
+          </div>
+          {estimations.filter(e => !e.id).length > 0 && (
+            <button
+              onClick={handleBulkSave}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm transition-all"
+            >
+              💾 Save {estimations.filter(e => !e.id).length} Unsaved Estimations
+            </button>
+          )}
         </div>
 
         <div className="w-full overflow-x-auto">
@@ -379,9 +399,9 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem }: { plan: ProjectAsset; uni
                 <tr><td colSpan={9} className="py-10 text-center font-bold text-surface-400">Loading...</td></tr>
               ) : (
                 <>
-                  {estimations.map((row) => (
+                  {estimations.map((row, index) => (
                     <EditableRow 
-                      key={row.id} 
+                      key={row.id || `unsaved-${index}`} 
                       initialData={row} 
                       onSave={handleSaveRow} 
                       onDelete={handleDeleteRow}

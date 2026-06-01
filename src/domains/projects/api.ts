@@ -349,6 +349,7 @@ export const projectsApi = {
     gross_qty: number | string;
     is_deduction?: boolean;
     net_qty: number | string;
+    trace_data?: any;
   }) => {
     return fetchFromBff<any>("/api/projects/estimations/", { method: "POST", body: JSON.stringify(data) });
   },
