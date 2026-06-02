@@ -296,6 +296,31 @@ export interface BOQSubItem {
   description: string;
   quantity: string | number;
   unit_rate: string | number;
+  waste_percentage?: string | number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MaterialAssemblyComponent {
+  id: number;
+  assembly: number;
+  material_code: string;
+  description: string;
+  quantity_per_unit: string | number;
+  unit: string;
+  default_unit_rate: string | number;
+  waste_percentage: string | number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MaterialAssembly {
+  id: number;
+  account: number;
+  item_code: string;
+  description: string;
+  unit: string;
+  components?: MaterialAssemblyComponent[];
   created_at?: string;
   updated_at?: string;
 }

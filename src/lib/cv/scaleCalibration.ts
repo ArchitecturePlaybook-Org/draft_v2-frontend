@@ -29,7 +29,7 @@ export async function detectScaleFromImage(
       logger: m => console.log(m)
     });
 
-    const words = result.data.words || [];
+    const words = (result.data as any).words || [];
     let potentialScales: { scale: number, wallIdx: number, physicalLength: number }[] = [];
 
     // Regex for dimensions

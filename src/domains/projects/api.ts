@@ -351,24 +351,24 @@ export const projectsApi = {
     net_qty: number | string;
     trace_data?: any;
   }) => {
-    const payload = { ...data };
-    if (payload.length === "") payload.length = null;
-    if (payload.width === "") payload.width = null;
-    if (payload.depth_height === "") payload.depth_height = null;
-    if (payload.gross_qty === "") payload.gross_qty = null;
-    if (payload.net_qty === "") payload.net_qty = null;
-    if (payload.no_of_items === "") payload.no_of_items = null;
+    const payload: any = { ...data };
+    if (payload.length === "") payload.length = undefined;
+    if (payload.width === "") payload.width = undefined;
+    if (payload.depth_height === "") payload.depth_height = undefined;
+    if (payload.gross_qty === "") payload.gross_qty = undefined;
+    if (payload.net_qty === "") payload.net_qty = undefined;
+    if (payload.no_of_items === "") payload.no_of_items = undefined;
     return fetchFromBff<any>("/api/projects/estimations/", { method: "POST", body: JSON.stringify(payload) });
   },
 
   updateEstimation: async (estimationId: number, data: Partial<any>) => {
-    const payload = { ...data };
-    if (payload.length === "") payload.length = null;
-    if (payload.width === "") payload.width = null;
-    if (payload.depth_height === "") payload.depth_height = null;
-    if (payload.gross_qty === "") payload.gross_qty = null;
-    if (payload.net_qty === "") payload.net_qty = null;
-    if (payload.no_of_items === "") payload.no_of_items = null;
+    const payload: any = { ...data };
+    if (payload.length === "") payload.length = undefined;
+    if (payload.width === "") payload.width = undefined;
+    if (payload.depth_height === "") payload.depth_height = undefined;
+    if (payload.gross_qty === "") payload.gross_qty = undefined;
+    if (payload.net_qty === "") payload.net_qty = undefined;
+    if (payload.no_of_items === "") payload.no_of_items = undefined;
     return fetchFromBff<any>(`/api/projects/estimations/${estimationId}/`, { method: "PATCH", body: JSON.stringify(payload) });
   },
 
@@ -597,7 +597,54 @@ export const projectsApi = {
     });
   },
 
+  // ── Material Assemblies ───────────────────────────────────────────────────
+  getMaterialAssemblies: async (): Promise<any[]> => {
+    const res = await fetchFromBff<any>("/api/projects/material-assemblies/", { method: "GET" });
+    return unpackArray<any>(res);
+  },
 
+  createMaterialAssembly: async (data: any) => {
+    return fetchFromBff<any>("/api/projects/material-assemblies/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateMaterialAssembly: async (id: number, data: any) => {
+    return fetchFromBff<any>(`/api/projects/material-assemblies/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteMaterialAssembly: async (id: number) => {
+    return fetchFromBff<void>(`/api/projects/material-assemblies/${id}/`, { method: "DELETE" });
+  },
+
+  createMaterialAssemblyComponent: async (data: any) => {
+    return fetchFromBff<any>("/api/projects/material-assembly-components/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateMaterialAssemblyComponent: async (id: number, data: any) => {
+    return fetchFromBff<any>(`/api/projects/material-assembly-components/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteMaterialAssemblyComponent: async (id: number) => {
+    return fetchFromBff<void>(`/api/projects/material-assembly-components/${id}/`, { method: "DELETE" });
+  },
+
+  generateMaterialRecipe: async (item_code: string, description: string) => {
+    return fetchFromBff<any>(`/api/projects/material-assemblies/generate-recipe/`, {
+      method: "POST",
+      body: JSON.stringify({ item_code, description })
+    });
+  },
 
   // ── Work Package Templates ────────────────────────────────────────────────
   getWorkPackages: async (): Promise<WorkPackageTemplate[]> => {
@@ -655,7 +702,10 @@ export const projectsApi = {
     return fetchFromBff<void>(`/api/projects/projects/${projectId}/share/${token}/`, { method: "DELETE" });
   },
 
-  publishPortfolio: async (projectUid: string) => {
-    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/publish-portfolio/`, { method: "POST" });
+  publishPortfolio: async (projectUid: string, data?: { category: string; city: string; country: string }) => {
+    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/publish-portfolio/`, { 
+      method: "POST",
+      body: data ? JSON.stringify(data) : undefined
+    });
   },
 };

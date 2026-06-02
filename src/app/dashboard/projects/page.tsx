@@ -71,7 +71,7 @@ function ProjectsPageInner() {
       // Fetch all tasks and filter out the ones belonging to external projects
       const allTasks = await projectsApi.getTasks();
       const projIds = new Set(projs.map(p => p.id));
-      const shared = allTasks.filter(t => typeof t.project === "object" ? !projIds.has(t.project.id) : !projIds.has(t.project));
+      const shared = allTasks.filter(t => typeof t.project === "object" && t.project !== null ? !projIds.has((t.project as any).id) : !projIds.has(t.project as any));
       setSharedTasks(shared);
     } catch (err) {
       console.error("Failed to fetch projects/tasks:", err);

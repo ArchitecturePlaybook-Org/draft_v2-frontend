@@ -21,14 +21,38 @@ interface EstimationSummary {
 
 interface EstimationTabProps {
   onPushToBoq?: () => void;
+  onSwitchToBoq?: () => void;
 }
 
-export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
+export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: EstimationTabProps) {
   const params = useParams();
   const projectId = params.id as string;
   const [data, setData] = useState<EstimationSummary | null>(null);
+  const [assemblies, setAssemblies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPushing, setIsPushing] = useState(false);
+
+  // Missing Recipe Flow
+  const [missingItems, setMissingItems] = useState<EstimationItem[]>([]);
+  const [currentMissingIndex, setCurrentMissingIndex] = useState(0);
+  const [showMissingModal, setShowMissingModal] = useState(false);
+  const [recipeData, setRecipeData] = useState<{
+    item_code: string;
+    description: string;
+    unit: string;
+    components: any[];
+  }>({ item_code: "", description: "", unit: "", components: [] });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSavingRecipe, setIsSavingRecipe] = useState(false);
+
+  const [newComponent, setNewComponent] = useState({
+    material_code: "",
+    description: "",
+    quantity_per_unit: 1,
+    unit: "nos",
+    waste_percentage: 0,
+    default_unit_rate: 0
+  });
 
   // Local state for tracking unsaved edits
   const [editingCosts, setEditingCosts] = useState<Record<string, string>>({});
@@ -36,10 +60,13 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const summary = await projectsApi.getEstimationSummary(projectId);
+      const [summary, asms] = await Promise.all([
+        projectsApi.getEstimationSummary(projectId),
+        projectsApi.getMaterialAssemblies()
+      ]);
       setData(summary);
+      setAssemblies(asms);
       
-      // Initialize editing costs
       const initialCosts: Record<string, string> = {};
       summary.items.forEach(item => {
         initialCosts[item.item_code] = item.unit_cost.toString();
@@ -59,18 +86,162 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
     }
   }, [projectId]);
 
-  const handlePushToBoq = async () => {
-    if (!confirm("Are you sure you want to push this estimate to the BOQ Builder? Existing items with the same code will be updated.")) return;
-    
+  const executePushToBoq = async () => {
     setIsPushing(true);
     try {
       const res = await projectsApi.pushEstimationToBoq(projectId);
       toast.success(`Successfully pushed ${res.pushed_items} items to BOQ!`);
       if (onPushToBoq) onPushToBoq();
+      if (onSwitchToBoq) onSwitchToBoq();
     } catch (err: any) {
       toast.error("Failed to push to BOQ");
     } finally {
       setIsPushing(false);
+      setShowMissingModal(false);
+    }
+  };
+
+  const handleInitiatePush = () => {
+    if (!data) return;
+    const asmCodes = new Set(assemblies.map(a => a.item_code));
+    const missing = data.items.filter(i => !asmCodes.has(i.item_code));
+    
+    if (missing.length > 0) {
+      setMissingItems(missing);
+      setCurrentMissingIndex(0);
+      setupRecipeForm(missing[0]);
+      setShowMissingModal(true);
+    } else {
+      if (!confirm("Are you sure you want to push this estimate to the BOQ Builder? Existing items with the same code will be updated.")) return;
+      executePushToBoq();
+    }
+  };
+
+  const setupRecipeForm = (item: EstimationItem) => {
+    setRecipeData({
+      item_code: item.item_code,
+      description: item.description,
+      unit: item.unit,
+      components: []
+    });
+  };
+
+  const handleGenerateAI = async () => {
+    setIsGenerating(true);
+    try {
+      let components = null;
+      
+      // OPTION 2: Try browser window.ai first
+      if (typeof window !== "undefined" && (window as any).ai && (window as any).ai.languageModel) {
+        try {
+          const session = await (window as any).ai.languageModel.create();
+          const prompt = `You are an expert construction estimator. Generate a JSON array of raw materials required to build 1 unit of: '${recipeData.item_code}' (${recipeData.description}). Each object must have fields: material_code (string), description (string), quantity_per_unit (number), unit (string), waste_percentage (number), default_unit_rate (number). Output strictly ONLY a JSON array.`;
+          
+          const resultText = await session.prompt(prompt);
+          let cleanedText = resultText.trim();
+          if (cleanedText.startsWith("\`\`\`")) {
+             cleanedText = cleanedText.replace(/^\`\`\`json/i, "").replace(/^\`\`\`/i, "").replace(/\`\`\`$/i, "").trim();
+          }
+          components = JSON.parse(cleanedText);
+          toast.success("Generated instantly using Browser AI!");
+        } catch (localErr) {
+          console.warn("Browser AI failed or refused format, falling back to backend AI.", localErr);
+        }
+      }
+
+      // OPTION 1: Fallback to Backend API
+      if (!components) {
+        const res = await projectsApi.generateMaterialRecipe(recipeData.item_code, recipeData.description);
+        components = res.components;
+        toast.success("Generated using Cloud AI!");
+      }
+
+      if (components && Array.isArray(components)) {
+        setRecipeData(prev => ({ ...prev, components }));
+      }
+    } catch (err: any) {
+      if (err.data && err.data.detail) {
+        toast.error(err.data.detail);
+      } else {
+        toast.error("Failed to generate recipe.");
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAddComponent = () => {
+    if (!newComponent.material_code || !newComponent.description) {
+      toast.error("Material code and description are required");
+      return;
+    }
+    setRecipeData(prev => ({
+      ...prev,
+      components: [...prev.components, { ...newComponent }]
+    }));
+    setNewComponent({
+      material_code: "",
+      description: "",
+      quantity_per_unit: 1,
+      unit: "nos",
+      waste_percentage: 0,
+      default_unit_rate: 0
+    });
+  };
+
+  const handleRemoveComponent = (index: number) => {
+    setRecipeData(prev => ({
+      ...prev,
+      components: prev.components.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSaveRecipeAndContinue = async () => {
+    setIsSavingRecipe(true);
+    try {
+      // 1. Create the assembly
+      const asm = await projectsApi.createMaterialAssembly({
+        item_code: recipeData.item_code,
+        description: recipeData.description,
+        unit: recipeData.unit
+      });
+
+      // 2. Create the components
+      for (const comp of recipeData.components) {
+        await projectsApi.createMaterialAssemblyComponent({
+          assembly: asm.id,
+          ...comp
+        });
+      }
+
+      // Add to local state so we know it exists
+      setAssemblies(prev => [...prev, asm]);
+
+      toast.success(`Recipe saved for ${recipeData.item_code}`);
+
+      // 3. Move to next missing item, or execute push
+      if (currentMissingIndex + 1 < missingItems.length) {
+        const nextIndex = currentMissingIndex + 1;
+        setCurrentMissingIndex(nextIndex);
+        setupRecipeForm(missingItems[nextIndex]);
+      } else {
+        executePushToBoq();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save recipe");
+    } finally {
+      setIsSavingRecipe(false);
+    }
+  };
+
+  const handleSkipRecipe = () => {
+    if (currentMissingIndex + 1 < missingItems.length) {
+      const nextIndex = currentMissingIndex + 1;
+      setCurrentMissingIndex(nextIndex);
+      setupRecipeForm(missingItems[nextIndex]);
+    } else {
+      executePushToBoq();
     }
   };
 
@@ -81,7 +252,6 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
   const handleCostBlur = async (itemCode: string) => {
     const cost = parseFloat(editingCosts[itemCode]) || 0;
     
-    // Quick optimistic update for UI calculation
     if (data) {
       const newItems = data.items.map(i => {
         if (i.item_code === itemCode) {
@@ -117,7 +287,113 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-24">
+    <div className="space-y-6 animate-fade-in pb-24 relative">
+      {/* Missing Recipe Modal Overlay */}
+      {showMissingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-surface-200 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-8 py-6 border-b border-surface-200 bg-surface-50 shrink-0 flex justify-between items-start">
+              <div>
+                <h3 className="text-xl font-black text-primary uppercase tracking-tight">Missing Recipe Detected</h3>
+                <p className="text-sm font-bold text-surface-500 mt-1">
+                  Item {currentMissingIndex + 1} of {missingItems.length}: You are pushing <span className="text-accent">{recipeData.item_code}</span> but it has no assembly recipe.
+                </p>
+              </div>
+              <button onClick={() => setShowMissingModal(false)} className="text-surface-400 hover:text-red-500 font-bold text-xl leading-none">×</button>
+            </div>
+            
+            <div className="p-8 flex-1 overflow-y-auto space-y-6">
+              <div className="flex justify-between items-center bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                <div>
+                  <h4 className="font-black text-blue-900">{recipeData.item_code}</h4>
+                  <p className="text-sm font-medium text-blue-700">{recipeData.description}</p>
+                </div>
+                <button 
+                  onClick={handleGenerateAI}
+                  disabled={isGenerating}
+                  className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
+                >
+                  {isGenerating ? "Generating..." : "✨ Auto-Fill with AI"}
+                </button>
+              </div>
+
+              <div>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-surface-400 mb-3">Recipe Components (Per 1 {recipeData.unit})</h4>
+                <div className="border border-surface-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-surface-50 text-[10px] uppercase tracking-widest text-surface-500">
+                      <tr>
+                        <th className="p-4 font-bold">Mat Code</th>
+                        <th className="p-4 font-bold">Description</th>
+                        <th className="p-4 font-bold w-24">Qty/Unit</th>
+                        <th className="p-4 font-bold w-20">Waste %</th>
+                        <th className="p-4 font-bold w-24">Unit Cost</th>
+                        <th className="p-4 font-bold w-12 text-center">Act</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-100">
+                      {recipeData.components.map((comp, idx) => (
+                        <tr key={idx} className="hover:bg-surface-50">
+                          <td className="p-4 font-mono text-primary font-bold">{comp.material_code}</td>
+                          <td className="p-4 text-surface-600">{comp.description}</td>
+                          <td className="p-4 font-bold">{comp.quantity_per_unit} {comp.unit}</td>
+                          <td className="p-4 text-surface-500">{comp.waste_percentage}%</td>
+                          <td className="p-4 text-emerald-600 font-bold">₹{comp.default_unit_rate}</td>
+                          <td className="p-4 text-center">
+                            <button onClick={() => handleRemoveComponent(idx)} className="text-red-400 hover:text-red-600 font-bold">✕</button>
+                          </td>
+                        </tr>
+                      ))}
+                      
+                      {/* Manual Add Row */}
+                      <tr className="bg-surface-50/50">
+                        <td className="p-2">
+                          <input type="text" placeholder="Code (e.g. CEM)" className="w-full text-xs p-2 rounded border border-surface-200 outline-none focus:border-accent" value={newComponent.material_code} onChange={e => setNewComponent({...newComponent, material_code: e.target.value.toUpperCase()})} />
+                        </td>
+                        <td className="p-2">
+                          <input type="text" placeholder="Material Description" className="w-full text-xs p-2 rounded border border-surface-200 outline-none focus:border-accent" value={newComponent.description} onChange={e => setNewComponent({...newComponent, description: e.target.value})} />
+                        </td>
+                        <td className="p-2 flex space-x-1">
+                          <input type="number" placeholder="Qty" className="w-12 text-xs p-2 rounded border border-surface-200 outline-none focus:border-accent" value={newComponent.quantity_per_unit || ""} onChange={e => setNewComponent({...newComponent, quantity_per_unit: parseFloat(e.target.value) || 0})} />
+                          <input type="text" placeholder="Unit" className="w-10 text-xs p-2 rounded border border-surface-200 outline-none focus:border-accent" value={newComponent.unit} onChange={e => setNewComponent({...newComponent, unit: e.target.value})} />
+                        </td>
+                        <td className="p-2">
+                          <input type="number" placeholder="0%" className="w-full text-xs p-2 rounded border border-surface-200 outline-none focus:border-accent" value={newComponent.waste_percentage || ""} onChange={e => setNewComponent({...newComponent, waste_percentage: parseFloat(e.target.value) || 0})} />
+                        </td>
+                        <td className="p-2">
+                          <input type="number" placeholder="₹0.00" className="w-full text-xs p-2 rounded border border-surface-200 outline-none focus:border-accent" value={newComponent.default_unit_rate || ""} onChange={e => setNewComponent({...newComponent, default_unit_rate: parseFloat(e.target.value) || 0})} />
+                        </td>
+                        <td className="p-2 text-center">
+                          <button onClick={handleAddComponent} className="bg-surface-200 hover:bg-surface-300 text-surface-700 px-2 py-1.5 rounded text-xs font-bold w-full">+</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-surface-200 bg-surface-50 shrink-0 flex justify-between items-center">
+              <button 
+                onClick={handleSkipRecipe}
+                disabled={isSavingRecipe || isPushing}
+                className="text-surface-500 hover:text-surface-800 text-xs font-black uppercase tracking-widest px-4 py-2"
+              >
+                Skip (Push as Single Item)
+              </button>
+              
+              <button 
+                onClick={handleSaveRecipeAndContinue}
+                disabled={isSavingRecipe || isPushing || recipeData.components.length === 0}
+                className="bg-primary text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-accent transition-all disabled:opacity-50"
+              >
+                {isSavingRecipe ? "Saving..." : "Save Recipe & Continue"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Actions */}
       <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-surface-200 shadow-sm">
         <div>
@@ -125,7 +401,7 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
           <p className="text-xs text-surface-500 font-bold mt-1">Aggregated quantities from all floor plans</p>
         </div>
         <button
-          onClick={handlePushToBoq}
+          onClick={handleInitiatePush}
           disabled={isPushing}
           className="bg-accent text-white px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-accent-dark transition-all shadow-md disabled:opacity-50"
         >
@@ -143,8 +419,8 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
                 <th className="py-4 px-6">Description</th>
                 <th className="py-4 px-6 w-32 text-right">Total Net Qty</th>
                 <th className="py-4 px-6 w-16">Unit</th>
-                <th className="py-4 px-6 w-40 text-right">Unit Cost ($)</th>
-                <th className="py-4 px-6 w-48 text-right text-emerald-600">Total Cost ($)</th>
+                <th className="py-4 px-6 w-40 text-right">Unit Cost (₹)</th>
+                <th className="py-4 px-6 w-48 text-right text-emerald-600">Total Cost (₹)</th>
               </tr>
             </thead>
             <tbody>
@@ -162,7 +438,7 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
                   </td>
                   <td className="py-2 px-6">
                     <div className="relative flex items-center justify-end">
-                      <span className="absolute left-3 text-surface-400 font-bold text-xs pointer-events-none">$</span>
+                      <span className="absolute left-3 text-surface-400 font-bold text-xs pointer-events-none">₹</span>
                       <input 
                         type="number"
                         value={editingCosts[item.item_code] || ""}
@@ -174,7 +450,7 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
                     </div>
                   </td>
                   <td className="py-2 px-6 font-black tabular-nums text-right text-emerald-600 text-base">
-                    ${item.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₹{item.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}
@@ -191,7 +467,7 @@ export default function EstimationTab({ onPushToBoq }: EstimationTabProps) {
         <div className="pointer-events-auto text-right">
           <p className="text-[10px] font-black uppercase tracking-widest text-surface-400 mb-0.5">Grand Total Estimated Cost</p>
           <p className="text-3xl font-black text-emerald-600 tabular-nums tracking-tight">
-            ${data.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{data.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
       </div>

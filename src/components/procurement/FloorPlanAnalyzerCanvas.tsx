@@ -4,9 +4,10 @@ import React, { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { ProjectAsset } from "@/types/projects";
 import { detectWallsFromCanvas, detectRoomsFromWalls, DetectedWall, DetectedRoom, Point } from "@/lib/cv/wallDetection";
+import { findSymbols, MatchResult } from "@/lib/cv/templateMatching";
 import { detectScaleFromImage } from "@/lib/cv/scaleCalibration";
 import { toast } from "sonner";
-import { Bot, Maximize2, Loader2, Ruler, CheckCircle2, MousePointer2, Pencil, Eraser, Trash2, Hexagon, Hand, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { Bot, Maximize2, Loader2, Ruler, CheckCircle2, MousePointer2, Pencil, Eraser, Trash2, Hexagon, Hand, ZoomIn, ZoomOut, RotateCcw, MapPin, Wand2 } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 interface FloorPlanAnalyzerCanvasProps {
@@ -59,6 +60,34 @@ export function FloorPlanAnalyzerCanvas({
   // Calibration State
   const [detectedWalls, setDetectedWalls] = useState<DetectedWall[]>([]);
   const [detectedRooms, setDetectedRooms] = useState<DetectedRoom[]>([]);
+  
+  interface DetectedSymbol {
+    id: string;
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+    typeLabel: string;
+    isManual: boolean;
+    groupId: string;
+    groupName: string;
+    color: string;
+  }
+  const [detectedSymbols, setDetectedSymbols] = useState<DetectedSymbol[]>([]);
+  
+  const GROUP_COLORS = [
+    "rgba(220, 38, 38, 0.9)", // red
+    "rgba(37, 99, 235, 0.9)", // blue
+    "rgba(16, 185, 129, 0.9)", // green
+    "rgba(217, 70, 239, 0.9)", // fuchsia
+    "rgba(234, 179, 8, 0.9)", // yellow
+    "rgba(14, 165, 233, 0.9)", // sky
+    "rgba(249, 115, 22, 0.9)" // orange
+  ];
+  const [groupColorIndex, setGroupColorIndex] = useState(0);
+  
+  const [currentManualGroup, setCurrentManualGroup] = useState<{ id: string, name: string, color: string } | null>(null);
+
   const [calibrationWallIndex, setCalibrationWallIndex] = useState<number>(0);
   const [calibrationLength, setCalibrationLength] = useState<string>("");
   const [forceRecalibrate, setForceRecalibrate] = useState(false);
@@ -77,7 +106,7 @@ export function FloorPlanAnalyzerCanvas({
   }, [existingEstimations]);
 
   // Editing Modes
-  const [toolMode, setToolMode] = useState<'idle' | 'draw' | 'delete' | 'draw-area' | 'pan'>('idle');
+  const [toolMode, setToolMode] = useState<'idle' | 'draw' | 'delete' | 'draw-area' | 'pan' | 'draw-point' | 'crop-find'>('idle');
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawingStart, setDrawingStart] = useState<Point | null>(null);
   const [drawingEnd, setDrawingEnd] = useState<Point | null>(null);
@@ -98,6 +127,12 @@ export function FloorPlanAnalyzerCanvas({
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
+
+  useEffect(() => {
+    if (toolMode !== 'draw-point') {
+      setCurrentManualGroup(null);
+    }
+  }, [toolMode]);
 
   useEffect(() => {
     if (!plan.file) return;
@@ -179,6 +214,53 @@ export function FloorPlanAnalyzerCanvas({
           ctx.textBaseline = "middle";
           const label = est.item_code.includes('-') ? est.item_code.split('-')[1] : "✓";
           ctx.fillText(label, center.x, center.y + 1);
+        } else if (est.trace_data.points) {
+          // Multiple points for a group
+          const points = est.trace_data.points as any[];
+          points.forEach(pt => {
+             ctx.fillStyle = pt.color || "rgba(234, 179, 8, 0.9)";
+             ctx.beginPath();
+             ctx.arc(pt.x, pt.y, 10, 0, 2 * Math.PI);
+             ctx.fill();
+             ctx.strokeStyle = "white";
+             ctx.lineWidth = 2;
+             ctx.stroke();
+
+             if (pt.width && pt.height) {
+                ctx.strokeStyle = pt.color ? pt.color.replace("0.9)", "0.4)") : "rgba(249, 115, 22, 0.4)";
+                ctx.strokeRect(pt.x - pt.width/2, pt.y - pt.height/2, pt.width, pt.height);
+             }
+          });
+          
+          if (points.length > 0) {
+             const first = points[0];
+             const label = `${first.groupName || est.item_code} (x${points.length})`;
+             ctx.fillStyle = first.color || "rgba(234, 179, 8, 0.9)";
+             ctx.font = "bold 11px Inter, sans-serif";
+             const textWidth = ctx.measureText(label).width;
+             ctx.fillRect(first.x + 15, first.y - 15, textWidth + 10, 20);
+             
+             ctx.fillStyle = "white";
+             ctx.textAlign = "left";
+             ctx.textBaseline = "middle";
+             ctx.fillText(label, first.x + 20, first.y - 5);
+          }
+        } else if (est.trace_data.point) {
+          // It's a single point/symbol (legacy)
+          const pt = est.trace_data.point as Point;
+          ctx.fillStyle = "rgba(234, 179, 8, 0.9)"; // Yellow
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 10, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.strokeStyle = "white";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 12px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("📍", pt.x, pt.y + 1);
         }
       }
     });
@@ -244,6 +326,47 @@ export function FloorPlanAnalyzerCanvas({
       ctx.fillText((idx + 1).toString(), cx, cy + 1);
     });
 
+    // Group symbols by groupId to draw labels
+    const symbolGroups = new Map<string, { name: string, color: string, count: number, firstX: number, firstY: number }>();
+
+    // Draw active detected symbols
+    detectedSymbols.forEach((sym) => {
+      ctx.fillStyle = sym.color || (sym.isManual ? "rgba(234, 179, 8, 0.9)" : "rgba(249, 115, 22, 0.9)");
+      ctx.beginPath();
+      ctx.arc(sym.x, sym.y, 10, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      if (sym.width && sym.height) {
+         ctx.strokeStyle = sym.color ? sym.color.replace("0.9)", "0.4)") : "rgba(249, 115, 22, 0.4)";
+         ctx.strokeRect(sym.x - sym.width/2, sym.y - sym.height/2, sym.width, sym.height);
+      }
+
+      if (sym.groupId) {
+         if (!symbolGroups.has(sym.groupId)) {
+            symbolGroups.set(sym.groupId, { name: sym.groupName, color: sym.color, count: 1, firstX: sym.x, firstY: sym.y });
+         } else {
+            symbolGroups.get(sym.groupId)!.count++;
+         }
+      }
+    });
+
+    // Draw group labels
+    symbolGroups.forEach(grp => {
+       ctx.fillStyle = grp.color;
+       const label = `${grp.name} (x${grp.count})`;
+       ctx.font = "bold 11px Inter, sans-serif";
+       const textWidth = ctx.measureText(label).width;
+       ctx.fillRect(grp.firstX + 15, grp.firstY - 15, textWidth + 10, 20);
+       
+       ctx.fillStyle = "white";
+       ctx.textAlign = "left";
+       ctx.textBaseline = "middle";
+       ctx.fillText(label, grp.firstX + 20, grp.firstY - 5);
+    });
+
     // Draw manual drawing line (Ghost Line)
     if (toolMode === 'draw' && isDrawing && drawingStart && drawingEnd) {
       ctx.strokeStyle = "rgba(59, 130, 246, 0.9)"; // Blue
@@ -302,11 +425,25 @@ export function FloorPlanAnalyzerCanvas({
          }
       });
     }
+
+    if (toolMode === 'crop-find' && isDrawing && drawingStart && drawingEnd) {
+      const x = Math.min(drawingStart.x, drawingEnd.x);
+      const y = Math.min(drawingStart.y, drawingEnd.y);
+      const w = Math.abs(drawingEnd.x - drawingStart.x);
+      const h = Math.abs(drawingEnd.y - drawingStart.y);
+      ctx.fillStyle = "rgba(249, 115, 22, 0.2)";
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = "rgba(249, 115, 22, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(x, y, w, h);
+      ctx.setLineDash([]);
+    }
   };
 
   useEffect(() => {
     redrawCanvas();
-  }, [detectedWalls, detectedRooms, isDrawing, drawingStart, drawingEnd, drawingAreaPoints, existingEstimations, toolMode]);
+  }, [detectedWalls, detectedRooms, detectedSymbols, isDrawing, drawingStart, drawingEnd, drawingAreaPoints, existingEstimations, toolMode]);
 
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
@@ -332,6 +469,31 @@ export function FloorPlanAnalyzerCanvas({
       }
     }
     return end;
+  };
+
+  const snapToWall = (pt: Point, threshold = 20): Point => {
+    let bestPt = pt;
+    let minDist = threshold;
+
+    detectedWalls.forEach(w => {
+      const len = w.lengthPixels;
+      if (len === 0) return;
+      const px = w.end.x - w.start.x;
+      const py = w.end.y - w.start.y;
+      const u = ((pt.x - w.start.x) * px + (pt.y - w.start.y) * py) / (len * len);
+      
+      let cx, cy;
+      if (u < 0) { cx = w.start.x; cy = w.start.y; }
+      else if (u > 1) { cx = w.end.x; cy = w.end.y; }
+      else { cx = w.start.x + u * px; cy = w.start.y + u * py; }
+
+      const dist = Math.sqrt(Math.pow(pt.x - cx, 2) + Math.pow(pt.y - cy, 2));
+      if (dist < minDist) {
+        minDist = dist;
+        bestPt = { x: cx, y: cy };
+      }
+    });
+    return bestPt;
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -387,6 +549,34 @@ export function FloorPlanAnalyzerCanvas({
          }
       }
       setDrawingAreaPoints(prev => [...prev, coords]);
+    } else if (toolMode === 'draw-point') {
+      let grp = currentManualGroup;
+      if (!grp) {
+         const defaultCode = `MANUAL-POINT-${String.fromCharCode(65 + (groupColorIndex % 26))}`;
+         const userCode = window.prompt("Enter an Item Code for this manual point group:", defaultCode);
+         if (userCode === null) return; // cancelled
+         const groupName = userCode || defaultCode;
+         const color = GROUP_COLORS[groupColorIndex % GROUP_COLORS.length];
+         setGroupColorIndex(prev => prev + 1);
+         grp = { id: `grp_${Date.now()}`, name: groupName, color };
+         setCurrentManualGroup(grp);
+      }
+
+      const snapped = snapToWall(coords);
+      setDetectedSymbols(prev => [...prev, {
+        id: `manual_sym_${Date.now()}`,
+        x: snapped.x,
+        y: snapped.y,
+        typeLabel: "MANUAL-POINT",
+        isManual: true,
+        groupId: grp!.id,
+        groupName: grp!.name,
+        color: grp!.color
+      }]);
+    } else if (toolMode === 'crop-find') {
+      setIsDrawing(true);
+      setDrawingStart(coords);
+      setDrawingEnd(coords);
     }
   };
 
@@ -427,6 +617,8 @@ export function FloorPlanAnalyzerCanvas({
       coords = snapToAngles(drawingStart, coords);
       setDrawingEnd(coords);
     } else if (toolMode === 'draw-area' && isDrawing) {
+      setDrawingEnd(coords);
+    } else if (toolMode === 'crop-find' && isDrawing) {
       setDrawingEnd(coords);
     }
   };
@@ -489,6 +681,64 @@ export function FloorPlanAnalyzerCanvas({
       if (clickedRoomIdx !== -1) {
          setDetectedRooms(prev => prev.filter((_, i) => i !== clickedRoomIdx));
       }
+
+      // Delete Symbols
+      let clickedSymIdx = -1;
+      detectedSymbols.forEach((s, idx) => {
+         const dist = Math.sqrt(Math.pow(coords.x - s.x, 2) + Math.pow(coords.y - s.y, 2));
+         if (dist < 20) clickedSymIdx = idx;
+      });
+      if (clickedSymIdx !== -1) {
+         setDetectedSymbols(prev => prev.filter((_, i) => i !== clickedSymIdx));
+      }
+    } else if (toolMode === 'crop-find' && isDrawing && drawingStart && drawingEnd) {
+      setIsDrawing(false);
+      const x = Math.min(drawingStart.x, drawingEnd.x);
+      const y = Math.min(drawingStart.y, drawingEnd.y);
+      const w = Math.abs(drawingEnd.x - drawingStart.x);
+      const h = Math.abs(drawingEnd.y - drawingStart.y);
+      
+      if (w > 10 && h > 10 && canvasRef.current) {
+        toast.info("Scanning for similar symbols...");
+        const searchTarget = bgImageRef.current || canvasRef.current;
+        findSymbols(searchTarget, { x, y, width: w, height: h }).then(matches => {
+          if (matches.length > 0) {
+              const defaultCode = `SYMBOL-TYPE-${String.fromCharCode(65 + (groupColorIndex % 26))}`;
+             const userCode = window.prompt(`Found ${matches.length} matches! Enter an Item Code for this group:`, defaultCode);
+             const groupName = userCode || defaultCode;
+             const groupId = `grp_${Date.now()}`;
+             const color = GROUP_COLORS[groupColorIndex % GROUP_COLORS.length];
+             setGroupColorIndex(prev => prev + 1);
+
+             const newSymbols = matches.map((m, idx) => {
+                const cx = m.x + m.width / 2;
+                const cy = m.y + m.height / 2;
+                const snapped = snapToWall({ x: cx, y: cy });
+                return {
+                  id: `ai_sym_${Date.now()}_${idx}`,
+                  x: snapped.x,
+                  y: snapped.y,
+                  width: m.width,
+                  height: m.height,
+                  typeLabel: "AI-SYMBOL",
+                  isManual: false,
+                  groupId,
+                  groupName,
+                  color
+                };
+             });
+             setDetectedSymbols(prev => [...prev, ...newSymbols]);
+             toast.success(`Group "${groupName}" added with ${matches.length} symbols!`);
+          } else {
+             toast.warning("No similar symbols found.");
+          }
+        }).catch(err => {
+          console.error(err);
+          toast.error("Template matching failed.");
+        });
+      }
+      setDrawingStart(null);
+      setDrawingEnd(null);
     }
   };
 
@@ -600,7 +850,7 @@ export function FloorPlanAnalyzerCanvas({
   };
 
   const handleApplyCalibration = (forcedScale?: number) => {
-    if (detectedWalls.length === 0 && detectedRooms.length === 0) return;
+    if (detectedWalls.length === 0 && detectedRooms.length === 0 && detectedSymbols.length === 0) return;
     
     let scale = 0;
     
@@ -612,19 +862,18 @@ export function FloorPlanAnalyzerCanvas({
          toast.error("Selected reference wall no longer exists.");
          return;
        }
-       const realLength = parseFloat(calibrationLength);
        
-       if (isNaN(realLength) || realLength <= 0) {
-         toast.error("Please enter a valid numerical length.");
-         return;
+       if (refWall) {
+          const realLength = parseFloat(calibrationLength);
+          
+          if (isNaN(realLength) || realLength <= 0) {
+            toast.error("Please enter a valid numerical length.");
+            return;
+          }
+          scale = refWall.lengthPixels / realLength; // pixels per unit
+       } else {
+          scale = 1; // Fallback if applying symbols only with no scale
        }
-
-       if (!refWall) {
-         toast.error("You need at least one wall to calibrate scale.");
-         return;
-       }
-       
-       scale = refWall.lengthPixels / realLength; // pixels per unit
     }
 
     toast.success(`Generating estimations...`);
@@ -732,9 +981,40 @@ export function FloorPlanAnalyzerCanvas({
       });
     });
 
+    const groupedSymbols = new Map<string, typeof detectedSymbols>();
+    detectedSymbols.forEach(s => {
+       const key = s.groupId || s.id;
+       if (!groupedSymbols.has(key)) groupedSymbols.set(key, []);
+       groupedSymbols.get(key)!.push(s);
+    });
+
+    groupedSymbols.forEach((group, key) => {
+      const first = group[0];
+      const count = group.length;
+
+      newRows.push({
+        floor_plan: plan.id,
+        item_code: first.groupName || (first.isManual ? `POINT-${key}` : `SYMBOL-${key}`),
+        description: first.isManual ? `[Manual] Point Element (Count: ${count})` : `[AI] Detected Symbol (Count: ${count})`,
+        no_of_items: count.toString(),
+        length: "",
+        width: "",
+        depth_height: "",
+        gross_qty: count.toString(),
+        is_deduction: false,
+        net_qty: count.toString(),
+        unit: "pcs",
+        trace_data: { 
+          // Storing multiple points so they all re-render!
+          points: group.map(s => ({ x: s.x, y: s.y, width: s.width, height: s.height, color: first.color, groupName: first.groupName, isManual: first.isManual })) 
+        }
+      });
+    });
+
     onAIDataExtracted(newRows);
     setDetectedWalls([]);
     setDetectedRooms([]);
+    setDetectedSymbols([]);
     setDrawingAreaPoints([]);
     setCalibrationLength("");
     setToolMode('idle');
@@ -743,7 +1023,8 @@ export function FloorPlanAnalyzerCanvas({
 
   const getCursorStyle = () => {
     if (toolMode === 'pan' || isSpaceDown) return 'cursor-grab active:cursor-grabbing';
-    if (toolMode === 'draw' || toolMode === 'draw-area') return 'cursor-crosshair';
+    if (toolMode === 'draw' || toolMode === 'draw-area' || toolMode === 'draw-point') return 'cursor-crosshair';
+    if (toolMode === 'crop-find') return 'cursor-crosshair';
     if (toolMode === 'delete') return 'cursor-not-allowed';
     if (activeHandle) return 'cursor-grabbing';
     return 'cursor-default';
@@ -776,8 +1057,8 @@ export function FloorPlanAnalyzerCanvas({
             <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <canvas 
                 ref={canvasRef} 
-                className={`max-w-full max-h-full object-contain drop-shadow-lg shadow-black/50 ${getCursorStyle()}`}
-                style={{ width: "auto", height: "100%" }}
+                className={`drop-shadow-lg shadow-black/50 ${getCursorStyle()}`}
+                style={{ maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto" }}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -822,6 +1103,18 @@ export function FloorPlanAnalyzerCanvas({
                  className={`p-2.5 rounded-xl transition-all ${toolMode === 'draw-area' ? 'bg-purple-100 text-purple-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
                  title="Draw Manual Area (Polygon)"
               ><Hexagon className="w-5 h-5"/></button>
+
+              <button 
+                 onClick={() => { setToolMode('draw-point'); setDrawingAreaPoints([]); }}
+                 className={`p-2.5 rounded-xl transition-all ${toolMode === 'draw-point' ? 'bg-yellow-100 text-yellow-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
+                 title="Drop Point (Pin)"
+              ><MapPin className="w-5 h-5"/></button>
+
+              <button 
+                 onClick={() => { setToolMode('crop-find'); setDrawingAreaPoints([]); }}
+                 className={`p-2.5 rounded-xl transition-all ${toolMode === 'crop-find' ? 'bg-orange-100 text-orange-600 shadow-sm' : 'hover:bg-gray-100 text-gray-500'}`}
+                 title="Find Similar Symbols (Draw Box)"
+              ><Wand2 className="w-5 h-5"/></button>
               
               <div className="w-px h-8 bg-gray-200 mx-1"></div>
 
@@ -847,11 +1140,11 @@ export function FloorPlanAnalyzerCanvas({
                 {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bot className="w-5 h-5" />}
               </button>
 
-              {(detectedWalls.length > 0 || detectedRooms.length > 0) && (
+              {(detectedWalls.length > 0 || detectedRooms.length > 0 || detectedSymbols.length > 0) && (
                 <>
                   <div className="w-px h-8 bg-gray-200 mx-1"></div>
                   <button 
-                     onClick={() => { setDetectedWalls([]); setDetectedRooms([]); setDrawingAreaPoints([]); setToolMode('idle'); setForceRecalibrate(false); }}
+                     onClick={() => { setDetectedWalls([]); setDetectedRooms([]); setDetectedSymbols([]); setDrawingAreaPoints([]); setToolMode('idle'); setForceRecalibrate(false); }}
                      className="p-2.5 rounded-xl hover:bg-red-50 text-red-500 transition-all"
                      title="Clear Unsaved Traces"
                   ><Trash2 className="w-5 h-5"/></button>
@@ -864,7 +1157,7 @@ export function FloorPlanAnalyzerCanvas({
 
       {/* Primary Action Button / Calibration Card */}
       <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-auto z-50">
-        {detectedWalls.length === 0 && detectedRooms.length === 0 ? (
+        {detectedWalls.length === 0 && detectedRooms.length === 0 && detectedSymbols.length === 0 ? (
            // Only show giant button if they haven't drawn/saved anything yet
            existingEstimations.length === 0 && (
              <button
@@ -885,7 +1178,7 @@ export function FloorPlanAnalyzerCanvas({
                   <h4 className="text-sm font-black uppercase tracking-widest">Review Traces</h4>
                 </div>
                 <p className="text-xs text-gray-500 font-medium mb-5 leading-relaxed">
-                  Scale inferred from previous take-offs. Review the {detectedWalls.length} new walls and {detectedRooms.length} new areas.
+                  Scale inferred from previous take-offs. Review the {detectedWalls.length} new walls, {detectedRooms.length} new areas, and {detectedSymbols.length} points.
                 </p>
                 <button
                   onClick={() => handleApplyCalibration(existingScale)}

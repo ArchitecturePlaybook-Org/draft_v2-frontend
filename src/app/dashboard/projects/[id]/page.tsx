@@ -188,6 +188,13 @@ export default function ProjectDetailPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Publish Portfolio Modal
+  const [showPublishPortfolioModal, setShowPublishPortfolioModal] = useState(false);
+  const [portfolioCategory, setPortfolioCategory] = useState("");
+  const [portfolioCity, setPortfolioCity] = useState("");
+  const [portfolioCountry, setPortfolioCountry] = useState("");
+  const [isPublishingPortfolio, setIsPublishingPortfolio] = useState(false);
+
   const handleDeleteProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!project || deleteConfirmText !== project.title) return;
@@ -201,16 +208,27 @@ export default function ProjectDetailPage() {
     }
   };
 
-  const handlePublishPortfolio = async () => {
+  const handlePublishPortfolioClick = () => {
+    setShowPublishPortfolioModal(true);
+  };
+
+  const submitPublishPortfolio = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!project) return;
+    setIsPublishingPortfolio(true);
     try {
-      const res = await projectsApi.publishPortfolio(project.uid);
-      // The backend returns the new/existing PortfolioItem
-      // Redirect to the user's portfolio page or profile to edit the image
+      const res = await projectsApi.publishPortfolio(project.uid, {
+        category: portfolioCategory,
+        city: portfolioCity,
+        country: portfolioCountry
+      });
       alert("Project published to portfolio successfully!");
+      setShowPublishPortfolioModal(false);
       router.push("/dashboard/profile");
     } catch (err: any) {
       alert(err.message || "Failed to publish portfolio.");
+    } finally {
+      setIsPublishingPortfolio(false);
     }
   };
 
@@ -603,7 +621,7 @@ export default function ProjectDetailPage() {
             <>
               {project.status === "Completed" && (
                 <button 
-                  onClick={handlePublishPortfolio}
+                  onClick={handlePublishPortfolioClick}
                   className="h-10 px-6 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all shadow-md"
                 >
                   🚀 Publish to Portfolio
@@ -1268,6 +1286,64 @@ export default function ProjectDetailPage() {
                   className="px-6 py-3 bg-red-500 text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-red-500/20"
                 >
                   {isDeleting ? "Deleting..." : "Permanently Delete"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showPublishPortfolioModal && (
+        <div className="fixed inset-0 z-50 bg-surface-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-8 border-b border-surface-100 bg-surface-50/50">
+              <div className="w-12 h-12 bg-accent/10 text-accent rounded-2xl flex items-center justify-center text-xl mb-4">🚀</div>
+              <h2 className="text-2xl font-extrabold text-primary tracking-tight">Publish Portfolio</h2>
+              <p className="text-sm text-surface-500 mt-2">
+                Add filter details so clients can discover this project easily.
+              </p>
+            </div>
+            <form onSubmit={submitPublishPortfolio} className="p-8 space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-widest mb-2">Category (Optional)</label>
+                <input
+                  type="text"
+                  value={portfolioCategory}
+                  onChange={e => setPortfolioCategory(e.target.value)}
+                  className="w-full bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-accent focus:bg-white transition-all"
+                  placeholder="e.g. Residential, Commercial"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-widest mb-2">City (Optional)</label>
+                <input
+                  type="text"
+                  value={portfolioCity}
+                  onChange={e => setPortfolioCity(e.target.value)}
+                  className="w-full bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-accent focus:bg-white transition-all"
+                  placeholder="e.g. New York"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-widest mb-2">Country (Optional)</label>
+                <input
+                  type="text"
+                  value={portfolioCountry}
+                  onChange={e => setPortfolioCountry(e.target.value)}
+                  className="w-full bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-accent focus:bg-white transition-all"
+                  placeholder="e.g. USA"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-surface-100">
+                <button type="button" onClick={() => setShowPublishPortfolioModal(false)} className="px-6 py-3 text-xs font-bold text-surface-500 uppercase tracking-widest hover:bg-surface-50 rounded-xl transition-colors">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPublishingPortfolio}
+                  className="px-6 py-3 bg-accent text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-accent/20"
+                >
+                  {isPublishingPortfolio ? "Publishing..." : "Publish"}
                 </button>
               </div>
             </form>

@@ -10,6 +10,9 @@ export interface PortfolioItem {
   views_count?: number;
   is_saved?: boolean;
   related_items?: PortfolioItem[];
+  category?: string;
+  city?: string;
+  country?: string;
   created_at: string;
   user: {
     id: number;

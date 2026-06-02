@@ -609,6 +609,24 @@ export default function ProfilePage() {
                           <label htmlFor="is_public_check" className="text-[10px] font-bold text-surface-600 uppercase tracking-widest cursor-pointer">Public Visibility</label>
                         </div>
                       </div>
+                      
+                      <div className="space-y-4 pt-4 border-t border-surface-100">
+                        <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Discovery Filters (Optional)</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Category</label>
+                            <input name="category" type="text" className="w-full h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. Residential" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">City</label>
+                            <input name="city" type="text" className="w-full h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. New York" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Country</label>
+                            <input name="country" type="text" className="w-full h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. USA" />
+                          </div>
+                        </div>
+                      </div>
                       <button 
                         type="submit" 
                         disabled={isLoading}
