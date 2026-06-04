@@ -388,8 +388,18 @@ export const projectsApi = {
     });
   },
 
-  pushEstimationToBoq: async (projectUid: string) => {
-    return fetchFromBff<{ success: boolean, pushed_items: number }>(`/api/projects/projects/${projectUid}/push-to-boq/`, { method: "POST" });
+  updateEstimationMapping: async (projectUid: string, itemCode: string, compositionMapping: string) => {
+    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/estimation-mapping/`, { 
+      method: "POST", 
+      body: JSON.stringify({ item_code: itemCode, composition_mapping: compositionMapping }) 
+    });
+  },
+
+  pushEstimationToBoq: async (projectUid: string, mappings: Record<string, string> = {}) => {
+    return fetchFromBff<{ success: boolean, pushed_items: number }>(`/api/projects/projects/${projectUid}/push-to-boq/`, { 
+      method: "POST",
+      body: JSON.stringify({ mappings })
+    });
   },
 
   // ── Utilities ──────────────────────────────────────────────────────────
@@ -517,12 +527,6 @@ export const projectsApi = {
     return unpackArray<BOQItem>(res);
   },
 
-  createBOQItem: async (data: { project: number; phase?: number | null; material_code: string; total_budgeted_qty: string | number; unit_rate: string | number }) => {
-    return fetchFromBff<BOQItem>(`/api/projects/boq-items/`, {
-      method: "POST",
-      body: JSON.stringify(data)
-    });
-  },
 
   updateBOQItem: async (id: number, data: Partial<{ phase: number | null; material_code: string; total_budgeted_qty: string | number; unit_rate: string | number }>) => {
     return fetchFromBff<BOQItem>(`/api/projects/boq-items/${id}/`, {
@@ -614,6 +618,22 @@ export const projectsApi = {
     return fetchFromBff<any>(`/api/projects/material-assemblies/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
+    });
+  },
+
+  uploadMaterialAssemblyImage: async (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return fetchFromBff<any>(`/api/projects/material-assemblies/${id}/`, {
+      method: "PATCH",
+      body: formData
+    });
+  },
+
+  removeMaterialAssemblyImage: async (id: number) => {
+    return fetchFromBff<any>(`/api/projects/material-assemblies/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ image: null })
     });
   },
 

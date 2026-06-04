@@ -12,6 +12,7 @@ interface EstimationItem {
   total_net_qty: number;
   unit_cost: number;
   total_cost: number;
+  composition_mapping?: string | null;
 }
 
 interface EstimationSummary {
@@ -42,8 +43,8 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
     unit: string;
     components: any[];
   }>({ item_code: "", description: "", unit: "", components: [] });
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingRecipe, setIsSavingRecipe] = useState(false);
+  const [compositionMappings, setCompositionMappings] = useState<Record<string, string>>({});
 
   const [newComponent, setNewComponent] = useState({
     material_code: "",
@@ -68,10 +69,19 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
       setAssemblies(asms);
       
       const initialCosts: Record<string, string> = {};
+      const initialMappings: Record<string, string> = {};
+      const asmCodes = new Set(asms.map(a => a.item_code));
+
       summary.items.forEach(item => {
         initialCosts[item.item_code] = item.unit_cost.toString();
+        if (item.composition_mapping !== undefined && item.composition_mapping !== null) {
+          initialMappings[item.item_code] = item.composition_mapping;
+        } else {
+          initialMappings[item.item_code] = asmCodes.has(item.item_code) ? item.item_code : "";
+        }
       });
       setEditingCosts(initialCosts);
+      setCompositionMappings(initialMappings);
       
     } catch (err) {
       toast.error("Failed to load estimation summary.");
@@ -89,7 +99,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
   const executePushToBoq = async () => {
     setIsPushing(true);
     try {
-      const res = await projectsApi.pushEstimationToBoq(projectId);
+      const res = await projectsApi.pushEstimationToBoq(projectId, compositionMappings);
       toast.success(`Successfully pushed ${res.pushed_items} items to BOQ!`);
       if (onPushToBoq) onPushToBoq();
       if (onSwitchToBoq) onSwitchToBoq();
@@ -103,8 +113,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
 
   const handleInitiatePush = () => {
     if (!data) return;
-    const asmCodes = new Set(assemblies.map(a => a.item_code));
-    const missing = data.items.filter(i => !asmCodes.has(i.item_code));
+    const missing = data.items.filter(i => compositionMappings[i.item_code] === "");
     
     if (missing.length > 0) {
       setMissingItems(missing);
@@ -124,50 +133,6 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
       unit: item.unit,
       components: []
     });
-  };
-
-  const handleGenerateAI = async () => {
-    setIsGenerating(true);
-    try {
-      let components = null;
-      
-      // OPTION 2: Try browser window.ai first
-      if (typeof window !== "undefined" && (window as any).ai && (window as any).ai.languageModel) {
-        try {
-          const session = await (window as any).ai.languageModel.create();
-          const prompt = `You are an expert construction estimator. Generate a JSON array of raw materials required to build 1 unit of: '${recipeData.item_code}' (${recipeData.description}). Each object must have fields: material_code (string), description (string), quantity_per_unit (number), unit (string), waste_percentage (number), default_unit_rate (number). Output strictly ONLY a JSON array.`;
-          
-          const resultText = await session.prompt(prompt);
-          let cleanedText = resultText.trim();
-          if (cleanedText.startsWith("\`\`\`")) {
-             cleanedText = cleanedText.replace(/^\`\`\`json/i, "").replace(/^\`\`\`/i, "").replace(/\`\`\`$/i, "").trim();
-          }
-          components = JSON.parse(cleanedText);
-          toast.success("Generated instantly using Browser AI!");
-        } catch (localErr) {
-          console.warn("Browser AI failed or refused format, falling back to backend AI.", localErr);
-        }
-      }
-
-      // OPTION 1: Fallback to Backend API
-      if (!components) {
-        const res = await projectsApi.generateMaterialRecipe(recipeData.item_code, recipeData.description);
-        components = res.components;
-        toast.success("Generated using Cloud AI!");
-      }
-
-      if (components && Array.isArray(components)) {
-        setRecipeData(prev => ({ ...prev, components }));
-      }
-    } catch (err: any) {
-      if (err.data && err.data.detail) {
-        toast.error(err.data.detail);
-      } else {
-        toast.error("Failed to generate recipe.");
-      }
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   const handleAddComponent = () => {
@@ -216,6 +181,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
 
       // Add to local state so we know it exists
       setAssemblies(prev => [...prev, asm]);
+      setCompositionMappings(prev => ({ ...prev, [recipeData.item_code]: asm.item_code }));
 
       toast.success(`Recipe saved for ${recipeData.item_code}`);
 
@@ -270,6 +236,15 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
     }
   };
 
+  const handleCompositionChange = async (itemCode: string, value: string) => {
+    setCompositionMappings(prev => ({ ...prev, [itemCode]: value }));
+    try {
+      await projectsApi.updateEstimationMapping(projectId, itemCode, value);
+    } catch (err) {
+      toast.error("Failed to save composition mapping");
+    }
+  };
+
   if (loading && !data) {
     return <div className="p-8 text-center text-surface-500 font-bold">Loading Estimate...</div>;
   }
@@ -308,13 +283,6 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
                   <h4 className="font-black text-blue-900">{recipeData.item_code}</h4>
                   <p className="text-sm font-medium text-blue-700">{recipeData.description}</p>
                 </div>
-                <button 
-                  onClick={handleGenerateAI}
-                  disabled={isGenerating}
-                  className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
-                >
-                  {isGenerating ? "Generating..." : "✨ Auto-Fill with AI"}
-                </button>
               </div>
 
               <div>
@@ -417,6 +385,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
               <tr className="bg-surface-50 border-b border-surface-200 text-[10px] font-black text-surface-400 uppercase tracking-widest">
                 <th className="py-4 px-6 w-32">Item Code</th>
                 <th className="py-4 px-6">Description</th>
+                <th className="py-4 px-6 w-48">Composition</th>
                 <th className="py-4 px-6 w-32 text-right">Total Net Qty</th>
                 <th className="py-4 px-6 w-16">Unit</th>
                 <th className="py-4 px-6 w-40 text-right">Unit Cost (₹)</th>
@@ -429,6 +398,18 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
                   <td className="py-2 px-6 font-black text-primary text-sm">{item.item_code}</td>
                   <td className="py-2 px-6 font-bold text-surface-600 text-sm truncate max-w-xs" title={item.description}>
                     {item.description}
+                  </td>
+                  <td className="py-2 px-6">
+                    <select
+                      className="w-full text-xs p-2 rounded border border-surface-200 outline-none focus:border-accent bg-surface-50 font-bold text-surface-600"
+                      value={compositionMappings[item.item_code] ?? ""}
+                      onChange={(e) => handleCompositionChange(item.item_code, e.target.value)}
+                    >
+                      <option value="">-- None (1:1 Item) --</option>
+                      {assemblies.map(asm => (
+                        <option key={asm.item_code} value={asm.item_code}>{asm.item_code}</option>
+                      ))}
+                    </select>
                   </td>
                   <td className="py-2 px-6 font-black tabular-nums text-right text-surface-800 text-sm">
                     {item.total_net_qty}

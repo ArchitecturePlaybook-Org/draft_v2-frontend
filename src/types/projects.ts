@@ -320,6 +320,7 @@ export interface MaterialAssembly {
   item_code: string;
   description: string;
   unit: string;
+  image?: string | null;
   components?: MaterialAssemblyComponent[];
   created_at?: string;
   updated_at?: string;

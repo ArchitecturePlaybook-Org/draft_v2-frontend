@@ -14,7 +14,7 @@ export default function ProcurementDashboard() {
   const params = useParams();
   const projectId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<"TAKE_OFF" | "ESTIMATION" | "BOQ" | "ASSEMBLIES" | "SIGNALS" | "TRACKING">("TAKE_OFF");
+  const [activeTab, setActiveTab] = useState<"TAKE_OFF" | "ESTIMATION" | "BOQ" | "ASSEMBLIES" | "TRACKING">("TAKE_OFF");
   
   const [items, setItems] = useState<ProcurementAggregatorItem[]>([]);
   const [phases, setPhases] = useState<MilestonePhase[]>([]);
@@ -26,13 +26,8 @@ export default function ProcurementDashboard() {
   const [selectedAllocations, setSelectedAllocations] = useState<Record<number, boolean>>({});
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // BOQ Form State
-  const [boqForm, setBoqForm] = useState({
-    material_code: "",
-    total_budgeted_qty: "",
-    unit_rate: "",
-    phase: ""
-  });
+  // BOQ Phase Filter
+  const [boqPhaseFilter, setBoqPhaseFilter] = useState<string>("");
   
   const [boqViewMode, setBoqViewMode] = useState<"assembly" | "material">("assembly");
   
@@ -72,35 +67,7 @@ export default function ProcurementDashboard() {
     setSelectedAllocations(prev => ({ ...prev, [allocId]: !prev[allocId] }));
   };
 
-  const handleCreateBOQ = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!boqForm.material_code || !boqForm.total_budgeted_qty || !boqForm.unit_rate) {
-      toast.error("Please fill in all required fields.");
-      return;
-    }
-    if (!projectIntId) {
-      toast.error("Project data not loaded yet.");
-      return;
-    }
-    
-    setIsProcessing(true);
-    try {
-      await projectsApi.createBOQItem({
-        project: projectIntId,
-        material_code: boqForm.material_code,
-        total_budgeted_qty: boqForm.total_budgeted_qty,
-        unit_rate: boqForm.unit_rate,
-        phase: boqForm.phase ? parseInt(boqForm.phase) : null
-      });
-      toast.success("BOQ Item created successfully!");
-      setBoqForm({ material_code: "", total_budgeted_qty: "", unit_rate: "", phase: "" });
-      await fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create BOQ Item.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+
 
   const handleUpdateBOQPhase = async (id: number, newPhase: string) => {
     try {
@@ -181,10 +148,7 @@ export default function ProcurementDashboard() {
 
   const selectedCount = Object.values(selectedAllocations).filter(Boolean).length;
   
-  // Filter for Buy Signals tab (only items with REQUISITIONED or ORDERED)
-  const signalItems = items.filter(item => 
-    parseFloat(item.requisitioned_qty as string) > 0 || parseFloat(item.ordered_qty as string) > 0
-  );
+
 
   // Material-Centric Grouping logic
   const groupedMaterials = React.useMemo(() => {
@@ -192,7 +156,7 @@ export default function ProcurementDashboard() {
     
     items.forEach(boqItem => {
       // Respect the existing Phase filter
-      if (boqForm.phase && boqItem.phase?.toString() !== boqForm.phase) return;
+      if (boqPhaseFilter && boqItem.phase?.toString() !== boqPhaseFilter) return;
 
       boqItem.sub_items?.forEach(sub => {
         const code = sub.material_code;
@@ -222,7 +186,7 @@ export default function ProcurementDashboard() {
     });
     
     return Object.values(groups).sort((a, b) => b.total_cost - a.total_cost);
-  }, [items, boqForm.phase]);
+  }, [items, boqPhaseFilter]);
 
   return (
     <div className="flex-1 flex flex-col bg-surface-50 h-full overflow-hidden">
@@ -277,20 +241,12 @@ export default function ProcurementDashboard() {
             BOQ Builder
           </button>
           <button
-            onClick={() => setActiveTab("SIGNALS")}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "SIGNALS" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            Buy Signals & POs
-          </button>
-          <button
             onClick={() => setActiveTab("TRACKING")}
             className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
               activeTab === "TRACKING" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
             }`}
           >
-            Material Tracking
+            Procurement & Tracking
           </button>
         </div>
       </div>
@@ -300,71 +256,21 @@ export default function ProcurementDashboard() {
           
           {activeTab === "BOQ" && (
             <div className="space-y-6">
-              {/* Create BOQ Form */}
-              <div className="bg-white p-6 rounded-3xl border border-surface-200 shadow-sm">
-                <h2 className="text-lg font-black text-primary uppercase tracking-tight mb-4">Add Estimated BOQ Item</h2>
-                <form onSubmit={handleCreateBOQ} className="grid grid-cols-5 gap-4 items-end">
-                  <div className="col-span-1">
-                    <label className="block text-[10px] font-black uppercase text-surface-500 mb-1">Material Code</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={boqForm.material_code}
-                      onChange={e => setBoqForm({...boqForm, material_code: e.target.value})}
-                      className="w-full h-10 px-3 border border-surface-300 rounded-lg text-sm font-bold bg-surface-50 focus:bg-white focus:border-accent outline-none" 
-                      placeholder="e.g. CONC-M30"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-[10px] font-black uppercase text-surface-500 mb-1">Total Budget Qty</label>
-                    <input 
-                      type="number" 
-                      required
-                      value={boqForm.total_budgeted_qty}
-                      onChange={e => setBoqForm({...boqForm, total_budgeted_qty: e.target.value})}
-                      className="w-full h-10 px-3 border border-surface-300 rounded-lg text-sm font-bold bg-surface-50 focus:bg-white focus:border-accent outline-none" 
-                      placeholder="e.g. 500"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-[10px] font-black uppercase text-surface-500 mb-1">Unit Rate</label>
-                    <input 
-                      type="number" 
-                      required
-                      value={boqForm.unit_rate}
-                      onChange={e => setBoqForm({...boqForm, unit_rate: e.target.value})}
-                      className="w-full h-10 px-3 border border-surface-300 rounded-lg text-sm font-bold bg-surface-50 focus:bg-white focus:border-accent outline-none" 
-                      placeholder="e.g. 120"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-[10px] font-black uppercase text-surface-500 mb-1">Target Phase (Optional)</label>
-                    <select 
-                      value={boqForm.phase}
-                      onChange={e => setBoqForm({...boqForm, phase: e.target.value})}
-                      className="w-full h-10 px-3 border border-surface-300 rounded-lg text-sm font-bold bg-surface-50 focus:bg-white focus:border-accent outline-none"
-                    >
-                      <option value="">-- All Phases --</option>
-                      {phases.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-1">
-                    <button 
-                      type="submit" 
-                      disabled={isProcessing}
-                      className="w-full h-10 bg-accent text-white font-black text-xs uppercase tracking-widest rounded-lg hover:bg-accent/90 disabled:opacity-50"
-                    >
-                      + Add Item
-                    </button>
-                  </div>
-                </form>
-              </div>
-
               {/* BOQ Table Header & Toggle */}
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xl font-black text-primary tracking-tight">Bill of Quantities</h3>
+                <div className="flex items-center gap-4">
+                  <h3 className="text-xl font-black text-primary tracking-tight">Bill of Quantities</h3>
+                  <select
+                    value={boqPhaseFilter}
+                    onChange={e => setBoqPhaseFilter(e.target.value)}
+                    className="h-8 px-2 border border-surface-300 rounded-md text-xs font-bold bg-white text-surface-500 focus:border-accent outline-none"
+                  >
+                    <option value="">-- All Phases --</option>
+                    {phases.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="flex bg-surface-100 p-1 rounded-lg">
                   <button
                     onClick={() => setBoqViewMode('assembly')}
@@ -399,8 +305,8 @@ export default function ProcurementDashboard() {
                         </thead>
                         <tbody>
                       {items.filter(item => {
-                        if (!boqForm.phase) return true; // Show all if no phase selected in form
-                        return item.phase?.toString() === boqForm.phase;
+                        if (!boqPhaseFilter) return true; // Show all if no phase selected in form
+                        return item.phase?.toString() === boqPhaseFilter;
                       }).map((item) => {
                         const isExpanded = expandedRows[item.id];
                         const sForm = subItemForm[item.id] || {material_code: "", description: "", quantity: "", unit_rate: ""};
@@ -607,112 +513,6 @@ export default function ProcurementDashboard() {
             </div>
           )}
 
-          {activeTab === "SIGNALS" && (
-            <div className="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
-              {loading ? (
-                <div className="p-10 text-center text-surface-500 font-bold">Loading ledger...</div>
-              ) : signalItems.length === 0 ? (
-                <div className="p-10 text-center text-surface-500">
-                  <p className="text-3xl mb-2">📦</p>
-                  <p className="font-bold">No pending buy signals found.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-surface-50 border-b border-surface-200 text-[10px] font-black text-surface-400 uppercase tracking-widest">
-                        <th className="py-4 px-6 font-black w-8"></th>
-                        <th className="py-4 px-6 font-black">BOQ Item</th>
-                        <th className="py-4 px-6 font-black">Phase</th>
-                        <th className="py-4 px-6 font-black text-amber-600">🔴 REQUISITIONED (Buy Now)</th>
-                        <th className="py-4 px-6 font-black text-blue-600">Ordered</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {signalItems.map((item) => {
-                        const isExpanded = expandedRows[item.id];
-                        const reqOrOrdAllocations = (item.allocations || []).filter(
-                          a => a.req_status === "REQUISITIONED" || a.req_status === "ORDERED"
-                        );
-
-                        return (
-                          <React.Fragment key={item.id}>
-                            <tr className={`border-b border-surface-100 hover:bg-surface-50 transition-colors ${isExpanded ? "bg-surface-50" : ""}`}>
-                              <td className="py-4 px-6">
-                                <button 
-                                  onClick={() => toggleRow(item.id)}
-                                  className="w-6 h-6 rounded-md bg-surface-200 text-surface-600 flex items-center justify-center hover:bg-accent hover:text-white transition-all font-bold"
-                                >
-                                  {isExpanded ? "v" : ">"}
-                                </button>
-                              </td>
-                              <td className="py-4 px-6 font-extrabold text-primary">{item.material_code}</td>
-                              <td className="py-4 px-6 font-bold text-surface-500">
-                                {item.phase ? phases.find(p => p.id == item.phase)?.name || `Phase ${item.phase}` : "Global"}
-                              </td>
-                              <td className="py-4 px-6 font-black tabular-nums text-amber-600">{item.requisitioned_qty}</td>
-                              <td className="py-4 px-6 font-bold tabular-nums text-blue-600">{item.ordered_qty}</td>
-                            </tr>
-
-                            {isExpanded && reqOrOrdAllocations.length > 0 && (
-                              <tr>
-                                <td colSpan={5} className="p-0 border-b border-surface-200">
-                                  <div className="bg-amber-50/30 px-14 py-4 border-l-4 border-amber-300">
-                                    <table className="w-full text-left">
-                                      <tbody>
-                                        {reqOrOrdAllocations.map(alloc => (
-                                          <tr key={alloc.id} className="border-b border-surface-100 last:border-0 hover:bg-white transition-colors">
-                                            <td className="py-3 px-4 font-bold text-sm text-primary flex items-center gap-2">
-                                              <span className="text-surface-400">↳</span>
-                                              {alloc.task_zone_name ? `${alloc.task_zone_name} (${alloc.task_title})` : alloc.task_title}
-                                              <span className="text-[10px] font-bold text-surface-400">
-                                                (Req {alloc.expected_on_site_by || "ASAP"})
-                                              </span>
-                                            </td>
-                                            <td className="py-3 px-4 text-sm font-medium text-surface-500">
-                                              {alloc.notes || "No notes"}
-                                            </td>
-                                            <td className="py-3 px-4 font-black tabular-nums text-amber-600 w-32">
-                                              {alloc.allocated_qty}
-                                            </td>
-                                            <td className="py-3 px-4 w-32 flex justify-end">
-                                              {alloc.req_status === "ORDERED" ? (
-                                                <button
-                                                  onClick={() => handlePrintPO(alloc.id)}
-                                                  className="flex items-center gap-2 px-3 py-1.5 bg-surface-200 text-surface-600 text-[10px] font-black uppercase tracking-widest rounded hover:bg-blue-100 hover:text-blue-600 transition-colors"
-                                                >
-                                                  🖨️ Print PO
-                                                </button>
-                                              ) : (
-                                                <label className="flex items-center gap-2 cursor-pointer group">
-                                                  <input 
-                                                    type="checkbox" 
-                                                    checked={!!selectedAllocations[alloc.id]}
-                                                    onChange={() => toggleAllocation(alloc.id)}
-                                                    className="w-5 h-5 rounded border-surface-300 accent-accent cursor-pointer"
-                                                  />
-                                                  <span className="text-[10px] font-bold uppercase tracking-widest text-surface-500 group-hover:text-primary">Select</span>
-                                                </label>
-                                              )}
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
           {activeTab === "TRACKING" && (
             <div className="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
               {loading ? (
@@ -729,7 +529,9 @@ export default function ProcurementDashboard() {
                         <th className="py-4 px-6 font-black w-8"></th>
                         <th className="py-4 px-6 font-black">BOQ Item</th>
                         <th className="py-4 px-6 font-black">Phase</th>
-                        <th className="py-4 px-6 font-black text-emerald-600">Remaining Phase Qty</th>
+                        <th className="py-4 px-6 font-black">Remaining Qty</th>
+                        <th className="py-4 px-6 font-black text-amber-600">🔴 Requisitioned</th>
+                        <th className="py-4 px-6 font-black text-blue-600">🔵 Ordered</th>
                         <th className="py-4 px-6 font-black">Allocations</th>
                       </tr>
                     </thead>
@@ -757,6 +559,8 @@ export default function ProcurementDashboard() {
                               <td className="py-4 px-6 font-black tabular-nums text-emerald-600">
                                 {item.remaining_phase_qty ?? item.remaining_budget}
                               </td>
+                              <td className="py-4 px-6 font-black tabular-nums text-amber-600">{item.requisitioned_qty}</td>
+                              <td className="py-4 px-6 font-bold tabular-nums text-blue-600">{item.ordered_qty}</td>
                               <td className="py-4 px-6 font-bold tabular-nums">
                                 {allocations.length} {anomalyCount > 0 && <span className="text-red-500 ml-2">({anomalyCount} Anomalies 🚨)</span>}
                               </td>
@@ -764,7 +568,7 @@ export default function ProcurementDashboard() {
 
                             {isExpanded && allocations.length > 0 && (
                               <tr>
-                                <td colSpan={5} className="p-0 border-b border-surface-200">
+                                <td colSpan={7} className="p-0 border-b border-surface-200">
                                   <div className="bg-surface-50/50 px-14 py-4 border-l-4 border-surface-300">
                                     <table className="w-full text-left">
                                       <thead>
@@ -772,7 +576,7 @@ export default function ProcurementDashboard() {
                                           <th className="pb-2 px-4">Task</th>
                                           <th className="pb-2 px-4">Target Qty</th>
                                           <th className="pb-2 px-4">Actual Qty</th>
-                                          <th className="pb-2 px-4">Status</th>
+                                          <th className="pb-2 px-4">Status / Action</th>
                                           <th className="pb-2 px-4">Total Cost</th>
                                         </tr>
                                       </thead>
@@ -783,6 +587,11 @@ export default function ProcurementDashboard() {
                                               <td className="py-3 px-4 font-bold text-sm text-primary flex items-center gap-2">
                                                 <span className="text-surface-400">↳</span>
                                                 {alloc.task_zone_name ? `${alloc.task_zone_name} (${alloc.task_title})` : alloc.task_title}
+                                                {alloc.req_status === "REQUISITIONED" && (
+                                                  <span className="text-[10px] font-bold text-surface-400 ml-2">
+                                                    (Req {alloc.expected_on_site_by || "ASAP"})
+                                                  </span>
+                                                )}
                                               </td>
                                               <td className="py-3 px-4 font-black tabular-nums text-surface-600 w-32">
                                                 {alloc.allocated_qty}
@@ -790,13 +599,33 @@ export default function ProcurementDashboard() {
                                               <td className={`py-3 px-4 font-black tabular-nums w-32 ${alloc.is_anomaly ? "text-red-600" : "text-emerald-600"}`}>
                                                 {alloc.is_logged ? alloc.actual_consumed_qty : "—"}
                                               </td>
-                                              <td className="py-3 px-4 w-40">
+                                              <td className="py-3 px-4 w-56 flex items-center gap-2">
                                                 {alloc.is_logged ? (
                                                   alloc.is_anomaly ? (
                                                     <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-red-100 text-red-600">🚨 Anomaly</span>
                                                   ) : (
                                                     <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-emerald-100 text-emerald-600">✅ Logged</span>
                                                   )
+                                                ) : alloc.req_status === "ORDERED" ? (
+                                                  <>
+                                                    <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-blue-100 text-blue-600">🔵 Ordered</span>
+                                                    <button
+                                                      onClick={() => handlePrintPO(alloc.id)}
+                                                      className="flex items-center gap-1 px-2 py-1 bg-surface-200 text-surface-600 text-[9px] font-black uppercase tracking-widest rounded hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                                                    >
+                                                      🖨️ Print
+                                                    </button>
+                                                  </>
+                                                ) : alloc.req_status === "REQUISITIONED" ? (
+                                                  <label className="flex items-center gap-2 cursor-pointer group bg-amber-50 px-2 py-1 rounded">
+                                                    <input 
+                                                      type="checkbox" 
+                                                      checked={!!selectedAllocations[alloc.id]}
+                                                      onChange={() => toggleAllocation(alloc.id)}
+                                                      className="w-4 h-4 rounded border-surface-300 accent-accent cursor-pointer"
+                                                    />
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 group-hover:text-primary">Buy Now</span>
+                                                  </label>
                                                 ) : (
                                                   <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-surface-200 text-surface-600">⏳ Pending</span>
                                                 )}
@@ -864,7 +693,7 @@ export default function ProcurementDashboard() {
           )}
 
           {/* Action Footer */}
-          {activeTab === "SIGNALS" && selectedCount > 0 && (
+          {activeTab === "TRACKING" && selectedCount > 0 && (
             <div className="sticky bottom-8 bg-primary text-white rounded-2xl shadow-2xl p-4 px-6 flex items-center justify-between animate-fade-in border border-surface-200/20">
               <div>
                 <p className="text-sm font-bold">{selectedCount} items selected for Purchase Order</p>

@@ -3,11 +3,16 @@
 import { useEffect, useState } from "react";
 import { projectsApi as api } from "@/domains/projects/api";
 import { MaterialAssembly, MaterialAssemblyComponent } from "@/types/projects";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import { useRef } from "react";
 
 export function MaterialAssemblyManager() {
   const [assemblies, setAssemblies] = useState<MaterialAssembly[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAssembly, setSelectedAssembly] = useState<MaterialAssembly | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
   const [isCreating, setIsCreating] = useState(false);
@@ -53,6 +58,38 @@ export function MaterialAssemblyManager() {
     } catch (err) {
       console.error(err);
       alert("Failed to delete assembly");
+    }
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !selectedAssembly) return;
+
+    setIsUploading(true);
+    try {
+      await api.uploadMaterialAssemblyImage(selectedAssembly.id, file);
+      loadAssemblies();
+      const updated = await api.getMaterialAssemblies();
+      setSelectedAssembly(updated.find((a: any) => a.id === selectedAssembly.id) || null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleRemoveImage() {
+    if (!selectedAssembly || !confirm("Remove image?")) return;
+    try {
+      await api.removeMaterialAssemblyImage(selectedAssembly.id);
+      loadAssemblies();
+      const updated = await api.getMaterialAssemblies();
+      setSelectedAssembly(updated.find((a: any) => a.id === selectedAssembly.id) || null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove image");
     }
   }
 
@@ -154,11 +191,37 @@ export function MaterialAssemblyManager() {
         {selectedAssembly && (
           <div className="lg:col-span-2 bg-white border border-surface-200 rounded-2xl p-8 space-y-8 shadow-sm">
             <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold text-primary">{selectedAssembly.description} ({selectedAssembly.item_code})</h3>
-                <p className="text-sm text-surface-500 mt-1">Components required per 1 {selectedAssembly.unit}</p>
+              <div className="flex gap-6">
+                {selectedAssembly.image ? (
+                  <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-surface-200 group cursor-pointer shadow-sm" onClick={() => setLightboxOpen(true)}>
+                    <img src={selectedAssembly.image} alt={selectedAssembly.item_code} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-white text-[10px] font-bold uppercase tracking-widest">View</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 rounded-xl border border-dashed border-surface-300 bg-surface-50 flex items-center justify-center text-surface-400 text-[10px] font-bold uppercase tracking-widest text-center p-2">
+                    No Image
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-lg font-bold text-primary">{selectedAssembly.description} ({selectedAssembly.item_code})</h3>
+                  <p className="text-sm text-surface-500 mt-1 mb-4">Components required per 1 {selectedAssembly.unit}</p>
+                  
+                  <div className="flex gap-2">
+                    <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+                    <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="text-[10px] bg-surface-100 hover:bg-surface-200 text-surface-700 px-4 py-2 rounded-lg font-bold uppercase tracking-widest transition-colors disabled:opacity-50 shadow-sm border border-surface-200">
+                      {isUploading ? "Uploading..." : selectedAssembly.image ? "Replace Image" : "Upload Image"}
+                    </button>
+                    {selectedAssembly.image && (
+                      <button onClick={handleRemoveImage} className="text-[10px] bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-bold uppercase tracking-widest transition-colors shadow-sm border border-red-100">
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <button onClick={() => handleDeleteAssembly(selectedAssembly.id)} className="text-xs text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg font-bold">Delete Assembly</button>
+              <button onClick={() => handleDeleteAssembly(selectedAssembly.id)} className="text-[10px] uppercase tracking-widest text-red-500 hover:bg-red-50 px-4 py-2 rounded-lg font-bold transition-colors">Delete</button>
             </div>
 
             <div className="space-y-4">
@@ -213,6 +276,14 @@ export function MaterialAssemblyManager() {
           </div>
         )}
       </div>
+
+      {lightboxOpen && selectedAssembly?.image && (
+        <ImageLightbox 
+          src={selectedAssembly.image} 
+          alt={selectedAssembly.item_code} 
+          onClose={() => setLightboxOpen(false)} 
+        />
+      )}
     </div>
   );
 }
