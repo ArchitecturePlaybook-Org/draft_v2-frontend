@@ -72,136 +72,39 @@
     })();
   </script>
   <link rel="stylesheet" type="text/css" href="lib/sweethome3djs.css">
-  <!-- THEME TOGGLE UI (place in header/toolbar) -->
-  <div id="theme-toggle" aria-label="Theme selector" style="position:fixed; right:12px; top:12px; z-index:9999;">
-    <button id="theme-toggle-btn" aria-haspopup="true" aria-expanded="false" title="Choose theme">
-      Theme ▾
-    </button>
-    <div id="theme-menu" role="menu" aria-hidden="true"
-      style="display:none; margin-top:6px; box-shadow:0 6px 18px rgba(0,0,0,.12); border-radius:8px; overflow:hidden;">
-      <!-- items injected by JS -->
-    </div>
-  </div>
-
   <style>
-    /* Basic styling for toggle — tweak to match your UI */
-    #theme-toggle button {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      background: var(--button-bg, #1e293b);
-      color: var(--button-text, #e2e8f0);
-      cursor: pointer;
-      font-weight: 600;
-      font-family: Inter, system-ui, sans-serif;
-    }
-
-    #theme-toggle button:focus {
-      outline: 3px solid rgba(59, 130, 246, 0.18);
-    }
-
-    #theme-menu {
-      background: var(--toolbar-bg-start, #f8fafc);
-      min-width: 180px;
-    }
-
-    .theme-item {
-      padding: 10px 12px;
-      cursor: pointer;
-      font-size: 14px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .theme-item:last-child {
-      border-bottom: none;
-    }
-
-    .theme-item:hover,
-    .theme-item:focus {
-      background: rgba(0, 0, 0, 0.04);
-    }
-
-    .swatch {
-      width: 28px;
-      height: 18px;
-      border-radius: 4px;
-      border: 1px solid rgba(0, 0, 0, 0.06);
-      flex-shrink: 0;
-    }
-
-    .theme-label {
-      flex: 1;
+    /* Theme svg styling */
+    .theme-icon-svg {
+      width: 20px;
+      height: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
   </style>
 
   <script>
-    /* Theme registry: add, remove or edit themes here.
-       Each theme is a map of CSS variable -> value.
-    */
+    /* Theme registry */
     const THEMES = {
-
-      "Pure - White": {
-        "--primary-color": "#ffffffff",
-        "--primary-hover": "#ffffffff",
-        "--primary-active": "#ffffffff",
-        "--secondary-color": "#ffffffff",
-        "--success-color": "#ffffffff",
-        "--danger-color": "#ffffffff",
-        "--toolbar-bg-start": "#ffffffff",
-        "--toolbar-bg-end": "#ffffffff",
-        "--button-bg": "#ffffffff",
-        "--button-hover-bg": "#ffffffff",
-        "--button-active-bg": "#9b9b9bff",
-        "--button-text": "#000000ff",
-        "--button-text-hover": "#949494ff",
-        "--border-color": "#b4afafff",
-        "--shadow-color": "rgba(0,0,0,0.2)"
-      },
-
-
-      "architectural-blue": {
-        "--primary-color": "#1e40af",
-        "--primary-hover": "#1d4ed8",
-        "--primary-active": "#3b82f6",
+      "Light Mode": {
+        "--primary-color": "#ffffff",
+        "--primary-hover": "#f1f5f9",
+        "--primary-active": "#e2e8f0",
         "--secondary-color": "#475569",
         "--success-color": "#22c55e",
         "--danger-color": "#ef4444",
-        "--toolbar-bg-start": "#f8fafc",
-        "--toolbar-bg-end": "#f1f5f9",
-        "--button-bg": "#1e293b",
-        "--button-hover-bg": "#334155",
-        "--button-active-bg": "#1d4ed8",
-        "--button-text": "#f8fafc",
-        "--button-text-hover": "#ffffff",
-        "--border-color": "#cbd5e1",
-        "--shadow-color": "rgba(0,0,0,0.2)"
+        "--toolbar-bg-start": "#ffffff",
+        "--toolbar-bg-end": "#f8fafc",
+        "--button-bg": "#ffffff",
+        "--button-hover-bg": "#f1f5f9",
+        "--button-active-bg": "#2563eb", // Architecture Blue
+        "--button-text": "#0f172a",
+        "--button-text-hover": "#1e293b",
+        "--border-color": "#e2e8f0",
+        "--shadow-color": "rgba(0,0,0,0.1)"
       },
-
-      "earthy": {
-        "--primary-color": "#b85c38",        // warm terracotta
-        "--primary-hover": "#cf744e",
-        "--primary-active": "#e28a66",
-        "--secondary-color": "#6b5f46",      // muted olive-brown
-        "--success-color": "#8fbf5f",        // soft moss green
-        "--danger-color": "#c94a3c",         // burnt red
-        "--toolbar-bg-start": "#fbf6ef",     // light sand
-        "--toolbar-bg-end": "#f1e7d8",       // warm cream
-        "--button-bg": "#6a4a33",            // deep wood
-        "--button-hover-bg": "#7a593f",
-        "--button-active-bg": "#b85c38",
-        "--button-text": "#f8f5f1",          // off-white
-        "--button-text-hover": "#ffffff",
-        "--border-color": "#dfcdb8",         // pale sand border
-        "--shadow-color": "rgba(28,20,12,0.18)" // soft warm shadow
-      },
-
-      "neo-cyan": {
-        "--primary-color": "#06b6d4",
-        "--primary-hover": "#0891b2",
-        "--primary-active": "#0e7490",
+      "Dark Mode": {
+        "--primary-color": "#0f172a",
+        "--primary-hover": "#1e293b",
+        "--primary-active": "#334155",
         "--secondary-color": "#94a3b8",
         "--success-color": "#22c55e",
         "--danger-color": "#ef4444",
@@ -209,108 +112,16 @@
         "--toolbar-bg-end": "#1e293b",
         "--button-bg": "#1e293b",
         "--button-hover-bg": "#334155",
-        "--button-active-bg": "#06b6d4",
-        "--button-text": "#e2e8f0",
-        "--button-text-hover": "#ffffff",
-        "--border-color": "#334155",
-        "--shadow-color": "rgba(0,255,255,0.25)"
-      },
-
-      "slate-sky": {
-        "--primary-color": "#0ea5e9",
-        "--primary-hover": "#0284c7",
-        "--primary-active": "#0369a1",
-        "--secondary-color": "#64748b",
-        "--success-color": "#14b8a6",
-        "--danger-color": "#dc2626",
-        "--toolbar-bg-start": "#f1f5f9",
-        "--toolbar-bg-end": "#e2e8f0",
-        "--button-bg": "#334155",
-        "--button-hover-bg": "#475569",
-        "--button-active-bg": "#0ea5e9",
+        "--button-active-bg": "#2563eb", // Architecture Blue
         "--button-text": "#f8fafc",
         "--button-text-hover": "#ffffff",
-        "--border-color": "#cbd5e1",
-        "--shadow-color": "rgba(14,165,233,0.25)"
-      },
-
-      "terracotta": {
-        "--primary-color": "#ea580c",
-        "--primary-hover": "#c2410c",
-        "--primary-active": "#9a3412",
-        "--secondary-color": "#78716c",
-        "--success-color": "#16a34a",
-        "--danger-color": "#dc2626",
-        "--toolbar-bg-start": "#fafaf9",
-        "--toolbar-bg-end": "#f5f5f4",
-        "--button-bg": "#44403c",
-        "--button-hover-bg": "#57534e",
-        "--button-active-bg": "#ea580c",
-        "--button-text": "#f5f5f4",
-        "--button-text-hover": "#ffffff",
-        "--border-color": "#e7e5e4",
-        "--shadow-color": "rgba(234,88,12,0.2)"
-      },
-
-      "charcoal-gold": {
-        "--primary-color": "#eab308",
-        "--primary-hover": "#ca8a04",
-        "--primary-active": "#a16207",
-        "--secondary-color": "#6b7280",
-        "--success-color": "#10b981",
-        "--danger-color": "#dc2626",
-        "--toolbar-bg-start": "#18181b",
-        "--toolbar-bg-end": "#27272a",
-        "--button-bg": "#27272a",
-        "--button-hover-bg": "#3f3f46",
-        "--button-active-bg": "#eab308",
-        "--button-text": "#f4f4f5",
-        "--button-text-hover": "#ffffff",
-        "--border-color": "#3f3f46",
-        "--shadow-color": "rgba(234,179,8,0.2)"
-      },
-
-      "midnight-neon": {
-        "--primary-color": "#8b5cf6",
-        "--primary-hover": "#7c3aed",
-        "--primary-active": "#6d28d9",
-        "--secondary-color": "#64748b",
-        "--success-color": "#10b981",
-        "--danger-color": "#f43f5e",
-        "--toolbar-bg-start": "#0f172a",
-        "--toolbar-bg-end": "#1e293b",
-        "--button-bg": "#1e1b4b",
-        "--button-hover-bg": "#312e81",
-        "--button-active-bg": "#8b5cf6",
-        "--button-text": "#e0e7ff",
-        "--button-text-hover": "#ffffff",
-        "--border-color": "#312e81",
-        "--shadow-color": "rgba(139,92,246,0.3)"
-      },
-
-      "graphite-minimal": {
-        "--primary-color": "#3b82f6",
-        "--primary-hover": "#2563eb",
-        "--primary-active": "#1d4ed8",
-        "--secondary-color": "#9ca3af",
-        "--success-color": "#10b981",
-        "--danger-color": "#ef4444",
-        "--toolbar-bg-start": "#111827",
-        "--toolbar-bg-end": "#1f2937",
-        "--button-bg": "#1f2937",
-        "--button-hover-bg": "#374151",
-        "--button-active-bg": "#3b82f6",
-        "--button-text": "#f9fafb",
-        "--button-text-hover": "#ffffff",
-        "--border-color": "#374151",
+        "--border-color": "#334155",
         "--shadow-color": "rgba(0,0,0,0.3)"
       }
     };
 
-    /* Persisted key */
     const STORAGE_KEY = 'ap-selected-theme';
 
-    /* Apply theme by setting CSS variables on :root */
     function applyTheme(themeName) {
       const theme = THEMES[themeName];
       if (!theme) return;
@@ -318,7 +129,6 @@
       Object.entries(theme).forEach(([k, v]) => root.style.setProperty(k, v));
       root.setAttribute('data-theme', themeName);
 
-      /* NEW: also restyle the Copy 2D button to match toolbar theme */
       const copyBtn = document.getElementById('copy2dElements');
       if (copyBtn) {
         copyBtn.style.background = theme["--button-bg"];
@@ -339,134 +149,61 @@
           copyBtn.style.background = theme["--button-hover-bg"];
         };
       }
-    }
 
-    /* Build the UI menu */
-    function buildThemeMenu(container) {
-      Object.keys(THEMES).forEach(name => {
-        const item = document.createElement('div');
-        item.className = 'theme-item';
-        item.tabIndex = 0;
-        item.setAttribute('role', 'menuitem');
-        item.dataset.theme = name;
-
-        // Build a simple swatch using theme's primary colors
-        const sw = document.createElement('div');
-        sw.className = 'swatch';
-        // two-tone gradient using primary and button-bg (fallback)
-        const t = THEMES[name];
-        sw.style.background = `linear-gradient(90deg, ${t['--primary-color']} 50%, ${t['--button-bg']} 50%)`;
-
-        const label = document.createElement('div');
-        label.className = 'theme-label';
-        label.textContent = name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-        item.appendChild(sw);
-        item.appendChild(label);
-
-        item.addEventListener('click', () => {
-          setTheme(name);
-          closeMenu();
-        });
-        item.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setTheme(name);
-            closeMenu();
-          }
-        });
-
-        container.appendChild(item);
-      });
-    }
-
-    /* Save + apply */
-    function setTheme(name) {
-      applyTheme(name);
-      try { localStorage.setItem(STORAGE_KEY, name); } catch (e) { }
-      // update button label
+      const sun = document.getElementById('theme-icon-sun');
+      const moon = document.getElementById('theme-icon-moon');
       const btn = document.getElementById('theme-toggle-btn');
-      if (btn) btn.textContent = `${name.replace(/-/g, ' ')}`;
-    }
-
-    /* Menu open/close helpers */
-    function openMenu() {
-      const btn = document.getElementById('theme-toggle-btn');
-      const menu = document.getElementById('theme-menu');
-      if (!menu || !btn) return;
-      menu.style.display = 'block';
-      menu.setAttribute('aria-hidden', 'false');
-      btn.setAttribute('aria-expanded', 'true');
-    }
-    function closeMenu() {
-      const btn = document.getElementById('theme-toggle-btn');
-      const menu = document.getElementById('theme-menu');
-      if (!menu || !btn) return;
-      menu.style.display = 'none';
-      menu.setAttribute('aria-hidden', 'true');
-      btn.setAttribute('aria-expanded', 'false');
-    }
-
-    /* Init: build UI, apply saved or default theme */
-    function initThemeToggle(defaultTheme = 'Pure - White') {
-      const menu = document.getElementById('theme-menu');
-      const btn = document.getElementById('theme-toggle-btn');
-      if (!menu || !btn) return;
-
-      buildThemeMenu(menu);
-
-      // load
-      let stored = null;
-      try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) { }
-
-      const initial = (stored && THEMES[stored]) ? stored : defaultTheme;
-      setTheme(initial);
-
-      // button actions
-      btn.addEventListener('click', (e) => {
-        const expanded = btn.getAttribute('aria-expanded') === 'true';
-        if (expanded) closeMenu(); else openMenu();
-      });
-
-      // close menu when clicking outside
-      document.addEventListener('click', (e) => {
-        const wrapper = document.getElementById('theme-toggle');
-        if (!wrapper.contains(e.target)) closeMenu();
-      });
-
-      // keyboard: ESC closes
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeMenu();
-        // quick cycle: Ctrl+Alt+T to cycle themes
-        if (e.key.toLowerCase() === 't' && e.ctrlKey && e.altKey) {
-          cycleTheme();
+      if (sun && moon && btn) {
+        if (themeName === 'Dark Mode') {
+          sun.style.display = 'block';
+          moon.style.display = 'none';
+          btn.title = 'Switch to Light Mode';
+        } else {
+          sun.style.display = 'none';
+          moon.style.display = 'block';
+          btn.title = 'Switch to Dark Mode';
         }
-      });
+      }
+    }
 
-      // small accessible focus trap: if menu opened, focus first item
-      btn.addEventListener('keydown', (e) => {
-        if ((e.key === 'ArrowDown' || e.key === 'Enter') && menu.style.display !== 'block') {
-          e.preventDefault();
-          openMenu();
-          const first = menu.querySelector('.theme-item');
-          if (first) first.focus();
+    function toggleTheme() {
+      let current = localStorage.getItem(STORAGE_KEY) || 'Light Mode';
+      let next = current === 'Light Mode' ? 'Dark Mode' : 'Light Mode';
+      applyTheme(next);
+      localStorage.setItem(STORAGE_KEY, next);
+    }
+
+    function initThemeToggle() {
+      let stored = localStorage.getItem(STORAGE_KEY) || 'Light Mode';
+      applyTheme(stored);
+
+      // Create the toggle button dynamically
+      const btn = document.createElement('button');
+      btn.id = 'theme-toggle-btn';
+      btn.className = 'toolbar-button'; // Inherit modern pill button styling!
+      btn.title = stored === 'Dark Mode' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+      btn.setAttribute('aria-label', 'Toggle Theme');
+      
+      // Setup SVGs
+      btn.innerHTML = `
+        <svg id="theme-icon-sun" class="theme-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: ${stored === 'Dark Mode' ? 'block' : 'none'};"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg id="theme-icon-moon" class="theme-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: ${stored === 'Dark Mode' ? 'none' : 'block'};"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      `;
+
+      btn.addEventListener('click', toggleTheme);
+
+      // We must append it to the toolbar.
+      // The SweetHome3D engine builds the toolbar dynamically, so we wait slightly for it to populate
+      setTimeout(() => {
+        const toolbar = document.getElementById('home-pane-toolbar');
+        if (toolbar) {
+          toolbar.appendChild(btn);
         }
-      });
+      }, 500); // Wait 500ms for JS to render toolbar tools
     }
 
-    /* cycle through registered themes (useful for keyboard shortcut) */
-    function cycleTheme() {
-      const names = Object.keys(THEMES);
-      let current = null;
-      try { current = localStorage.getItem(STORAGE_KEY); } catch (e) { }
-      let idx = names.indexOf(current);
-      idx = (idx + 1) % names.length;
-      setTheme(names[idx]);
-    }
-
-    /* Auto-init when document ready */
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => initThemeToggle());
+      document.addEventListener('DOMContentLoaded', initThemeToggle);
     } else {
       initThemeToggle();
     }
@@ -1057,6 +794,430 @@
       }
     }
   </style>
+
+  <style id="rayon-modern-overrides">
+    /* Immersive Canvas */
+    #home-pane {
+        width: 100vw !important;
+        height: 100vh !important;
+        overflow: hidden;
+        position: relative;
+        background: var(--toolbar-bg-end);
+    }
+
+    #plan-3D-view-pane {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 1;
+    }
+
+    #home-plan, #home-3D-view {
+        width: 100vw !important;
+        border: none !important;
+        box-sizing: border-box;
+    }
+
+    /* Modern 2D/3D Splitter */
+    #plan-3D-view-splitter {
+        width: 100vw !important;
+        background: transparent !important;
+        position: absolute !important;
+        z-index: 10;
+        cursor: row-resize !important;
+    }
+    #plan-3D-view-splitter::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60px;
+        height: 6px;
+        background: var(--button-bg, #333);
+        border-radius: 4px;
+        opacity: 0.3;
+        transition: opacity 0.2s;
+    }
+    #plan-3D-view-splitter:hover::after {
+        opacity: 0.8;
+    }
+
+    /* Floating Pill Toolbar */
+    #home-pane-toolbar {
+        position: absolute !important;
+        top: 16px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: max-content !important;
+        height: 54px !important;
+        border-radius: 100px !important;
+        background: rgba(255, 255, 255, 0.7) !important;
+        backdrop-filter: blur(16px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        z-index: 1000 !important;
+        padding: 0 8px !important;
+        gap: 4px !important;
+        display: flex !important;
+        justify-content: center !important;
+        overflow: visible !important;
+    }
+
+    [data-theme="Dark Mode"] {
+        --toolbar-glass-bg: rgba(30, 41, 59, 0.75);
+        --toolbar-glass-border: rgba(255, 255, 255, 0.15);
+        --catalog-glass-bg: rgba(30, 41, 59, 0.85);
+    }
+
+    /* Invert 2D Plan canvas in Dark Mode to match the dark UI */
+    [data-theme="Dark Mode"] #home-plan {
+        filter: invert(0.9) hue-rotate(180deg);
+        transition: filter 0.3s ease;
+    }
+
+    /* Dim the 3D View canvas in Dark Mode to reduce glare */
+    [data-theme="Dark Mode"] #home-3D-view {
+        filter: brightness(0.5);
+        transition: filter 0.3s ease;
+    }
+
+    /* Make catalog items and list icons transparent in Dark Mode (removes the white box) */
+    [data-theme="Dark Mode"] .furniture,
+    [data-theme="Dark Mode"] .furniture-icon,
+    [data-theme="Dark Mode"] #furniture-view img {
+        background-color: transparent !important;
+    }
+
+    /* Make the furniture view panel background dark/transparent in Dark Mode */
+    [data-theme="Dark Mode"] #furniture-view,
+    [data-theme="Dark Mode"] #furniture-view .tree-table,
+    [data-theme="Dark Mode"] #furniture-view table {
+        background-color: transparent !important;
+        color: var(--button-text) !important;
+    }
+
+    /* Make the text label background transparent and ensure text is white */
+    [data-theme="Dark Mode"] .furniture > .furniture-label {
+        background-color: transparent !important;
+        color: var(--button-text) !important;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.8) !important;
+    }
+
+    /* Fix tooltip z-index so it appears above the newly layered floating catalog panel */
+    .furniture-tooltip {
+        z-index: 2000 !important;
+    }
+
+    /* Optional: Make tooltip match Dark Mode if active */
+    [data-theme="Dark Mode"] .furniture-tooltip {
+        background-color: rgba(15, 23, 42, 0.95) !important;
+        color: var(--button-text) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Fallback for dark themes */
+    #home-pane-toolbar {
+        background: var(--toolbar-glass-bg, rgba(255, 255, 255, 0.7)) !important;
+        border-color: var(--toolbar-glass-border, rgba(255, 255, 255, 0.4)) !important;
+    }
+
+    #home-pane-toolbar .toolbar-button {
+        font-size: 0 !important; /* Hide text */
+        min-width: 40px !important;
+        width: 40px !important;
+        height: 40px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        border: none !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: var(--button-text) !important; /* Ensure SVGs inherit the correct color */
+        transition: background-color 0.2s, background-size 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2) !important;
+    }
+
+    #home-pane-toolbar .toolbar-button:hover {
+        background-color: var(--button-hover-bg) !important;
+        transform: translateY(0) !important; /* disable old transform */
+        background-size: 70% !important; /* Scale up the native background-image icons */
+    }
+
+    #home-pane-toolbar .toolbar-button img,
+    #home-pane-toolbar .toolbar-button svg {
+        margin: 0 !important;
+        opacity: 0.7 !important;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2) !important;
+        width: 22px !important;
+        height: 22px !important;
+        transform: scale(1) !important;
+    }
+
+    /* Invert native black line-art PNGs to white in Dark Mode */
+    [data-theme="Dark Mode"] #home-pane-toolbar .toolbar-button img {
+        filter: invert(1) !important;
+    }
+
+    /* Add a soft white glow to black icons in Dark Mode so they are clearly visible */
+    [data-theme="Dark Mode"] #home-pane-toolbar .toolbar-button,
+    [data-theme="Dark Mode"] .furniture-icon {
+        filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)) !important;
+    }
+
+    /* Enhance the glow when hovered */
+    [data-theme="Dark Mode"] #home-pane-toolbar .toolbar-button:hover,
+    [data-theme="Dark Mode"] .furniture:hover .furniture-icon {
+        filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9)) !important;
+    }
+
+    /* Active and Hover interactions */
+    #home-pane-toolbar .toolbar-button:hover img,
+    #home-pane-toolbar .toolbar-button:hover svg,
+    #home-pane-toolbar .toolbar-button.selected img,
+    #home-pane-toolbar .toolbar-button.selected svg {
+        opacity: 1 !important;
+        transform: scale(1.15) !important;
+    }
+
+    #home-pane-toolbar .toolbar-separator {
+        height: 24px !important;
+        margin: 0 4px !important;
+        align-self: center !important;
+    }
+
+    /* Floating Catalog Sidebar */
+    #catalog-furniture-pane {
+        position: absolute !important;
+        top: 86px !important;
+        left: 16px !important;
+        height: calc(100vh - 102px) !important;
+        width: 320px !important;
+        z-index: 1000 !important;
+        background: var(--catalog-glass-bg, rgba(255, 255, 255, 0.9)) !important;
+        backdrop-filter: blur(16px) saturate(180%) !important;
+        border: 1px solid var(--toolbar-glass-border, rgba(255, 255, 255, 0.4)) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 12px 48px rgba(0,0,0,0.15) !important;
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1), opacity 0.4s, visibility 0.4s !important;
+        transform-origin: top left !important;
+        overflow: hidden !important;
+    }
+
+    #catalog-furniture-pane.minimized {
+        transform: translateX(calc(-100% - 32px)) !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+    }
+
+    /* Modernize internal catalog splitter instead of hiding it */
+    #catalog-furniture-splitter {
+        width: 100% !important;
+        height: 8px !important;
+        background: transparent !important;
+        z-index: 10;
+        cursor: row-resize !important;
+    }
+    #catalog-furniture-splitter::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 4px;
+        background: var(--button-bg, #333);
+        border-radius: 4px;
+        opacity: 0.3;
+        transition: opacity 0.2s;
+    }
+    #catalog-furniture-splitter:hover::after {
+        opacity: 0.8;
+    }
+
+    /* Give inner containers padding so they don't hit the curved outer borders */
+    #furniture-catalog {
+        padding: 8px 12px 0 12px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Keep the default layout calculated by JS, just style the border and add padding */
+    #furniture-view {
+        border-top: 1px solid var(--border-color) !important;
+        padding: 8px 12px 12px 12px !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Soften any internal tables in the furniture view */
+    #furniture-view table {
+        width: 100% !important;
+        border-spacing: 0 4px !important;
+        border-collapse: separate !important;
+    }
+    #furniture-view th {
+        font-weight: 600 !important;
+        padding: 8px !important;
+        text-align: left !important;
+        color: var(--secondary-color) !important;
+    }
+    #furniture-view td {
+        padding: 8px !important;
+        background: rgba(0,0,0,0.02) !important;
+    }
+    [data-theme*="dark"] #furniture-view td {
+        background: rgba(255,255,255,0.03) !important;
+    }
+    #furniture-view tr {
+        border-radius: 8px !important;
+        overflow: hidden !important;
+    }
+    #furniture-view tr td:first-child { border-top-left-radius: 8px !important; border-bottom-left-radius: 8px !important; }
+    #furniture-view tr td:last-child { border-top-right-radius: 8px !important; border-bottom-right-radius: 8px !important; }
+    #furniture-view tr:hover td {
+        background: var(--button-hover-bg) !important;
+    }
+
+    #furniture-plan-splitter {
+        display: none !important; /* Hide old vertical splitter to canvas */
+    }
+
+    /* Modern List Items */
+    .furniture {
+        padding: 8px 12px !important;
+        border-radius: 12px !important; /* Softer radius to match outer */
+        margin: 4px 0 !important; /* Side margins handled by container padding */
+        transition: background 0.2s !important;
+        border: none !important;
+    }
+    .furniture:hover {
+        background: var(--button-hover-bg) !important;
+    }
+    .furniture-category-label {
+        font-weight: 600 !important;
+        padding: 12px 16px 4px !important;
+        font-size: 13px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        color: var(--secondary-color) !important;
+    }
+
+    /* Custom Scrollbar */
+    #furniture-catalog-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    #furniture-catalog-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    #furniture-catalog-list::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.2);
+        border-radius: 10px;
+    }
+    [data-theme*="dark"] #furniture-catalog-list::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.2);
+    }
+
+    /* Catalog Toggle Button */
+    #catalog-toggle-btn {
+        position: absolute;
+        top: 100px;
+        left: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--button-bg);
+        color: var(--button-text);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 1001;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        user-select: none;
+    }
+    #catalog-toggle-btn:hover {
+        background: var(--button-hover-bg);
+        transform: scale(1.05);
+    }
+    /* When panel is NOT minimized, morph into an attached side tab */
+    #catalog-furniture-pane:not(.minimized) ~ #catalog-toggle-btn {
+        transform: translateX(315px); /* 320px width - 5px overlap */
+        width: 32px;
+        height: 64px; /* make it a taller tab */
+        border-radius: 0 12px 12px 0; /* flat on the left, rounded on the right */
+        background: var(--catalog-glass-bg, rgba(255, 255, 255, 0.9));
+        backdrop-filter: blur(16px) saturate(180%);
+        border: 1px solid var(--toolbar-glass-border, rgba(255, 255, 255, 0.4));
+        border-left: none; /* merge seamlessly */
+        box-shadow: 4px 4px 12px rgba(0,0,0,0.08);
+        color: var(--button-text);
+        z-index: 999; /* sit behind the panel edge */
+    }
+    #catalog-furniture-pane:not(.minimized) ~ #catalog-toggle-btn svg {
+        transform: rotate(180deg);
+    }
+    #catalog-furniture-pane:not(.minimized) ~ #catalog-toggle-btn:hover {
+        background: var(--button-hover-bg);
+        transform: translateX(320px); /* sticks out a bit more on hover */
+    }
+
+    /* Modern Dialogs */
+    .dialog-template > div {
+        border-radius: 16px !important;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2) !important;
+        border: 1px solid var(--border-color) !important;
+        background: var(--toolbar-bg-start) !important;
+        padding: 24px !important;
+    }
+    .card {
+        border-radius: 8px !important;
+        border: 1px solid rgba(0,0,0,0.05) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+        padding: 16px !important;
+        background: rgba(255,255,255,0.02) !important;
+    }
+    [data-theme*="dark"] .card {
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        background: rgba(0,0,0,0.1) !important;
+    }
+
+    @media (max-width: 768px) {
+        #home-pane-toolbar {
+            width: calc(100% - 32px) !important;
+            border-radius: 20px !important;
+            top: 8px !important;
+            overflow-x: auto !important;
+            justify-content: flex-start !important;
+        }
+        #catalog-furniture-pane {
+            width: calc(100% - 32px) !important;
+            height: calc(50vh) !important;
+            top: auto !important;
+            bottom: 16px !important;
+        }
+        #catalog-furniture-pane.minimized {
+            transform: translateY(calc(100% + 32px)) !important;
+        }
+        #catalog-furniture-pane:not(.minimized) ~ #catalog-toggle-btn {
+            transform: translateY(-50vh);
+            top: auto !important;
+            bottom: 32px !important;
+            left: auto !important;
+            right: 16px !important;
+        }
+        #catalog-toggle-btn {
+            top: auto !important;
+            bottom: 16px !important;
+            left: 16px !important;
+        }
+    }
+  </style>
 </head>
 
 <body>
@@ -1074,6 +1235,10 @@
     </div>
 
     <div id="furniture-plan-splitter" class="pane-splitter"></div>
+
+    <div id="catalog-toggle-btn" title="Toggle Catalog" onclick="document.getElementById('catalog-furniture-pane').classList.toggle('minimized')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
 
     <div id="plan-3D-view-pane">
       <div id="home-plan" style="background-color: #FFFFFF; color: #000000;" tabindex="1"><select
@@ -2275,10 +2440,10 @@
 
       // Catalogs from your static bundle
       // Use static file directly - caching handled by server no-cache headers
-      furnitureCatalogURLs: ["/static/sh3d/lib/resources/DefaultFurnitureCatalog.json"],
-      furnitureResourcesURLBase: "/static/sh3d/",
-      texturesCatalogURLs: ["/static/sh3d/lib/resources/DefaultTexturesCatalog.json"],
-      texturesResourcesURLBase: "/static/sh3d/",
+      furnitureCatalogURLs: ["/sh3d/lib/resources/DefaultFurnitureCatalog.json"],
+      furnitureResourcesURLBase: "/sh3d/",
+      texturesCatalogURLs: ["/sh3d/lib/resources/DefaultTexturesCatalog.json"],
+      texturesResourcesURLBase: "/sh3d/",
 
       writeHomeWithWorker: true,
       compressionLevel: 5,

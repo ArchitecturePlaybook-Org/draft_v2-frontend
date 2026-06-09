@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import-models": "python ../scripts/process_sh3d_models.py"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "0.18.1",
