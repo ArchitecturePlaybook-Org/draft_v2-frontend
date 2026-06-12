@@ -20,6 +20,23 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: http://localhost:8000; font-src 'self' data:; connect-src 'self' http://localhost:8000 ws://localhost:8000;"
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff"
+          }
+        ]
+      }
+    ];
+  },
 };
 
 export default nextConfig;

@@ -11,20 +11,22 @@ import { ImageLightbox } from "@/components/ui/ImageLightbox";
 
 interface TaskExecutionModalProps {
   task: Task;
+  projectId: number;
+  projectUid: string;
   projectAssets: ProjectAsset[];
   onClose: () => void;
   onTaskUpdated: () => void;
-  projectUid?: string;
 }
 
 type TaskTab = "execution" | "boq" | "checklist" | "issues" | "drawing" | "comments";
 
 export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({ 
   task: initialTask, 
+  projectId,
+  projectUid,
   projectAssets,
   onClose,
-  onTaskUpdated,
-  projectUid
+  onTaskUpdated
 }) => {
   const { hasGlobalPermission, canEditProject } = usePermissions();
   const [task, setTask] = useState<Task>(initialTask);
@@ -309,7 +311,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   ];
 
   const linked2dPlanLinks = task.asset_links?.filter(l => l.latest_asset?.category === "2d_plan") || [];
-  const linked3dModelLink = task.asset_links?.find(l => l.latest_asset?.category === "3d_model");
+  const linked3dModelLink = task.asset_links?.find(l => l.latest_asset?.category === "3d_model" || l.latest_asset?.category === "sh3d");
   const linked3dModel = linked3dModelLink?.latest_asset;
 
   const linked2dPlanUids = new Set(linked2dPlanLinks.map(l => l.latest_asset?.canonical_uid));
@@ -858,6 +860,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                               <div className="relative min-h-[350px]">
                                 <FloorPlanGridViewer 
                                   asset={asset} 
+                                  projectId={projectId}
                                   inline 
                                   onRefresh={refreshTask} 
                                   onToggleFullScreen={() => setFullScreenDrawingId(asset.canonical_uid)}
@@ -898,7 +901,10 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                         {!isFullScreen3D && (
                           <ModelViewer 
                             url={linked3dModel.file} 
-                            format={linked3dModel.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'} 
+                            format={
+                              linked3dModel.category === 'sh3d' ? 'sh3d' :
+                              linked3dModel.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'
+                            } 
                           />
                         )}
                       </div>
@@ -908,7 +914,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   {/* Linking UI */}
                   {projectAssets.filter(a => 
                     (a.category === "2d_plan" && !linked2dPlanUids.has(a.canonical_uid)) || 
-                    (a.category === "3d_model" && !linked3dModel)
+                    ((a.category === "3d_model" || a.category === "sh3d") && !linked3dModel)
                   ).length > 0 && (
                     <div className="bg-white rounded-2xl border border-surface-200 p-10 text-center shadow-sm space-y-6 shrink-0">
                       <div>
@@ -928,10 +934,10 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                           {projectAssets
                             .filter(a => 
                               (a.category === "2d_plan" && !linked2dPlanUids.has(a.canonical_uid)) || 
-                              (a.category === "3d_model" && !linked3dModel)
+                              ((a.category === "3d_model" || a.category === "sh3d") && !linked3dModel)
                             )
                             .map(a => (
-                              <option key={a.canonical_uid} value={a.canonical_uid}>{a.category === "3d_model" ? "🏛️ " : "📐 "}{a.title}</option>
+                              <option key={a.canonical_uid} value={a.canonical_uid}>{(a.category === "3d_model" || a.category === "sh3d") ? "🏛️ " : "📐 "}{a.title}</option>
                           ))}
                         </select>
                         <button 
@@ -975,7 +981,10 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
             <div className="flex-1 w-full h-full bg-slate-100">
               <ModelViewer 
                 url={linked3dModel.file} 
-                format={linked3dModel.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'} 
+                format={
+                  linked3dModel.category === 'sh3d' ? 'sh3d' :
+                  linked3dModel.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'
+                } 
               />
             </div>
           </div>

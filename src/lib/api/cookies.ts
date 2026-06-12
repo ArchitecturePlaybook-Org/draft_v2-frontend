@@ -38,7 +38,7 @@ export function setAuthCookies(response: NextResponse, data: TokenData) {
 
   if (data.user?.role) {
     response.cookies.set(COOKIE_USER_ROLE, data.user.role, {
-      httpOnly: false,
+      httpOnly: true,
       secure: isProd,
       sameSite: "lax",
       maxAge: REFRESH_TOKEN_MAX_AGE,

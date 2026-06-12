@@ -304,7 +304,8 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       {selectedTask && (
         <TaskExecutionModal
           task={selectedTask}
-          projectUid={projectUid}
+          projectId={0}
+          projectUid={projectUid || ""}
           projectAssets={[]}
           onClose={() => setSelectedTask(null)}
           onTaskUpdated={() => {

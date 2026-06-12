@@ -72,16 +72,14 @@ export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
       clearAuthCookies(response);
     }
 
-    // Logging to a file for persistence in this environment
-    const logMsg = `[Proxy] ${new Date().toISOString()} | ${req.method} ${req.url} -> ${route.targetUrl} | Status: ${currentStatus}\n`;
-    try {
-      require('fs').appendFileSync('proxy.log', logMsg);
-    } catch (e) {
-      console.log(logMsg);
-    }
+    // Safe standard output logging instead of unbounded file writes
+    const logMsg = `[Proxy] ${new Date().toISOString()} | ${req.method} ${req.url.split('?')[0]} -> ${route.targetUrl.split('?')[0]} | Status: ${currentStatus}`;
+    console.info(logMsg);
+
     return response;
   } catch (err: any) {
-    console.error(`Proxy Error [${req.method} ${req.url}]:`, err);
+    // Sanitize error logging to avoid leaking request objects or tokens
+    console.error(`Proxy Error [${req.method} ${req.url.split('?')[0]}]:`, err?.message || "Unknown error");
     return handleProxyError(err);
   }
 }

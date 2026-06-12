@@ -35,7 +35,7 @@ export interface Project {
 
 export type TaskStatus = "TODO" | "WIP" | "QA" | "DONE";
 
-export type AssetCategory = "sketch" | "2d_plan" | "3d_model" | "document";
+export type AssetCategory = "sketch" | "2d_plan" | "3d_model" | "document" | "sh3d";
 
 export interface SitePhoto {
   id: number;

@@ -79,6 +79,47 @@
       height: 20px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    
+    /* Enforce closed-loop by hiding native file management buttons */
+    #toolbar-button-OPEN_HOME,
+    #toolbar-button-NEW_HOME { 
+      display: none !important; 
+    }
+    
+    /* Splash Loading Screen */
+    #sh3d-app-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #f8fafc;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.5s ease;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    #sh3d-app-loader img {
+      width: 128px;
+      height: 128px;
+      margin-bottom: 24px;
+      animation: pulse 2s infinite;
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+    }
+    #sh3d-app-loader .loader-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: #475569;
+      letter-spacing: 0.5px;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
   </style>
 
   <script>
@@ -1221,6 +1262,10 @@
 </head>
 
 <body>
+  <div id="sh3d-app-loader">
+    <img src="lib/resources/aboutIcon.png" alt="Sweet Home 3D Logo">
+    <div class="loader-text">Loading 3D Editor...</div>
+  </div>
 
   <div id="home-pane">
     <div id="application-menu-toolbar" class="toolbar"></div>
@@ -2451,27 +2496,127 @@
       defaultHomeName: defaultName
     });
 
-    /* ===== Auto-load ?home=/ ?file= if provided; otherwise create a blank one ===== */
+    /* ===== Auto-load ?assetId= or create a blank one ===== */
     (function () {
-      const incoming = QS.get('home') || QS.get('file');
+      const QS = new URLSearchParams(location.search);
+      let assetId = QS.get('assetId');
+      let projectId = QS.get('projectId');
+      let isNew = QS.get('isNew') === 'true';
+      let token = QS.get('token') || localStorage.getItem('token') || '';
+      
+      window.__sh3d_assetId = assetId;
+      window.__sh3d_projectId = projectId;
+      window.__sh3d_token = token;
+
+      function hideLoader() {
+        var loader = document.getElementById('sh3d-app-loader');
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => loader.style.display = 'none', 500);
+        }
+      }
+
       function tryLoad(url) {
         if (!url) return false;
         if (typeof application.readHomeFromURL === 'function') {
-          application.readHomeFromURL(url, function (home) { application.addHome(home); }, function (e) { console.error(e); alert("Could not open the model."); });
+          application.readHomeFromURL(url, function (home) { 
+            application.addHome(home); 
+            hideLoader();
+          }, function (e) { 
+            console.error(e); 
+            if (!isNew) alert("Could not open the model."); 
+            application.addHome(application.createHome());
+            hideLoader();
+          });
           return true;
         }
-        if (typeof application.createHomeFromURL === 'function') {
-          application.createHomeFromURL(url, function (home) { application.addHome(home); }, function (e) { console.error(e); alert("Could not open the model."); });
+        
+        try {
+          var recorder = new HomeRecorder();
+          recorder.readHome(url, {
+            homeLoaded: function (home) { 
+              application.addHome(home); 
+              hideLoader();
+            },
+            homeError: function (status, e) { 
+              console.error("HomeRecorder load error:", status, e); 
+              if (!isNew) alert("Could not open the model."); 
+              application.addHome(application.createHome());
+              hideLoader();
+            }
+          });
           return true;
+        } catch(err) {
+          console.error("Failed to use HomeRecorder:", err);
+          return false;
         }
-        if (typeof application.addHomeFromURL === 'function') {
-          application.addHomeFromURL(url, function () { }, function (e) { console.error(e); alert("Could not open the model."); });
-          return true;
-        }
-        return false;
       }
-      if (!tryLoad(incoming)) {
-        application.addHome(application.createHome());
+
+      window.__sh3d_triggerLoad = function(loadAssetId, loadToken) {
+        if (loadAssetId) {
+          var fetchOpts = { credentials: 'same-origin' };
+          if (loadToken) {
+            fetchOpts.headers = { 'Authorization': 'Bearer ' + loadToken };
+          }
+          fetch('/api/projects/assets/by-canonical/' + loadAssetId + '/', fetchOpts)
+          .then(res => {
+            if (!res.ok) throw new Error("Asset not found or unauthorized");
+            return res.json();
+          })
+          .then(asset => {
+            if (!asset.file) throw new Error("Asset file URL is empty");
+            
+            // Store PK for subsequent revisions
+            if (asset.id) {
+              window.__sh3d_assetPk = asset.id;
+            }
+
+            var ext = '.sh3d';
+            var match = asset.file.match(/\.(sh3d|sh3x)(\?|$)/i);
+            if (match) ext = match[0].split('?')[0];
+            
+            window.__sh3d_ext = ext;
+            return fetch(asset.file, { credentials: 'same-origin' });
+          })
+          .then(res => res.blob())
+          .then(blob => {
+            const objectUrl = URL.createObjectURL(blob) + '#model' + window.__sh3d_ext;
+            tryLoad(objectUrl);
+          })
+          .catch(err => {
+            console.error("Failed to load secure asset:", err);
+            alert("Failed to securely load the 3D model.");
+            application.addHome(application.createHome());
+            hideLoader();
+          });
+        }
+      };
+
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'SH3D_INIT') {
+          token = event.data.token || token;
+          window.__sh3d_token = token;
+          
+          if (event.data.projectId) {
+            projectId = event.data.projectId;
+            window.__sh3d_projectId = projectId;
+          }
+          if (event.data.assetId) {
+            assetId = event.data.assetId;
+            window.__sh3d_assetId = assetId;
+            window.__sh3d_triggerLoad(assetId, token);
+          }
+        }
+      });
+
+      if (assetId) {
+        window.__sh3d_triggerLoad(assetId, token);
+      } else {
+        const incoming = QS.get('home') || QS.get('file');
+        if (!tryLoad(incoming)) {
+          application.addHome(application.createHome());
+          hideLoader();
+        }
       }
     })();
   </script>
@@ -2545,6 +2690,31 @@
           this.addActionToToolBar(HomeView.ActionType.JOIN_WALLS, bar);
           this.addActionToToolBar(HomeView.ActionType.SPLIT_WALL, bar);
         }
+
+        // Intercept native Save and Save As by cloning to strip native event listeners
+        setTimeout(() => {
+          const saveBtn = bar.querySelector('#toolbar-button-SAVE');
+          if (saveBtn) {
+            const newSaveBtn = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+            newSaveBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              window.customSaveModel();
+            }, true);
+          }
+
+          const saveAsBtn = bar.querySelector('#toolbar-button-SAVE_AS');
+          if (saveAsBtn) {
+            const newSaveAsBtn = saveAsBtn.cloneNode(true);
+            saveAsBtn.parentNode.replaceChild(newSaveAsBtn, saveAsBtn);
+            newSaveAsBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              window.customSaveAsModel();
+            }, true);
+          }
+        }, 500);
       };
     })();
   </script>
@@ -2722,10 +2892,6 @@
       document.getElementById('copy2dElements').onclick = copyElementsOnly;
 
       // --- AUTO-SAVE PLAN LOGIC ---
-      // We expose this so we can call it from the save interception
-      // --- AUTO-SAVE PLAN LOGIC ---
-      // We expose this so we can call it from the save interception
-      // Updated signature: pass 'home' explicitly to avoid lookup issues
       window.captureLevelImage = function (home, level, callback) {
         if (!home) {
           console.error("captureLevelImage called without home object");
@@ -2771,104 +2937,281 @@
 
         }, 350);
       };
-
-      // ... (rest of code)
-
-      // Inside exportAllLevels loop:
-      // window.captureLevelImage(home, lvl, function (blob) { ...
-
-
     })();
 
-    // --- HOOK INTO SAVE (LOCAL IMPLEMENTATION) ---
+    // --- HELPER TO FIND HOME OBJECT ---
+    window.findHome = function() {
+      if (!window.application) return null;
+      var app = window.application;
+      if (typeof app.getHome === 'function') return app.getHome();
+      if (typeof app.getDisplayedHome === 'function') return app.getDisplayedHome();
+      if (app.homes && app.homes.length > 0) return app.homes[0];
+      if (app.getHomes && typeof app.getHomes === 'function') {
+        var list = app.getHomes();
+        if (list && typeof list.size === 'function' && list.size() > 0) return list.get(0);
+        if (list && list.length > 0) return list[0];
+      }
+      if (app.home) return app.home;
+      return null;
+    };
+    
+    // =========================================================
+    // NATIVE SH3D SAVE — postMessage to parent React window
+    // All saves go through the BFF proxy for authenticated uploads.
+    // =========================================================
+
+    // Listen for acknowledgement from the parent after successful backend save
+    window.addEventListener('message', function(evt) {
+      if (!evt.data || typeof evt.data !== 'object') return;
+
+      if (evt.data.type === 'SH3D_SAVE_ACK') {
+        // Parent confirmed backend save was successful
+        var assetId   = evt.data.assetId;
+        var assetPk   = evt.data.assetPk;
+        var assetUid  = evt.data.canonicalUid;
+        console.log('[SH3D] SH3D_SAVE_ACK received from parent. assetId:', assetId, 'assetPk:', assetPk, 'canonicalUid:', assetUid);
+        window.__sh3d_assetId = assetId;
+        window.__sh3d_assetPk = assetPk;
+        // Update URL so a refresh doesn't create a duplicate
+        if (window.__sh3d_projectId && assetUid) {
+          window.history.replaceState({}, '', '?projectId=' + window.__sh3d_projectId + '&assetId=' + assetUid);
+        }
+        // Dismiss saving notification
+        _sh3d_dismissSaveUI('Model saved successfully to project! ✅', '#22c55e');
+        console.log('[SH3D] UI refreshed after save ack.');
+      }
+
+      if (evt.data.type === 'SH3D_SAVE_ERROR') {
+        var errMsg = evt.data.error || 'Unknown error';
+        console.error('[SH3D] SH3D_SAVE_ERROR from parent:', errMsg);
+        _sh3d_dismissSaveUI('Save failed: ' + errMsg, '#ef4444');
+        alert('Failed to save model to project: ' + errMsg);
+      }
+    });
+
+    function _sh3d_showSaveUI() {
+      if (window.__sh3d_saveNotification) {
+        try { window.__sh3d_saveNotification.remove(); } catch(e) {}
+      }
+      var n = document.createElement('div');
+      n.textContent = '💾 Saving model...';
+      Object.assign(n.style, {
+        position: 'fixed', right: '16px', bottom: '16px',
+        background: '#f59e0b', color: '#fff', padding: '10px 16px',
+        borderRadius: '8px', zIndex: 99999, font: '600 13px system-ui',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.2)', transition: 'all 0.3s'
+      });
+      document.body.appendChild(n);
+      window.__sh3d_saveNotification = n;
+    }
+
+    function _sh3d_dismissSaveUI(msg, color) {
+      if (window.__sh3d_saveNotification) {
+        window.__sh3d_saveNotification.textContent = msg || 'Done';
+        if (color) window.__sh3d_saveNotification.style.background = color;
+        setTimeout(function() {
+          if (window.__sh3d_saveNotification) {
+            try { window.__sh3d_saveNotification.remove(); } catch(e) {}
+            window.__sh3d_saveNotification = null;
+          }
+        }, 3000);
+      }
+      var saveBtn = document.getElementById('sh3d-save-btn');
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+    }
+
+    // --- CUSTOM UI ACTIONS ---
+    window.customSaveModel = function() {
+      if (!window.application) {
+        alert('Editor not fully loaded yet. Please wait.');
+        return;
+      }
+
+      console.log('[SH3D] Save started.');
+
+      var home = window.findHome();
+      if (!home) {
+        alert('Could not find home object. Please try again.');
+        console.error('[SH3D] Save failed: home object not found.');
+        return;
+      }
+
+      // Prompt for a name if unnamed
+      if (!home.getName() || home.getName().trim() === '') {
+        var newName = prompt('Enter a name for this model:', 'Untitled Model');
+        if (newName === null) {
+          console.log('[SH3D] Save cancelled by user.');
+          return;
+        }
+        if (newName.trim() === '') newName = 'Untitled Model';
+        home.setName(newName);
+      }
+
+      var modelName = home.getName();
+      if (modelName.indexOf('.') < 0) modelName += '.sh3d';
+
+      _sh3d_showSaveUI();
+
+      var saveBtn = document.getElementById('sh3d-save-btn');
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.6'; }
+
+      console.log('[SH3D] Generating native .sh3d blob for: ' + modelName);
+
+      // Step 1: Generate the native SH3D blob via HomeRecorder
+      var recorder = new HomeRecorder();
+      recorder.writeHome(home, modelName, {
+        homeSaved: function(savedHome, sh3dBlob) {
+          console.log('[SH3D] SH3D blob generated. Size:', sh3dBlob ? sh3dBlob.size : 0, 'bytes.');
+
+          if (!sh3dBlob || sh3dBlob.size === 0) {
+            console.error('[SH3D] SH3D blob is empty or null. Aborting save.');
+            _sh3d_dismissSaveUI('Error: SH3D file was empty', '#ef4444');
+            alert('Save error: Generated SH3D file was empty.');
+            return;
+          }
+
+          // Step 2: Capture a 2D plan thumbnail
+          console.log('[SH3D] Capturing 2D plan thumbnail...');
+          window.captureLevelImage(home, home.getSelectedLevel(), function(thumbnailBlob) {
+            console.log('[SH3D] Thumbnail captured. Size:', thumbnailBlob ? thumbnailBlob.size : 0, 'bytes.');
+
+            // Step 3: postMessage both blobs to parent React window
+            console.log('[SH3D] Dispatching SH3D_SAVE_COMPLETE to parent window...');
+            console.log('[SH3D] Upload started. SH3D size:', sh3dBlob.size, 'bytes. Thumbnail:', thumbnailBlob ? thumbnailBlob.size : 0, 'bytes.');
+
+            var msg = {
+              type: 'SH3D_SAVE_COMPLETE',
+              name: modelName,
+              sh3dBlob: sh3dBlob,
+              thumbnailBlob: thumbnailBlob || null,
+              projectId: window.__sh3d_projectId || null,
+              sh3dSize: sh3dBlob.size,
+              thumbnailSize: thumbnailBlob ? thumbnailBlob.size : 0
+            };
+
+            // postMessage to parent (the React iframe parent)
+            try {
+              window.parent.postMessage(msg, '*');
+              console.log('[SH3D] postMessage dispatched to parent.');
+            } catch(e) {
+              console.error('[SH3D] Failed to postMessage to parent:', e);
+              _sh3d_dismissSaveUI('Error: Could not communicate with app', '#ef4444');
+              alert('Save error: Could not communicate with the application. ' + e.message);
+            }
+          });
+        },
+        homeError: function(status, error) {
+          console.error('[SH3D] HomeRecorder.writeHome error. Status:', status, 'Error:', error);
+          _sh3d_dismissSaveUI('SH3D generation failed', '#ef4444');
+          alert('SH3D save failed: ' + error);
+        }
+      });
+    };
+
+    window.customSaveAsModel = function() {
+      var home = window.findHome();
+      if (!home) {
+        alert('Model not loaded yet.');
+        return;
+      }
+      var name = prompt('Enter a new name to Save As:', 'New Design (Copy)');
+      if (!name) return;
+      home.setName(name);
+      window.customSaveModel();
+    };
+
+    window.customSyncPlan = function() {
+      if (!window.__sh3d_assetId) {
+        alert("Please save the model first before syncing the 2D plan.");
+        return;
+      }
+      
+      var btn = document.getElementById("sh3d-sync-btn");
+      btn.innerHTML = "Syncing...";
+      btn.style.opacity = "0.7";
+      btn.disabled = true;
+      
+      // We trigger the export logic, and save it directly
+      var home = window.findHome();
+      if (!home) {
+        alert("Could not find home object");
+        return;
+      }
+      
+      try {
+        var name = home.getName() || "Untitled.png";
+        window.captureLevelImage(home, home.getSelectedLevel(), function(blob) {
+           var formData = new FormData();
+           formData.append("file", blob, name.replace(".sh3d", ".png"));
+           formData.append("project", window.__sh3d_projectId);
+           formData.append("category", "2d_plan");
+           formData.append("name", name.replace(".sh3d", "") + " 2D Plan");
+
+           fetch('/api/projects/' + window.__sh3d_projectId + '/assets/', {
+             method: 'POST',
+             credentials: 'same-origin',
+             body: formData
+           })
+           .then(function(res) {
+             if (!res.ok) throw new Error("Sync failed");
+             return res.json();
+           })
+           .then(function(data) {
+             alert("2D Plan Synced Successfully!");
+             btn.innerHTML = "🔄 Sync 2D Plan";
+             btn.style.opacity = "1";
+             btn.disabled = false;
+             
+             // Optionally trigger linking API
+             fetch('/api/projects/assets/' + window.__sh3d_assetId + '/sync_sh3d_artifacts/', {
+               method: 'POST',
+               credentials: 'same-origin',
+               headers: { 
+                 'Content-Type': 'application/json'
+               },
+               body: JSON.stringify({ "2d_plan_id": data.id })
+             });
+           })
+           .catch(function(err) {
+             alert("Failed to sync 2D plan");
+             btn.innerHTML = "🔄 Sync 2D Plan";
+             btn.style.opacity = "1";
+             btn.disabled = false;
+           });
+        });
+      } catch (e) {
+        alert("Error syncing 2D plan");
+      }
+    };
+
+    // --- NOTE: application.saveHome() is now called via customSaveModel() above ---
+    // --- The postMessage flow replaces all direct backend fetch calls. ---
     (functionWaitApp = function () {
       if (!window.application) { setTimeout(functionWaitApp, 200); return; }
-
-      console.log("Application found! Implementing local save logic.");
-
-      // Override saveHome to download locally instead of saving to server
-      application.saveHome = function () {
-        try {
-          var home = this.getHome();
-          var name = home.getName();
-          if (!name) name = "Untitled";
-          if (name.indexOf(".") < 0) name += ".sh3d";
-
-          console.log("Starting local save for: " + name);
-
-          // Simple Stream implementation for HomeRecorder
-          var chunks = [];
-          var outputStream = {
-            write: function (data) {
-              // data is usually a Uint8Array or similar
-              chunks.push(data);
-            },
-            close: function () {
-              console.log("Local save: stream closed, generating blob.");
-              var blob = new Blob(chunks, { type: "application/zip" });
-              var url = URL.createObjectURL(blob);
-              var a = document.createElement("a");
-              a.href = url;
-              a.download = name;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              alert("Local file downloaded: " + name);
-            },
-            flush: function () { }
-          };
-
-          var recorder = new HomeRecorder();
-          // Use synchronous writeHome (since we didn't set up the worker callback structure here manually)
-          // Note: If writeHomeWithWorker is true, application usually handles this, but here we invoke Recorder directly.
-          recorder.writeHome(home, outputStream);
-
-        } catch (e) {
-          console.error("Local save failed", e);
-          alert("Local save failed: " + e);
-        }
+      console.log('[SH3D] Application ready. postMessage-based save flow is active.');
+      // Override prototype methods to ensure ALL native save paths (keyboard shortcuts, menus, toolbars) hit our custom flow
+      if (typeof SweetHome3DJSApplication !== 'undefined') {
+        SweetHome3DJSApplication.prototype.saveHome = function() {
+          window.customSaveModel();
+        };
+        SweetHome3DJSApplication.prototype.saveHomeAs = function() {
+          window.customSaveAsModel();
+        };
+      }
+      
+      // Fallback to instance override just in case
+      application.saveHome = function() {
+        window.customSaveModel();
       };
-
-      /* BACKUP OF SERVER SYNC LOGIC
-      const origSaveHome = application.saveHome;
-      application.saveHome = function () {
-        // First, do the normal save (which writes the .sh3d)
-        // We want to do our plan export concurrently or after.
-        // Let's do it concurrently.
-
-        // Invoke original save immediately so user sees "Saving..."
-        const result = origSaveHome.apply(this, arguments);
-
-        // Now start our auto-export process
-        exportAllLevels();
-
-        return result;
+      application.saveHomeAs = function() {
+        window.customSaveAsModel();
       };
-      */
+    })();
 
       async function exportAllLevels() {
         // alert("Debug: exportAllLevels entered (v6).");
         try {
-          // Introspection to find the Home object
-          let home = null;
-          if (typeof application.getHome === 'function') {
-            home = application.getHome();
-          } else if (typeof application.getDisplayedHome === 'function') {
-            home = application.getDisplayedHome();
-          } else if (application.homes && application.homes.length > 0) {
-            home = application.homes[0];
-          } else if (application.getHomes && typeof application.getHomes === 'function') {
-            const list = application.getHomes();
-            if (list && list.size() > 0) home = list.get(0);
-          }
-
-          if (!home) {
-            console.log("Application keys:", Object.keys(application));
-            if (application.home) home = application.home;
-          }
-
-          // alert("Debug: Found home object: " + (home ? "Yes" : "No"));
+          let home = window.findHome();
 
           if (!home) {
             console.error("Critical Error: Could not find Home object. Cannot sync floors.");
@@ -2977,14 +3320,15 @@
       // Expose for manual button
       window.manualSyncFloorPlans = exportAllLevels;
 
-    })();
 
   </script>
 
+  <!-- Floating Save Model button removed, integrated into pill toolbar -->
+
   <div class="export-fab" style="top: calc(50% + 40px);">
     <button id="manualSyncBtn"
-      onclick="if(window.manualSyncFloorPlans) window.manualSyncFloorPlans(); else alert('Wait! System loading...');"
-      style="background:#22c55e; color:#fff; border:1px solid #16a34a;">Sync Plans</button>
+      onclick="window.customSyncPlan()"
+      style="background:#6366f1; color:#fff; border:1px solid #4f46e5; font-weight: bold;">🔄 Sync Plans</button>
   </div>
 
   <div class="export-fab" style="top: calc(50% + 90px);">

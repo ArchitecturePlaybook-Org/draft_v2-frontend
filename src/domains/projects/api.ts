@@ -256,6 +256,34 @@ export const projectsApi = {
     return fetchFromBff<any>("/api/projects/assets/", { method: "POST", body: formData });
   },
 
+  saveSH3DProject: async (projectUid: string, data: {
+    sh3dFile: Blob;
+    name: string;
+    thumbnailFile?: Blob | null;
+    glbFile?: Blob | null;
+  }) => {
+    const formData = new FormData();
+    formData.append('sh3d_file', data.sh3dFile, data.name);
+    formData.append('name', data.name);
+    if (data.thumbnailFile) {
+      formData.append('thumbnail', data.thumbnailFile, 'thumbnail.png');
+    }
+    if (data.glbFile) {
+      formData.append('glb_file', data.glbFile, 'model.glb');
+    }
+    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/save-sh3d/`, {
+      method: "POST",
+      body: formData
+    });
+  },
+
+  initSH3DProject: async (projectUid: string, name: string) => {
+    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/init-sh3d/`, {
+      method: "POST",
+      body: JSON.stringify({ name })
+    });
+  },
+
   updateProjectAsset: async (assetId: number, data: Partial<{ title: string; category: string }>) => {
     return fetchFromBff<any>(`/api/projects/assets/${assetId}/`, { method: "PATCH", body: JSON.stringify(data) });
   },

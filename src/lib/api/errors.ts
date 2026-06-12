@@ -11,6 +11,7 @@ export function handleProxyError(err: unknown) {
   if (err instanceof ProxyError) {
     return NextResponse.json({ detail: err.message }, { status: err.status });
   }
-  console.error("Proxy internal error:", err);
+  const errorMessage = err instanceof Error ? err.message : String(err);
+  console.error("Proxy internal error:", errorMessage);
   return NextResponse.json({ detail: "Internal server error" }, { status: 500 });
 }

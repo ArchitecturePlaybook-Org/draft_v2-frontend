@@ -41,4 +41,28 @@ export const authApi = {
       body: formData,
     });
   },
+
+  verifyEmail: async (uid: string, token: string) => {
+    return fetchFromBff<{detail: string}>("/api/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify({ uid, token }),
+      skipAuth: true,
+    });
+  },
+
+  requestPasswordReset: async (email: string) => {
+    return fetchFromBff<{detail: string}>("/api/auth/password-reset", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+      skipAuth: true,
+    });
+  },
+
+  confirmPasswordReset: async (data: Record<string, string>) => {
+    return fetchFromBff<{detail: string}>("/api/auth/password-reset/confirm", {
+      method: "POST",
+      body: JSON.stringify(data),
+      skipAuth: true,
+    });
+  },
 };

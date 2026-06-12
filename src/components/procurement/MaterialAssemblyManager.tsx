@@ -279,8 +279,7 @@ export function MaterialAssemblyManager() {
 
       {lightboxOpen && selectedAssembly?.image && (
         <ImageLightbox 
-          src={selectedAssembly.image} 
-          alt={selectedAssembly.item_code} 
+          imageUrl={selectedAssembly.image} 
           onClose={() => setLightboxOpen(false)} 
         />
       )}

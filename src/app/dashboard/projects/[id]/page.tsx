@@ -244,6 +244,23 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleCreateSH3DModel = async () => {
+    if (!project) return;
+    const name = prompt("Enter a name for the new 3D model:", "New Design");
+    if (!name) return;
+    
+    setIsUploading(true);
+    try {
+      await projectsApi.initSH3DProject(project.uid, name);
+      fetchProject();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to initialize model");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const fetchProject = async () => {
     if (!id) {
       setIsLoading(false);
@@ -286,6 +303,8 @@ export default function ProjectDetailPage() {
       setSurveyAsset(asset);
     } else if (asset.category === "3d_model") {
       setViewerAsset(asset);
+    } else if (asset.category === "sh3d") {
+      window.open(`/dashboard/projects/${id}/editor?assetId=${asset.canonical_uid}${asset.size === 0 ? '&isNew=true' : ''}`, "_blank");
     } else {
       // For general documents
       const isImage = /\.(png|jpg|jpeg|gif)$/i.test(asset.file);
@@ -309,6 +328,22 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     fetchProject();
     fetchTemplates();
+  }, [id]);
+
+  // Listen for SH3D model save events from the Editor
+  useEffect(() => {
+    try {
+      const bc = new BroadcastChannel('sh3d_updates');
+      bc.onmessage = (event) => {
+        if (event.data && event.data.type === 'SH3D_MODEL_SAVED' && event.data.projectUid === id) {
+          console.log("SH3D model saved, refreshing project data to show new asset...");
+          fetchProject();
+        }
+      };
+      return () => bc.close();
+    } catch (e) {
+      console.warn('BroadcastChannel not supported', e);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -701,6 +736,14 @@ export default function ProjectDetailPage() {
                         New Design Sketch
                       </button>
                     )}
+                    {activeHubCategory === "3d_model" && (
+                      <button 
+                        onClick={handleCreateSH3DModel}
+                        className="px-4 py-2 bg-emerald-50 text-emerald-600 font-black text-[10px] uppercase tracking-widest rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-2"
+                      >
+                        <span>🏠</span> Create SH3D Model
+                      </button>
+                    )}
                     {/* Hidden file input for 2D/3D/Document uploads */}
                     <input
                       ref={fileInputRef}
@@ -743,8 +786,8 @@ export default function ProjectDetailPage() {
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {project.assets?.filter(a => a.category === activeHubCategory).length ? (
-                    project.assets.filter(a => a.category === activeHubCategory).map(asset => (
+                  {project.assets?.filter(a => activeHubCategory === "3d_model" ? (a.category === "3d_model" || a.category === "sh3d") : a.category === activeHubCategory).length ? (
+                    project.assets.filter(a => activeHubCategory === "3d_model" ? (a.category === "3d_model" || a.category === "sh3d") : a.category === activeHubCategory).map(asset => (
                       <div 
                         key={asset.id} 
                         className="p-4 border border-surface-200 rounded-xl hover:border-accent hover:shadow-md transition-all bg-white group relative"
@@ -764,9 +807,18 @@ export default function ProjectDetailPage() {
 
                         <div 
                           onClick={() => handleOpenAsset(asset)}
-                          className="h-32 bg-surface-50 rounded-lg mb-3 flex items-center justify-center overflow-hidden border border-surface-100 cursor-pointer"
+                          className={`h-32 rounded-lg mb-3 flex items-center justify-center overflow-hidden border cursor-pointer transition-colors ${['3d_model', 'sh3d'].includes(asset.category) ? 'border-transparent bg-opacity-50 ' + (asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-50' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-50' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-50' : 'bg-indigo-50') : 'bg-surface-50 border-surface-100'}`}
                         >
-                          {asset.thumbnail ? (
+                          {['3d_model', 'sh3d'].includes(asset.category) ? (
+                            <div className="w-full h-full flex flex-col items-center justify-center transition-transform duration-500 group-hover:scale-105">
+                              <div className={`w-14 h-14 flex items-center justify-center rounded-2xl text-3xl mb-2 transition-transform duration-500 group-hover:-translate-y-1 shadow-inner ${asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 shadow-emerald-500/10' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-100 text-amber-600 border border-amber-200 shadow-amber-500/10' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-100 text-blue-600 border border-blue-200 shadow-blue-500/10' : 'bg-indigo-100 text-indigo-600 border border-indigo-200 shadow-indigo-500/10'}`}>
+                                🧊
+                              </div>
+                              <span className={`text-[9px] font-black tracking-widest ${asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'text-emerald-700' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'text-amber-700' : asset.file?.toLowerCase().endsWith('obj') ? 'text-blue-700' : 'text-indigo-700'}`}>
+                                {asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'SH3D PROJECT' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'GLB MODEL' : asset.file?.toLowerCase().endsWith('obj') ? 'OBJ MODEL' : '3D MODEL'}
+                              </span>
+                            </div>
+                          ) : asset.thumbnail ? (
                             <img src={asset.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           ) : asset.file?.match(/\.(png|jpg|jpeg|gif)$/i) ? (
                             <img src={asset.file} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
@@ -776,7 +828,7 @@ export default function ProjectDetailPage() {
                               <span className="text-[8px] font-bold text-accent uppercase tracking-widest">Editable Design</span>
                             </div>
                           ) : (
-                            <span className="text-4xl opacity-20">{activeHubCategory === '3d_model' ? '🏛️' : activeHubCategory === '2d_plan' ? '📐' : '📄'}</span>
+                            <span className="text-4xl opacity-20">{activeHubCategory === '2d_plan' ? '📐' : '📄'}</span>
                           )}
                         </div>
                         
@@ -830,9 +882,20 @@ export default function ProjectDetailPage() {
                               </div>
                             </div>
 
+                            {/* SH3D Editor Action */}
+                            {asset.category === "sh3d" && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleOpenAsset(asset); }}
+                                className="mt-3 w-full text-[10px] font-bold bg-emerald-50 text-emerald-600 rounded-lg px-2 py-2 uppercase tracking-widest hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
+                              >
+                                <span>✏️</span> Open in Editor
+                              </button>
+                            )}
+
                             {/* Task Link Button */}
                             {(activeHubCategory === "2d_plan" || activeHubCategory === "3d_model") && (
-                              <div className="mt-2.5 pt-2.5 border-t border-surface-100">
+                              <div className="mt-2.5 pt-2.5 border-t border-surface-100 flex flex-col gap-2">
+
                                 {(() => {
                                   const linkedTasksCount = project.tasks.filter(t => t.asset_links?.some(l => String(l.canonical_uid) === String(asset.canonical_uid))).length;
                                   return (
@@ -1119,6 +1182,7 @@ export default function ProjectDetailPage() {
       {activeTask && (
         <TaskExecutionModal 
           task={activeTask} 
+          projectId={project.id}
           projectUid={project.uid}
           projectAssets={project.assets || []}
           onClose={() => setActiveTask(null)} 

@@ -155,10 +155,15 @@ export default function SignupPage() {
            }
         }
         setFormErrors(backendErrors);
+        
         if (backendErrors.email || backendErrors.password || backendErrors.name) {
           setStep(1);
+          setError("Please fix the errors below.");
+        } else if (backendErrors.detail) {
+          setError(backendErrors.detail);
+        } else {
+          setError("Please fix the errors below.");
         }
-        setError("Please fix the errors below.");
       } else {
         setError(err instanceof Error ? err.message : "Registration failed.");
       }

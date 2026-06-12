@@ -23,6 +23,24 @@ export const API_ROUTES: ApiRouteConfig[] = [
     cookieStrategy: "set-auth",
   },
   {
+    prefix: "auth/verify-email",
+    target: "/api/users/auth/verify-email/",
+    methods: ["POST"],
+    auth: false,
+  },
+  {
+    prefix: "auth/password-reset/confirm",
+    target: "/api/users/auth/password-reset/confirm/",
+    methods: ["POST"],
+    auth: false,
+  },
+  {
+    prefix: "auth/password-reset",
+    target: "/api/users/auth/password-reset/",
+    methods: ["POST"],
+    auth: false,
+  },
+  {
     prefix: "auth/logout",
     target: "",
     methods: ["POST"],

@@ -1,28 +1,57 @@
 'use client';
-
 import React, { useEffect, useRef } from 'react';
+
+import { projectsApi } from '@/domains/projects/api';
 
 interface SweetHome3DEditorProps {
   projectId: string;
-  onSave?: (file: File) => void;
+  projectUid: string;
+  assetId?: string;
+  isNew?: boolean;
+  onSaveComplete?: (asset: any) => void;
 }
 
-export default function SweetHome3DEditor({ projectId, onSave }: SweetHome3DEditorProps) {
+export default function SweetHome3DEditor({ projectId, projectUid, assetId, isNew, onSaveComplete }: SweetHome3DEditorProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    // Optionally listen for messages from the iframe if we inject custom JS to emit events on save
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'SH3D_SAVE') {
-        const fileBlob = event.data.blob;
-        const fileName = event.data.name || 'Plan.sh3d';
+    // Listen for messages from the iframe SH3D application
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.data && event.data.type === 'SH3D_SAVE_COMPLETE') {
+        const { sh3dBlob, thumbnailBlob, name } = event.data;
         
-        // Convert Blob to File
-        const file = new File([fileBlob], fileName, { type: 'application/octet-stream' });
-        
-        // Call the parent handler
-        if (onSave) {
-          onSave(file);
+        try {
+          console.log('Sending SH3D model to backend via BFF...', name);
+          
+          const result = await projectsApi.saveSH3DProject(projectUid, {
+            sh3dFile: sh3dBlob,
+            thumbnailFile: thumbnailBlob,
+            name: name
+          });
+          
+          console.log('Backend save success:', result);
+          
+          // Acknowledge back to iframe with new IDs
+          if (iframeRef.current && iframeRef.current.contentWindow) {
+            iframeRef.current.contentWindow.postMessage({
+              type: 'SH3D_SAVE_ACK',
+              assetId: result.sh3d_asset?.id || result.id,
+              assetPk: result.sh3d_asset?.id || result.id,
+              canonicalUid: result.sh3d_asset?.canonical_uid || result.canonical_uid
+            }, '*');
+          }
+          
+          if (onSaveComplete) {
+            onSaveComplete(result);
+          }
+        } catch (error: any) {
+          console.error('Failed to save SH3D model to backend:', error);
+          if (iframeRef.current && iframeRef.current.contentWindow) {
+            iframeRef.current.contentWindow.postMessage({
+              type: 'SH3D_SAVE_ERROR',
+              error: error.message || 'Unknown error'
+            }, '*');
+          }
         }
       }
     };
@@ -31,13 +60,15 @@ export default function SweetHome3DEditor({ projectId, onSave }: SweetHome3DEdit
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [onSave]);
+  }, [projectUid, onSaveComplete]);
+
+  const src = `/sh3d/index.html?projectId=${projectId}${assetId ? `&assetId=${assetId}` : ''}${isNew ? '&isNew=true' : ''}`;
 
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden bg-white">
       <iframe
         ref={iframeRef}
-        src="/sh3d/index.html"
+        src={src}
         className="w-full h-full border-none outline-none flex-1"
         title="Sweet Home 3D Editor"
         allowFullScreen

@@ -6,13 +6,14 @@ import { CellPhotoDrawer } from "./CellPhotoDrawer";
 
 interface FloorPlanGridViewerProps {
   asset: ProjectAsset;
+  projectId?: number;
   onClose?: () => void;
   onRefresh: () => void;
   inline?: boolean;
   onToggleFullScreen?: () => void;
 }
 
-export function FloorPlanGridViewer({ asset, onClose, onRefresh, inline = false, onToggleFullScreen }: FloorPlanGridViewerProps) {
+export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inline = false, onToggleFullScreen }: FloorPlanGridViewerProps) {
   const [selectedCell, setSelectedCell] = useState<{ col: number; row: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [showInstructions, setShowInstructions] = useState(true);
@@ -102,6 +103,12 @@ export function FloorPlanGridViewer({ asset, onClose, onRefresh, inline = false,
             <div className="px-3 flex items-center text-[10px] font-black text-primary uppercase">{(zoom * 100).toFixed(0)}%</div>
             <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold text-lg">＋</button>
           </div>
+          <button 
+            onClick={() => window.open(`/sh3d/index.html?projectId=${asset.project}`, "_blank")} 
+            className="px-4 h-10 bg-indigo-50 text-indigo-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-indigo-100 transition-all border border-indigo-200 flex items-center gap-2"
+          >
+            <span>🏠</span> Open in SH3D
+          </button>
           {inline && onToggleFullScreen && (
             <button onClick={onToggleFullScreen} className="px-4 h-10 bg-surface-100 text-surface-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200">
               ⛶ Full Screen
@@ -217,6 +224,7 @@ export function FloorPlanGridViewer({ asset, onClose, onRefresh, inline = false,
           }}
         />
       )}
+
     </div>
   );
 }

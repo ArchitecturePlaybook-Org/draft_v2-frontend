@@ -94,10 +94,11 @@ export default function SharedTaskPage() {
         {/* We use the TaskExecutionModal but override some styles or let it be fullscreen */}
         <TaskExecutionModal 
           task={task}
+          projectId={typeof publicInfo.project === "object" ? publicInfo.project.id : 0}
           projectAssets={[]}
           onClose={() => router.push("/dashboard")}
           onTaskUpdated={loadFullTask}
-          projectUid={typeof publicInfo.project === "object" ? publicInfo.project.uid : undefined}
+          projectUid={typeof publicInfo.project === "object" ? publicInfo.project.uid : ""}
         />
       </div>
     );

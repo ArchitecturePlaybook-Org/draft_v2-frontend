@@ -22,9 +22,6 @@
   https://www.google.com/search?q=allow+access+from+files  
  -->
 
-{% include 'shared/navbar.html' %}
-{% load static %}
-
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -44,53 +41,109 @@
 <script type="text/javascript" src="lib/viewhome.min.js"></script>
 
 <style type="text/css">
-/* The class of components handled by the viewer */
-.viewerComponent  {
-}
-/* To display the viewer in full screen, uncomment the 3 following styles */
-/*
+/* Full screen styling */
 body {
   overflow-x: hidden;
   overflow-y: hidden;
   margin: 0;
+  background-color: #f8fafc;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 #viewerCanvas {
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  outline: none;
+  touch-action: none;
 }
 #viewerNavigationDiv {
   position: absolute; 
-  bottom: 5px;
-  left: 5px;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
 }
-*/
+#viewerProgressDiv {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 30px;
+  border-radius: 16px;
+  width: 300px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 50;
+}
+#viewerProgress {
+  width: 100% !important;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+#viewerProgress::-webkit-progress-bar {
+  background-color: #f1f5f9;
+}
+#viewerProgress::-webkit-progress-value {
+  background-color: #4f46e5;
+  transition: width 0.3s ease;
+}
+#viewerProgressLabel {
+  margin-top: 15px !important;
+  margin-left: 0 !important;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.footer-text {
+  position: absolute;
+  bottom: 10px;
+  right: 15px;
+  font-size: 10px;
+  color: #94a3b8;
+  z-index: 10;
+  pointer-events: none;
+}
+.footer-text a {
+  color: #64748b;
+  text-decoration: none;
+  pointer-events: auto;
+}
 </style>
 </head>
 
 <body>
 <div>
-  <!-- Copy the following canvas and components in your page, changing their size / texts and other values if needed  -->
-  <canvas id="viewerCanvas" class="viewerComponent" width="800" height="600"
-          style="background-color: #CCCCCC; border: 1px solid gray; outline:none; touch-action: none" tabIndex="1"></canvas>
-  <div id="viewerProgressDiv" style="width: 400px; position: relative; top: -350px; left: 200px; background-color: rgba(128, 128, 128, 0.7); padding: 20px; border-radius: 25px">
-    <progress id="viewerProgress"  class="viewerComponent" value="0" max="200" style="width: 400px"></progress>
-    <label id="viewerProgressLabel" class="viewerComponent" style="margin-top: 2px; display: block; margin-left: 10px"></label>
+  <canvas id="viewerCanvas" class="viewerComponent" tabIndex="1"></canvas>
+  <div id="viewerProgressDiv">
+    <progress id="viewerProgress" class="viewerComponent" value="0" max="200"></progress>
+    <label id="viewerProgressLabel" class="viewerComponent"></label>
   </div>
-  <div id="viewerNavigationDiv" style="margin-top: -60px">
-    <input  id="aerialView"   class="viewerComponent" name="cameraType" type="radio" style="visibility: hidden;"/>
-      <label class="viewerComponent" for="aerialView" style="visibility: hidden;">Aerial view</label>
-    <input  id="virtualVisit" class="viewerComponent" name="cameraType" type="radio" style="visibility: hidden;"/>
-      <label class="viewerComponent" for="virtualVisit" style="visibility: hidden;">Virtual visit</label>
-    <select id="levelsAndCameras" class="viewerComponent" style="visibility: hidden;"></select>
+  <div id="viewerNavigationDiv" style="display: none;">
+    <input id="aerialView" class="viewerComponent" name="cameraType" type="radio" />
+    <label class="viewerComponent" for="aerialView">Aerial view</label>
+    <input id="virtualVisit" class="viewerComponent" name="cameraType" type="radio" />
+    <label class="viewerComponent" for="virtualVisit">Virtual visit</label>
+    <select id="levelsAndCameras" class="viewerComponent"></select>
   </div>
 </div>
-<div style="position: absolute; bottom: 5px; text-align: center; width: 95%; z-index: -1">
-  <a href="http://www.sweethome3d.com">Sweet Home 3D</a> JS Viewer / Version 7.5.2 - Distributed under GNU General Public License
+<div class="footer-text">
+  <a href="http://www.sweethome3d.com" target="_blank">Sweet Home 3D</a> JS Viewer
 </div>
 
 <!-- Copy the following script to view your home in the previous canvas, updating the default.sh3d URL and parameters if necessary -->
 <script type="text/javascript">
-  var homeUrl = "default.sh3d";
+  var QS = new URLSearchParams(window.location.search);
+  var homeUrl = QS.get('file') || QS.get('defaultHome') || "default.sh3d";
   var onerror = function(err) {
       if (err == "No WebGL") {
         alert("Sorry, your browser doesn't support WebGL.");

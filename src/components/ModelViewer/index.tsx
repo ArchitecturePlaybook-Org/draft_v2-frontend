@@ -13,11 +13,29 @@ function Loader() {
 
 export interface ModelViewerProps {
   url: string;
-  format: 'glb' | 'gltf' | 'obj';
+  format: 'glb' | 'gltf' | 'obj' | 'sh3d';
 }
 
 export default function ModelViewer({ url, format }: ModelViewerProps) {
   const isGlb = format === 'glb' || format === 'gltf';
+  const isSh3d = format === 'sh3d';
+
+  if (isSh3d) {
+    return (
+      <div className="w-full h-full min-h-[400px] bg-slate-50 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative">
+        <iframe 
+          src={`/sh3d/SweetHome3DJSViewer.html?file=${encodeURIComponent(url)}`} 
+          className="w-full h-full border-0" 
+          title="Sweet Home 3D Viewer"
+        />
+        <div className="absolute bottom-4 right-4 flex justify-between text-xs text-slate-500 pointer-events-none">
+          <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm uppercase font-semibold">
+            {format}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full min-h-[400px] bg-slate-50 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative">
