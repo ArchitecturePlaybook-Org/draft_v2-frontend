@@ -28,12 +28,14 @@ export interface UserProfile {
   profile_picture?: string;
   address?: Record<string, unknown>;
   metadata: Record<string, unknown>;
+  is_onboarding_complete?: boolean;
   category_path?: {
     main?: string;
     selected?: Record<string, string[]>;
   } | null;
   website?: string;
   social_links?: Record<string, unknown>;
+  is_public?: boolean;
 }
 
 export interface User {
@@ -48,8 +50,21 @@ export interface User {
   user_type?: "architect" | "builder" | "contractor" | "supplier" | "client";
   profile?: UserProfile;
   is_active: boolean;
+  is_2fa_enabled?: boolean;
+  email_task_reminders?: boolean;
   created_at: string;
   updated_at?: string;
+}
+
+export interface OrgMetadata {
+  timezone?: string;
+  currency?: string;
+  unit_system?: "metric" | "imperial";
+  company_reg?: string;
+  tax_id?: string;
+  insurance_policy?: string;
+  license_id?: string;
+  [key: string]: unknown;
 }
 
 export interface Organization {
@@ -63,8 +78,10 @@ export interface Organization {
   website?: string;
   address?: string;
   logo?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: OrgMetadata;
   social_links?: Record<string, string>;
+  enable_auto_join?: boolean;
+  auto_join_domain?: string;
   created_at?: string;
 }
 
@@ -84,9 +101,11 @@ export interface AuthTokens {
 }
 
 export interface LoginResponse {
-  access: string;
-  refresh: string;
-  user: User;
+  access?: string;
+  refresh?: string;
+  user?: User;
+  requires_2fa?: boolean;
+  pre_auth_token?: string;
 }
 
 export interface LoginCredentials {

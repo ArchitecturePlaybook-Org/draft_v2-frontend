@@ -3,10 +3,22 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { orgsApi, OrgUpdateData } from "@/domains/orgs/api";
 import { Organization, Invitation } from "@/types/auth";
+import { detectUserTimezone, detectUserUnitSystem, detectUserCurrency } from "@/utils/localization";
+import ReactCrop, { Crop, PixelCrop, makeAspectCrop, centerCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+import { useAuthStore } from "@/store/auth-store";
+import { useIsAdmin } from "@/domains/auth/hooks";
 
 import { ChecklistTemplateManager } from "./ChecklistTemplateManager";
+import { AuditLogsView } from "./AuditLogsView";
+import { WebhooksView } from "./WebhooksView";
 
-type OrgTabType = "overview" | "team" | "brand" | "compliance" | "templates";
+type OrgTabType = "overview" | "team" | "brand" | "compliance" | "templates" | "activity" | "security" | "preferences" | "webhooks";
+
+const PUBLIC_EMAIL_DOMAINS = [
+  "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", 
+  "icloud.com", "aol.com", "protonmail.com", "mail.com"
+];
 
 const ROLE_DISPLAY: Record<string, { label: string; color: string }> = {
   owner: { label: "Account Owner", color: "bg-red-500" },
@@ -29,15 +41,36 @@ export default function OrganizationPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Cropping State
+  const [imgSrc, setImgSrc] = useState("");
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+
   // Form States
   const [newOrgName, setNewOrgName] = useState("");
   const [newOrgEmail, setNewOrgEmail] = useState("");
+  const [newOrgTimezone, setNewOrgTimezone] = useState("");
+  const [newOrgCurrency, setNewOrgCurrency] = useState("");
+  const [newOrgUnitSystem, setNewOrgUnitSystem] = useState("metric");
+  const [isDetecting, setIsDetecting] = useState(false);
   
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
 
   // Editable Fields State
   const [editData, setEditData] = useState<OrgUpdateData>({});
+
+  const { user } = useAuthStore();
+  const isAdmin = useIsAdmin();
+
+  const currentOrgRole = useMemo(() => {
+    if (!user || !members) return null;
+    return members.find(m => m.user.id === user.id)?.role;
+  }, [members, user]);
+
+  const canManageOrg = isAdmin || currentOrgRole === "owner" || currentOrgRole === "principal";
 
   useEffect(() => {
     loadOrgs();
@@ -56,10 +89,27 @@ export default function OrganizationPage() {
         address: selectedOrg.address,
         metadata: selectedOrg.metadata || {},
         social_links: selectedOrg.social_links || {},
+        enable_auto_join: selectedOrg.enable_auto_join || false,
+        auto_join_domain: selectedOrg.auto_join_domain || "",
       });
       setIsEditing(false);
     }
   }, [selectedOrg]);
+
+  // Handle Auto-Detection when Preferences tab opens
+  useEffect(() => {
+    if (activeTab === "preferences" && selectedOrg && !selectedOrg.metadata?.timezone) {
+      setEditData(prev => ({
+        ...prev,
+        metadata: {
+          ...(prev.metadata || {}),
+          timezone: prev.metadata?.timezone || detectUserTimezone(),
+          currency: prev.metadata?.currency || detectUserCurrency(),
+          unit_system: prev.metadata?.unit_system || detectUserUnitSystem(),
+        }
+      }));
+    }
+  }, [activeTab, selectedOrg]);
 
   async function loadOrgs() {
     setIsLoading(true);
@@ -98,7 +148,15 @@ export default function OrganizationPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await orgsApi.createOrg({ name: newOrgName, email: newOrgEmail });
+      await orgsApi.createOrg({ 
+        name: newOrgName, 
+        email: newOrgEmail,
+        metadata: {
+          timezone: newOrgTimezone,
+          currency: newOrgCurrency,
+          unit_system: newOrgUnitSystem
+        }
+      });
       setNewOrgName("");
       setNewOrgEmail("");
       setShowCreate(false);
@@ -163,13 +221,75 @@ export default function OrganizationPage() {
     const file = e.target.files?.[0];
     if (!file || !selectedOrg) return;
 
-    try {
-      const updatedOrg = await orgsApi.uploadLogo(selectedOrg.id, file);
-      setSelectedOrg(updatedOrg);
-      setOrgs(prev => prev.map(o => o.id === updatedOrg.id ? updatedOrg : o));
-    } catch (err) {
-      alert("Failed to upload logo.");
+    // Convert file to base64 for cropping preview
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      setImgSrc(reader.result?.toString() || "");
+      setIsCropModalOpen(true);
+    });
+    reader.readAsDataURL(file);
+    
+    // Clear input so selecting the same file again works
+    if (logoInputRef.current) {
+      logoInputRef.current.value = "";
     }
+  }
+
+  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const { width, height } = e.currentTarget;
+    const crop = centerCrop(
+      makeAspectCrop({ unit: "%", width: 90 }, 1, width, height),
+      width,
+      height
+    );
+    setCrop(crop);
+  }
+
+  async function handleCropSubmit() {
+    if (!completedCrop || !imgRef.current || !selectedOrg) return;
+
+    // Create canvas to draw the cropped image
+    const canvas = document.createElement("canvas");
+    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+    
+    canvas.width = completedCrop.width;
+    canvas.height = completedCrop.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(
+      imgRef.current,
+      completedCrop.x * scaleX,
+      completedCrop.y * scaleY,
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+      0,
+      0,
+      completedCrop.width,
+      completedCrop.height
+    );
+
+    setIsSaving(true);
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        setIsSaving(false);
+        return;
+      }
+      
+      const file = new File([blob], "logo.png", { type: "image/png" });
+      try {
+        const updatedOrg = await orgsApi.uploadLogo(selectedOrg.id, file);
+        setSelectedOrg(updatedOrg);
+        setOrgs(prev => prev.map(o => o.id === updatedOrg.id ? updatedOrg : o));
+        setIsCropModalOpen(false);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to upload logo.");
+      } finally {
+        setIsSaving(false);
+      }
+    }, "image/png");
   }
 
   const updateMetadata = (key: string, value: any) => {
@@ -196,7 +316,18 @@ export default function OrganizationPage() {
           <p className="text-surface-500 font-medium italic text-sm">Orchestrate your practice governance and collaborative team layers.</p>
         </div>
         <button 
-          onClick={() => setShowCreate(!showCreate)}
+          onClick={() => {
+            if (!showCreate) {
+              setIsDetecting(true);
+              setTimeout(() => {
+                setNewOrgTimezone(detectUserTimezone());
+                setNewOrgCurrency(detectUserCurrency());
+                setNewOrgUnitSystem(detectUserUnitSystem());
+                setIsDetecting(false);
+              }, 500);
+            }
+            setShowCreate(!showCreate);
+          }}
           className={`px-10 h-14 font-bold uppercase text-[10px] tracking-[0.25em] transition-all shadow-xl ${
             showCreate ? "bg-red-500 text-white" : "bg-primary text-white hover:bg-accent shadow-primary/20"
           }`}
@@ -231,7 +362,56 @@ export default function OrganizationPage() {
                     />
                 </div>
             </div>
-            <button type="submit" disabled={isSaving} className="w-full h-16 bg-accent text-white font-bold uppercase tracking-[0.3em] text-xs hover:shadow-2xl transition-all disabled:opacity-50">
+            
+            {isDetecting && (
+              <div className="text-[10px] font-bold text-accent animate-pulse flex items-center gap-3 bg-accent/5 p-4 rounded-xl border border-accent/20">
+                <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
+                Auto-detecting regional configuration via browser locale...
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-surface-100">
+                <div className="col-span-full mb-[-10px]">
+                  <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest flex items-center gap-2">
+                    <span className="text-accent">🌐</span> Regional Defaults
+                  </p>
+                </div>
+                <div className="space-y-3">
+                    <label className="text-[9px] font-bold text-surface-500 uppercase tracking-[0.2em]">Base Timezone</label>
+                    <input 
+                        type="text" value={newOrgTimezone} onChange={(e) => setNewOrgTimezone(e.target.value)}
+                        className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent font-bold text-xs"
+                    />
+                </div>
+                <div className="space-y-3">
+                    <label className="text-[9px] font-bold text-surface-500 uppercase tracking-[0.2em]">Default Currency</label>
+                    <select 
+                        value={newOrgCurrency} onChange={(e) => setNewOrgCurrency(e.target.value)}
+                        className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent font-bold text-xs"
+                    >
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="INR">INR (₹)</option>
+                        <option value="AUD">AUD ($)</option>
+                        <option value="CAD">CAD ($)</option>
+                        {!["USD", "EUR", "GBP", "INR", "AUD", "CAD"].includes(newOrgCurrency) && newOrgCurrency && (
+                            <option value={newOrgCurrency}>{newOrgCurrency}</option>
+                        )}
+                    </select>
+                </div>
+                <div className="space-y-3">
+                    <label className="text-[9px] font-bold text-surface-500 uppercase tracking-[0.2em]">Unit System</label>
+                    <select 
+                        value={newOrgUnitSystem} onChange={(e) => setNewOrgUnitSystem(e.target.value)}
+                        className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent font-bold text-xs"
+                    >
+                        <option value="metric">Metric (m, kg)</option>
+                        <option value="imperial">Imperial (ft, lb)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" disabled={isSaving || isDetecting} className="w-full h-16 bg-accent text-white font-bold uppercase tracking-[0.3em] text-xs hover:shadow-2xl transition-all disabled:opacity-50">
               {isSaving ? "Provisioning Entity..." : "Confirm Establishment"}
             </button>
         </form>
@@ -324,7 +504,9 @@ export default function OrganizationPage() {
 
                     {/* Navigation Tabs */}
                     <div className="flex border-b border-surface-200 overflow-x-auto no-scrollbar scroll-smooth">
-                        {(["overview", "team", "brand", "compliance", "templates"] as OrgTabType[]).map((tab) => (
+                        {(["overview", "team", "brand", "compliance", "templates", "activity", "security", "preferences", "webhooks"] as OrgTabType[])
+                        .filter(tab => canManageOrg || !["team", "compliance", "security", "webhooks"].includes(tab))
+                        .map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -439,6 +621,7 @@ export default function OrganizationPage() {
                         )}
 
                         {activeTab === "team" && (
+                            canManageOrg ? (
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                                 <div className="lg:col-span-2 space-y-8">
                                     <section className="bg-white border border-surface-200 rounded-2xl overflow-hidden shadow-sm">
@@ -544,6 +727,13 @@ export default function OrganizationPage() {
                                     </div>
                                 </section>
                             </div>
+                            ) : (
+                                <div className="p-20 text-center bg-white border border-surface-200 rounded-3xl">
+                                    <div className="text-4xl mb-4 opacity-50">🔒</div>
+                                    <p className="text-red-500 font-bold uppercase tracking-[0.2em] text-xs">Restricted Access</p>
+                                    <p className="text-surface-400 text-xs mt-2 font-medium">You must be an Organization Owner or Principal to view this section.</p>
+                                </div>
+                            )
                         )}
 
                         {activeTab === "brand" && (
@@ -598,6 +788,7 @@ export default function OrganizationPage() {
                         )}
 
                         {activeTab === "compliance" && (
+                            canManageOrg ? (
                             <div className="max-w-4xl space-y-10">
                                 <section className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
                                     <div className="space-y-2">
@@ -631,6 +822,181 @@ export default function OrganizationPage() {
                                     </div>
                                 </section>
                             </div>
+                            ) : (
+                                <div className="p-20 text-center bg-white border border-surface-200 rounded-3xl">
+                                    <div className="text-4xl mb-4 opacity-50">🔒</div>
+                                    <p className="text-red-500 font-bold uppercase tracking-[0.2em] text-xs">Restricted Access</p>
+                                    <p className="text-surface-400 text-xs mt-2 font-medium">You must be an Organization Owner or Principal to view this section.</p>
+                                </div>
+                            )
+                        )}
+                        
+                        {activeTab === "security" && (
+                            canManageOrg ? (
+                            <div className="max-w-4xl space-y-10">
+                                <section className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
+                                    <div className="space-y-2">
+                                        <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Security & Onboarding</h3>
+                                        <p className="text-xs text-surface-400 uppercase tracking-widest font-medium">Manage access protocols and domain claiming.</p>
+                                    </div>
+
+                                    <div className="space-y-8 bg-surface-50 p-8 rounded-2xl border border-surface-200">
+                                        <div className="space-y-2">
+                                            <h4 className="font-bold text-primary uppercase tracking-widest text-xs">Domain Auto-Join</h4>
+                                            <p className="text-xs text-surface-500 max-w-2xl leading-relaxed">
+                                                Allow anyone with a verified company email address to automatically join this organization without an explicit invitation. They will be granted the lowest <strong>Member</strong> role by default.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Claimed Domain</label>
+                                            <div className="flex items-center gap-4">
+                                                <input 
+                                                    type="text" 
+                                                    value={editData.auto_join_domain || ""} 
+                                                    onChange={e => setEditData({...editData, auto_join_domain: e.target.value})}
+                                                    placeholder="acme-architecture.com"
+                                                    className="flex-1 h-12 bg-white border border-surface-200 px-5 rounded-xl outline-none focus:border-accent text-sm font-mono"
+                                                />
+                                                <button 
+                                                    onClick={() => {
+                                                        const currentIsActive = editData.enable_auto_join || false;
+                                                        setEditData({...editData, enable_auto_join: !currentIsActive});
+                                                    }}
+                                                    className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none ${
+                                                        editData.enable_auto_join ? 'bg-accent' : 'bg-surface-300'
+                                                    }`}
+                                                >
+                                                    <span className="sr-only">Toggle Auto-Join</span>
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out ${
+                                                            editData.enable_auto_join ? 'translate-x-3' : '-translate-x-3'
+                                                        }`}
+                                                    />
+                                                </button>
+                                            </div>
+                                            {editData.auto_join_domain && PUBLIC_EMAIL_DOMAINS.includes(editData.auto_join_domain.toLowerCase()) && (
+                                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-bold flex items-center gap-2">
+                                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
+                                                    Auto-join is not available for public email domains (e.g., @gmail.com).
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="pt-4 flex justify-end">
+                                            <button 
+                                                onClick={handleUpdate} 
+                                                disabled={isSaving || (editData.auto_join_domain ? PUBLIC_EMAIL_DOMAINS.includes(editData.auto_join_domain.toLowerCase()) : false)} 
+                                                className="px-10 h-12 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent disabled:opacity-50 transition-all"
+                                            >
+                                                {isSaving ? "Saving..." : "Update Security Settings"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                            ) : (
+                                <div className="p-20 text-center bg-white border border-surface-200 rounded-3xl">
+                                    <div className="text-4xl mb-4 opacity-50">🔒</div>
+                                    <p className="text-red-500 font-bold uppercase tracking-[0.2em] text-xs">Restricted Access</p>
+                                    <p className="text-surface-400 text-xs mt-2 font-medium">You must be an Organization Owner or Principal to view this section.</p>
+                                </div>
+                            )
+                        )}
+                        
+                        {activeTab === "preferences" && (
+                            <div className="max-w-4xl space-y-10">
+                                <section className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
+                                    <div className="space-y-2 flex justify-between items-start">
+                                        <div>
+                                            <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Localization & Preferences</h3>
+                                            <p className="text-xs text-surface-400 uppercase tracking-widest font-medium">Standardize formats for all firm members.</p>
+                                        </div>
+                                        {(!selectedOrg.metadata?.timezone || !selectedOrg.metadata?.currency) && (
+                                            <span className="px-3 py-1 bg-blue-50 border border-blue-100 text-blue-600 text-[10px] font-bold uppercase tracking-widest rounded-md animate-pulse">
+                                                ✨ Auto-Detected Defaults
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Base Timezone</label>
+                                            <select 
+                                                value={String((editData.metadata as any)?.[`timezone`] || "")} 
+                                                onChange={e => updateMetadata("timezone", e.target.value)}
+                                                className="w-full h-12 bg-surface-50 border border-surface-200 px-5 rounded-xl outline-none focus:border-accent text-sm"
+                                            >
+                                                <option value="">Select Timezone...</option>
+                                                {/* In a real app, you'd map a full IANA list here. We'll use a simplified list. */}
+                                                <option value="America/New_York">America/New_York (EST/EDT)</option>
+                                                <option value="America/Chicago">America/Chicago (CST/CDT)</option>
+                                                <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+                                                <option value="Europe/London">Europe/London (GMT/BST)</option>
+                                                <option value="Europe/Paris">Europe/Paris (CET/CEST)</option>
+                                                <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+                                                <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                                                <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
+                                                {/* Fallback for auto-detected zones not in our tiny static list above */}
+                                                {(editData.metadata as any)?.timezone && !["America/New_York", "America/Chicago", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney"].includes((editData.metadata as any)?.timezone) && (
+                                                    <option value={(editData.metadata as any)?.timezone}>{(editData.metadata as any)?.timezone}</option>
+                                                )}
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Base Currency</label>
+                                            <select 
+                                                value={String((editData.metadata as any)?.[`currency`] || "")} 
+                                                onChange={e => updateMetadata("currency", e.target.value)}
+                                                className="w-full h-12 bg-surface-50 border border-surface-200 px-5 rounded-xl outline-none focus:border-accent text-sm"
+                                            >
+                                                <option value="">Select Currency...</option>
+                                                <option value="USD">USD - US Dollar</option>
+                                                <option value="EUR">EUR - Euro</option>
+                                                <option value="GBP">GBP - British Pound</option>
+                                                <option value="INR">INR - Indian Rupee</option>
+                                                <option value="CAD">CAD - Canadian Dollar</option>
+                                                <option value="AUD">AUD - Australian Dollar</option>
+                                                <option value="JPY">JPY - Japanese Yen</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-3 md:col-span-2">
+                                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Default Unit System</label>
+                                            <div className="flex gap-4">
+                                                <button 
+                                                    onClick={() => updateMetadata("unit_system", "metric")}
+                                                    className={`flex-1 py-4 border rounded-xl font-bold uppercase text-xs tracking-widest transition-all ${
+                                                        (editData.metadata as any)?.unit_system === "metric" 
+                                                        ? "bg-primary border-primary text-white shadow-xl" 
+                                                        : "bg-surface-50 border-surface-200 text-surface-500 hover:border-accent"
+                                                    }`}
+                                                >
+                                                    Metric (m, cm, kg)
+                                                </button>
+                                                <button 
+                                                    onClick={() => updateMetadata("unit_system", "imperial")}
+                                                    className={`flex-1 py-4 border rounded-xl font-bold uppercase text-xs tracking-widest transition-all ${
+                                                        (editData.metadata as any)?.unit_system === "imperial" 
+                                                        ? "bg-primary border-primary text-white shadow-xl" 
+                                                        : "bg-surface-50 border-surface-200 text-surface-500 hover:border-accent"
+                                                    }`}
+                                                >
+                                                    Imperial (ft, in, lbs)
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-8 border-t border-surface-100">
+                                        <button onClick={handleUpdate} disabled={isSaving} className="w-full h-16 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent shadow-2xl shadow-primary/20 transition-all">
+                                            {isSaving ? "Synchronizing Preferences..." : "Update Preferences"}
+                                        </button>
+                                    </div>
+                                </section>
+                            </div>
                         )}
                         
                         {activeTab === "templates" && (
@@ -638,9 +1004,82 @@ export default function OrganizationPage() {
                                 <ChecklistTemplateManager />
                             </div>
                         )}
+                        
+                        {activeTab === "activity" && selectedOrg && (
+                            <div className="animate-in fade-in duration-500">
+                                <AuditLogsView orgId={selectedOrg.id} />
+                            </div>
+                        )}
+
+                        {activeTab === "webhooks" && selectedOrg && (
+                            canManageOrg ? (
+                            <div className="animate-in fade-in duration-500">
+                                <WebhooksView orgId={selectedOrg.id} />
+                            </div>
+                            ) : (
+                                <div className="p-20 text-center bg-white border border-surface-200 rounded-3xl">
+                                    <div className="text-4xl mb-4 opacity-50">🔒</div>
+                                    <p className="text-red-500 font-bold uppercase tracking-[0.2em] text-xs">Restricted Access</p>
+                                    <p className="text-surface-400 text-xs mt-2 font-medium">You must be an Organization Owner or Principal to view this section.</p>
+                                </div>
+                            )
+                        )}
                     </div>
                 </div>
             )}
+        </div>
+      )}
+
+      {/* Crop Modal */}
+      {isCropModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-surface-200">
+            <div className="p-8 border-b border-surface-100 flex justify-between items-center bg-surface-50">
+              <div>
+                <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Adjust Organization Logo</h3>
+                <p className="text-xs text-surface-500 font-medium tracking-widest mt-1">Scale and position to fit the 1:1 format.</p>
+              </div>
+              <button onClick={() => setIsCropModalOpen(false)} className="text-surface-400 hover:text-red-500 transition-colors">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-8 bg-surface-900 flex justify-center items-center max-h-[60vh] overflow-y-auto">
+              {imgSrc && (
+                <ReactCrop
+                  crop={crop}
+                  onChange={(_, percentCrop) => setCrop(percentCrop)}
+                  onComplete={(c) => setCompletedCrop(c)}
+                  aspect={1}
+                  className="max-h-full"
+                >
+                  <img
+                    ref={imgRef}
+                    alt="Crop preview"
+                    src={imgSrc}
+                    onLoad={onImageLoad}
+                    className="max-w-full max-h-[50vh] object-contain"
+                  />
+                </ReactCrop>
+              )}
+            </div>
+            
+            <div className="p-8 bg-surface-50 border-t border-surface-200 flex justify-end gap-4">
+              <button 
+                onClick={() => setIsCropModalOpen(false)}
+                className="px-8 h-12 bg-white border border-surface-200 text-surface-600 font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-surface-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleCropSubmit}
+                disabled={!completedCrop || isSaving}
+                className="px-8 h-12 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-colors disabled:opacity-50"
+              >
+                {isSaving ? "Uploading..." : "Confirm & Upload"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

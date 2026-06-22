@@ -8,5 +8,5 @@ interface GlbModelProps {
 
 export default function GlbModel({ url }: GlbModelProps) {
   const { scene } = useGLTF(url);
-  return <primitive object={scene} />;
+  return <primitive object={scene} dispose={null} />;
 }

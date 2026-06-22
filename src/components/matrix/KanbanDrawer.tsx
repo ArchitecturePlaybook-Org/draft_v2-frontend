@@ -27,6 +27,24 @@ const COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string 
   { id: "DONE", label: "Done", color: "bg-emerald-50 border-emerald-100", dotColor: "bg-emerald-500" },
 ];
 
+const getUpdatedBlock = (currentBlock: MilestoneBlockExpanded, updatedTasks: Task[]): MilestoneBlockExpanded => {
+  const total = updatedTasks.length;
+  const completed = updatedTasks.filter(t => t.status === "DONE").length;
+  const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+  let status = currentBlock.status;
+  if (status !== "LOCKED") {
+    status = completed === total && total > 0 ? "DONE" : "ACTIVE";
+  }
+  return {
+    ...currentBlock,
+    tasks: updatedTasks,
+    total_tasks: total,
+    completed_tasks: completed,
+    progress_percent: progress,
+    status,
+  };
+};
+
 export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   block,
   phase,
@@ -43,11 +61,58 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const isLocked = block.status === "LOCKED";
 
-  // Sync tasks if block updates from backend/websockets
+  // Yjs CRDT Integration Refs
+  const yDocRef = React.useRef<any>(null);
+  const yTasksRef = React.useRef<any>(null);
+  const wsProviderRef = React.useRef<any>(null);
+
   React.useEffect(() => {
-    setTasks(block.tasks || []);
+    let active = true;
+    Promise.all([
+      import("yjs"),
+      import("y-websocket")
+    ]).then(([Y, { WebsocketProvider }]) => {
+      if (!active) return;
+      const doc = new Y.Doc();
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+      const provider = new WebsocketProvider(wsUrl, `kanban-block-${block.id}`, doc);
+      const yTasks = doc.getMap('tasks');
+      
+      yDocRef.current = doc;
+      yTasksRef.current = yTasks;
+      wsProviderRef.current = provider;
+
+      // Listen to remote changes
+      yTasks.observe(() => {
+        const syncedTasks = Array.from(yTasks.values());
+        if (syncedTasks.length > 0) {
+          setTasks(syncedTasks as Task[]);
+        }
+      });
+
+      // Initial sync from DB to Yjs if Yjs is empty
+      if (Array.from(yTasks.keys()).length === 0 && block.tasks) {
+        doc.transact(() => {
+          block.tasks?.forEach(t => yTasks.set(t.uid, t));
+        });
+      }
+    });
+
+    return () => {
+      active = false;
+      if (wsProviderRef.current) wsProviderRef.current.destroy();
+      if (yDocRef.current) yDocRef.current.destroy();
+    };
+  }, [block.id]);
+
+  // Sync tasks if block updates from backend (fallback)
+  React.useEffect(() => {
+    if (!yTasksRef.current || Array.from(yTasksRef.current.keys()).length === 0) {
+      setTasks(block.tasks || []);
+    }
   }, [block.tasks]);
 
   // ── Drag & Drop ─────────────────────────────────────────────────────────────
@@ -73,15 +138,24 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       return;
     }
 
-    // Optimistic UI update
+    // Optimistic UI update & Yjs sync
     const previousTasks = [...tasks];
-    setTasks(prev => prev.map(t => t.uid === draggingTaskId ? { ...t, status: targetStatus } : t));
+    const updatedTask = { ...task, status: targetStatus };
+    const optimisticTasks = tasks.map(t => t.uid === draggingTaskId ? updatedTask : t);
+    setTasks(optimisticTasks);
+    
+    // Broadcast via CRDT
+    if (yTasksRef.current) {
+        yTasksRef.current.set(updatedTask.uid, updatedTask);
+    }
+
     setDraggingTaskId(null);
 
     try {
       const updated = await projectsApi.updateTask(draggingTaskId, { status: targetStatus });
-      setTasks(prev => prev.map(t => t.uid === updated.uid ? updated : t));
-      onBlockUpdated({ ...block, tasks: tasks.map(t => t.uid === updated.uid ? updated : t) });
+      const updatedTasks = optimisticTasks.map(t => t.uid === updated.uid ? updated : t);
+      setTasks(updatedTasks);
+      onBlockUpdated(getUpdatedBlock(block, updatedTasks));
       toast.success(`Moved to ${COLUMNS.find(c => c.id === targetStatus)?.label}`);
     } catch (err: any) {
       // Snap back on failure
@@ -99,7 +173,15 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         block: block.id,
         title: newTaskTitle.trim(),
       });
-      setTasks(prev => [...prev, created]);
+      const updatedTasks = [...tasks, created];
+      setTasks(updatedTasks);
+      
+      // Update CRDT
+      if (yTasksRef.current) {
+        yTasksRef.current.set(created.uid, created);
+      }
+
+      onBlockUpdated(getUpdatedBlock(block, updatedTasks));
       setNewTaskTitle("");
       setIsAddingTask(false);
       toast.success("Task added.");
@@ -110,18 +192,33 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
 
   // ── Task Updated callback ────────────────────────────────────────────────────
   const handleTaskUpdated = (updated: Task) => {
-    setTasks(prev => prev.map(t => t.uid === updated.uid ? updated : t));
+    const updatedTasks = tasks.map(t => t.uid === updated.uid ? updated : t);
+    setTasks(updatedTasks);
+    
+    // Update CRDT
+    if (yTasksRef.current) {
+        yTasksRef.current.set(updated.uid, updated);
+    }
+
+    onBlockUpdated(getUpdatedBlock(block, updatedTasks));
     if (selectedTask?.uid === updated.uid) setSelectedTask(updated);
   };
 
   const handleTaskDeleted = (taskId: string) => {
     const newTasks = tasks.filter(t => t.uid !== taskId);
     setTasks(newTasks);
-    onBlockUpdated({ ...block, tasks: newTasks });
+    
+    // Update CRDT
+    if (yTasksRef.current) {
+        yTasksRef.current.delete(taskId);
+    }
+
+    onBlockUpdated(getUpdatedBlock(block, newTasks));
     if (selectedTask?.uid === taskId) setSelectedTask(null);
   };
 
-  const tasksByStatus = (status: TaskStatus) => tasks.filter(t => t.status === status);
+  const filteredTasks = tasks.filter(t => !priorityFilter || t.priority === priorityFilter);
+  const tasksByStatus = (status: TaskStatus) => filteredTasks.filter(t => t.status === status);
 
   return (
     <>
@@ -167,6 +264,16 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <select
+              value={priorityFilter || ""}
+              onChange={(e) => setPriorityFilter(e.target.value || null)}
+              className="h-9 px-3 bg-surface-100 border border-transparent hover:border-surface-200 rounded-xl outline-none focus:border-accent text-[10px] font-bold uppercase tracking-widest text-surface-500 transition-colors"
+            >
+              <option value="">All Priorities</option>
+              <option value="HIGH">High Priority</option>
+              <option value="MEDIUM">Medium Priority</option>
+              <option value="LOW">Low Priority</option>
+            </select>
             {userRole === "admin" && (
               <button
                 onClick={() => setIsAddingTask(true)}
@@ -182,6 +289,27 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
               ✕
             </button>
           </div>
+        </div>
+
+        {/* Block Notes */}
+        <div className="px-7 py-3 border-b border-surface-100 bg-white shrink-0">
+          <textarea
+            className="w-full text-xs text-surface-600 bg-surface-50 hover:bg-white border border-transparent hover:border-surface-200 focus:border-accent focus:bg-white rounded-lg p-3 outline-none resize-none transition-all placeholder:text-surface-300 font-medium"
+            rows={2}
+            placeholder="Add notes for this block... (e.g. key blockers, handover instructions)"
+            defaultValue={block.notes || ""}
+            onBlur={async (e) => {
+              if (e.target.value !== block.notes) {
+                try {
+                  const updated = await projectsApi.updateBlock(block.id, { notes: e.target.value });
+                  onBlockUpdated({ ...block, notes: updated.notes });
+                  toast.success("Notes saved.");
+                } catch (err) {
+                  toast.error("Failed to save notes.");
+                }
+              }
+            }}
+          />
         </div>
 
         {/* Locked banner */}
@@ -307,6 +435,9 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
           projectId={0}
           projectUid={projectUid || ""}
           projectAssets={[]}
+          projectTasks={[]}
+          criticalPathUids={[]}
+          taskTags={[]}
           onClose={() => setSelectedTask(null)}
           onTaskUpdated={() => {
             projectsApi.getTask(selectedTask.uid).then(updated => {

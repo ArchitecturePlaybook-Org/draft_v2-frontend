@@ -1,30 +1,234 @@
 import React, { useState, useRef } from "react";
-import { Task, ProjectAsset, TaskChecklistItem, SpatialZone, MilestonePhase, ChecklistTemplate } from "@/types/projects";
+import { Task, ProjectAsset, TaskChecklistItem, SpatialZone, MilestonePhase, ChecklistTemplate, TaskComment } from "@/types/projects";
 import { usePermissions } from "@/hooks/use-permissions";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 import { FloorPlanGridViewer } from "./FloorPlanGridViewer";
 import { TaskMaterialTab } from "./TaskMaterialTab";
 import { TaskCommunicationPanel } from "./TaskCommunicationPanel";
+import { TaskTimeLogTab } from "./TaskTimeLogTab";
 import ModelViewer from "@/components/ModelViewer";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import { TaskHSETab } from "./TaskHSETab";
+import { TaskFieldDiaryTab } from "./TaskFieldDiaryTab";
 
 interface TaskExecutionModalProps {
   task: Task;
   projectId: number;
   projectUid: string;
   projectAssets: ProjectAsset[];
+  projectTasks: Task[];
+  criticalPathUids: string[];
+  taskTags: any[];
   onClose: () => void;
   onTaskUpdated: () => void;
 }
 
-type TaskTab = "execution" | "boq" | "checklist" | "issues" | "drawing" | "comments";
+type TaskTab = "execution" | "subtasks" | "boq" | "checklist" | "issues" | "drawing" | "comments" | "time" | "dependencies" | "hse" | "diary" | "photos";
+
+const TaskCommentsTab: React.FC<{ taskUid: string }> = ({ taskUid }) => {
+  const [comments, setComments] = React.useState<TaskComment[]>([]);
+  const [newComment, setNewComment] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
+
+  const fetchComments = React.useCallback(async () => {
+    try {
+      const data = await projectsApi.getTaskComments(taskUid);
+      setComments(data);
+    } catch (err) {
+      toast.error("Failed to load comments.");
+    } finally {
+      setLoading(false);
+    }
+  }, [taskUid]);
+
+  React.useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
+
+  const handlePost = async () => {
+    if (!newComment.trim()) return;
+    try {
+      await projectsApi.createTaskComment(taskUid, newComment.trim());
+      setNewComment("");
+      fetchComments();
+      toast.success("Comment posted.");
+    } catch (err) {
+      toast.error("Failed to post comment.");
+    }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-280px)]">
+      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
+        {loading ? (
+          <p className="text-sm text-surface-400 font-bold">Loading comments...</p>
+        ) : comments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 text-center bg-white rounded-2xl border border-surface-200">
+            <span className="text-2xl mb-2">💬</span>
+            <p className="text-sm font-bold text-surface-400">No comments yet. Start the discussion!</p>
+          </div>
+        ) : (
+          comments.map(c => (
+            <div key={c.id} className="bg-white p-4 rounded-2xl border border-surface-200 shadow-sm flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center shrink-0">
+                <span className="text-[10px] font-black text-surface-400 uppercase">
+                  {c.user?.first_name?.[0] || c.user?.email?.[0] || "?"}
+                </span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-baseline justify-between mb-1">
+                  <span className="text-xs font-bold text-primary">{c.user?.first_name} {c.user?.last_name}</span>
+                  <span className="text-[10px] font-bold text-surface-400">{new Date(c.created_at).toLocaleString()}</span>
+                </div>
+                <p className="text-sm text-surface-600 whitespace-pre-wrap">{c.content}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="bg-white p-4 rounded-2xl border border-surface-200 shadow-sm flex gap-3 shrink-0">
+        <textarea
+          value={newComment}
+          onChange={e => setNewComment(e.target.value)}
+          placeholder="Write a comment..."
+          className="flex-1 h-12 bg-surface-50 border border-transparent focus:border-surface-200 focus:bg-white rounded-xl px-4 py-3 outline-none font-medium text-sm text-primary resize-none transition-all placeholder:text-surface-300"
+          rows={1}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handlePost();
+            }
+          }}
+        />
+        <button
+          onClick={handlePost}
+          disabled={!newComment.trim()}
+          className="h-12 px-6 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all disabled:opacity-40"
+        >
+          Post
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const TaskPhotosTab: React.FC<{ task: Task; projectId: number; onRefresh: () => void }> = ({ task, projectId, onRefresh }) => {
+  const [isUploading, setIsUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const photos = task.asset_links?.filter(l => l.latest_asset?.category === 'site_photo') || [];
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setIsUploading(true);
+    try {
+      for (const file of files) {
+        const title = file.name.replace(/\.[^/.]+$/, "");
+        const assetRes = await projectsApi.uploadProjectAsset(projectId, 'site_photo', file, title);
+        await projectsApi.linkAssetToTask(task.uid, assetRes.canonical_uid);
+      }
+      toast.success("Photos uploaded and linked successfully.");
+      onRefresh();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload photo.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleUnlink = async (linkId: number) => {
+    try {
+      await projectsApi.unlinkAssetFromTask(linkId);
+      onRefresh();
+      toast.success("Photo removed from task.");
+    } catch (err: any) {
+      toast.error("Failed to remove photo.");
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-surface-200 shadow-sm">
+        <div>
+          <h3 className="text-xl font-bold text-primary">Site Photos</h3>
+          <p className="text-sm text-surface-500 font-medium">Visual documentation of work progress.</p>
+        </div>
+        <div>
+          <input 
+            type="file" 
+            ref={fileInputRef}
+            onChange={handleUpload}
+            multiple
+            accept="image/*"
+            className="hidden"
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="h-11 px-6 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all disabled:opacity-50 flex items-center gap-2"
+          >
+            {isUploading ? "Uploading..." : "Upload Photos"}
+          </button>
+        </div>
+      </div>
+
+      {photos.length === 0 ? (
+        <div className="text-center py-20 bg-surface-50 border border-dashed border-surface-200 rounded-3xl">
+          <span className="text-4xl mb-4 block">📸</span>
+          <h4 className="text-lg font-bold text-primary mb-1">No Photos Yet</h4>
+          <p className="text-sm text-surface-500">Upload progress photos to document completion.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {photos.map(link => {
+            const asset = link.latest_asset;
+            if (!asset) return null;
+            return (
+              <div key={link.id} className="group relative bg-white rounded-2xl border border-surface-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
+                <div className="aspect-square bg-surface-100 relative">
+                  <img src={asset.file} alt={asset.title} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-primary/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
+                    <button 
+                      onClick={() => window.open(asset.file, '_blank')}
+                      className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    </button>
+                    <button 
+                      onClick={() => handleUnlink(link.id)}
+                      className="w-10 h-10 rounded-full bg-red-500/80 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <h4 className="text-xs font-bold text-primary truncate">{asset.title}</h4>
+                  <p className="text-[9px] text-surface-400 font-bold uppercase mt-1">
+                    {new Date(asset.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({ 
   task: initialTask, 
   projectId,
   projectUid,
   projectAssets,
+  projectTasks,
+  criticalPathUids,
+  taskTags,
   onClose,
   onTaskUpdated
 }) => {
@@ -61,6 +265,8 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
   const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedDependencyUids, setSelectedDependencyUids] = useState<string[]>([]);
+  const [isSavingDependencies, setIsSavingDependencies] = useState(false);
   
   const isMatrixTask = task.block !== null && task.block !== undefined;
   // TODO: Use true roles from auth context, using generic flags for now
@@ -89,7 +295,13 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
         setChecklistTemplates(data);
       }).catch(err => console.error("Failed to fetch checklist templates", err));
     }
-  }, [projectUid, task.block, isAdmin, isQA]);
+    
+    // Initialize selected dependencies
+    if (task.depends_on && projectTasks) {
+      const uids = task.depends_on.map(id => projectTasks.find(t => t.id === id)?.uid).filter(Boolean) as string[];
+      setSelectedDependencyUids(uids);
+    }
+  }, [projectUid, task.block, isAdmin, isQA, task.depends_on, projectTasks]);
 
   const handleUpdateMatrixLocation = async (zId: string, pId: string) => {
     if (zId && pId) {
@@ -257,6 +469,36 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
     }
   };
 
+  const handleCreateSubtask = async (title: string, description: string = "") => {
+    setIsUpdating(true);
+    try {
+      await projectsApi.createTask({
+        project: projectId,
+        title: title,
+        description: description,
+        parent_task_id: task.id
+      });
+      await refreshTask();
+      toast.success("Subtask created successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create subtask.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUpdateSubtask = async (subtaskUid: string, data: any) => {
+    setIsUpdating(true);
+    try {
+      await projectsApi.updateTask(subtaskUid, data);
+      await refreshTask();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update subtask.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleCopyLink = () => {
     const url = `${window.location.origin}/share/task/${task.uid}`;
     navigator.clipboard.writeText(url);
@@ -291,6 +533,19 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
     }
   };
 
+  const handleSaveDependencies = async () => {
+    setIsSavingDependencies(true);
+    try {
+      await projectsApi.setTaskDependencies(task.uid, selectedDependencyUids);
+      await refreshTask();
+      toast.success("Dependencies saved successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save dependencies (possible cycle).");
+    } finally {
+      setIsSavingDependencies(false);
+    }
+  };
+
   // Matrix variables
   const checklists = task.checklists || [];
   const issues = task.punch_list_items || [];
@@ -304,10 +559,16 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
 
   const tabs: { id: TaskTab; label: string; hidden?: boolean }[] = [
     { id: "execution", label: isMatrixTask ? "Progress & Timeline" : "Execution Details" },
+    { id: "dependencies", label: "Dependencies" },
+    { id: "subtasks", label: "Subtasks" },
+    { id: "time", label: "Time Tracking" },
     { id: "checklist", label: "Checklists & QA" },
     { id: "issues", label: "Issue Tracker" },
+    { id: "hse", label: "Safety" },
+    { id: "diary", label: "Field Diary" },
     { id: "boq", label: "Materials & Requisition", hidden: isContractor },
     { id: "drawing", label: "Context & Models", hidden: !isMatrixTask },
+    { id: "comments", label: "Comments" },
   ];
 
   const linked2dPlanLinks = task.asset_links?.filter(l => l.latest_asset?.category === "2d_plan") || [];
@@ -345,6 +606,15 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   🚨 Blocker
                 </span>
               )}
+              {task.estimated_hours ? (
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-200" title="Burn Rate (Hours Logged / Estimated)">
+                  ⏱️ {task.total_hours_logged || 0} / {task.estimated_hours}h
+                </span>
+              ) : task.total_hours_logged ? (
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-200" title="Time Logged">
+                  ⏱️ {task.total_hours_logged}h logged
+                </span>
+              ) : null}
               <span className="text-[10px] font-mono text-surface-400">ID: {task.task_code || task.uid}</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold text-primary tracking-tight truncate" title={task.title}>{task.title}</h2>
@@ -372,6 +642,16 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
             >
               🔗 Copy Link
             </button>
+            <button 
+                onClick={() => {
+                  const url = `${window.location.origin}/share/task/${task.uid}`;
+                  navigator.clipboard.writeText(url);
+                  toast.success("Share link copied to clipboard!");
+                }}
+                className="h-11 px-6 rounded-xl bg-surface-200 text-surface-600 hover:bg-surface-300 font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap"
+              >
+                Share
+              </button>
             <button onClick={onClose} className="w-11 h-11 rounded-xl bg-surface-200 text-surface-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm">
               ✕
             </button>
@@ -539,6 +819,53 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                             }}
                             className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
                           />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Priority</label>
+                          <select
+                            value={task.priority || "MEDIUM"}
+                            onChange={async (e) => {
+                              await projectsApi.updateTask(task.uid, { priority: e.target.value });
+                              refreshTask();
+                            }}
+                            className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                          >
+                            <option value="HIGH">High Priority</option>
+                            <option value="MEDIUM">Medium Priority</option>
+                            <option value="LOW">Low Priority</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Tags</label>
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            {task.tags?.map(tag => (
+                              <span key={tag.id} className="text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-widest flex items-center gap-1" style={{ borderColor: tag.color, backgroundColor: `${tag.color}10`, color: tag.color }}>
+                                {tag.name}
+                                <button onClick={async () => {
+                                  const newTagIds = task.tags?.filter(t => t.id !== tag.id).map(t => t.id);
+                                  await projectsApi.updateTask(task.uid, { tag_ids: newTagIds });
+                                  refreshTask();
+                                }} className="hover:text-red-500">✕</button>
+                              </span>
+                            ))}
+                          </div>
+                          <select 
+                            value="" 
+                            onChange={async (e) => {
+                              if (!e.target.value) return;
+                              const tagId = parseInt(e.target.value);
+                              if (task.tags?.some(t => t.id === tagId)) return;
+                              const currentTagIds = task.tags?.map(t => t.id) || [];
+                              await projectsApi.updateTask(task.uid, { tag_ids: [...currentTagIds, tagId] });
+                              refreshTask();
+                            }}
+                            className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                          >
+                            <option value="" disabled>Add a tag...</option>
+                            {taskTags?.filter(t => !task.tags?.some(tt => tt.id === t.id)).map(t => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </select>
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -810,6 +1137,16 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                 </div>
               )}
 
+              {/* HSE TAB */}
+              {activeTab === "hse" && (
+                <TaskHSETab task={task} projectUid={projectUid} />
+              )}
+
+              {/* DIARY TAB */}
+              {activeTab === "diary" && (
+                <TaskFieldDiaryTab task={task} projectUid={projectUid} />
+              )}
+
               {/* BOQ / MATERIALS TAB */}
               {activeTab === "boq" && (
                 <div className="max-w-4xl space-y-4">
@@ -824,6 +1161,123 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                     isContractor={isContractor}
                     isAdmin={isAdmin}
                     phaseId={selectedPhaseId ? parseInt(selectedPhaseId) : undefined}
+                  />
+                </div>
+              )}
+
+              {/* SUBTASKS TAB */}
+              {activeTab === "subtasks" && (
+                <div className="flex flex-col gap-6 max-w-4xl mx-auto h-[calc(100vh-280px)]">
+                  <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-surface-200 shadow-sm">
+                    <div>
+                      <h3 className="text-xl font-bold text-primary">Subtasks</h3>
+                      <p className="text-xs text-surface-500 font-medium mt-1">Break this task down into smaller actionable steps.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto pr-2">
+                    {task.subtasks && task.subtasks.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-2">
+                        {task.subtasks.map((subtask: any) => (
+                          <div 
+                            key={subtask.uid} 
+                            onClick={() => {
+                              const nextStatus = subtask.status === "DONE" ? "TODO" : subtask.status === "TODO" ? "WIP" : "DONE";
+                              handleUpdateSubtask(subtask.uid, { status: nextStatus });
+                            }}
+                            className={`p-5 rounded-2xl border shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md ${
+                              subtask.status === "DONE" ? "bg-emerald-50 border-emerald-200" :
+                              subtask.status === "WIP" ? "bg-blue-50 border-blue-200" :
+                              "bg-white border-surface-200 hover:border-accent"
+                            }`}
+                          >
+                            <div className="flex justify-between items-start mb-2 gap-2">
+                              <h4 className={`text-sm font-bold ${subtask.status === "DONE" ? "text-surface-500 line-through" : "text-primary"}`}>{subtask.title}</h4>
+                              <span className={`shrink-0 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md border ${
+                                subtask.status === "DONE" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                                subtask.status === "WIP" ? "bg-blue-100 text-blue-700 border-blue-200" :
+                                "bg-surface-100 text-surface-500 border-surface-200"
+                              }`}>
+                                {subtask.status}
+                              </span>
+                            </div>
+                            {subtask.description && (
+                              <p className={`text-xs mt-2 line-clamp-3 ${subtask.status === "DONE" ? "text-emerald-700/60" : "text-surface-500"}`}>{subtask.description}</p>
+                            )}
+                            {subtask.assigned_to && (
+                              <div className="mt-4 flex items-center gap-2">
+                                <div className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[8px] font-bold uppercase">
+                                  {subtask.assigned_to.name.charAt(0)}
+                                </div>
+                                <span className={`text-[10px] font-bold ${subtask.status === "DONE" ? "text-emerald-700/60" : "text-surface-500"}`}>{subtask.assigned_to.name}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-40 bg-surface-50 rounded-2xl border-2 border-dashed border-surface-200">
+                        <svg className="w-8 h-8 text-surface-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                        <p className="text-surface-500 font-medium text-sm">No subtasks added yet.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-surface-50 p-5 rounded-2xl border border-surface-200 shadow-inner shrink-0">
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const title = formData.get("title") as string;
+                        const description = formData.get("description") as string;
+                        if (title.trim()) {
+                          handleCreateSubtask(title.trim(), description?.trim() || "");
+                          e.currentTarget.reset();
+                        }
+                      }}
+                      className="flex flex-col gap-3"
+                    >
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-surface-500">Create Subtask</h4>
+                      <input
+                        type="text"
+                        name="title"
+                        placeholder="Subtask title..."
+                        className="bg-white border border-surface-200 rounded-lg px-4 py-2.5 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder:text-surface-400 placeholder:font-medium transition-all"
+                        required
+                        disabled={isUpdating}
+                      />
+                      <textarea
+                        name="description"
+                        placeholder="Description (optional)..."
+                        rows={2}
+                        className="bg-white border border-surface-200 rounded-lg px-4 py-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder:text-surface-400 transition-all resize-none"
+                        disabled={isUpdating}
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          disabled={isUpdating}
+                          className="px-6 py-2.5 bg-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-accent transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                          Add Subtask Card
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* TIME TAB */}
+              {activeTab === "time" && (
+                <div className="max-w-4xl space-y-4">
+                  <TaskTimeLogTab 
+                    task={task} 
+                    onUpdate={() => {
+                      refreshTask();
+                    }} 
                   />
                 </div>
               )}
@@ -952,6 +1406,76 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   )}
                 </div>
               </div>
+            )}
+
+            {/* DEPENDENCIES TAB */}
+            {activeTab === "dependencies" && (
+              <div className="max-w-4xl space-y-6">
+                <div className="bg-white p-6 rounded-2xl border border-surface-200 shadow-sm">
+                  <h3 className="text-xl font-bold text-primary mb-2">Task Dependencies</h3>
+                  <p className="text-xs text-surface-500 font-medium mb-6">
+                    Select tasks that must be completed before this task can begin. The backend will automatically detect and prevent cyclic dependencies.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest block mb-2">Predecessor Tasks</label>
+                    
+                    <div className="flex flex-col gap-2 max-h-96 overflow-y-auto border border-surface-200 rounded-xl p-2 bg-surface-50">
+                      {projectTasks.filter(t => t.uid !== task.uid).map(pt => (
+                        <label key={pt.uid} className="flex items-center gap-3 p-3 bg-white border border-surface-100 rounded-lg cursor-pointer hover:border-accent transition-colors">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedDependencyUids.includes(pt.uid)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDependencyUids(prev => [...prev, pt.uid]);
+                              } else {
+                                setSelectedDependencyUids(prev => prev.filter(uid => uid !== pt.uid));
+                              }
+                            }}
+                            className="w-5 h-5 rounded border-surface-300 text-accent focus:ring-accent"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-primary truncate">{pt.title}</p>
+                            <p className="text-[10px] text-surface-400 font-mono mt-0.5">{pt.task_code || pt.uid.slice(0,8)}</p>
+                          </div>
+                          <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border ${
+                            pt.status === "DONE" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
+                            "bg-surface-100 text-surface-500 border-surface-200"
+                          }`}>
+                            {pt.status}
+                          </span>
+                        </label>
+                      ))}
+                      {projectTasks.length <= 1 && (
+                        <div className="p-4 text-center text-surface-500 text-xs font-medium">
+                          No other tasks available in this project to link.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-4 flex justify-end">
+                      <button
+                        onClick={handleSaveDependencies}
+                        disabled={isSavingDependencies}
+                        className="h-11 px-6 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md disabled:opacity-50"
+                      >
+                        {isSavingDependencies ? "Saving..." : "Save Dependencies"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* COMMENTS TAB */}
+            {activeTab === "comments" && (
+              <TaskCommentsTab taskUid={task.uid} />
+            )}
+
+            {/* PHOTOS TAB */}
+            {activeTab === "photos" && (
+              <TaskPhotosTab task={task} projectId={projectId} onRefresh={refreshTask} />
             )}
 
             </div>

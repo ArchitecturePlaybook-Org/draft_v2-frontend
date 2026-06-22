@@ -9,7 +9,8 @@ interface AuthStore {
   isLoading: boolean;
   isAuthenticated: boolean;
   setUser: (user: User | null) => void;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<any>;
+  verify2FA: (token: string, code: string) => Promise<any>;
   logout: () => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
 }
@@ -22,12 +23,28 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setUser: (user) =>
     set({ user, isAuthenticated: !!user, isLoading: false }),
 
-  login: async (email, password) => {
+  login: async (email, password, rememberMe = false) => {
     set({ isLoading: true });
     try {
-      const data = await authApi.login(email, password);
+      const data = await authApi.login(email, password, rememberMe);
+      if (data.requires_2fa) {
+        set({ isLoading: false });
+        return data;
+      }
       set({ user: data.user, isAuthenticated: true, isLoading: false });
-      return data.user;
+      return data;
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
+  },
+
+  verify2FA: async (token, code) => {
+    set({ isLoading: true });
+    try {
+      const data = await authApi.verify2FA(token, code);
+      set({ user: data.user, isAuthenticated: true, isLoading: false });
+      return data;
     } catch (err) {
       set({ isLoading: false });
       throw err;

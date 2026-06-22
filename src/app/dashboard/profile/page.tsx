@@ -6,42 +6,16 @@ import { useAuthStore } from "@/store/auth-store";
 import { authApi } from "@/domains/auth/api";
 import { orgsApi } from "@/domains/orgs/api";
 import { portfoliosApi, PortfolioItem } from "@/domains/portfolios/api";
+import { QRCodeSVG } from "qrcode.react";
+import ReactCrop, { Crop, PixelCrop, makeAspectCrop, centerCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+
+import { CATEGORY_SCHEMAS, calculateProfileCompleteness } from "@/lib/utils/profile";
+import { toast } from "sonner";
 
 type TabType = "overview" | "professional" | "portfolio" | "organization" | "security" | "activity";
 
-interface FieldSchema {
-  key: string;
-  label: string;
-  type: "text" | "number" | "select" | "date";
-  placeholder?: string;
-  options?: string[];
-}
 
-const CATEGORY_SCHEMAS: Record<string, FieldSchema[]> = {
-  architect: [
-    { key: "license_number", label: "Professional License Number", type: "text", placeholder: "e.g. ARB-123456" },
-    { key: "registration_body", label: "Registration Body", type: "select", options: ["ARB (UK)", "AIA (US)", "RIBA", "COA (India)", "Other"] },
-    { key: "years_of_experience", label: "Years of Practice", type: "number" },
-    { key: "primary_software", label: "Main Design Software", type: "select", options: ["Revit", "AutoCAD", "ArchiCAD", "Rhino", "SketchUp"] },
-  ],
-  contractor: [
-    { key: "company_reg_number", label: "Company Registration", type: "text" },
-    { key: "primary_trade", label: "Primary Trade", type: "select", options: ["General Construction", "MEP", "Structural", "Civil", "Finishing"] },
-    { key: "insurance_limit", label: "Liability Insurance Limit", type: "text", placeholder: "e.g. $5M" },
-    { key: "safety_rating", label: "Safety Performance Rating", type: "select", options: ["A+", "A", "B", "C"] },
-  ],
-  supplier: [
-    { key: "product_category", label: "Main Product Line", type: "select", options: ["Raw Materials", "Finishes", "Equipment", "Structural Components"] },
-    { key: "delivery_radius", label: "Max Delivery Radius (km)", type: "number" },
-    { key: "credit_terms", label: "Available Credit Terms", type: "select", options: ["30 Days", "60 Days", "Prepaid", "Negotiable"] },
-    { key: "warehouse_location", label: "Primary Dispatch Location", type: "text" },
-  ],
-  client: [
-    { key: "project_interest", label: "Main Project Interest", type: "select", options: ["Residential", "Commercial", "Industrial", "Renovation"] },
-    { key: "budget_range", label: "Planned Budget Range", type: "select", options: ["<$100k", "$100k-$500k", "$500k-$1M", ">$1M"] },
-    { key: "estimated_start", label: "Target Start Date", type: "date" },
-  ],
-};
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -65,6 +39,30 @@ export default function ProfilePage() {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [isUploadingPortfolio, setIsUploadingPortfolio] = useState(false);
 
+  // 2FA State
+  const [is2FASetupModalOpen, setIs2FASetupModalOpen] = useState(false);
+  const [mfaSecret, setMfaSecret] = useState("");
+  const [mfaUri, setMfaUri] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [isDisable2FAModalOpen, setIsDisable2FAModalOpen] = useState(false);
+  const [disablePassword, setDisablePassword] = useState("");
+
+  // Security Tab State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changeEmailPassword, setChangeEmailPassword] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  // Cropping State
+  const [imgSrc, setImgSrc] = useState("");
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+
   const categorySlug = useMemo(() => {
     return (user?.category || user?.profile?.category_path?.main || "architect").toLowerCase();
   }, [user]);
@@ -77,6 +75,21 @@ export default function ProfilePage() {
     loadOrgs();
     loadPortfolio();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "security") {
+      loadSessions();
+    }
+  }, [activeTab]);
+
+  async function loadSessions() {
+    try {
+      const data = await authApi.getActiveSessions();
+      setSessions(data);
+    } catch (err) {
+      console.error("Failed to load sessions:", err);
+    }
+  }
 
   async function loadPortfolio() {
     try {
@@ -113,21 +126,8 @@ export default function ProfilePage() {
   }, [user]);
 
   const completionPercentage = useMemo(() => {
-    if (!user) return 0;
-    const baseFields = [
-      user.name,
-      user.email,
-      user.profile?.bio,
-      user.profile?.phone_number,
-    ];
-    
-    // Add category-specific metadata fields to completion check
-    const schemaFields = currentSchema.map(s => metadata[s.key]);
-    
-    const allFields = [...baseFields, ...schemaFields];
-    const filled = allFields.filter(f => !!f).length;
-    return Math.round((filled / allFields.length) * 100);
-  }, [user, currentSchema, metadata]);
+    return calculateProfileCompleteness(user).score;
+  }, [user]);
 
   async function handleUpdate() {
     setIsLoading(true);
@@ -151,26 +151,234 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  async function handleChangePassword() {
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters long.");
+      return;
+    }
     setIsLoading(true);
     try {
-      const updatedUser = await authApi.uploadAvatar(file);
-      setUser(updatedUser);
-      setSuccess("Profile picture updated successfully.");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to upload image.");
+      await authApi.changePassword({ current_password: currentPassword, new_password: newPassword });
+      toast.success("Password changed successfully.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to change password.");
     } finally {
       setIsLoading(false);
     }
   }
 
+  async function handleRequestEmailChange() {
+    if (!newEmail || !changeEmailPassword) {
+      toast.error("Please fill in all fields.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await authApi.requestEmailChange({ password: changeEmailPassword, new_email: newEmail });
+      toast.success(`Verification email sent to ${newEmail}. Please check your inbox.`);
+      setChangeEmailPassword("");
+      setNewEmail("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to request email change.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleRevokeSession(tokenId: number) {
+    if (!confirm("Are you sure you want to revoke this session?")) return;
+    setIsLoading(true);
+    try {
+      await authApi.revokeSession(tokenId);
+      setSessions(prev => prev.filter(s => s.id !== tokenId));
+      toast.success("Session revoked successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to revoke session.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Convert file to base64 for cropping preview
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      setImgSrc(reader.result?.toString() || "");
+      setIsCropModalOpen(true);
+    });
+    reader.readAsDataURL(file);
+    
+    // Clear input so selecting the same file again works
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const { width, height } = e.currentTarget;
+    const crop = centerCrop(
+      makeAspectCrop({ unit: "%", width: 90 }, 1, width, height),
+      width,
+      height
+    );
+    setCrop(crop);
+  }
+
+  async function handleCropSubmit() {
+    if (!completedCrop || !imgRef.current) return;
+
+    // Create canvas to draw the cropped image
+    const canvas = document.createElement("canvas");
+    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+    
+    canvas.width = completedCrop.width;
+    canvas.height = completedCrop.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(
+      imgRef.current,
+      completedCrop.x * scaleX,
+      completedCrop.y * scaleY,
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+      0,
+      0,
+      completedCrop.width,
+      completedCrop.height
+    );
+
+    setIsLoading(true);
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        setIsLoading(false);
+        return;
+      }
+      
+      const file = new File([blob], "avatar.png", { type: "image/png" });
+      try {
+        const updatedUser = await authApi.uploadAvatar(file);
+        setUser(updatedUser);
+        setSuccess("Profile picture updated successfully.");
+        setIsCropModalOpen(false);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to upload image.");
+      } finally {
+        setIsLoading(false);
+      }
+    }, "image/png");
+  }
+
   const updateMetadataField = (key: string, value: any) => {
     setMetadata(prev => ({ ...prev, [key]: value }));
   };
+
+  async function initiate2FASetup() {
+    setIsLoading(true);
+    try {
+      const { secret, qr_uri } = await authApi.setup2FA();
+      setMfaSecret(secret);
+      setMfaUri(qr_uri);
+      setIs2FASetupModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to initiate 2FA setup");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function confirm2FASetup() {
+    setIsLoading(true);
+    try {
+      const res = await authApi.confirm2FA(mfaCode);
+      setRecoveryCodes(res.recovery_codes);
+      setUser({ ...user!, is_2fa_enabled: true });
+    } catch (err: any) {
+      alert(err.message || "Invalid code");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleToggleVisibility() {
+    setIsLoading(true);
+    try {
+      const currentIsPublic = user?.profile?.is_public ?? true;
+      const res = await authApi.updateProfile({ is_public: !currentIsPublic });
+      setUser(res);
+      toast.success(currentIsPublic ? "Profile set to private" : "Profile set to public");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update visibility");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function disable2FA() {
+    setIsLoading(true);
+    try {
+      await authApi.disable2FA(disablePassword);
+      setUser({ ...user!, is_2fa_enabled: false });
+      setIsDisable2FAModalOpen(false);
+      setDisablePassword("");
+      alert("2FA Disabled successfully.");
+    } catch (err: any) {
+      alert(err.message || "Failed to disable 2FA");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const [isDecommissionModalOpen, setIsDecommissionModalOpen] = useState(false);
+  const [decommissionPassword, setDecommissionPassword] = useState("");
+
+  async function handleExportData() {
+    try {
+      setIsLoading(true);
+      const data = await authApi.exportUserData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ap_data_export_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      setSuccess("Data export completed.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      alert("Failed to export data");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleDecommission() {
+    try {
+      setIsLoading(true);
+      await authApi.decommissionIdentity(decommissionPassword);
+      setUser(null);
+      window.location.href = "/login";
+    } catch (err: any) {
+      alert("Failed to decommission identity. " + (err.message || ""));
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   if (!user) return <div className="p-12 text-center font-bold text-primary animate-pulse tracking-widest uppercase">Initializing System Identity...</div>;
 
@@ -584,9 +792,19 @@ export default function ProfilePage() {
                         <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Project Title</label>
                         <input name="title" required className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. Minimalist Glass Villa" />
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Main Thumbnail</label>
+                          <input type="file" name="image" required accept="image/*" className="w-full text-sm text-surface-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Gallery Images</label>
+                          <input type="file" name="images" multiple accept="image/*" className="w-full text-sm text-surface-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                        </div>
+                      </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Visual Asset (Image)</label>
-                        <input type="file" name="image" required accept="image/*" className="w-full text-sm text-surface-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Video URL (Optional)</label>
+                        <input name="video_url" type="url" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. https://www.youtube.com/watch?v=..." />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Execution Description</label>
@@ -734,29 +952,116 @@ export default function ProfilePage() {
                 <div className="space-y-6">
                   <div className="space-y-3">
                     <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Current Security Token</label>
-                    <input type="password" placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/10 focus:border-red-500/50 transition-all" />
+                    <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/10 focus:border-red-500/50 transition-all" />
                   </div>
                   <div className="space-y-3">
                     <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">New Security Token</label>
-                    <input type="password" placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent" />
+                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent transition-all" />
                   </div>
                   <div className="space-y-3">
                     <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Verify New Token</label>
-                    <input type="password" placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent" />
+                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent transition-all" />
                   </div>
+                  <button onClick={handleChangePassword} disabled={isLoading} className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl shadow-primary/20 mt-4 disabled:opacity-50">
+                    {isLoading ? "Processing..." : "Rotate Security Credentials"}
+                  </button>
                 </div>
                 <div className="bg-surface-50 rounded-2xl p-8 space-y-4 border border-surface-100 flex flex-col justify-center">
-                  <h3 className="text-[11px] font-bold text-primary uppercase tracking-widest">Security Protocol</h3>
-                  <p className="text-[11px] text-surface-500 leading-relaxed">System policy requires credential rotation every 90 days. Multi-factor authentication is enforced for all administrative level modifications.</p>
-                  <div className="pt-2">
-                    <button className="text-[10px] font-bold text-accent uppercase tracking-widest border-b border-accent/20 hover:border-accent">Enable 2FA Protection</button>
+                  <h3 className="text-[11px] font-bold text-primary uppercase tracking-widest">Two-Factor Authentication</h3>
+                  <p className="text-[11px] text-surface-500 leading-relaxed">
+                    Protect your account with an extra layer of security. Multi-factor authentication is recommended for all accounts.
+                  </p>
+                  <div className="pt-4">
+                    {user?.is_2fa_enabled ? (
+                      <button 
+                        onClick={() => setIsDisable2FAModalOpen(true)}
+                        className="w-full h-12 bg-red-50 text-red-600 font-bold uppercase text-[10px] tracking-[0.2em] border border-red-200 hover:bg-red-100 transition-all rounded-lg"
+                      >
+                        Disable 2FA
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={initiate2FASetup}
+                        disabled={isLoading}
+                        className="w-full h-12 bg-accent text-white font-bold uppercase text-[10px] tracking-[0.2em] hover:bg-primary transition-all shadow-lg shadow-accent/20 rounded-lg"
+                      >
+                        {isLoading ? "Loading..." : "Enable 2FA Protection"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
+            </section>
 
-              <button className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl shadow-primary/20 mt-4">
-                Rotate Security Credentials
-              </button>
+            <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em] border-l-4 border-accent pl-4">Change Email Address</h2>
+                <p className="text-[10px] text-surface-400 uppercase tracking-widest font-medium">Update the primary communication channel</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">New Email Address</label>
+                    <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="new.email@example.com" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent transition-all" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Verify Password</label>
+                    <input type="password" value={changeEmailPassword} onChange={e => setChangeEmailPassword(e.target.value)} placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent transition-all" />
+                  </div>
+                  <button onClick={handleRequestEmailChange} disabled={isLoading} className="w-full h-14 bg-surface-800 text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-primary transition-all shadow-xl shadow-surface-800/20 mt-4 disabled:opacity-50">
+                    {isLoading ? "Processing..." : "Request Email Change"}
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em] border-l-4 border-accent pl-4">Active Sessions</h2>
+                <p className="text-[10px] text-surface-400 uppercase tracking-widest font-medium">Manage and revoke active logins across devices</p>
+              </div>
+              <div className="space-y-4 pt-4">
+                {sessions.map(session => (
+                  <div key={session.id} className="flex justify-between items-center bg-surface-50 p-4 border border-surface-100 rounded-xl">
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-primary">{session.device_name || "Unknown Device"} ({session.ip_address})</p>
+                      <p className="text-[10px] text-surface-500 uppercase tracking-widest">Last Active: {new Date(session.last_active_at).toLocaleString()}</p>
+                    </div>
+                    <button onClick={() => handleRevokeSession(session.id)} className="text-[10px] text-red-500 uppercase font-bold tracking-widest hover:text-red-700">Revoke</button>
+                  </div>
+                ))}
+                {sessions.length === 0 && <p className="text-xs text-surface-500">No active sessions found.</p>}
+              </div>
+            </section>
+
+            <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em] border-l-4 border-accent pl-4">Privacy & Visibility</h2>
+                <p className="text-[10px] text-surface-400 uppercase tracking-widest font-medium">Manage your public discovery presence</p>
+              </div>
+              <div className="flex items-center justify-between p-6 bg-surface-50 border border-surface-100 rounded-xl">
+                <div className="space-y-1">
+                  <h3 className="text-xs font-bold text-primary uppercase tracking-widest">Public Profile</h3>
+                  <p className="text-xs text-surface-500 max-w-md leading-relaxed">
+                    When disabled, your identity and all portfolio items are completely hidden from the public discovery network. You will operate in stealth mode.
+                  </p>
+                </div>
+                <button 
+                  onClick={handleToggleVisibility}
+                  disabled={isLoading}
+                  className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none ${
+                    (user?.profile?.is_public ?? true) ? 'bg-accent' : 'bg-surface-300'
+                  }`}
+                >
+                  <span className="sr-only">Toggle Public Profile</span>
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out ${
+                      (user?.profile?.is_public ?? true) ? 'translate-x-3' : '-translate-x-3'
+                    }`}
+                  />
+                </button>
+              </div>
             </section>
 
             <section className="bg-red-50 border border-red-100 p-10 rounded-2xl space-y-6">
@@ -764,12 +1069,218 @@ export default function ProfilePage() {
                 <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
                 <h3 className="text-xs font-bold text-red-900 uppercase tracking-[0.2em]">Critical Decommission Zone</h3>
               </div>
-              <p className="text-xs text-red-700 leading-relaxed max-w-lg">Initiating identity decommissioning will permanently terminate all project access, membership tokens, and audit logs associated with this UID.</p>
-              <button className="text-[10px] font-bold text-red-600 uppercase border-b-2 border-red-200 hover:border-red-600 transition-all pb-1">Decommission System Identity</button>
+              <p className="text-xs text-red-700 leading-relaxed max-w-lg">Initiating identity decommissioning will permanently terminate all project access, membership tokens, and audit logs associated with this UID. (30-day grace period applies).</p>
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <button 
+                  onClick={handleExportData}
+                  disabled={isLoading}
+                  className="px-6 py-3 bg-white text-surface-700 border border-surface-300 font-bold uppercase text-[10px] tracking-widest hover:bg-surface-50 transition-all rounded-lg"
+                >
+                  Download GDPR Data Export
+                </button>
+                <button 
+                  onClick={() => setIsDecommissionModalOpen(true)}
+                  className="px-6 py-3 bg-red-600 text-white font-bold uppercase text-[10px] tracking-widest hover:bg-red-700 transition-all rounded-lg shadow-lg shadow-red-500/20"
+                >
+                  Decommission System Identity
+                </button>
+              </div>
             </section>
           </div>
         )}
       </div>
+
+      {/* Decommission Modal */}
+      {isDecommissionModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="p-8 space-y-6 border-t-8 border-red-600">
+              <h3 className="text-sm font-bold text-red-600 uppercase tracking-[0.3em]">Confirm Decommission</h3>
+              <p className="text-sm text-surface-600 leading-relaxed">
+                This action will schedule your account for permanent anonymization in 30 days. You will immediately lose access to all projects and organizations.
+              </p>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Verify Password</label>
+                <input 
+                  type="password" 
+                  value={decommissionPassword}
+                  onChange={(e) => setDecommissionPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
+                />
+              </div>
+              <div className="flex gap-4 pt-2">
+                <button 
+                  onClick={() => { setIsDecommissionModalOpen(false); setDecommissionPassword(""); }}
+                  className="w-full h-12 bg-surface-100 text-surface-600 font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-surface-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleDecommission}
+                  disabled={!decommissionPassword || isLoading}
+                  className="w-full h-12 bg-red-600 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
+                >
+                  {isLoading ? "Processing..." : "Confirm & Deactivate"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Cropping Modal */}
+      {isCropModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="p-8 space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Adjust Profile Image</h3>
+                <button 
+                  onClick={() => setIsCropModalOpen(false)}
+                  className="text-surface-400 hover:text-primary transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="flex justify-center max-h-[400px] overflow-hidden bg-surface-50 border border-surface-200 rounded-xl">
+                <ReactCrop
+                  crop={crop}
+                  onChange={(c) => setCrop(c)}
+                  onComplete={(c) => setCompletedCrop(c)}
+                  aspect={1}
+                  circularCrop
+                >
+                  <img ref={imgRef} src={imgSrc} alt="Crop preview" onLoad={onImageLoad} className="max-h-[400px] object-contain" />
+                </ReactCrop>
+              </div>
+              <button 
+                onClick={handleCropSubmit}
+                disabled={!completedCrop || isLoading}
+                className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all disabled:opacity-50 shadow-xl rounded-xl"
+              >
+                {isLoading ? "Saving..." : "Crop & Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2FA Setup Modal */}
+      {is2FASetupModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="p-8 space-y-8">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">
+                  {recoveryCodes.length > 0 ? "Recovery Codes" : "Setup 2FA"}
+                </h3>
+                <button 
+                  onClick={() => {
+                    setIs2FASetupModalOpen(false);
+                    setRecoveryCodes([]);
+                    setMfaCode("");
+                  }} 
+                  className="text-surface-400 hover:text-primary transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              {recoveryCodes.length > 0 ? (
+                <div className="space-y-6">
+                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-amber-800 text-sm">
+                    <strong>Save these recovery codes in a safe place!</strong> They are the only way to access your account if you lose your device.
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {recoveryCodes.map((code, idx) => (
+                      <div key={idx} className="bg-surface-50 border border-surface-200 p-3 text-center font-mono font-bold tracking-widest rounded-lg">
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                  <button 
+                    onClick={() => { setIs2FASetupModalOpen(false); setRecoveryCodes([]); setMfaCode(""); }} 
+                    className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl rounded-xl"
+                  >
+                    I Have Saved Them
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <p className="text-sm text-surface-600 leading-relaxed text-center">
+                    Scan the QR code below with your authenticator app (like Google Authenticator or Authy).
+                  </p>
+                  
+                  <div className="flex justify-center bg-white p-4 border border-surface-200 rounded-xl mx-auto w-max">
+                    <QRCodeSVG value={mfaUri} size={200} />
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-xs text-surface-500 uppercase tracking-widest font-bold mb-2">Manual Entry Code:</p>
+                    <code className="text-sm bg-surface-50 px-3 py-2 rounded-lg border border-surface-200 font-mono text-primary">
+                      {mfaSecret}
+                    </code>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-surface-100">
+                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Verify Code</label>
+                    <input 
+                      type="text" 
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value)}
+                      maxLength={6}
+                      placeholder="123456" 
+                      className="w-full h-14 text-center text-2xl tracking-[0.5em] font-mono px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" 
+                    />
+                    <button 
+                      onClick={confirm2FASetup}
+                      disabled={mfaCode.length !== 6 || isLoading}
+                      className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all disabled:opacity-50 shadow-xl rounded-xl"
+                    >
+                      {isLoading ? "Verifying..." : "Verify & Enable"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Disable 2FA Modal */}
+      {isDisable2FAModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="p-8 space-y-6">
+              <h3 className="text-sm font-bold text-red-600 uppercase tracking-[0.3em]">Disable 2FA</h3>
+              <p className="text-sm text-surface-600">Enter your password to confirm disabling two-factor authentication.</p>
+              <input 
+                type="password" 
+                value={disablePassword}
+                onChange={(e) => setDisablePassword(e.target.value)}
+                placeholder="Your Password"
+                className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
+              />
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => { setIsDisable2FAModalOpen(false); setDisablePassword(""); }}
+                  className="w-full h-12 bg-surface-100 text-surface-600 font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-surface-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={disable2FA}
+                  disabled={!disablePassword || isLoading}
+                  className="w-full h-12 bg-red-600 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
+                >
+                  {isLoading ? "Disabling..." : "Disable"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

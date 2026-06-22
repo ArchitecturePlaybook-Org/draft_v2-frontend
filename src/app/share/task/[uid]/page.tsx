@@ -96,6 +96,9 @@ export default function SharedTaskPage() {
           task={task}
           projectId={typeof publicInfo.project === "object" ? publicInfo.project.id : 0}
           projectAssets={[]}
+          projectTasks={[]}
+          criticalPathUids={[]}
+          taskTags={[]}
           onClose={() => router.push("/dashboard")}
           onTaskUpdated={loadFullTask}
           projectUid={typeof publicInfo.project === "object" ? publicInfo.project.uid : ""}

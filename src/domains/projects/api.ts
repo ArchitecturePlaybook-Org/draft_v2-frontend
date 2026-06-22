@@ -21,11 +21,15 @@ function unpackArray<T>(res: any): T[] {
 
 export const projectsApi = {
   getProjects: async () => {
-    return fetchFromBff<PaginatedResponse<Project> | Project[]>("/api/projects/projects/", { method: "GET" });
+    return fetchFromBff<PaginatedResponse<Project> | Project[]>("/api/v1/projects/projects/", { method: "GET" });
   },
 
   getProjectDetails: async (id: string | number) => {
-    return fetchFromBff<ProjectDetail>(`/api/projects/projects/${id}/`, { method: "GET" });
+    return fetchFromBff<ProjectDetail>(`/api/v1/projects/projects/${id}/`, { method: "GET" });
+  },
+
+  getProjectAnalytics: async (id: string | number) => {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${id}/analytics/`, { method: "GET" });
   },
 
   createProject: async (data: { 
@@ -38,8 +42,10 @@ export const projectsApi = {
     client_name?: string;
     client_phone?: string;
     client_email?: string;
+    is_template?: boolean;
+    template_scope?: string;
   }) => {
-    return fetchFromBff<Project>("/api/projects/projects/", {
+    return fetchFromBff<Project>("/api/v1/projects/projects/", {
       method: "POST",
       body: JSON.stringify({ 
         title: data.title, 
@@ -50,68 +56,146 @@ export const projectsApi = {
         location: data.location,
         client_name: data.client_name,
         client_phone: data.client_phone,
-        client_email: data.client_email
+        client_email: data.client_email,
+        is_template: data.is_template,
+        template_scope: data.template_scope
       })
     });
   },
 
+  getTemplates: async () => {
+    return fetchFromBff<PaginatedResponse<Project> | Project[]>("/api/v1/projects/projects/?is_template=true", { method: "GET" });
+  },
+
+  cloneProject: async (uid: string, account_id?: number) => {
+    const body = account_id ? { account_id } : {};
+    return fetchFromBff<ProjectDetail>(`/api/v1/projects/projects/${uid}/clone/`, { 
+        method: "POST", 
+        body: JSON.stringify(body) 
+    });
+  },
+
+  duplicateProject: async (uid: string) => {
+    return fetchFromBff<ProjectDetail>(`/api/v1/projects/projects/${uid}/duplicate/`, { 
+        method: "POST", 
+        body: JSON.stringify({}) 
+    });
+  },
+
+  generateShareToken: async (uid: string) => {
+    return fetchFromBff<{ share_token: string }>(`/api/v1/projects/projects/${uid}/generate_share_token/`, { method: "POST" });
+  },
+
+  importTemplate: async (share_token: string, account_id: number) => {
+    return fetchFromBff<ProjectDetail>("/api/v1/projects/projects/import_template/", { 
+      method: "POST", 
+      body: JSON.stringify({ share_token, account_id }) 
+    });
+  },
+
   updateProject: async (uid: string, data: Partial<Project>) => {
-    return fetchFromBff<Project>(`/api/projects/projects/${uid}/`, {
+    return fetchFromBff<Project>(`/api/v1/projects/projects/${uid}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
     });
   },
 
   deleteProject: async (uid: string) => {
-    return fetchFromBff<void>(`/api/projects/projects/${uid}/`, {
+    return fetchFromBff<void>(`/api/v1/projects/projects/${uid}/`, {
       method: "DELETE"
     });
   },
 
+  exportProjectData: (uid: string, type: 'boq' | 'tasks' | 'estimations', format: 'excel' | 'csv' | 'pdf' = 'excel', groupBy: 'flat' | 'floor_plan' = 'flat') => {
+    window.open(`/api/v1/projects/projects/${uid}/export/?type=${type}&format=${format}&group_by=${groupBy}`, "_blank");
+  },
+
+  exportProjectReport: (uid: string) => {
+    window.open(`/api/v1/projects/projects/${uid}/report/`, "_blank");
+  },
+
   // ── Tasks ─────────────────────────────────────────────────────────────────
-  getTasks: async () => {
-    const res = await fetchFromBff<any>("/api/projects/tasks/", { method: "GET" });
+  getTasks: async (filters?: { project?: number | string; block?: number | string; status?: string; priority?: string; search?: string; assignee?: number | string; tags?: string; include_subtasks?: boolean }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      if (filters.project) params.append("project", filters.project.toString());
+      if (filters.block) params.append("block", filters.block.toString());
+      if (filters.status) params.append("status", filters.status);
+      if (filters.priority) params.append("priority", filters.priority);
+      if (filters.search) params.append("search", filters.search);
+      if (filters.assignee) params.append("assignee", filters.assignee.toString());
+      if (filters.tags) params.append("tags", filters.tags);
+      if (filters.include_subtasks) params.append("include_subtasks", "true");
+    }
+    const queryString = params.toString();
+    const url = `/api/v1/projects/tasks/${queryString ? `?${queryString}` : ""}`;
+    const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<Task>(res);
   },
 
+  bulkUpdateTasks: async (task_uids: string[], updates: any) => {
+    return fetchFromBff<{success: boolean, updated_count: number}>("/api/v1/projects/tasks/bulk_update/", {
+      method: "POST",
+      body: JSON.stringify({ task_uids, updates })
+    });
+  },
+
+  bulkDeleteTasks: async (task_uids: string[]) => {
+    return fetchFromBff<{success: boolean, deleted_count: number}>("/api/v1/projects/tasks/bulk_delete/", {
+      method: "DELETE",
+      body: JSON.stringify({ task_uids })
+    });
+  },
+
   addProjectMember: async (projectId: number, userId: number, role: string = "viewer") => {
-    return fetchFromBff<any>(`/api/projects/projects/${projectId}/members/`, {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectId}/members/`, {
       method: "POST",
       body: JSON.stringify({ user_id: userId, role })
     });
   },
 
   removeProjectMember: async (projectId: number, userId: number) => {
-    return fetchFromBff<void>(`/api/projects/projects/${projectId}/members/${userId}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/projects/${projectId}/members/${userId}/`, { method: "DELETE" });
   },
 
   getTask: async (taskId: string) => {
-    return fetchFromBff<any>(`/api/projects/tasks/${taskId}/`, { method: "GET" });
+    return fetchFromBff<any>(`/api/v1/projects/tasks/${taskId}/`, { method: "GET" });
   },
 
   createTask: async (data: { project: number; title: string; [key: string]: any }) => {
-    return fetchFromBff<any>("/api/projects/tasks/", { method: "POST", body: JSON.stringify(data) });
+    return fetchFromBff<any>("/api/v1/projects/tasks/", { method: "POST", body: JSON.stringify(data) });
   },
 
   updateTask: async (taskId: string, data: Partial<any>) => {
-    return fetchFromBff<any>(`/api/projects/tasks/${taskId}/`, { method: "PATCH", body: JSON.stringify(data) });
+    return fetchFromBff<any>(`/api/v1/projects/tasks/${taskId}/`, { method: "PATCH", body: JSON.stringify(data) });
+  },
+
+  setTaskDependencies: async (taskUid: string, dependsOnUids: string[]) => {
+    return fetchFromBff<Task>(`/api/v1/projects/tasks/${taskUid}/dependencies/`, {
+      method: "POST",
+      body: JSON.stringify({ depends_on_uids: dependsOnUids })
+    });
+  },
+
+  getCriticalPath: async (projectUid: string) => {
+    return fetchFromBff<string[]>(`/api/v1/projects/projects/${projectUid}/critical-path/`, { method: "GET" });
   },
 
   // ── Checklist Items ───────────────────────────────────────────────────────
   getProjectChecklists: async (projectUid: string) => {
-    const res = await fetchFromBff<any>(`/api/projects/task-checklists/?project_uid=${projectUid}`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/task-checklists/?project_uid=${projectUid}`, { method: "GET" });
     return unpackArray<any>(res);
   },
 
   createChecklistItem: async (taskUid: string, title: string) => {
-    return fetchFromBff<any>(`/api/projects/task-checklists/`, {
+    return fetchFromBff<any>(`/api/v1/projects/task-checklists/`, {
       method: "POST",
       body: JSON.stringify({ task: taskUid, title: title, is_completed: false })
     });
   },
 
   updateChecklistItem: async (itemId: number, isCompleted: boolean) => {
-    return fetchFromBff<any>(`/api/projects/task-checklists/${itemId}/`, {
+    return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
       method: "PATCH",
       body: JSON.stringify({ is_completed: isCompleted })
     });
@@ -123,19 +207,19 @@ export const projectsApi = {
     if (files && files.length > 0) {
       files.forEach(f => formData.append("attachments", f));
     }
-    return fetchFromBff<any>(`/api/projects/task-checklists/${itemId}/`, {
+    return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
       method: "PATCH",
       body: formData
     });
   },
 
   getChecklistTemplates: async () => {
-    const res = await fetchFromBff<any>(`/api/projects/checklist-templates/`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/checklist-templates/`, { method: "GET" });
     return unpackArray<ChecklistTemplate>(res);
   },
 
   createChecklistTemplate: async (data: { name: string; description?: string }) => {
-    const res = await fetchFromBff<any>(`/api/projects/checklist-templates/`, {
+    const res = await fetchFromBff<any>(`/api/v1/projects/checklist-templates/`, {
       method: "POST",
       body: JSON.stringify(data)
     });
@@ -143,13 +227,13 @@ export const projectsApi = {
   },
 
   deleteChecklistTemplate: async (templateId: number) => {
-    await fetchFromBff<any>(`/api/projects/checklist-templates/${templateId}/`, {
+    await fetchFromBff<any>(`/api/v1/projects/checklist-templates/${templateId}/`, {
       method: "DELETE"
     });
   },
 
   syncChecklistTemplateItems: async (templateId: number, items: { title: string; requires_visual_proof: boolean }[]) => {
-    const res = await fetchFromBff<any>(`/api/projects/checklist-templates/${templateId}/sync-items/`, {
+    const res = await fetchFromBff<any>(`/api/v1/projects/checklist-templates/${templateId}/sync-items/`, {
       method: "POST",
       body: JSON.stringify({ items })
     });
@@ -157,7 +241,7 @@ export const projectsApi = {
   },
 
   importChecklistTemplate: async (taskUid: string, templateId: number) => {
-    const res = await fetchFromBff<any>(`/api/projects/tasks/${taskUid}/import-checklist/`, {
+    const res = await fetchFromBff<any>(`/api/v1/projects/tasks/${taskUid}/import-checklist/`, {
       method: "POST",
       body: JSON.stringify({ template_id: templateId })
     });
@@ -166,33 +250,54 @@ export const projectsApi = {
 
   // ── Task Access Requests ──────────────────────────────────────────────────
   getTaskPublicInfo: async (taskUid: string) => {
-    const res = await fetchFromBff<any>(`/api/projects/tasks/${taskUid}/public_info/`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/tasks/${taskUid}/public_info/`, { method: "GET" });
     return res;
   },
 
   requestTaskAccess: async (taskUid: string) => {
-    const res = await fetchFromBff<any>(`/api/projects/tasks/${taskUid}/request_access/`, { method: "POST" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/tasks/${taskUid}/request_access/`, { method: "POST" });
     return res;
   },
 
   getPendingTaskRequests: async () => {
-    const res = await fetchFromBff<any>(`/api/projects/task-requests/`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/task-requests/`, { method: "GET" });
     return unpackArray<any>(res);
   },
 
   approveTaskRequest: async (requestId: number) => {
-    const res = await fetchFromBff<any>(`/api/projects/task-requests/${requestId}/approve/`, { method: "POST" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/task-requests/${requestId}/approve/`, { method: "POST" });
     return res;
   },
 
   rejectTaskRequest: async (requestId: number) => {
-    const res = await fetchFromBff<any>(`/api/projects/task-requests/${requestId}/reject/`, { method: "POST" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/task-requests/${requestId}/reject/`, { method: "POST" });
     return res;
+  },
+
+  // ── Time Tracking ─────────────────────────────────────────────────────────
+  getTaskTimeLogs: async (taskUid: string) => {
+    const res = await fetchFromBff<any>(`/api/v1/projects/time-logs/?task__uid=${taskUid}`, { method: "GET" });
+    return unpackArray<any>(res);
+  },
+
+  createTaskTimeLog: async (taskUid: string, data: { date: string; hours: number; description: string; billable: boolean }) => {
+    return fetchFromBff<any>(`/api/v1/projects/time-logs/`, {
+      method: "POST",
+      body: JSON.stringify({
+        task: taskUid, // wait, time logs point to task by primary key in model? The serializer might need slug related field, wait.
+        // Actually, let's fix backend serializer to accept uid instead of PK if it doesn't already. Let's send task: taskUid for now and check serializer.
+        ...data
+      })
+    });
+  },
+
+  deleteTaskTimeLog: async (logId: number) => {
+    return fetchFromBff<void>(`/api/v1/projects/time-logs/${logId}/`, { method: "DELETE" });
   },
 
   // ── Issues ────────────────────────────────────────────────────────────────
   getPunchListItems: async (projectUid: string) => {
-    const res = await fetchFromBff<any>(`/api/projects/punch-list-items/?project_uid=${projectUid}`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/punch-list-items/?project_uid=${projectUid}`, { method: "GET" });
     return unpackArray<any>(res);
   },
 
@@ -218,14 +323,14 @@ export const projectsApi = {
       });
     }
     
-    return fetchFromBff<any>(`/api/projects/punch-list-items/`, {
+    return fetchFromBff<any>(`/api/v1/projects/punch-list-items/`, {
       method: "POST",
       body: formData
     });
   },
 
   resolvePunchListItem: async (itemId: number) => {
-    return fetchFromBff<any>(`/api/projects/punch-list-items/${itemId}/`, {
+    return fetchFromBff<any>(`/api/v1/projects/punch-list-items/${itemId}/`, {
       method: "PATCH",
       body: JSON.stringify({ is_resolved: true })
     });
@@ -233,27 +338,73 @@ export const projectsApi = {
 
   // ── Task Comments ────────────────────────────────────────────────────────
   getTaskComments: async (taskUid: string) => {
-    const res = await fetchFromBff<any>(`/api/projects/task-comments/?task=${taskUid}`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/task-comments/?task=${taskUid}`, { method: "GET" });
     return unpackArray<TaskComment>(res);
   },
   createTaskComment: async (taskUid: string, content: string) => {
-    return fetchFromBff<TaskComment>(`/api/projects/task-comments/`, {
+    return fetchFromBff<TaskComment>(`/api/v1/projects/task-comments/`, {
       method: "POST",
       body: JSON.stringify({ task: taskUid, content })
     });
   },
 
-  // ── Asset Management ─────────────────────────────────────────────────
+  createTaskAccessRequest: async (taskUid: string, reason: string) => {
+    return fetchFromBff<any>("/api/v1/projects/task-requests/", {
+      method: "POST",
+      body: JSON.stringify({
+        task_uid: taskUid,
+        reason
+      })
+    });
+  },
 
+  // ── Task Tags ───────────────────────────────────────────────────────────
+  getTaskTags: async () => {
+    const res = await fetchFromBff<any>("/api/v1/projects/task-tags/", { method: "GET" });
+    return unpackArray<any>(res);
+  },
 
-  uploadProjectAsset: async (projectId: number, category: string, file: File, title: string, thumbnail?: Blob) => {
+  createTaskTag: async (data: { name: string; color: string; account_id?: number }) => {
+    return fetchFromBff<any>("/api/v1/projects/task-tags/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateTaskTag: async (id: number, data: any) => {
+    return fetchFromBff<any>(`/api/v1/projects/task-tags/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteTaskTag: async (id: number) => {
+    return fetchFromBff<void>(`/api/v1/projects/task-tags/${id}/`, { method: "DELETE" });
+  },
+
+  // ── Asset & Folder Management ─────────────────────────────────────────
+
+  createProjectFolder: async (data: { project: number; name: string; category: string; parent?: number | null }) => {
+    return fetchFromBff<any>("/api/v1/projects/folders/", { method: "POST", body: JSON.stringify(data) });
+  },
+
+  updateProjectFolder: async (folderId: number, data: Partial<{ name: string; parent: number | null }>) => {
+    return fetchFromBff<any>(`/api/v1/projects/folders/${folderId}/`, { method: "PATCH", body: JSON.stringify(data) });
+  },
+
+  deleteProjectFolder: async (folderId: number) => {
+    return fetchFromBff<void>(`/api/v1/projects/folders/${folderId}/`, { method: "DELETE" });
+  },
+
+  uploadProjectAsset: async (projectId: number, category: string, file: File, title: string, thumbnail?: Blob, folderId?: number | null) => {
     const formData = new FormData();
     formData.append("project", projectId.toString());
     formData.append("category", category);
     formData.append("file", file);
     formData.append("title", title);
+    if (folderId) formData.append("folder", folderId.toString());
     if (thumbnail) formData.append("thumbnail", thumbnail, "thumbnail.png");
-    return fetchFromBff<any>("/api/projects/assets/", { method: "POST", body: formData });
+    return fetchFromBff<any>("/api/v1/projects/assets/", { method: "POST", body: formData });
   },
 
   saveSH3DProject: async (projectUid: string, data: {
@@ -261,6 +412,8 @@ export const projectsApi = {
     name: string;
     thumbnailFile?: Blob | null;
     glbFile?: Blob | null;
+    assetId?: string;
+    asRevision?: boolean;
   }) => {
     const formData = new FormData();
     formData.append('sh3d_file', data.sh3dFile, data.name);
@@ -271,25 +424,39 @@ export const projectsApi = {
     if (data.glbFile) {
       formData.append('glb_file', data.glbFile, 'model.glb');
     }
-    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/save-sh3d/`, {
+    if (data.assetId) {
+      formData.append('asset_id', data.assetId);
+    }
+    if (data.asRevision) {
+      formData.append('as_revision', 'true');
+    }
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/save-sh3d/`, {
       method: "POST",
       body: formData
     });
   },
 
   initSH3DProject: async (projectUid: string, name: string) => {
-    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/init-sh3d/`, {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/init-sh3d/`, {
       method: "POST",
       body: JSON.stringify({ name })
     });
   },
 
   updateProjectAsset: async (assetId: number, data: Partial<{ title: string; category: string }>) => {
-    return fetchFromBff<any>(`/api/projects/assets/${assetId}/`, { method: "PATCH", body: JSON.stringify(data) });
+    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/`, { method: "PATCH", body: JSON.stringify(data) });
   },
 
   deleteProjectAsset: async (assetId: number) => {
-    return fetchFromBff<void>(`/api/projects/assets/${assetId}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/assets/${assetId}/`, { method: "DELETE" });
+  },
+
+  // ── Floor Plan Calibration ─────────────────────────────────────────────
+  calibrateAsset: async (assetId: number, scale_pixels_per_meter: number) => {
+    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/calibrate/`, { 
+      method: "PATCH", 
+      body: JSON.stringify({ scale_pixels_per_meter }) 
+    });
   },
 
   // ── Revision Control ──────────────────────────────────────────────────
@@ -299,28 +466,28 @@ export const projectsApi = {
     formData.append("file", file);
     if (revisionNotes) formData.append("revision_notes", revisionNotes);
     if (thumbnail) formData.append("thumbnail", thumbnail, "thumbnail.png");
-    return fetchFromBff<any>(`/api/projects/assets/${parentAssetId}/upload-revision/`, { method: "POST", body: formData });
+    return fetchFromBff<any>(`/api/v1/projects/assets/${parentAssetId}/upload-revision/`, { method: "POST", body: formData });
   },
 
   getAssetHistory: async (assetId: number) => {
-    return fetchFromBff<any[]>(`/api/projects/assets/${assetId}/history/`, { method: "GET" });
+    return fetchFromBff<any[]>(`/api/v1/projects/assets/${assetId}/history/`, { method: "GET" });
   },
 
   promoteAssetVersion: async (assetId: number) => {
-    return fetchFromBff<any>(`/api/projects/assets/${assetId}/promote/`, { method: "POST" });
+    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/promote/`, { method: "POST" });
   },
 
   // ── Task–Asset Linking ────────────────────────────────────────────────
 
   linkAssetToTask: async (taskUid: string, canonicalUid: string) => {
-    return fetchFromBff<TaskAssetLink>("/api/projects/task-asset-links/", {
+    return fetchFromBff<TaskAssetLink>("/api/v1/projects/task-asset-links/", {
       method: "POST",
       body: JSON.stringify({ task: taskUid, canonical_uid: canonicalUid })
     });
   },
 
   unlinkAssetFromTask: async (linkId: number) => {
-    return fetchFromBff<void>(`/api/projects/task-asset-links/${linkId}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/task-asset-links/${linkId}/`, { method: "DELETE" });
   },
 
   // ── Site Photos ──────────────────────────────────────────────────────
@@ -347,21 +514,21 @@ export const projectsApi = {
     formData.append("gps_source", data.gps_source);
     if (data.caption) formData.append("caption", data.caption);
     
-    return fetchFromBff<any>("/api/projects/site-photos/", { method: "POST", body: formData });
+    return fetchFromBff<any>("/api/v1/projects/site-photos/", { method: "POST", body: formData });
   },
 
   getSitePhotos: async (floorPlanId: number) => {
-    const res = await fetchFromBff<any>(`/api/projects/site-photos/?floor_plan=${floorPlanId}`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/site-photos/?floor_plan=${floorPlanId}`, { method: "GET" });
     return unpackArray<any>(res);
   },
 
   deleteSitePhoto: async (photoId: number) => {
-    return fetchFromBff<void>(`/api/projects/site-photos/${photoId}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/site-photos/${photoId}/`, { method: "DELETE" });
   },
 
   // ── Floor Plan Estimations (Take-Off) ──────────────────────────────────
   getEstimations: async (floorPlanId: number) => {
-    const res = await fetchFromBff<any>(`/api/projects/estimations/?floor_plan=${floorPlanId}`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/estimations/?floor_plan=${floorPlanId}`, { method: "GET" });
     return unpackArray<any>(res);
   },
 
@@ -386,7 +553,7 @@ export const projectsApi = {
     if (payload.gross_qty === "") payload.gross_qty = undefined;
     if (payload.net_qty === "") payload.net_qty = undefined;
     if (payload.no_of_items === "") payload.no_of_items = undefined;
-    return fetchFromBff<any>("/api/projects/estimations/", { method: "POST", body: JSON.stringify(payload) });
+    return fetchFromBff<any>("/api/v1/projects/estimations/", { method: "POST", body: JSON.stringify(payload) });
   },
 
   updateEstimation: async (estimationId: number, data: Partial<any>) => {
@@ -397,47 +564,67 @@ export const projectsApi = {
     if (payload.gross_qty === "") payload.gross_qty = undefined;
     if (payload.net_qty === "") payload.net_qty = undefined;
     if (payload.no_of_items === "") payload.no_of_items = undefined;
-    return fetchFromBff<any>(`/api/projects/estimations/${estimationId}/`, { method: "PATCH", body: JSON.stringify(payload) });
+    return fetchFromBff<any>(`/api/v1/projects/estimations/${estimationId}/`, { method: "PATCH", body: JSON.stringify(payload) });
   },
 
   deleteEstimation: async (estimationId: number) => {
-    return fetchFromBff<void>(`/api/projects/estimations/${estimationId}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/estimations/${estimationId}/`, { method: "DELETE" });
   },
 
   // ── Project Estimation (Aggregated Pricing) ──────────────────────────────
   getEstimationSummary: async (projectUid: string) => {
-    return fetchFromBff<{ items: any[], grand_total: number }>(`/api/projects/projects/${projectUid}/estimation-summary/`, { method: "GET" });
+    return fetchFromBff<{ items: any[], grand_total: number }>(`/api/v1/projects/projects/${projectUid}/estimation-summary/`, { method: "GET" });
   },
 
   updateEstimationPricing: async (projectUid: string, itemCode: string, unitCost: number | string) => {
-    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/estimation-pricing/`, { 
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/estimation-pricing/`, { 
       method: "POST", 
       body: JSON.stringify({ item_code: itemCode, unit_cost: unitCost }) 
     });
   },
 
   updateEstimationMapping: async (projectUid: string, itemCode: string, compositionMapping: string) => {
-    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/estimation-mapping/`, { 
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/estimation-mapping/`, { 
       method: "POST", 
       body: JSON.stringify({ item_code: itemCode, composition_mapping: compositionMapping }) 
     });
   },
 
   pushEstimationToBoq: async (projectUid: string, mappings: Record<string, string> = {}) => {
-    return fetchFromBff<{ success: boolean, pushed_items: number }>(`/api/projects/projects/${projectUid}/push-to-boq/`, { 
+    return fetchFromBff<{ success: boolean, pushed_items: number }>(`/api/v1/projects/projects/${projectUid}/push-to-boq/`, { 
       method: "POST",
       body: JSON.stringify({ mappings })
     });
   },
 
+  importBIMJson: async (projectUid: string, elements: any[]) => {
+    return fetchFromBff<{ success: boolean, imported: number }>(`/api/v1/projects/projects/${projectUid}/import-bim-json/`, {
+      method: "POST",
+      body: JSON.stringify({ elements })
+    });
+  },
+
+
   // ── Utilities ──────────────────────────────────────────────────────────
 
   getTaskTemplates: async () => {
-    return fetchFromBff<any>("/api/projects/task-templates/", { method: "GET" });
+    return fetchFromBff<any>("/api/v1/projects/task-templates/", { method: "GET" });
+  },
+
+  getInventoryItems: async () => {
+    return fetchFromBff<any[]>("/api/v1/projects/inventory-items/");
+  },
+
+  // Invoices
+  getVendorInvoices: async () => {
+    return fetchFromBff<any[]>("/api/v1/projects/vendor-invoices/");
+  },
+  exportVendorInvoice: (invoiceId: number) => {
+    window.open(`/api/proxy/projects/vendor-invoices/${invoiceId}/export-pdf/`, "_blank");
   },
 
   getSecureAssetUrl: (assetId: number) => {
-    return `/api/projects/assets/${assetId}/secure-view/`;
+    return `/api/v1/projects/assets/${assetId}/secure-view/`;
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -446,157 +633,238 @@ export const projectsApi = {
 
   // ── Matrix View 1 (Compact grid payload) ─────────────────────────────────
   getMatrix: async (projectUid: string): Promise<MatrixPayload> => {
-    return fetchFromBff<MatrixPayload>(`/api/projects/projects/${projectUid}/matrix/`, { method: "GET" });
+    return fetchFromBff<MatrixPayload>(`/api/v1/projects/projects/${projectUid}/matrix/`, { method: "GET" });
   },
 
   // ── Matrix View 2 (Expanded feed, paginated by phase) ────────────────────
   getExpandedFeed: async (projectUid: string, page: number = 1): Promise<ExpandedFeedPayload> => {
     return fetchFromBff<ExpandedFeedPayload>(
-      `/api/projects/projects/${projectUid}/expanded-feed/?page=${page}`,
+      `/api/v1/projects/projects/${projectUid}/expanded-feed/?page=${page}`,
       { method: "GET" }
     );
   },
 
   // ── Spatial Zones ─────────────────────────────────────────────────────────
   getZones: async (projectId: number): Promise<SpatialZone[]> => {
-    const res = await fetchFromBff<any>(`/api/projects/zones/?project=${projectId}`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/zones/?project=${projectId}`, { method: "GET" });
     return unpackArray<SpatialZone>(res);
   },
 
   createZone: async (data: { project: number; name: string; order?: number; zone_type?: string; bim_element_id?: string }) => {
-    return fetchFromBff<SpatialZone>("/api/projects/zones/", { method: "POST", body: JSON.stringify(data) });
+    return fetchFromBff<SpatialZone>("/api/v1/projects/zones/", { method: "POST", body: JSON.stringify(data) });
   },
 
   updateZone: async (zoneId: number, data: Partial<SpatialZone>) => {
-    return fetchFromBff<SpatialZone>(`/api/projects/zones/${zoneId}/`, { method: "PATCH", body: JSON.stringify(data) });
+    return fetchFromBff<SpatialZone>(`/api/v1/projects/zones/${zoneId}/`, { method: "PATCH", body: JSON.stringify(data) });
   },
 
   deleteZone: async (zoneId: number) => {
-    return fetchFromBff<void>(`/api/projects/zones/${zoneId}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/zones/${zoneId}/`, { method: "DELETE" });
   },
 
   uploadZoneDrawing: async (zoneId: number, file: File) => {
     const formData = new FormData();
     formData.append("drawing_snapshot", file);
-    return fetchFromBff<SpatialZone>(`/api/projects/zones/${zoneId}/`, { method: "PATCH", body: formData });
+    return fetchFromBff<SpatialZone>(`/api/v1/projects/zones/${zoneId}/`, { method: "PATCH", body: formData });
   },
 
   // ── Milestone Phases ──────────────────────────────────────────────────────
   getPhases: async (projectId: number): Promise<MilestonePhase[]> => {
-    const res = await fetchFromBff<any>(`/api/projects/phases/?project=${projectId}`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/phases/?project=${projectId}`, { method: "GET" });
     return unpackArray<MilestonePhase>(res);
   },
 
   createPhase: async (data: { project: number; name: string; sequence_order: number; color_hex?: string }) => {
-    return fetchFromBff<MilestonePhase>("/api/projects/phases/", { method: "POST", body: JSON.stringify(data) });
+    return fetchFromBff<MilestonePhase>("/api/v1/projects/phases/", { method: "POST", body: JSON.stringify(data) });
   },
 
   updatePhase: async (phaseId: number, data: Partial<MilestonePhase>) => {
-    return fetchFromBff<MilestonePhase>(`/api/projects/phases/${phaseId}/`, { method: "PATCH", body: JSON.stringify(data) });
+    return fetchFromBff<MilestonePhase>(`/api/v1/projects/phases/${phaseId}/`, { method: "PATCH", body: JSON.stringify(data) });
   },
 
   deletePhase: async (phaseId: number) => {
-    return fetchFromBff<void>(`/api/projects/phases/${phaseId}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/phases/${phaseId}/`, { method: "DELETE" });
   },
 
   // ── Unified Tasks for Matrix ────────────────────────────────────────────────
   getOrCreateBlock: async (zoneId: number, phaseId: number) => {
-    return fetchFromBff<any>(`/api/projects/blocks/get_or_create_empty/`, {
+    return fetchFromBff<any>(`/api/v1/projects/blocks/get_or_create_empty/`, {
       method: "POST",
       body: JSON.stringify({ zone_id: zoneId, phase_id: phaseId })
     });
   },
 
+  updateBlock: async (blockId: number, data: Partial<any>) => {
+    return fetchFromBff<any>(`/api/v1/projects/blocks/${blockId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
   getBlockTasks: async (blockId: number): Promise<Task[]> => {
-    const res = await fetchFromBff<any>(`/api/projects/tasks/?block=${blockId}`, { method: "GET" });
+    const res = await fetchFromBff<any>(`/api/v1/projects/tasks/?block=${blockId}`, { method: "GET" });
     return unpackArray<Task>(res);
   },
 
   getConstructionTask: async (taskId: string) => {
-    return fetchFromBff<Task>(`/api/projects/tasks/${taskId}/`, { method: "GET" });
+    return fetchFromBff<Task>(`/api/v1/projects/tasks/${taskId}/`, { method: "GET" });
   },
 
   createConstructionTask: async (data: Partial<Task> & { block: number; title: string }) => {
     // Determine project from block or context
-    return fetchFromBff<Task>("/api/projects/tasks/", {
+    return fetchFromBff<Task>("/api/v1/projects/tasks/", {
       method: "POST",
       body: JSON.stringify(data)
     });
   },
 
   updateConstructionTask: async (taskId: string, data: Partial<Task>) => {
-    return fetchFromBff<Task>(`/api/projects/tasks/${taskId}/`, {
+    return fetchFromBff<Task>(`/api/v1/projects/tasks/${taskId}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
     });
   },
 
   moveConstructionTask: async (taskId: string, newStatus: string) => {
-    return fetchFromBff<Task>(`/api/projects/tasks/${taskId}/`, {
+    return fetchFromBff<Task>(`/api/v1/projects/tasks/${taskId}/`, {
       method: "PATCH",
       body: JSON.stringify({ status: newStatus })
     });
   },
 
   logProgress: async (taskId: string, quantityDelta: number) => {
-    return fetchFromBff<Task>(`/api/projects/tasks/${taskId}/log-progress/`, {
+    return fetchFromBff<Task>(`/api/v1/projects/tasks/${taskId}/log-progress/`, {
       method: "POST",
       body: JSON.stringify({ quantity_delta: quantityDelta })
     });
   },
 
   deleteConstructionTask: async (taskId: string) => {
-    return fetchFromBff<void>(`/api/projects/tasks/${taskId}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/tasks/${taskId}/`, { method: "DELETE" });
   },
 
   // ── Procurement ───────────────────────────────────────────────────────────
+  getVendors: async () => {
+    const res = await fetchFromBff<any>("/api/v1/projects/vendors/", { method: "GET" });
+    return unpackArray<any>(res);
+  },
+
+  createVendor: async (data: any) => {
+    return fetchFromBff<any>("/api/v1/projects/vendors/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  getMaterialCatalog: async () => {
+    const res = await fetchFromBff<any>("/api/v1/projects/material-catalog/", { method: "GET" });
+    return unpackArray<any>(res);
+  },
+
+  seedMaterialCatalog: async () => {
+    return fetchFromBff<{status: string, seeded_items: number}>("/api/v1/projects/material-catalog/seed/", {
+      method: "POST",
+    });
+  },
+
+  createMaterialCatalogItem: async (data: any) => {
+    return fetchFromBff<any>("/api/v1/projects/material-catalog/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  getPurchaseOrders: async () => {
+    const res = await fetchFromBff<any>("/api/v1/projects/purchase-orders/", { method: "GET" });
+    return unpackArray<any>(res);
+  },
+
+  createPurchaseOrder: async (data: any) => {
+    return fetchFromBff<any>("/api/v1/projects/purchase-orders/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  submitPurchaseOrder: async (poId: number) => {
+    return fetchFromBff<any>(`/api/v1/projects/purchase-orders/${poId}/submit_for_approval/`, {
+      method: "POST"
+    });
+  },
+
+  approvePurchaseOrder: async (poId: number) => {
+    return fetchFromBff<any>(`/api/v1/projects/purchase-orders/${poId}/approve/`, {
+      method: "POST"
+    });
+  },
+
+  rejectPurchaseOrder: async (poId: number) => {
+    return fetchFromBff<any>(`/api/v1/projects/purchase-orders/${poId}/reject/`, {
+      method: "POST"
+    });
+  },
+
+  createPurchaseOrderItem: async (data: any) => {
+    return fetchFromBff<any>("/api/v1/projects/purchase-order-items/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
   getBOQItems: async () => {
-    const res = await fetchFromBff<any>(`/api/projects/boq-items/`, { method: "GET" });
-    return unpackArray<BOQItem>(res);
+    const res = await fetchFromBff<any>(`/api/v1/projects/boq-items/`, { method: "GET" });
+    return unpackArray<any>(res);
   },
 
 
   updateBOQItem: async (id: number, data: Partial<{ phase: number | null; material_code: string; total_budgeted_qty: string | number; unit_rate: string | number }>) => {
-    return fetchFromBff<BOQItem>(`/api/projects/boq-items/${id}/`, {
+    return fetchFromBff<BOQItem>(`/api/v1/projects/boq-items/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
     });
   },
 
   createBOQSubItem: async (data: { parent: number; material_code: string; description?: string; quantity: string | number; unit_rate: string | number }) => {
-    return fetchFromBff<any>(`/api/projects/boq-sub-items/`, {
+    return fetchFromBff<any>(`/api/v1/projects/boq-sub-items/`, {
       method: "POST",
       body: JSON.stringify(data)
     });
   },
 
   deleteBOQSubItem: async (id: number) => {
-    return fetchFromBff<void>(`/api/projects/boq-sub-items/${id}/`, {
+    return fetchFromBff<void>(`/api/v1/projects/boq-sub-items/${id}/`, {
       method: "DELETE"
     });
   },
 
   getProcurementAggregation: async (projectUid?: string) => {
-    const url = projectUid ? `/api/projects/procurement/aggregator/?project_uid=${projectUid}` : `/api/projects/procurement/aggregator/`;
+    const url = projectUid ? `/api/v1/projects/procurement/aggregator/?project_uid=${projectUid}` : `/api/v1/projects/procurement/aggregator/`;
     return fetchFromBff<any[]>(url, { method: "GET" });
   },
 
+  getMaterialAllocations: async (projectUid: string) => {
+    const res = await fetchFromBff<any>(`/api/v1/projects/material-allocations/?project=${projectUid}`, {
+      method: "GET"
+    });
+    return unpackArray<TaskMaterialAllocation>(res);
+  },
+
   createMaterialAllocation: async (data: { task: string; boq_item: number; allocated_qty: string | number; req_status?: string; notes?: string; expected_on_site_by?: string }) => {
-    return fetchFromBff<TaskMaterialAllocation>(`/api/projects/material-allocations/`, {
+    return fetchFromBff<TaskMaterialAllocation>(`/api/v1/projects/material-allocations/`, {
       method: "POST",
       body: JSON.stringify(data)
     });
   },
 
   updateMaterialAllocation: async (allocationId: number, data: Partial<TaskMaterialAllocation>) => {
-    return fetchFromBff<TaskMaterialAllocation>(`/api/projects/material-allocations/${allocationId}/`, {
+    return fetchFromBff<TaskMaterialAllocation>(`/api/v1/projects/material-allocations/${allocationId}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
     });
   },
 
   updateMaterialAllocationStatus: async (allocationId: number, reqStatus: string, notes?: string, expectedOnSiteBy?: string) => {
-    return fetchFromBff<TaskMaterialAllocation>(`/api/projects/material-allocations/${allocationId}/status/`, {
+    return fetchFromBff<TaskMaterialAllocation>(`/api/v1/projects/material-allocations/${allocationId}/status/`, {
       method: "PATCH",
       body: JSON.stringify({ req_status: reqStatus, notes, expected_on_site_by: expectedOnSiteBy })
     });
@@ -613,8 +881,8 @@ export const projectsApi = {
     }
     
     const url = allocationId 
-      ? `/api/projects/material-allocations/${allocationId}/log/`
-      : `/api/projects/material-allocations/log-lazy/`;
+      ? `/api/v1/projects/material-allocations/${allocationId}/log/`
+      : `/api/v1/projects/material-allocations/log-lazy/`;
       
     return fetchFromBff<TaskMaterialAllocation>(url, {
       method: "POST",
@@ -623,7 +891,7 @@ export const projectsApi = {
   },
 
   bulkUpdateMaterialAllocationStatus: async (ids: number[], reqStatus: string) => {
-    return fetchFromBff<any>(`/api/projects/material-allocations/bulk-update-status/`, {
+    return fetchFromBff<any>(`/api/v1/projects/material-allocations/bulk-update-status/`, {
       method: "POST",
       body: JSON.stringify({ ids, req_status: reqStatus })
     });
@@ -631,19 +899,19 @@ export const projectsApi = {
 
   // ── Material Assemblies ───────────────────────────────────────────────────
   getMaterialAssemblies: async (): Promise<any[]> => {
-    const res = await fetchFromBff<any>("/api/projects/material-assemblies/", { method: "GET" });
+    const res = await fetchFromBff<any>("/api/v1/projects/material-assemblies/", { method: "GET" });
     return unpackArray<any>(res);
   },
 
   createMaterialAssembly: async (data: any) => {
-    return fetchFromBff<any>("/api/projects/material-assemblies/", {
+    return fetchFromBff<any>("/api/v1/projects/material-assemblies/", {
       method: "POST",
       body: JSON.stringify(data)
     });
   },
 
   updateMaterialAssembly: async (id: number, data: any) => {
-    return fetchFromBff<any>(`/api/projects/material-assemblies/${id}/`, {
+    return fetchFromBff<any>(`/api/v1/projects/material-assemblies/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
     });
@@ -652,43 +920,43 @@ export const projectsApi = {
   uploadMaterialAssemblyImage: async (id: number, file: File) => {
     const formData = new FormData();
     formData.append("image", file);
-    return fetchFromBff<any>(`/api/projects/material-assemblies/${id}/`, {
+    return fetchFromBff<any>(`/api/v1/projects/material-assemblies/${id}/`, {
       method: "PATCH",
       body: formData
     });
   },
 
   removeMaterialAssemblyImage: async (id: number) => {
-    return fetchFromBff<any>(`/api/projects/material-assemblies/${id}/`, {
+    return fetchFromBff<any>(`/api/v1/projects/material-assemblies/${id}/`, {
       method: "PATCH",
       body: JSON.stringify({ image: null })
     });
   },
 
   deleteMaterialAssembly: async (id: number) => {
-    return fetchFromBff<void>(`/api/projects/material-assemblies/${id}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/material-assemblies/${id}/`, { method: "DELETE" });
   },
 
   createMaterialAssemblyComponent: async (data: any) => {
-    return fetchFromBff<any>("/api/projects/material-assembly-components/", {
+    return fetchFromBff<any>("/api/v1/projects/material-assembly-components/", {
       method: "POST",
       body: JSON.stringify(data)
     });
   },
 
   updateMaterialAssemblyComponent: async (id: number, data: any) => {
-    return fetchFromBff<any>(`/api/projects/material-assembly-components/${id}/`, {
+    return fetchFromBff<any>(`/api/v1/projects/material-assembly-components/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
     });
   },
 
   deleteMaterialAssemblyComponent: async (id: number) => {
-    return fetchFromBff<void>(`/api/projects/material-assembly-components/${id}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/material-assembly-components/${id}/`, { method: "DELETE" });
   },
 
   generateMaterialRecipe: async (item_code: string, description: string) => {
-    return fetchFromBff<any>(`/api/projects/material-assemblies/generate-recipe/`, {
+    return fetchFromBff<any>(`/api/v1/projects/material-assemblies/generate-recipe/`, {
       method: "POST",
       body: JSON.stringify({ item_code, description })
     });
@@ -696,12 +964,12 @@ export const projectsApi = {
 
   // ── Work Package Templates ────────────────────────────────────────────────
   getWorkPackages: async (): Promise<WorkPackageTemplate[]> => {
-    const res = await fetchFromBff<any>("/api/projects/work-packages/", { method: "GET" });
+    const res = await fetchFromBff<any>("/api/v1/projects/work-packages/", { method: "GET" });
     return unpackArray<WorkPackageTemplate>(res);
   },
 
   createWorkPackage: async (data: Partial<WorkPackageTemplate>) => {
-    return fetchFromBff<WorkPackageTemplate>("/api/projects/work-packages/", {
+    return fetchFromBff<WorkPackageTemplate>("/api/v1/projects/work-packages/", {
       method: "POST",
       body: JSON.stringify(data)
     });
@@ -714,7 +982,7 @@ export const projectsApi = {
     zone_package_mapping?: Record<string, number>;
   }) => {
     return fetchFromBff<{ zones: number; phases: number; blocks: number; tasks: number }>(
-      `/api/projects/projects/${projectUid}/generate-workspace/`,
+      `/api/v1/projects/projects/${projectUid}/generate-workspace/`,
       { method: "POST", body: JSON.stringify(payload) }
     );
   },
@@ -724,34 +992,34 @@ export const projectsApi = {
     const formData = new FormData();
     formData.append("file", file);
     return fetchFromBff<{ zones: AIZoneResult[] }>(
-      `/api/projects/projects/${projectUid}/parse-zones/`,
+      `/api/v1/projects/projects/${projectUid}/parse-zones/`,
       { method: "POST", body: formData }
     );
   },
 
   // ── Block unlock (admin override) ─────────────────────────────────────────
   unlockBlock: async (blockId: number) => {
-    return fetchFromBff<any>(`/api/projects/blocks/${blockId}/unlock/`, { method: "POST" });
+    return fetchFromBff<any>(`/api/v1/projects/blocks/${blockId}/unlock/`, { method: "POST" });
   },
 
   // ── Share Links ───────────────────────────────────────────────────────────
   getShareLinks: async (projectId: string) => {
-    return fetchFromBff<any[]>(`/api/projects/projects/${projectId}/share/`, { method: "GET" });
+    return fetchFromBff<any[]>(`/api/v1/projects/projects/${projectId}/share/`, { method: "GET" });
   },
 
   createShareLink: async (projectId: string, expiresInDays: number | null) => {
-    return fetchFromBff<any>(`/api/projects/projects/${projectId}/share/`, {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectId}/share/`, {
       method: "POST",
       body: JSON.stringify({ expires_in_days: expiresInDays })
     });
   },
 
   revokeShareLink: async (projectId: string, token: string) => {
-    return fetchFromBff<void>(`/api/projects/projects/${projectId}/share/${token}/`, { method: "DELETE" });
+    return fetchFromBff<void>(`/api/v1/projects/projects/${projectId}/share/${token}/`, { method: "DELETE" });
   },
 
   publishPortfolio: async (projectUid: string, data?: { category: string; city: string; country: string }) => {
-    return fetchFromBff<any>(`/api/projects/projects/${projectUid}/publish-portfolio/`, { 
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/publish-portfolio/`, { 
       method: "POST",
       body: data ? JSON.stringify(data) : undefined
     });

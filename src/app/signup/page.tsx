@@ -143,7 +143,7 @@ export default function SignupPage() {
         },
         metadata: formData.metadata,
       });
-      router.push("/login?registered=true");
+      router.push("/verify-email/pending");
     } catch (err: any) {
       if (err.data && typeof err.data === 'object') {
         const backendErrors: Record<string, string> = {};

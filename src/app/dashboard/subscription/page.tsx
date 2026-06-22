@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { billingApi, Subscription } from "@/domains/billing/api";
+import { PaymentHistory } from "@/components/billing/PaymentHistory";
+import { formatCurrency } from "@/lib/utils/currency";
 
 export default function SubscriptionPage() {
   const [sub, setSub] = useState<Subscription | null>(null);
@@ -39,13 +41,13 @@ export default function SubscriptionPage() {
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-primary">{sub?.plan_name || "Free Tier"}</h2>
+              <h2 className="text-2xl font-bold text-primary">{sub?.plan?.name || "Free Tier"}</h2>
               <span className="bg-accent/10 text-accent text-[10px] font-bold px-2 py-1 uppercase tracking-widest rounded">{sub?.status || "Active"}</span>
             </div>
-            <p className="text-surface-600 text-sm">Next billing cycle: {sub?.next_billing_date || "N/A"}</p>
+            <p className="text-surface-600 text-sm">Next billing cycle: {sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : "N/A"}</p>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-extrabold text-primary">${sub?.price || "0.00"}<span className="text-lg text-surface-600 font-medium">/mo</span></p>
+            <p className="text-3xl font-extrabold text-primary">{sub?.plan ? formatCurrency(sub.plan.monthly_price, sub.plan.currency) : "₹0.00"}<span className="text-lg text-surface-600 font-medium">/mo</span></p>
           </div>
         </div>
       </section>
@@ -105,6 +107,12 @@ export default function SubscriptionPage() {
             <span className="text-[10px] font-bold bg-surface-100 text-surface-600 px-2 py-1 rounded uppercase tracking-widest">Default</span>
           </div>
         </div>
+      </section>
+
+      {/* Payment History */}
+      <section className="space-y-6">
+        <h3 className="text-lg font-bold text-primary uppercase tracking-wider text-[13px]">Payment History</h3>
+        <PaymentHistory />
       </section>
     </div>
   );

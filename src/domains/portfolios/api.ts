@@ -1,10 +1,25 @@
 import { fetchFromBff } from "@/shared/api/fetchFromBff";
 
+export interface PortfolioReview {
+  id: number;
+  reviewer_name: string;
+  rating: number;
+  comment: string;
+  is_verified_client: boolean;
+  created_at: string;
+}
+
 export interface PortfolioItem {
   id: number;
+  slug?: string;
   title: string;
   description: string;
   image: string;
+  images?: { id: number; image: string; order: number }[];
+  video_url?: string;
+  average_rating?: number;
+  reviews_count?: number;
+  reviews?: PortfolioReview[];
   project_date?: string;
   is_public: boolean;
   views_count?: number;
@@ -41,20 +56,27 @@ export interface PaginatedResponse<T> {
 
 export const portfoliosApi = {
   listMyPortfolio: async () => {
-    return fetchFromBff<PortfolioItem[]>("/api/users/portfolio/", {
+    return fetchFromBff<PortfolioItem[]>("/api/v1/users/portfolio/", {
       method: "GET",
     });
   },
 
   addPortfolioItem: async (formData: FormData) => {
-    return fetchFromBff<PortfolioItem>("/api/users/portfolio/", {
+    return fetchFromBff<PortfolioItem>("/api/v1/users/portfolio/", {
       method: "POST",
       body: formData,
     });
   },
 
+  updatePortfolioItem: async (id: number, formData: FormData) => {
+    return fetchFromBff<PortfolioItem>(`/api/v1/users/portfolio/${id}/`, {
+      method: "PATCH",
+      body: formData,
+    });
+  },
+
   deletePortfolioItem: async (id: number) => {
-    return fetchFromBff<void>(`/api/users/portfolio/${id}/`, {
+    return fetchFromBff<void>(`/api/v1/users/portfolio/${id}/`, {
       method: "DELETE",
     });
   },
@@ -68,36 +90,42 @@ export const portfoliosApi = {
     if (params.page) searchParams.append("page", params.page.toString());
     if (params.sort) searchParams.append("sort", params.sort);
 
-    return fetchFromBff<PaginatedResponse<PortfolioItem>>(`/api/users/public/portfolios/?${searchParams.toString()}`, {
+    return fetchFromBff<PaginatedResponse<PortfolioItem>>(`/api/v1/users/public/portfolios/?${searchParams.toString()}`, {
       method: "GET",
       skipAuth: true,
     });
   },
 
-  getPublicPortfolioItem: async (id: number) => {
-    return fetchFromBff<PortfolioItem>(`/api/users/public/portfolios/${id}/`, {
+  getPublicPortfolioItem: async (idOrSlug: string | number) => {
+    return fetchFromBff<PortfolioItem>(`/api/v1/users/public/portfolios/${idOrSlug}/`, {
       method: "GET",
-      // skipAuth allows it to work for guests, but if token exists, Bff will forward it
-      // which lets backend check `is_saved` for authenticated users.
       skipAuth: false,
     });
   },
 
+  addPortfolioReview: async (id: number, data: { rating: number; comment: string }) => {
+    return fetchFromBff<PortfolioReview>(`/api/v1/users/public/portfolios/${id}/reviews/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  },
+
   incrementViewCount: async (id: number) => {
-    return fetchFromBff<{ views_count: number }>(`/api/users/public/portfolios/${id}/view/`, {
+    return fetchFromBff<{ views_count: number }>(`/api/v1/users/public/portfolios/${id}/view/`, {
       method: "POST",
       skipAuth: true,
     });
   },
 
   toggleSavePortfolio: async (id: number) => {
-    return fetchFromBff<{ is_saved: boolean }>(`/api/users/portfolios/${id}/toggle_save/`, {
+    return fetchFromBff<{ is_saved: boolean }>(`/api/v1/users/portfolios/${id}/toggle_save/`, {
       method: "POST",
     });
   },
 
   getSavedPortfolios: async (page: number = 1) => {
-    return fetchFromBff<PaginatedResponse<PortfolioItem>>(`/api/users/portfolios/saved/?page=${page}`, {
+    return fetchFromBff<PaginatedResponse<PortfolioItem>>(`/api/v1/users/portfolios/saved/?page=${page}`, {
       method: "GET",
     });
   },

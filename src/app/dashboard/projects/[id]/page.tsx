@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ProjectDetail, Task, ProjectAsset, TaskTemplate, SpatialZone, MilestonePhase } from "@/types/projects";
+import { Project, ProjectStatus, ProjectDetail, Task, ProjectAsset, TaskTemplate, SpatialZone, MilestonePhase } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { orgsApi } from "@/domains/orgs/api";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -14,13 +14,14 @@ import { RevisionHistoryModal } from "@/components/projects/RevisionHistoryModal
 import { FloorPlanGridViewer } from "@/components/projects/FloorPlanGridViewer";
 import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
 import { ExpandedFeedView } from "@/components/matrix/ExpandedFeedView";
+import { SiteOpsTab } from "@/components/projects/SiteOpsTab";
 import ModelViewer from "@/components/ModelViewer";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
-import ProjectShareManager from "@/components/projects/ProjectShareManager";
-import { ProjectStatusDropdown } from "@/components/projects/ProjectStatusDropdown";
-import { ProjectStatus } from "@/types/projects";
+import { ProjectHeroHeader } from "@/components/projects/ProjectHeroHeader";
+import { useProjectNavStore } from "@/store/project-nav-store";
+import { TaskAccessRequestsList } from "@/components/projects/TaskAccessRequestsList";
 
-type TabView = "data_hub" | "kanban" | "gantt" | "matrix" | "issues" | "share";
+type TabView = "kanban" | "gantt" | "data_hub" | "matrix" | "site_ops";
 type HubCategory = "sketch" | "2d_plan" | "3d_model" | "document";
 
 const GanttTaskBar = ({ task, totalDays, minDate, onTaskUpdate, onClick }: { task: Task, totalDays: number, minDate: Date, onTaskUpdate: (uid: string, start: string, end: string) => void, onClick: () => void }) => {
@@ -138,14 +139,22 @@ export default function ProjectDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabView;
   const taskParam = searchParams.get("task");
+  
   const [project, setProject] = useState<ProjectDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { canManageProject, canEditProject } = usePermissions();
-
-  const [activeTab, setActiveTab] = useState<TabView>("kanban");
+  const { setProjectContext, recordProjectAccess } = useProjectNavStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabView>(tabParam || "kanban");
   const [activeHubCategory, setActiveHubCategory] = useState<HubCategory>("sketch");
   const [matrixView, setMatrixView] = useState<"grid" | "feed">("grid");
+  
+  // Kanban filter and inline task
+  const [kanbanFilter, setKanbanFilter] = useState("");
+  const [inlineTaskCol, setInlineTaskCol] = useState<string | null>(null);
+  const [inlineTaskTitle, setInlineTaskTitle] = useState("");
+  const [isCreatingInline, setIsCreatingInline] = useState(false);
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [firmMembers, setFirmMembers] = useState<any[]>([]);
@@ -159,6 +168,40 @@ export default function ProjectDetailPage() {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  
+  // Bulk Operations State
+  const [selectedTaskUids, setSelectedTaskUids] = useState<string[]>([]);
+  const [isBulkOperationPending, setIsBulkOperationPending] = useState(false);
+
+  const handleBulkUpdate = async (updates: any) => {
+    if (selectedTaskUids.length === 0) return;
+    setIsBulkOperationPending(true);
+    try {
+      await projectsApi.bulkUpdateTasks(selectedTaskUids, updates);
+      setSelectedTaskUids([]);
+      fetchProject();
+    } catch (err: any) {
+      alert("Bulk update failed: " + err.message);
+    } finally {
+      setIsBulkOperationPending(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTaskUids.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedTaskUids.length} tasks?`)) return;
+    setIsBulkOperationPending(true);
+    try {
+      await projectsApi.bulkDeleteTasks(selectedTaskUids);
+      setSelectedTaskUids([]);
+      fetchProject();
+    } catch (err: any) {
+      alert("Bulk delete failed: " + err.message);
+    } finally {
+      setIsBulkOperationPending(false);
+    }
+  };
+
   const [renamingAssetId, setRenamingAssetId] = useState<number | null>(null);
   const [newAssetTitle, setNewAssetTitle] = useState("");
   // Blueprint Stack state
@@ -269,6 +312,8 @@ export default function ProjectDetailPage() {
     try {
       const data = await projectsApi.getProjectDetails(id as string);
       setProject(data);
+      setProjectContext(data.uid, data.title);
+      recordProjectAccess({ uid: data.uid, title: data.title, status: data.status });
       setProjectIntId(data.id); // cache the integer PK for uploads
       
       try {
@@ -357,7 +402,7 @@ export default function ProjectDetailPage() {
   }, [project, taskParam, activeTask, router]);
 
   useEffect(() => {
-    if (activeTab === "issues" && project) {
+    if (activeTab === "site_ops" && project) {
       fetchGlobalPunchList();
     }
   }, [activeTab, project?.uid]);
@@ -439,6 +484,26 @@ export default function ProjectDetailPage() {
       alert(err.message || "Failed to queue execution phase");
     } finally {
       setIsCreatingTask(false);
+    }
+  };
+
+  const handleInlineCreateTask = async (e: React.FormEvent, status: string) => {
+    e.preventDefault();
+    if (!inlineTaskTitle.trim() || !project) return;
+    setIsCreatingInline(true);
+    try {
+      await projectsApi.createTask({
+        project: project.id,
+        title: inlineTaskTitle.trim(),
+        status: status
+      });
+      setInlineTaskTitle("");
+      setInlineTaskCol(null);
+      fetchProject();
+    } catch(err: any) {
+      alert(err.message || "Failed to add task");
+    } finally {
+      setIsCreatingInline(false);
     }
   };
 
@@ -621,71 +686,34 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
-      {/* Header */}
-      <div className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-        <div className="absolute top-0 right-0 w-64 h-full arch-grid opacity-[0.03] pointer-events-none" />
-        
-        <div className="relative z-10 flex-1">
-          <div className="flex items-center gap-3 mb-5">
-            <span className="px-3 py-1 bg-surface-100 text-surface-600 text-[9px] font-bold uppercase tracking-widest rounded-md border border-surface-200">
-              🏢 {project.account.name}
-            </span>
-            <ProjectStatusDropdown 
-              uid={project.uid} 
-              status={project.status as ProjectStatus} 
-              onChange={handleProjectStatusChange} 
-            />
-          </div>
-          <h1 className="text-5xl font-extrabold text-primary mb-4 leading-tight tracking-tight">{project.title}</h1>
-        </div>
+      {/* Cinematic Header */}
+      <ProjectHeroHeader 
+        project={project} 
+        onStatusChange={handleProjectStatusChange} 
+      />
 
-        <div className="relative z-10 flex gap-4 shrink-0">
-          <button 
-            onClick={() => window.open(`/dashboard/projects/${id}/report/project-summary`, "_blank")}
-            className="h-10 px-6 bg-emerald-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2"
-          >
-            📄 Generate Report
-          </button>
-          <button 
-            onClick={() => router.push(`/dashboard/projects/${id}/procurement`)}
-            className="h-10 px-6 bg-surface-100 text-primary font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200 flex items-center gap-2"
-          >
-            🛒 Procurement Ledger
-          </button>
-          {canManageProject(project) && (
-            <>
-              {project.status === "Completed" && (
-                <button 
-                  onClick={handlePublishPortfolioClick}
-                  className="h-10 px-6 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all shadow-md"
-                >
-                  🚀 Publish to Portfolio
-                </button>
-              )}
-              <button onClick={() => setShowAssignModal(true)} className="h-10 px-6 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md">
-                + Assign Personnel
-              </button>
-              <button onClick={() => setShowDeleteModal(true)} className="h-10 px-4 bg-white text-red-500 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-50 hover:text-red-600 transition-all shadow-sm border border-red-200 flex items-center gap-2">
-                <span className="text-sm">🗑️</span> Delete Blueprint
-              </button>
-            </>
-          )}
+      {/* Pending Access Requests for Admins */}
+      {canManage && (
+        <div className="max-w-[1400px] mx-auto">
+          <TaskAccessRequestsList projectId={project.uid} />
         </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-surface-200 pb-px">
         {[
+          { id: "kanban", label: "Kanban Board" },
+          { id: "gantt", label: "Gantt Timeline" },
           { id: "data_hub", label: "Master Data Hub" },
           { id: "matrix", label: "Construction Matrix" },
-          { id: "kanban", label: "Advanced Kanban" },
-          { id: "gantt", label: "Gantt Timeline" },
-          { id: "issues", label: "Project Issue Tracker" },
-          { id: "share", label: "Share Dashboard" }
+          { id: "site_ops", label: "Site Operations" }
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as TabView)}
+            onClick={() => {
+              setActiveTab(tab.id as TabView);
+              router.push(`?tab=${tab.id}`, { scroll: false });
+            }}
             className={`px-6 py-3 font-bold text-sm tracking-wide transition-colors border-b-2 ${
               activeTab === tab.id ? "border-accent text-accent" : "border-transparent text-surface-400 hover:text-primary"
             }`}
@@ -986,6 +1014,57 @@ export default function ProjectDetailPage() {
               </form>
             )}
 
+            {selectedTaskUids.length > 0 && (
+              <div className="bg-surface-800 text-white p-4 rounded-2xl shadow-xl flex items-center justify-between animate-in slide-in-from-bottom-4 sticky top-4 z-40">
+                <div className="flex items-center gap-4">
+                  <span className="font-bold text-sm bg-surface-700 px-3 py-1 rounded-lg">{selectedTaskUids.length} selected</span>
+                  <button onClick={() => setSelectedTaskUids([])} className="text-xs text-surface-400 hover:text-white font-bold transition-colors">Clear Selection</button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <select 
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleBulkUpdate({ status: e.target.value });
+                        e.target.value = "";
+                      }
+                    }}
+                    disabled={isBulkOperationPending}
+                    className="bg-surface-700 text-xs font-bold px-3 py-2.5 rounded-lg outline-none cursor-pointer border-r-8 border-transparent disabled:opacity-50"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Move to Status...</option>
+                    <option value="TODO">To Do</option>
+                    <option value="WIP">In Progress</option>
+                    <option value="QA">Inspection</option>
+                    <option value="DONE">Done</option>
+                  </select>
+                  
+                  <button 
+                    onClick={handleBulkDelete}
+                    disabled={isBulkOperationPending}
+                    className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <span>🗑️</span> {isBulkOperationPending ? "Processing..." : "Delete Batch"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Kanban Filter */}
+            <div className="flex gap-4 items-center bg-white p-2 rounded-xl border border-surface-200">
+              <span className="text-surface-400 pl-2">🔍</span>
+              <input 
+                type="text" 
+                placeholder="Filter tasks by title or assignee..." 
+                value={kanbanFilter}
+                onChange={e => setKanbanFilter(e.target.value)}
+                className="flex-1 outline-none text-sm text-primary font-medium bg-transparent"
+              />
+              {kanbanFilter && (
+                <button onClick={() => setKanbanFilter("")} className="text-surface-400 hover:text-primary pr-2">✕</button>
+              )}
+            </div>
+
             <div className="flex overflow-x-auto gap-6 pb-4">
               {[
                 { id: "TODO", label: "To Do", color: "bg-surface-50 border-surface-200", dot: "bg-surface-400" },
@@ -1000,21 +1079,77 @@ export default function ProjectDetailPage() {
                   className={`flex flex-col min-w-[300px] flex-1 p-4 rounded-2xl border min-h-[500px] ${col.color}`}
                 >
                   <h4 className="flex items-center font-extrabold text-[11px] uppercase tracking-widest text-surface-600 mb-4 px-2">
+                    <input 
+                      type="checkbox"
+                      className="w-3.5 h-3.5 mr-3 flex-shrink-0 rounded border-surface-300 text-primary focus:ring-accent cursor-pointer"
+                      checked={project.tasks.filter(t => t.status === col.id).length > 0 && project.tasks.filter(t => t.status === col.id).every(t => selectedTaskUids.includes(t.uid))}
+                      onChange={(e) => {
+                        const colTasks = project.tasks.filter(t => t.status === col.id).map(t => t.uid);
+                        if (e.target.checked) {
+                          setSelectedTaskUids(prev => Array.from(new Set([...prev, ...colTasks])));
+                        } else {
+                          setSelectedTaskUids(prev => prev.filter(uid => !colTasks.includes(uid)));
+                        }
+                      }}
+                      title="Select all tasks in column"
+                    />
                     <span className={`w-2 h-2 rounded-full mr-2 ${col.dot}`} />
                     {col.label} 
                     <span className="ml-auto bg-white border border-surface-200 text-surface-600 px-2 py-0.5 rounded-full shadow-sm">
-                      {project.tasks.filter(t => t.status === col.id).length}
+                      {project.tasks.filter(t => {
+                        if (!kanbanFilter) return t.status === col.id;
+                        const term = kanbanFilter.toLowerCase();
+                        return t.status === col.id && (t.title.toLowerCase().includes(term) || t.assigned_to?.name.toLowerCase().includes(term));
+                      }).length}
                     </span>
                   </h4>
-                  <div className="space-y-3 min-h-full pb-8">
-                    {project.tasks.filter(t => t.status === col.id).map(task => (
+                  <div className="space-y-3 min-h-[500px] flex-1 pb-2 flex flex-col">
+                    {project.tasks.filter(t => {
+                        if (!kanbanFilter) return t.status === col.id;
+                        const term = kanbanFilter.toLowerCase();
+                        return t.status === col.id && (t.title.toLowerCase().includes(term) || t.assigned_to?.name.toLowerCase().includes(term));
+                      }).map(task => (
                       <TaskItem 
                         key={task.uid} 
                         task={task} 
                         onClick={() => setActiveTask(task)} 
                         onDragStart={(e) => handleDragStart(e, task.uid)}
+                        isSelected={selectedTaskUids.includes(task.uid)}
+                        onSelectToggle={() => setSelectedTaskUids(prev => 
+                          prev.includes(task.uid) ? prev.filter(uid => uid !== task.uid) : [...prev, task.uid]
+                        )}
                       />
                     ))}
+
+                    <div className="mt-auto pt-4">
+                      {inlineTaskCol === col.id ? (
+                        <form onSubmit={(e) => handleInlineCreateTask(e, col.id)} className="flex flex-col gap-2">
+                          <input 
+                            type="text" 
+                            autoFocus
+                            value={inlineTaskTitle}
+                            onChange={e => setInlineTaskTitle(e.target.value)}
+                            placeholder="Task title..."
+                            className="w-full text-xs p-3 rounded-xl border border-primary/20 outline-none focus:border-accent shadow-sm"
+                          />
+                          <div className="flex gap-2">
+                            <button type="submit" disabled={isCreatingInline} className="flex-1 bg-primary text-white text-[10px] font-bold uppercase tracking-widest py-2 rounded-xl hover:bg-accent disabled:opacity-50">
+                              {isCreatingInline ? "..." : "Save"}
+                            </button>
+                            <button type="button" onClick={() => { setInlineTaskCol(null); setInlineTaskTitle(""); }} className="flex-1 bg-surface-100 text-surface-600 text-[10px] font-bold uppercase tracking-widest py-2 rounded-xl hover:bg-surface-200">
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button 
+                          onClick={() => setInlineTaskCol(col.id)}
+                          className="w-full py-2.5 border-2 border-dashed border-surface-200 bg-white/50 text-surface-400 hover:border-accent hover:text-accent rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                        >
+                          <span>+</span> Add Task
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1040,7 +1175,7 @@ export default function ProjectDetailPage() {
               </button>
             </div>
             {matrixView === 'grid' ? (
-              <MilestoneMatrixView projectUid={project.uid} onTaskChange={fetchProject} />
+              <MilestoneMatrixView projectUid={project.uid} onTaskChange={fetchProject} projectTasks={project.tasks} criticalPathUids={[]} />
             ) : (
               <ExpandedFeedView projectUid={project.uid} />
             )}
@@ -1050,89 +1185,89 @@ export default function ProjectDetailPage() {
         {/* GANTT VIEW */}
         {activeTab === "gantt" && renderGantt()}
 
-        {/* ISSUES VIEW */}
-        {activeTab === "issues" && (
-          <div className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm animate-fade-in">
-            <h3 className="text-xl font-extrabold text-primary mb-6 tracking-tight">Project Issue Tracker</h3>
-            
-            {isLoadingPunchList ? (
-              <div className="py-20 flex justify-center"><Spinner size="lg" label="Loading issue tracker..." /></div>
-            ) : globalPunchList.length === 0 ? (
-              <div className="py-20 text-center flex flex-col items-center">
-                <span className="text-4xl opacity-20 mb-3">✅</span>
-                <p className="text-sm font-bold text-surface-400">No issue tracker items reported for this project.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {globalPunchList.map(item => (
-                  <div key={item.id} className="p-4 border border-surface-200 rounded-xl flex items-start gap-4 hover:border-surface-300 transition-colors bg-surface-50/30">
-                    <div className="shrink-0 pt-1">
-                      <span className={`w-3 h-3 rounded-full block ${item.is_resolved ? 'bg-emerald-500' : item.severity === 'HIGH' ? 'bg-red-500 animate-pulse' : item.severity === 'MEDIUM' ? 'bg-amber-500' : 'bg-blue-400'}`} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex gap-2 items-center mb-1">
-                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${item.is_resolved ? 'bg-surface-100 text-surface-500' : item.severity === 'HIGH' ? 'bg-red-100 text-red-600' : item.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {item.severity}
-                            </span>
-                            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 border border-surface-200">
-                              {item.issue_type} | {item.root_cause}
-                            </span>
-                            <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">{new Date(item.created_at).toLocaleDateString()}</span>
-                          </div>
-                          <h4 className="font-bold text-primary text-sm">{item.title}</h4>
-                          <p className="text-xs text-surface-500 mt-1">{item.description}</p>
-                          
-                          {/* Attachments rendering */}
-                          {item.attachments && item.attachments.length > 0 && (
-                            <div className="flex gap-2 mt-3">
-                              {item.attachments.map((att: any) => (
-                                <button 
-                                  key={att.id} 
-                                  onClick={() => setLightboxImageUrl(att.file)}
-                                  className="w-16 h-16 rounded-lg overflow-hidden border border-surface-200 block hover:opacity-80 transition-opacity cursor-pointer focus:outline-none"
-                                >
-                                  <img src={att.file} className="w-full h-full object-cover" />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {!item.is_resolved && canManage && (
-                          <button 
-                            onClick={() => handleResolveGlobalItem(item.id)}
-                            className="px-4 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-emerald-100 transition-colors shrink-0"
-                          >
-                            Resolve
-                          </button>
-                        )}
-                      </div>
-                      
-                      <div className="mt-3 pt-3 border-t border-surface-100 flex items-center justify-between">
-                        <div className="text-[10px] font-bold text-surface-400 uppercase">
-                          Task: <span className="text-primary cursor-pointer hover:text-accent hover:underline" onClick={() => { setActiveTask(project?.tasks.find(t => t.uid === item.task_uid) || null) }}>{item.task_title || "Unknown Task"}</span>
-                        </div>
-                        {item.reported_by && (
-                          <div className="text-[10px] font-bold text-surface-400 flex items-center gap-1.5">
-                            Reported by <img src={item.reported_by.avatar || `https://ui-avatars.com/api/?name=${item.reported_by.first_name}+${item.reported_by.last_name}&background=f3f4f6&color=1e293b`} className="w-4 h-4 rounded-full" /> {item.reported_by.first_name} {item.reported_by.last_name}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+        {/* SITE OPS VIEW (Merged HSE, Issues, Diary) */}
+        {activeTab === "site_ops" && (
+          <SiteOpsTab 
+            projectUid={project.uid} 
+            projectTasks={project.tasks}
+            fetchProject={fetchProject}
+            renderIssues={() => (
+              <div className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm animate-fade-in">
+                <h3 className="text-xl font-extrabold text-primary mb-6 tracking-tight">Project Issue Tracker</h3>
+                
+                {isLoadingPunchList ? (
+                  <div className="py-20 flex justify-center"><Spinner size="lg" label="Loading issue tracker..." /></div>
+                ) : globalPunchList.length === 0 ? (
+                  <div className="py-20 text-center flex flex-col items-center">
+                    <span className="text-4xl opacity-20 mb-3">✅</span>
+                    <p className="text-sm font-bold text-surface-400">No issue tracker items reported for this project.</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-4">
+                    {globalPunchList.map(item => (
+                      <div key={item.id} className="p-4 border border-surface-200 rounded-xl flex items-start gap-4 hover:border-surface-300 transition-colors bg-surface-50/30">
+                        <div className="shrink-0 pt-1">
+                          <span className={`w-3 h-3 rounded-full block ${item.is_resolved ? 'bg-emerald-500' : item.severity === 'HIGH' ? 'bg-red-500 animate-pulse' : item.severity === 'MEDIUM' ? 'bg-amber-500' : 'bg-blue-400'}`} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex gap-2 items-center mb-1">
+                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${item.is_resolved ? 'bg-surface-100 text-surface-500' : item.severity === 'HIGH' ? 'bg-red-100 text-red-600' : item.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                  {item.severity}
+                                </span>
+                                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 border border-surface-200">
+                                  {item.issue_type} | {item.root_cause}
+                                </span>
+                                <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">{new Date(item.created_at).toLocaleDateString()}</span>
+                              </div>
+                              <h4 className="font-bold text-primary text-sm">{item.title}</h4>
+                              <p className="text-xs text-surface-500 mt-1">{item.description}</p>
+                              
+                              {/* Attachments rendering */}
+                              {item.attachments && item.attachments.length > 0 && (
+                                <div className="flex gap-2 mt-3">
+                                  {item.attachments.map((att: any) => (
+                                    <button 
+                                      key={att.id} 
+                                      onClick={() => setLightboxImageUrl(att.file)}
+                                      className="w-16 h-16 rounded-lg overflow-hidden border border-surface-200 block hover:opacity-80 transition-opacity cursor-pointer focus:outline-none"
+                                    >
+                                      <img src={att.file} className="w-full h-full object-cover" />
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {!item.is_resolved && canManage && (
+                              <button 
+                                onClick={() => handleResolveGlobalItem(item.id)}
+                                className="px-4 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-emerald-100 transition-colors shrink-0"
+                              >
+                                Resolve
+                              </button>
+                            )}
+                          </div>
+                          
+                          <div className="mt-3 pt-3 border-t border-surface-100 flex items-center justify-between">
+                            <div className="text-[10px] font-bold text-surface-400 uppercase">
+                              Task: <span className="text-primary cursor-pointer hover:text-accent hover:underline" onClick={() => { setActiveTask(project?.tasks.find(t => t.uid === item.task_uid) || null) }}>{item.task_title || "Unknown Task"}</span>
+                            </div>
+                            {item.reported_by && (
+                              <div className="text-[10px] font-bold text-surface-400 flex items-center gap-1.5">
+                                Reported by <img src={item.reported_by.avatar || `https://ui-avatars.com/api/?name=${item.reported_by.first_name}+${item.reported_by.last_name}&background=f3f4f6&color=1e293b`} className="w-4 h-4 rounded-full" /> {item.reported_by.first_name} {item.reported_by.last_name}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
-
-        {/* SHARE DASHBOARD VIEW */}
-        {activeTab === "share" && (
-          <div className="animate-fade-in">
-            <ProjectShareManager projectId={project.uid} />
-          </div>
+          />
         )}
 
       </div>
@@ -1184,6 +1319,9 @@ export default function ProjectDetailPage() {
           task={activeTask} 
           projectId={project.id}
           projectUid={project.uid}
+          projectTasks={project.tasks}
+          criticalPathUids={[]}
+          taskTags={[]}
           projectAssets={project.assets || []}
           onClose={() => setActiveTask(null)} 
           onTaskUpdated={() => {
@@ -1414,6 +1552,8 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
+
+
 
     </div>
   );

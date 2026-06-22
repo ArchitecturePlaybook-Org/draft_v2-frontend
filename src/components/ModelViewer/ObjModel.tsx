@@ -9,5 +9,5 @@ interface ObjModelProps {
 
 export default function ObjModel({ url }: ObjModelProps) {
   const obj = useLoader(OBJLoader, url);
-  return <primitive object={obj} />;
+  return <primitive object={obj} dispose={null} />;
 }

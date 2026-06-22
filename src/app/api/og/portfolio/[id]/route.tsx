@@ -7,7 +7,7 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 async function getPortfolioItem(id: string) {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/users/public/portfolios/${id}/`, {
+    const res = await fetch(`${BACKEND_URL}/api/v1//public/portfolios/${id}/`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;

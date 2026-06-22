@@ -39,7 +39,7 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!accessToken) return null;
 
   try {
-    const res = await fetch(`${DJANGO_API_URL}/api/users/profile/`, {
+    const res = await fetch(`${DJANGO_API_URL}/api/v1/users/profile/`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     });

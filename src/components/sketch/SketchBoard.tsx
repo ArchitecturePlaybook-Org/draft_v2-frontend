@@ -54,7 +54,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({ onSave, onClose, initi
       elements,
       excalidrawAPI.getAppState(),
       excalidrawAPI.getFiles(),
-      "database"
+      "local"
     );
 
     let thumbnailBlob: Blob | undefined;

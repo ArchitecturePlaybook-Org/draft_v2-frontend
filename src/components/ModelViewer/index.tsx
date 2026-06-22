@@ -41,7 +41,12 @@ export default function ModelViewer({ url, format }: ModelViewerProps) {
     <div className="w-full h-full min-h-[400px] bg-slate-50 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative">
       <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0, 5], fov: 45 }}>
         <Suspense fallback={<Loader />}>
-          <Stage environment="city" intensity={0.5}>
+          {/* Added strong lighting to brighten the models */}
+          <ambientLight intensity={1.5} />
+          <directionalLight position={[10, 10, 10]} intensity={2} castShadow />
+          <directionalLight position={[-10, 10, -10]} intensity={1} />
+          <directionalLight position={[0, -10, 0]} intensity={0.5} />
+          <Stage environment={null} intensity={1}>
             {isGlb ? (
               <GlbModel url={url} />
             ) : (
@@ -50,7 +55,6 @@ export default function ModelViewer({ url, format }: ModelViewerProps) {
           </Stage>
         </Suspense>
         <OrbitControls makeDefault autoRotate autoRotateSpeed={1.5} />
-        <Environment preset="city" />
       </Canvas>
       <div className="absolute bottom-4 left-4 right-4 flex justify-between text-xs text-slate-500 pointer-events-none">
         <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm">

@@ -16,7 +16,7 @@ export async function refreshIfNeeded(
   }
 
   try {
-    const refreshRes = await fetch(`${DJANGO_API_URL}/api/users/auth/token/refresh/`, {
+    const refreshRes = await fetch(`${DJANGO_API_URL}/api/v1/users/auth/token/refresh/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh: refreshToken }),

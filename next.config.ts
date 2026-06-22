@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: http://localhost:8000; font-src 'self' data:; connect-src 'self' http://localhost:8000 ws://localhost:8000;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: http://localhost:8000; font-src 'self' data:; connect-src 'self' http://localhost:8000 ws://localhost:8000 blob: data: https://www.gstatic.com; worker-src 'self' blob:;"
           },
           {
             key: "X-Content-Type-Options",

@@ -9,12 +9,17 @@ import { toast } from "sonner";
 import TakeOffTab from "@/components/procurement/TakeOffTab";
 import EstimationTab from "@/components/procurement/EstimationTab";
 import { MaterialAssemblyManager } from "@/components/procurement/MaterialAssemblyManager";
+import VendorManager from "@/components/procurement/VendorManager";
+import CatalogManager from "@/components/procurement/CatalogManager";
+import POManager from "@/components/procurement/POManager";
+import InvoiceManager from "@/components/procurement/InvoiceManager";
+import BIMImportDialog from "@/components/procurement/BIMImportDialog";
 
 export default function ProcurementDashboard() {
   const params = useParams();
   const projectId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<"TAKE_OFF" | "ESTIMATION" | "BOQ" | "ASSEMBLIES" | "TRACKING">("TAKE_OFF");
+  const [activeTab, setActiveTab] = useState<"TAKE_OFF" | "ESTIMATION" | "BOQ" | "ASSEMBLIES" | "TRACKING" | "VENDORS" | "CATALOG" | "POs" | "INVOICES">("TRACKING");
   
   const [items, setItems] = useState<ProcurementAggregatorItem[]>([]);
   const [phases, setPhases] = useState<MilestonePhase[]>([]);
@@ -32,6 +37,9 @@ export default function ProcurementDashboard() {
   const [boqViewMode, setBoqViewMode] = useState<"assembly" | "material">("assembly");
   
   const [subItemForm, setSubItemForm] = useState<Record<number, {material_code: string, description: string, quantity: string, unit_rate: string}>>({});
+  
+  const [isBIMImportOpen, setIsBIMImportOpen] = useState(false);
+  const existingMaterialCodes = Array.from(new Set(items.map(i => i.material_code).filter(Boolean)));
 
   const fetchData = async () => {
     setLoading(true);
@@ -207,10 +215,10 @@ export default function ProcurementDashboard() {
         </div>
         
         {/* Tabs */}
-        <div className="mt-6 flex gap-4">
+        <div className="mt-6 flex gap-4 overflow-x-auto pb-2">
           <button
             onClick={() => setActiveTab("TAKE_OFF")}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
               activeTab === "TAKE_OFF" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
             }`}
           >
@@ -218,7 +226,7 @@ export default function ProcurementDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("ESTIMATION")}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
               activeTab === "ESTIMATION" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
             }`}
           >
@@ -226,7 +234,7 @@ export default function ProcurementDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("ASSEMBLIES")}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
               activeTab === "ASSEMBLIES" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
             }`}
           >
@@ -234,7 +242,7 @@ export default function ProcurementDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("BOQ")}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
               activeTab === "BOQ" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
             }`}
           >
@@ -242,11 +250,43 @@ export default function ProcurementDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("TRACKING")}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
               activeTab === "TRACKING" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
             }`}
           >
             Procurement & Tracking
+          </button>
+          <button
+            onClick={() => setActiveTab("VENDORS")}
+            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+              activeTab === "VENDORS" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
+            }`}
+          >
+            Vendors
+          </button>
+          <button
+            onClick={() => setActiveTab("CATALOG")}
+            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+              activeTab === "CATALOG" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
+            }`}
+          >
+            Catalog
+          </button>
+          <button
+            onClick={() => setActiveTab("POs")}
+            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+              activeTab === "POs" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
+            }`}
+          >
+            Purchase Orders
+          </button>
+          <button
+            onClick={() => setActiveTab("INVOICES")}
+            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+              activeTab === "INVOICES" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
+            }`}
+          >
+            Invoices
           </button>
         </div>
       </div>
@@ -283,6 +323,26 @@ export default function ProcurementDashboard() {
                     className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${boqViewMode === 'material' ? 'bg-white text-primary shadow-sm' : 'text-surface-500 hover:text-primary'}`}
                   >
                     Raw Material View
+                  </button>
+                </div>
+                <div className="flex bg-surface-100 p-1 rounded-lg ml-4 gap-1">
+                  <button
+                    onClick={() => setIsBIMImportOpen(true)}
+                    className="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-surface-500 hover:bg-white hover:text-accent hover:shadow-sm"
+                  >
+                    Import from BIM
+                  </button>
+                  <button
+                    onClick={() => projectsApi.exportProjectData(projectId, "boq", "excel")}
+                    className="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-surface-500 hover:bg-white hover:text-emerald-600 hover:shadow-sm"
+                  >
+                    Export Excel
+                  </button>
+                  <button
+                    onClick={() => projectsApi.exportProjectData(projectId, "boq", "csv")}
+                    className="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-surface-500 hover:bg-white hover:text-primary hover:shadow-sm"
+                  >
+                    Export CSV
                   </button>
                 </div>
               </div>
@@ -510,6 +570,14 @@ export default function ProcurementDashboard() {
                   </table>
                 </div>
               </div>
+              
+              <BIMImportDialog 
+                isOpen={isBIMImportOpen}
+                onClose={() => setIsBIMImportOpen(false)}
+                projectUid={projectId}
+                onImportSuccess={() => fetchData()}
+                existingMaterialCodes={existingMaterialCodes}
+              />
             </div>
           )}
 
@@ -530,9 +598,12 @@ export default function ProcurementDashboard() {
                         <th className="py-4 px-6 font-black">BOQ Item</th>
                         <th className="py-4 px-6 font-black">Phase</th>
                         <th className="py-4 px-6 font-black">Remaining Qty</th>
-                        <th className="py-4 px-6 font-black text-amber-600">🔴 Requisitioned</th>
+                        <th className="py-4 px-6 font-black text-amber-600">🔴 Req</th>
                         <th className="py-4 px-6 font-black text-blue-600">🔵 Ordered</th>
                         <th className="py-4 px-6 font-black">Allocations</th>
+                        <th className="py-4 px-6 font-black border-l border-surface-200 bg-surface-100/50">Budget</th>
+                        <th className="py-4 px-6 font-black bg-surface-100/50">PO Cost</th>
+                        <th className="py-4 px-6 font-black bg-surface-100/50">Variance</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -540,6 +611,9 @@ export default function ProcurementDashboard() {
                         const isExpanded = expandedRows[item.id];
                         const allocations = item.allocations || [];
                         const anomalyCount = allocations.filter(a => a.is_anomaly).length;
+                        const poCost = Number(item.po_cost || 0);
+                        const budgetCost = Number(item.total_budgeted_qty) * Number(item.unit_rate);
+                        const variance = budgetCost - poCost;
 
                         return (
                           <React.Fragment key={item.id}>
@@ -562,13 +636,26 @@ export default function ProcurementDashboard() {
                               <td className="py-4 px-6 font-black tabular-nums text-amber-600">{item.requisitioned_qty}</td>
                               <td className="py-4 px-6 font-bold tabular-nums text-blue-600">{item.ordered_qty}</td>
                               <td className="py-4 px-6 font-bold tabular-nums">
-                                {allocations.length} {anomalyCount > 0 && <span className="text-red-500 ml-2">({anomalyCount} Anomalies 🚨)</span>}
+                                {allocations.length} {anomalyCount > 0 && <span className="text-red-500 ml-2">({anomalyCount} 🚨)</span>}
+                              </td>
+                              <td className="py-4 px-6 font-black tabular-nums border-l border-surface-200 bg-surface-50/50 text-surface-600">
+                                ${budgetCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              </td>
+                              <td className="py-4 px-6 font-black tabular-nums bg-surface-50/50 text-surface-600">
+                                ${poCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              </td>
+                              <td className="py-4 px-6 font-black tabular-nums bg-surface-50/50">
+                                {variance >= 0 ? (
+                                  <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">+${variance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                ) : (
+                                  <span className="text-red-600 bg-red-50 px-2 py-1 rounded-md">-${Math.abs(variance).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                )}
                               </td>
                             </tr>
 
                             {isExpanded && allocations.length > 0 && (
                               <tr>
-                                <td colSpan={7} className="p-0 border-b border-surface-200">
+                                <td colSpan={10} className="p-0 border-b border-surface-200">
                                   <div className="bg-surface-50/50 px-14 py-4 border-l-4 border-surface-300">
                                     <table className="w-full text-left">
                                       <thead>
@@ -692,6 +779,10 @@ export default function ProcurementDashboard() {
             </div>
           )}
 
+          {activeTab === "VENDORS" && <VendorManager />}
+          {activeTab === "CATALOG" && <CatalogManager />}
+          {activeTab === "POs" && <POManager projectId={projectId} />}
+
           {/* Action Footer */}
           {activeTab === "TRACKING" && selectedCount > 0 && (
             <div className="sticky bottom-8 bg-primary text-white rounded-2xl shadow-2xl p-4 px-6 flex items-center justify-between animate-fade-in border border-surface-200/20">
@@ -709,6 +800,9 @@ export default function ProcurementDashboard() {
             </div>
           )}
 
+          {activeTab === "INVOICES" && (
+            <InvoiceManager projectId={projectId} />
+          )}
         </div>
       </div>
     </div>

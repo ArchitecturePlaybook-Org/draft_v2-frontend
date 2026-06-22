@@ -26,7 +26,9 @@ export async function detectScaleFromImage(
 ): Promise<CalibrationResult> {
   try {
     const result = await Tesseract.recognize(imageSrc, 'eng', {
-      logger: m => console.log(m)
+      logger: m => console.log(m),
+      workerPath: '/tesseract/worker.min.js',
+      corePath: '/tesseract/tesseract-core.wasm.js'
     });
 
     const words = (result.data as any).words || [];

@@ -7,6 +7,7 @@ import { detectWallsFromCanvas, detectRoomsFromWalls, DetectedWall, DetectedRoom
 import { findSymbols, MatchResult } from "@/lib/cv/templateMatching";
 import { detectScaleFromImage } from "@/lib/cv/scaleCalibration";
 import { toast } from "sonner";
+import { projectsApi } from "@/domains/projects/api";
 import { Bot, Maximize2, Loader2, Ruler, CheckCircle2, MousePointer2, Pencil, Eraser, Trash2, Hexagon, Hand, ZoomIn, ZoomOut, RotateCcw, MapPin, Wand2 } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
@@ -94,6 +95,9 @@ export function FloorPlanAnalyzerCanvas({
 
   // Extract existing scale if available
   const existingScale = React.useMemo(() => {
+    if (plan.scale_pixels_per_meter) {
+      return plan.scale_pixels_per_meter;
+    }
     for (const est of existingEstimations) {
       if (est.trace_data?.lengthPixels && est.length) {
         const len = parseFloat(est.length);
@@ -103,7 +107,7 @@ export function FloorPlanAnalyzerCanvas({
       }
     }
     return null;
-  }, [existingEstimations]);
+  }, [existingEstimations, plan.scale_pixels_per_meter]);
 
   // Editing Modes
   const [toolMode, setToolMode] = useState<'idle' | 'draw' | 'delete' | 'draw-area' | 'pan' | 'draw-point' | 'crop-find'>('idle');
@@ -699,6 +703,13 @@ export function FloorPlanAnalyzerCanvas({
       const h = Math.abs(drawingEnd.y - drawingStart.y);
       
       if (w > 10 && h > 10 && canvasRef.current) {
+        if (!cvLoaded) {
+          toast.error("Computer Vision engine is still loading. Please wait.");
+          setDrawingStart(null);
+          setDrawingEnd(null);
+          return;
+        }
+
         toast.info("Scanning for similar symbols...");
         const searchTarget = bgImageRef.current || canvasRef.current;
         findSymbols(searchTarget, { x, y, width: w, height: h }).then(matches => {
@@ -849,7 +860,7 @@ export function FloorPlanAnalyzerCanvas({
     }
   };
 
-  const handleApplyCalibration = (forcedScale?: number) => {
+  const handleApplyCalibration = async (forcedScale?: number) => {
     if (detectedWalls.length === 0 && detectedRooms.length === 0 && detectedSymbols.length === 0) return;
     
     let scale = 0;
@@ -874,6 +885,15 @@ export function FloorPlanAnalyzerCanvas({
        } else {
           scale = 1; // Fallback if applying symbols only with no scale
        }
+    }
+
+    try {
+      if (scale > 0 && plan.scale_pixels_per_meter !== scale) {
+         await projectsApi.calibrateAsset(plan.id, scale);
+         plan.scale_pixels_per_meter = scale; // optimistically update local object
+      }
+    } catch (e) {
+      toast.error("Failed to save scale to the server. Proceeding with local generation.");
     }
 
     toast.success(`Generating estimations...`);
@@ -936,23 +956,36 @@ export function FloorPlanAnalyzerCanvas({
       
       const isManual = w.id.startsWith("manual");
 
+      const lengthStr = lengthUnits.toFixed(2);
+      const widthStr = thicknessUnits ? thicknessUnits.toFixed(2) : "";
+      
+      let finalUnit = unitSystem === "metric" ? "m" : "ft";
+      let finalQty = lengthStr;
+      
+      if (thicknessUnits && thicknessUnits > 0) {
+        finalUnit = unitSystem === "metric" ? "sq m" : "sq ft";
+        finalQty = (lengthUnits * thicknessUnits).toFixed(2);
+      }
+
       newRows.push({
         floor_plan: plan.id,
         item_code: `WALL-TYPE-${typeLabel}`,
         description: `Wall ${idx + 1 + baseItemIndex} - ${isManual ? '[Manual] Drawn Wall' : '[AI] Detected Wall'}`,
         no_of_items: "1",
-        length: lengthUnits.toFixed(2),
-        width: thicknessUnits ? thicknessUnits.toFixed(2) : "",
+        length: "",
+        width: "",
         depth_height: "",
-        gross_qty: lengthUnits.toFixed(2),
+        gross_qty: finalQty,
         is_deduction: false,
-        net_qty: lengthUnits.toFixed(2),
-        unit: unitSystem === "metric" ? "m" : "ft",
+        net_qty: finalQty,
+        unit: finalUnit,
         trace_data: {
           start: w.start,
           end: w.end,
           lengthPixels: w.lengthPixels,
-          thicknessPixels: w.thicknessPixels
+          thicknessPixels: w.thicknessPixels,
+          scaledLength: lengthUnits,
+          scaledThickness: thicknessUnits
         }
       });
     });
@@ -966,8 +999,8 @@ export function FloorPlanAnalyzerCanvas({
         item_code: `ROOM-${idx + 1 + currentRoomsCount}`,
         description: r.id.startsWith("manual") ? "[Manual] Defined Area" : "[AI] Detected Room",
         no_of_items: "1",
-        length: areaUnits.toFixed(2), // Trick the auto-calculation in TakeOffTab
-        width: "1",
+        length: "", 
+        width: "",
         depth_height: "",
         gross_qty: areaUnits.toFixed(2),
         is_deduction: false,
@@ -976,7 +1009,8 @@ export function FloorPlanAnalyzerCanvas({
         trace_data: {
           polygon: r.polygon,
           areaPixels: r.areaPixels,
-          center: r.center
+          center: r.center,
+          scaledArea: areaUnits
         }
       });
     });

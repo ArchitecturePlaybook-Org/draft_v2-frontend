@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   MatrixPayload, MilestoneBlockCompact, MilestoneBlockExpanded,
-  SpatialZone, MilestonePhase,
+  SpatialZone, MilestonePhase, Task
 } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { MatrixBlockCell } from "./MatrixBlockCell";
@@ -12,6 +12,8 @@ import { toast } from "sonner";
 
 interface MilestoneMatrixViewProps {
   projectUid: string;
+  projectTasks: Task[];
+  criticalPathUids: string[];
   userRole?: "contractor" | "qa_inspector" | "admin";
   onMatrixLoaded?: (hasData: boolean) => void;
   onTaskChange?: () => void;
@@ -19,6 +21,8 @@ interface MilestoneMatrixViewProps {
 
 export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   projectUid,
+  projectTasks,
+  criticalPathUids,
   userRole = "admin",
   onMatrixLoaded,
   onTaskChange,
@@ -354,6 +358,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                       const block = getBlock(zone.id, phase.id);
                       const cellId = `${zone.id}-${phase.id}`;
                       const isLoading = loadingBlockId === block?.id || loadingCellId === cellId;
+                      const isCritical = block ? projectTasks.filter(t => t.block === block.id).some(t => criticalPathUids.includes(t.uid)) : false;
+                      
                       return (
                         <td
                           key={zone.id}
@@ -368,6 +374,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                             <MatrixBlockCell
                               block={block}
                               zoneName={zone.name}
+                              isCritical={isCritical}
                               onClick={block ? () => handleCellClick(block, zone, phase) : () => handleEmptyCellClick(zone, phase)}
                             />
                           )}

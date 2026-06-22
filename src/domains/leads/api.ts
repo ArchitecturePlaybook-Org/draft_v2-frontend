@@ -16,8 +16,21 @@ export interface Lead {
     budget_range?: string;
     [key: string]: any;
   };
+  score?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface LeadAnalytics {
+  total_leads: number;
+  status_counts: {
+    PENDING: number;
+    ACCEPTED: number;
+    REJECTED: number;
+    CONVERTED: number;
+  };
+  conversion_rate: number;
+  pipeline_value: number;
 }
 
 export const leadsApi = {
@@ -26,9 +39,25 @@ export const leadsApi = {
    * @param type 'sent' (inquiries made by user) or 'received' (leads for user)
    */
   listLeads: async (type: 'sent' | 'received' = 'received') => {
-    return fetchFromBff<Lead[]>(`/api/users/leads/?type=${type}`, {
+    return fetchFromBff<Lead[]>(`/api/v1/users/leads/?type=${type}`, {
       method: "GET",
     });
+  },
+
+  /**
+   * Get lead analytics for the current professional.
+   */
+  getAnalytics: async () => {
+    return fetchFromBff<LeadAnalytics>("/api/v1/users/leads/analytics/", {
+      method: "GET",
+    });
+  },
+
+  /**
+   * Export leads to Excel.
+   */
+  exportLeadsToExcel: () => {
+    window.open(`/api/v1/users/leads/export/`, "_blank");
   },
 
   /**
@@ -40,7 +69,7 @@ export const leadsApi = {
     message: string;
     metadata?: Record<string, any>;
   }) => {
-    return fetchFromBff<Lead>("/api/users/leads/", {
+    return fetchFromBff<Lead>("/api/v1/users/leads/", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -50,7 +79,7 @@ export const leadsApi = {
    * Update lead status.
    */
   updateLeadStatus: async (leadId: number, status: Lead['status']) => {
-    return fetchFromBff<Lead>(`/api/users/leads/${leadId}/`, {
+    return fetchFromBff<Lead>(`/api/v1/users/leads/${leadId}/`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     });

@@ -8,6 +8,7 @@ import { attachAuth } from "./auth";
 import { refreshIfNeeded } from "./refresh";
 import { normalizeResponse } from "./response";
 import { setAuthCookies, clearAuthCookies } from "./cookies";
+import { COOKIE_REFRESH_TOKEN } from "./constants";
 
 export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
   try {
@@ -15,15 +16,24 @@ export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
     const route = await resolveRoute(req, ctx);
     validateMethod(req, route);
     
-    // 2. Handle pure-frontend actions (logout)
-    if (route.config.cookieStrategy === "clear-auth") {
-      const response = NextResponse.json({ ok: true });
-      clearAuthCookies(response);
-      return response;
-    }
+    // Removed pure-frontend logout short-circuit to allow token blacklisting
 
     // 3. Build backend request init (parses body into memory)
     const requestInit = await buildBackendRequest(req);
+    
+    // Inject refresh token for logout
+    if (route.config.cookieStrategy === "clear-auth" && req.cookies.has(COOKIE_REFRESH_TOKEN)) {
+      requestInit.body = JSON.stringify({ refresh: req.cookies.get(COOKIE_REFRESH_TOKEN)?.value });
+      (requestInit.headers as Headers).set("Content-Type", "application/json");
+    }
+    
+    let rememberMe = false;
+    if (req.nextUrl.pathname.endsWith("/auth/login") && typeof requestInit.body === "string") {
+      try {
+        const bodyData = JSON.parse(requestInit.body);
+        if (bodyData.remember_me) rememberMe = true;
+      } catch {}
+    }
     
     // 4. Attach base authorization
     attachAuth(req, route, requestInit.headers as Headers);
@@ -65,10 +75,12 @@ export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
 
     // 8. Handle Cookies based on state
     if (newTokens || (route.config.cookieStrategy === "set-auth" && currentStatus >= 200 && currentStatus < 300)) {
-      setAuthCookies(response, newTokens || responseData);
+      setAuthCookies(response, newTokens || responseData, rememberMe);
     } else if (refreshFailed && route.config.auth) {
       // If auth route and refresh failed (or no refresh token), user is definitively unauthenticated.
       // Clear cookies to avoid stale states.
+      clearAuthCookies(response);
+    } else if (route.config.cookieStrategy === "clear-auth") {
       clearAuthCookies(response);
     }
 
@@ -80,6 +92,11 @@ export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
   } catch (err: any) {
     // Sanitize error logging to avoid leaking request objects or tokens
     console.error(`Proxy Error [${req.method} ${req.url.split('?')[0]}]:`, err?.message || "Unknown error");
-    return handleProxyError(err);
+    const errorResponse = handleProxyError(err);
+    // Unconditionally clear cookies if this was a clear-auth route (e.g. logout) that threw an error
+    if (req.url.includes("/logout") || req.url.includes("/decommission")) {
+      clearAuthCookies(errorResponse);
+    }
+    return errorResponse;
   }
 }

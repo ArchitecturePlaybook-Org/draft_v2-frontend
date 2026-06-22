@@ -94,8 +94,14 @@ export default function PortfolioDetailClient() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Left Column (Image & Details) */}
           <div className="lg:col-span-2 space-y-8">
-            <div className="aspect-[16/10] relative rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/10">
-              {item.image ? (
+            <div className="aspect-[16/10] relative rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/10 bg-black">
+              {item.video_url ? (
+                <iframe
+                  src={item.video_url.replace("watch?v=", "embed/")}
+                  className="w-full h-full"
+                  allowFullScreen
+                />
+              ) : item.image ? (
                 <img
                   src={item.image}
                   alt={item.title}
@@ -103,10 +109,20 @@ export default function PortfolioDetailClient() {
                 />
               ) : (
                 <div className="w-full h-full bg-surface-200 flex items-center justify-center text-surface-400">
-                  No Image Available
+                  No Visuals Available
                 </div>
               )}
             </div>
+
+            {item.images && item.images.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {item.images.map((img) => (
+                  <div key={img.id} className="aspect-[4/3] rounded-2xl overflow-hidden shadow-md cursor-pointer hover:opacity-90 transition-opacity bg-black">
+                    <img src={img.image} alt={item.title} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="bg-white p-10 rounded-[2rem] border border-surface-200 shadow-xl shadow-primary/5 space-y-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
@@ -149,6 +165,41 @@ export default function PortfolioDetailClient() {
               </div>
               <div className="prose prose-lg text-surface-600 max-w-none">
                 <p>{item.description || 'No description provided.'}</p>
+              </div>
+            </div>
+
+            {/* Reviews Section */}
+            <div className="bg-white p-10 rounded-[2rem] border border-surface-200 shadow-xl shadow-primary/5 space-y-8 mt-12">
+              <div className="flex justify-between items-center">
+                <h3 className="text-2xl font-bold text-primary">Reviews & Ratings</h3>
+                <div className="flex items-center gap-2 bg-surface-50 px-4 py-2 rounded-xl">
+                  <span className="text-xl font-bold text-accent">{item.average_rating || 'N/A'}</span>
+                  <span className="text-xs text-surface-500 font-bold uppercase">/ 5</span>
+                </div>
+              </div>
+              <div className="space-y-6">
+                {item.reviews && item.reviews.length > 0 ? (
+                  item.reviews.map((rev) => (
+                    <div key={rev.id} className="p-6 bg-surface-50 rounded-2xl border border-surface-100">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="font-bold text-primary">{rev.reviewer_name}</p>
+                          {rev.is_verified_client && <p className="text-[10px] text-accent font-bold uppercase tracking-widest mt-1">Verified Client</p>}
+                        </div>
+                        <div className="flex gap-1 text-accent">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <svg key={i} className={`w-4 h-4 ${i < rev.rating ? 'fill-current' : 'text-surface-200'}`} viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-sm text-surface-600">{rev.comment}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-surface-500 text-sm italic">No reviews yet.</p>
+                )}
               </div>
             </div>
           </div>

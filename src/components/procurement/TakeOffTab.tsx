@@ -7,6 +7,10 @@ import { ProjectAsset } from "@/types/projects";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { FloorPlanAnalyzerCanvas } from "./FloorPlanAnalyzerCanvas";
 
+export interface FloorPlanSectionRef {
+  saveUnsaved: () => Promise<boolean>;
+}
+
 interface TakeOffTabProps {
   projectUid: string;
   projectAssets: ProjectAsset[];
@@ -28,40 +32,82 @@ interface EstimationRow {
   gross_qty: string;
   is_deduction: boolean;
   net_qty: string;
+  trace_data?: any;
 }
 
 // Unit label maps for each system
-const UNIT_LABELS: Record<UnitSystem, { linear: string; area: string; volume: string }> = {
+export const UNIT_LABELS: Record<UnitSystem, { linear: string; area: string; volume: string }> = {
   metric:   { linear: "m",   area: "sq m",   volume: "cu m"   },
   imperial: { linear: "ft",  area: "sq ft",  volume: "cu ft"  },
 };
 
 // Helper for calculation
-const calculateQuantities = (row: Partial<EstimationRow>, unitSystem: UnitSystem = "metric") => {
-  const no = parseFloat(row.no_of_items || "1") || 1;
-  const l = parseFloat(row.length || "");
-  const w = parseFloat(row.width || "");
-  const d = parseFloat(row.depth_height || "");
+export const calculateQuantities = (row: Partial<EstimationRow>, unitSystem: UnitSystem = "metric") => {
+  const no = Number(row.no_of_items) || 1;
+  const lStr = String(row.length || "").trim();
+  const wStr = String(row.width || "").trim();
+  const dStr = String(row.depth_height || "").trim();
 
-  const hasL = !isNaN(l);
-  const hasW = !isNaN(w);
-  const hasD = !isNaN(d);
+  const l = parseFloat(lStr);
+  const w = parseFloat(wStr);
+  const d = parseFloat(dStr);
 
-  const labels = UNIT_LABELS[unitSystem];
+  const hasL = !isNaN(l) && l > 0;
+  const hasW = !isNaN(w) && w > 0;
+  const hasD = !isNaN(d) && d > 0;
+
+  const labels = UNIT_LABELS[unitSystem] || UNIT_LABELS.metric;
   let unit = "pcs";
   let gross = no;
+  let isTraceDriven = false;
 
-  if (hasL && hasW && hasD) {
-    unit = labels.volume;
-    gross = no * l * w * d;
-  } else if (hasL && hasW) {
-    unit = labels.area;
-    gross = no * l * w;
-  } else if (hasL) {
-    unit = labels.linear;
-    gross = no * l;
-  } else {
-    gross = no;
+  if (row.trace_data) {
+    if (row.trace_data.scaledArea) {
+      // It's a room/polygon
+      const baseArea = row.trace_data.scaledArea;
+      if (hasD) {
+        unit = labels.volume;
+        gross = no * baseArea * d;
+      } else {
+        unit = labels.area;
+        gross = no * baseArea;
+      }
+      isTraceDriven = true;
+    } else if (row.trace_data.scaledLength) {
+      // It's a wall/line
+      const baseLength = row.trace_data.scaledLength;
+      const baseWidth = row.trace_data.scaledThickness || (hasW ? w : 0);
+      
+      if (baseWidth > 0 && hasD) {
+        unit = labels.volume;
+        gross = no * baseLength * baseWidth * d;
+      } else if (baseWidth > 0) {
+        unit = labels.area;
+        gross = no * baseLength * baseWidth;
+      } else if (hasD) {
+        unit = labels.area; // Length * Height = Area
+        gross = no * baseLength * d;
+      } else {
+        unit = labels.linear;
+        gross = no * baseLength;
+      }
+      isTraceDriven = true;
+    }
+  }
+
+  if (!isTraceDriven) {
+    if (hasL && hasW && hasD) {
+      unit = labels.volume;
+      gross = no * l * w * d;
+    } else if (hasL && hasW) {
+      unit = labels.area;
+      gross = no * l * w;
+    } else if (hasL) {
+      unit = labels.linear;
+      gross = no * l;
+    } else {
+      gross = no;
+    }
   }
 
   const net = row.is_deduction ? -gross : gross;
@@ -109,9 +155,11 @@ const EditableRow = ({
 
   // Auto-calculation on every change
   const handleChange = (field: keyof EstimationRow, value: any) => {
-    const newData = { ...rowData, [field]: value };
-    const { unit, gross_qty, net_qty } = calculateQuantities(newData, unitSystem);
-    setRowData({ ...newData, unit, gross_qty, net_qty });
+    setRowData(prev => {
+      const newData = { ...prev, [field]: value };
+      const { unit, gross_qty, net_qty } = calculateQuantities(newData, unitSystem);
+      return { ...newData, unit, gross_qty, net_qty };
+    });
     setIsDirty(true);
   };
 
@@ -151,7 +199,33 @@ const EditableRow = ({
     }
   };
 
+  const handleUnlink = () => {
+    setRowData(prev => {
+      const newData = { ...prev };
+      delete newData.trace_data;
+      // Also prepopulate L/W if it had scaled dimensions to make transition smooth
+      if (prev.trace_data?.scaledArea) {
+        newData.length = prev.trace_data.scaledArea.toFixed(2);
+        newData.width = "1";
+      } else if (prev.trace_data?.scaledLength) {
+        newData.length = prev.trace_data.scaledLength.toFixed(2);
+        if (prev.trace_data.scaledThickness) {
+           newData.width = prev.trace_data.scaledThickness.toFixed(2);
+        }
+      }
+      const { unit, gross_qty, net_qty } = calculateQuantities(newData, unitSystem);
+      return { ...newData, unit, gross_qty, net_qty };
+    });
+    setIsDirty(true);
+    toast.success("Row unlinked from Canvas Trace.");
+  };
+
+  const isPolygonTrace = !!rowData.trace_data?.scaledArea;
+  const isLineTrace = !!rowData.trace_data?.scaledLength;
+  const hasTrace = isPolygonTrace || isLineTrace;
+
   const inputClass = "w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white focus:ring-1 focus:ring-accent rounded text-sm font-bold outline-none transition-all";
+  const disabledInputClass = "w-full h-8 px-2 bg-surface-100 border border-transparent rounded text-sm font-bold outline-none text-surface-400 cursor-not-allowed text-right";
 
   return (
     <tr className={`border-b border-surface-200 transition-colors ${isGhost ? 'bg-surface-50' : (rowData.is_deduction ? 'bg-red-50/20' : 'bg-white hover:bg-surface-50')}`} onKeyDown={handleKeyDown}>
@@ -193,22 +267,42 @@ const EditableRow = ({
         />
       </td>
       <td className="p-1 w-[9%]">
-        <input 
-          type="number" step="0.01" 
-          value={rowData.length || ""} 
-          onChange={e => handleChange('length', e.target.value)} 
-          placeholder="L"
-          className={`${inputClass} text-right`} 
-        />
+        {hasTrace ? (
+          <div className="w-full text-right px-2 text-xs font-bold text-emerald-600 tracking-tight flex flex-col">
+            <span className="text-[9px] uppercase text-emerald-400 leading-none mb-0.5">From Trace</span>
+            {isPolygonTrace ? `${rowData.trace_data.scaledArea.toFixed(2)} Area` : `${rowData.trace_data.scaledLength.toFixed(2)} L`}
+          </div>
+        ) : (
+          <input 
+            type="number" step="0.01" 
+            value={rowData.length || ""} 
+            onChange={e => handleChange('length', e.target.value)} 
+            placeholder="L"
+            className={`${inputClass} text-right`} 
+          />
+        )}
       </td>
       <td className="p-1 w-[9%]">
-        <input 
-          type="number" step="0.01" 
-          value={rowData.width || ""} 
-          onChange={e => handleChange('width', e.target.value)} 
-          placeholder="W"
-          className={`${inputClass} text-right`} 
-        />
+        {hasTrace ? (
+           <div className="w-full text-right px-2 text-xs font-bold text-emerald-600 tracking-tight flex flex-col">
+            {isLineTrace && rowData.trace_data.scaledThickness ? (
+              <>
+                 <span className="text-[9px] uppercase text-emerald-400 leading-none mb-0.5">From Trace</span>
+                 {rowData.trace_data.scaledThickness.toFixed(2)} W
+              </>
+            ) : (
+              <span className="text-surface-300">—</span>
+            )}
+           </div>
+        ) : (
+          <input 
+            type="number" step="0.01" 
+            value={rowData.width || ""} 
+            onChange={e => handleChange('width', e.target.value)} 
+            placeholder="W"
+            className={`${inputClass} text-right`} 
+          />
+        )}
       </td>
       <td className="p-1 w-[9%]">
         <input 
@@ -219,7 +313,7 @@ const EditableRow = ({
           className={`${inputClass} text-right`} 
         />
       </td>
-      <td className="p-1 w-[12%] text-right px-3">
+      <td className="p-1 w-[12%] text-right px-3 flex flex-col justify-center">
         <span className={`text-sm font-black ${rowData.is_deduction ? 'text-red-600' : 'text-emerald-600'}`}>
           {rowData.net_qty} {rowData.unit}
         </span>
@@ -235,13 +329,24 @@ const EditableRow = ({
               Add
             </button>
           ) : (
-            <button 
-              onClick={() => onDelete && onDelete(rowData.id!)} 
-              className="w-7 h-7 rounded text-surface-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors text-lg leading-none"
-              title="Delete Row"
-            >
-              ×
-            </button>
+            <>
+              {hasTrace && (
+                <button 
+                  onClick={handleUnlink}
+                  className="w-7 h-7 rounded text-surface-400 hover:bg-amber-100 hover:text-amber-600 flex items-center justify-center transition-colors text-[10px]"
+                  title="Unlink from Trace"
+                >
+                  🔗
+                </button>
+              )}
+              <button 
+                onClick={() => onDelete && onDelete(rowData.id!)} 
+                className="w-7 h-7 rounded text-surface-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors text-lg leading-none"
+                title="Delete Row"
+              >
+                ×
+              </button>
+            </>
           )}
         </div>
       </td>
@@ -251,10 +356,17 @@ const EditableRow = ({
 
 
 // Component for a single Floor Plan's Take-Off Section
-const FloorPlanTakeOffSection = ({ plan, unitSystem, cvLoaded }: { plan: ProjectAsset; unitSystem: UnitSystem; cvLoaded: boolean }) => {
+const FloorPlanTakeOffSection = React.forwardRef<FloorPlanSectionRef, { plan: ProjectAsset; unitSystem: UnitSystem; cvLoaded: boolean; onUnsavedCountChange?: (count: number) => void }>(({ plan, unitSystem, cvLoaded, onUnsavedCountChange }, ref) => {
   const [estimations, setEstimations] = useState<EstimationRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Report unsaved count
+  useEffect(() => {
+    if (onUnsavedCountChange) {
+       onUnsavedCountChange(estimations.filter(e => !e.id).length);
+    }
+  }, [estimations, onUnsavedCountChange]);
 
   useEffect(() => {
     fetchEstimations();
@@ -321,7 +433,7 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem, cvLoaded }: { plan: Project
     const unsaved = estimations.filter(e => !e.id);
     if (unsaved.length === 0) {
       toast.info("No unsaved estimations found.");
-      return;
+      return true;
     }
     let successCount = 0;
     for (const row of unsaved) {
@@ -336,10 +448,16 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem, cvLoaded }: { plan: Project
     }
     if (successCount === unsaved.length) {
       toast.success(`Successfully saved all ${successCount} estimations!`);
+      return true;
     } else {
       toast.warning(`Saved ${successCount} out of ${unsaved.length} estimations.`);
+      return false;
     }
   };
+
+  React.useImperativeHandle(ref, () => ({
+    saveUnsaved: handleBulkSave
+  }));
 
   return (
     <div className="flex flex-col bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
@@ -430,7 +548,8 @@ const FloorPlanTakeOffSection = ({ plan, unitSystem, cvLoaded }: { plan: Project
 
     </div>
   );
-};
+});
+FloorPlanTakeOffSection.displayName = "FloorPlanTakeOffSection";
 
 
 import Script from "next/script";
@@ -438,6 +557,15 @@ import Script from "next/script";
 export default function TakeOffTab({ projectUid, projectAssets, initialUnitSystem = "metric" }: TakeOffTabProps) {
   const floorPlans = useMemo(() => projectAssets.filter(a => a.category === "2d_plan"), [projectAssets]);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>(initialUnitSystem as UnitSystem);
+  const [cvLoaded, setCvLoaded] = useState(false);
+  
+  // Carousel state
+  const [activePlanIndex, setActivePlanIndex] = useState(0);
+  const [unsavedCount, setUnsavedCount] = useState(0);
+  const sectionRef = useRef<FloorPlanSectionRef>(null);
+
+  // Modal State
+  const [pendingTabIndex, setPendingTabIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setUnitSystem(initialUnitSystem as UnitSystem);
@@ -453,13 +581,37 @@ export default function TakeOffTab({ projectUid, projectAssets, initialUnitSyste
     }
   };
 
-  const [cvLoaded, setCvLoaded] = useState(false);
-
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).cv) {
       setCvLoaded(true);
     }
   }, []);
+
+  const requestTabChange = (index: number) => {
+    if (index === activePlanIndex) return;
+    if (unsavedCount > 0) {
+       setPendingTabIndex(index);
+    } else {
+       setActivePlanIndex(index);
+    }
+  };
+
+  const confirmTabChangeWithSave = async () => {
+    if (sectionRef.current) {
+      const success = await sectionRef.current.saveUnsaved();
+      if (success && pendingTabIndex !== null) {
+         setActivePlanIndex(pendingTabIndex);
+         setPendingTabIndex(null);
+      }
+    }
+  };
+
+  const confirmTabChangeWithDiscard = () => {
+    if (pendingTabIndex !== null) {
+       setActivePlanIndex(pendingTabIndex);
+       setPendingTabIndex(null);
+    }
+  };
 
   if (floorPlans.length === 0) {
     return (
@@ -470,47 +622,115 @@ export default function TakeOffTab({ projectUid, projectAssets, initialUnitSyste
     );
   }
 
+  const activePlan = floorPlans[activePlanIndex];
+
   return (
     <div className="flex flex-col gap-6 pb-20">
       <Script 
-        src="https://docs.opencv.org/4.8.0/opencv.js" 
+        src="/opencv.js" 
         onLoad={() => setCvLoaded(true)} 
-        strategy="lazyOnload"
+        strategy="afterInteractive"
       />
+
+      {/* Pending Modal */}
+      {pendingTabIndex !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-surface-200">
+             <div className="bg-amber-50 px-6 py-5 border-b border-amber-200/50">
+               <h3 className="text-amber-700 font-black text-lg uppercase tracking-tight flex items-center gap-2">
+                 <span>⚠️</span> Unsaved Changes
+               </h3>
+             </div>
+             <div className="p-6">
+                <p className="text-surface-600 mb-6 font-medium">
+                  You have <span className="font-bold text-amber-600">{unsavedCount} unsaved estimations</span> on the current floor plan. If you switch tabs, they will be lost. Would you like to save them first?
+                </p>
+                <div className="flex items-center justify-end gap-3">
+                  <button onClick={() => setPendingTabIndex(null)} className="px-5 py-2.5 rounded-xl font-bold text-surface-500 hover:bg-surface-100 transition-colors">
+                    Cancel
+                  </button>
+                  <button onClick={confirmTabChangeWithDiscard} className="px-5 py-2.5 rounded-xl font-bold text-red-600 hover:bg-red-50 transition-colors">
+                    Discard & Switch
+                  </button>
+                  <button onClick={confirmTabChangeWithSave} className="px-5 py-2.5 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 shadow-sm transition-all">
+                    Save & Switch
+                  </button>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
 
       {/* Unit System Toggle */}
       <div className="flex items-center justify-between bg-white px-6 py-3 rounded-2xl border border-surface-200 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-surface-500">Measurement System</span>
-          <span className="text-[10px] font-medium text-surface-400">— select the unit for dimensions (L, W, D)</span>
+           <span className="text-[10px] font-black uppercase tracking-widest text-surface-500">Measurement System</span>
+           <span className="text-[10px] font-medium text-surface-400">— select the unit for dimensions (L, W, D)</span>
         </div>
         <div className="flex items-center gap-1 bg-surface-100 p-1 rounded-xl">
-          <button
-            onClick={() => handleUnitSystemChange("metric")}
-            className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
-              unitSystem === "metric"
-                ? "bg-primary text-white shadow-sm"
-                : "text-surface-500 hover:text-primary"
-            }`}
-          >
-            Metric (m)
-          </button>
-          <button
-            onClick={() => handleUnitSystemChange("imperial")}
-            className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
-              unitSystem === "imperial"
-                ? "bg-accent text-white shadow-sm"
-                : "text-surface-500 hover:text-accent"
-            }`}
-          >
-            Imperial (ft)
-          </button>
+           <button
+             onClick={() => handleUnitSystemChange("metric")}
+             className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
+               unitSystem === "metric"
+                 ? "bg-primary text-white shadow-sm"
+                 : "text-surface-500 hover:text-primary"
+             }`}
+           >
+             Metric (m)
+           </button>
+           <button
+             onClick={() => handleUnitSystemChange("imperial")}
+             className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
+               unitSystem === "imperial"
+                 ? "bg-accent text-white shadow-sm"
+                 : "text-surface-500 hover:text-accent"
+             }`}
+           >
+             Imperial (ft)
+           </button>
         </div>
       </div>
 
-      {floorPlans.map(plan => (
-        <FloorPlanTakeOffSection key={plan.id} plan={plan} unitSystem={unitSystem} cvLoaded={cvLoaded} />
-      ))}
+      {/* Floor Plan Carousel */}
+      {floorPlans.length > 1 && (
+        <div className="flex flex-col bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden p-4">
+           <div className="text-[10px] font-black text-surface-500 uppercase tracking-widest mb-3 px-2">Select Floor Plan</div>
+           <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
+              {floorPlans.map((plan, idx) => (
+                <button
+                  key={plan.id}
+                  onClick={() => requestTabChange(idx)}
+                  className={`relative flex-shrink-0 w-48 h-24 rounded-xl overflow-hidden group transition-all ${
+                    idx === activePlanIndex ? "ring-2 ring-accent shadow-md" : "ring-1 ring-surface-200 hover:ring-surface-400"
+                  }`}
+                >
+                  {plan.file ? (
+                    <img src={plan.file} alt={plan.title} className={`w-full h-full object-cover transition-all ${idx === activePlanIndex ? "opacity-60" : "opacity-30 group-hover:opacity-40"}`} />
+                  ) : (
+                    <div className="w-full h-full bg-surface-100" />
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center p-3 bg-gradient-to-t from-black/60 to-transparent">
+                     <span className={`text-xs font-bold text-center line-clamp-2 ${idx === activePlanIndex ? "text-white drop-shadow-md" : "text-white/80"}`}>
+                       {plan.title}
+                     </span>
+                  </div>
+                </button>
+              ))}
+           </div>
+        </div>
+      )}
+
+      {/* Active Floor Plan Details */}
+      {activePlan && (
+        <FloorPlanTakeOffSection 
+          ref={sectionRef}
+          key={activePlan.id} 
+          plan={activePlan} 
+          unitSystem={unitSystem} 
+          cvLoaded={cvLoaded} 
+          onUnsavedCountChange={setUnsavedCount}
+        />
+      )}
     </div>
   );
 }

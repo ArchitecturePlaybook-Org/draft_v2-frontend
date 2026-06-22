@@ -19,8 +19,18 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
 }) => {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
   
   const [projectCodeMode, setProjectCodeMode] = useState<'auto' | 'manual'>('auto');
+
+  React.useEffect(() => {
+    if (isOpen) {
+      projectsApi.getTemplates().then(data => {
+        setTemplates(Array.isArray(data) ? data : (data as any).results || []);
+      }).catch(console.error);
+    }
+  }, [isOpen]);
 
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
@@ -47,17 +57,32 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
     setIsSubmitting(true);
     try {
       const finalProjectCode = projectCodeMode === 'manual' ? `${manualPrefix}${formData.project_code}` : undefined;
-      await projectsApi.createProject({
-        title: formData.title,
-        description: formData.description,
-        account_id: parseInt(formData.account_id),
-        project_code: finalProjectCode,
-        kind: formData.kind,
-        location: formData.location,
-        client_name: formData.client_name,
-        client_phone: formData.client_phone,
-        client_email: formData.client_email,
-      });
+      
+      if (selectedTemplateId) {
+        const cloned = await projectsApi.cloneProject(selectedTemplateId, parseInt(formData.account_id));
+        await projectsApi.updateProject(cloned.uid, {
+          title: formData.title,
+          description: formData.description,
+          project_code: finalProjectCode,
+          kind: formData.kind,
+          location: formData.location,
+          client_name: formData.client_name,
+          client_phone: formData.client_phone,
+          client_email: formData.client_email,
+        });
+      } else {
+        await projectsApi.createProject({
+          title: formData.title,
+          description: formData.description,
+          account_id: parseInt(formData.account_id),
+          project_code: finalProjectCode,
+          kind: formData.kind,
+          location: formData.location,
+          client_name: formData.client_name,
+          client_phone: formData.client_phone,
+          client_email: formData.client_email,
+        });
+      }
       setStep(4); // Success step
     } catch (err: any) {
       const msg = err.message || "System failure. Please ensure you are logged in.";
@@ -148,6 +173,22 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                       ))}
                     </select>
                   </div>
+
+                  {templates.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Start from Template (Optional)</label>
+                      <select 
+                        value={selectedTemplateId}
+                        onChange={e => setSelectedTemplateId(e.target.value)}
+                        className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-medium text-sm appearance-none"
+                      >
+                        <option value="">Blank Project</option>
+                        {templates.map(tmpl => (
+                          <option key={tmpl.uid} value={tmpl.uid}>{tmpl.title} ({tmpl.template_scope})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">

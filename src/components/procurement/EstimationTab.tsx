@@ -363,18 +363,51 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
       )}
 
       {/* Header Actions */}
-      <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-surface-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-6 rounded-3xl border border-surface-200 shadow-sm gap-4">
         <div>
           <h2 className="text-lg font-black text-primary uppercase tracking-tight">Master Estimate</h2>
           <p className="text-xs text-surface-500 font-bold mt-1">Aggregated quantities from all floor plans</p>
         </div>
-        <button
-          onClick={handleInitiatePush}
-          disabled={isPushing}
-          className="bg-accent text-white px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-accent-dark transition-all shadow-md disabled:opacity-50"
-        >
-          {isPushing ? "Pushing..." : "Push Estimate to BOQ ↗"}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="bg-surface-50 border border-surface-200 p-1 rounded-xl flex">
+            <button
+              onClick={() => projectsApi.exportProjectData(projectId, "estimations", "excel", "flat")}
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+              title="Export Flat Excel"
+            >
+              📊 Excel (Flat)
+            </button>
+            <button
+              onClick={() => projectsApi.exportProjectData(projectId, "estimations", "excel", "floor_plan")}
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+              title="Export Grouped Excel"
+            >
+              📑 Excel (Grouped)
+            </button>
+            <div className="w-px bg-surface-200 mx-1 my-1" />
+            <button
+              onClick={() => projectsApi.exportProjectData(projectId, "estimations", "pdf", "flat")}
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+              title="Export Flat PDF"
+            >
+              📄 PDF (Flat)
+            </button>
+            <button
+              onClick={() => projectsApi.exportProjectData(projectId, "estimations", "pdf", "floor_plan")}
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+              title="Export Grouped PDF"
+            >
+              🖨️ PDF (Grouped)
+            </button>
+          </div>
+          <button
+            onClick={handleInitiatePush}
+            disabled={isPushing}
+            className="bg-accent text-white px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-accent-dark transition-all shadow-md disabled:opacity-50"
+          >
+            {isPushing ? "Pushing..." : "Push Estimate to BOQ ↗"}
+          </button>
+        </div>
       </div>
 
       {/* Grid */}

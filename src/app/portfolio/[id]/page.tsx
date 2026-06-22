@@ -7,7 +7,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173';
 // Fetch portfolio item data server-side (no auth needed for public items)
 async function getPortfolioItem(id: string) {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/users/public/portfolios/${id}/`, {
+    const res = await fetch(`${BACKEND_URL}/api/v1//public/portfolios/${id}/`, {
       next: { revalidate: 3600 }, // Cache for 1 hour
     });
     if (!res.ok) return null;

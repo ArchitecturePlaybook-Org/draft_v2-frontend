@@ -10,10 +10,10 @@ export interface Event {
 
 export const eventsApi = {
   listEvents: async () => {
-    return fetchFromBff<Event[]>("/api/events", { method: "GET" });
+    return fetchFromBff<Event[]>("/api/v1/events", { method: "GET" });
   },
   createEvent: async (data: Record<string, unknown>) => {
-    return fetchFromBff<Event>("/api/events", {
+    return fetchFromBff<Event>("/api/v1/events", {
       method: "POST",
       body: JSON.stringify(data),
     });

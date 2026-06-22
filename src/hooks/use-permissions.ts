@@ -39,10 +39,10 @@ export function usePermissions() {
    */
   const getProjectRole = (project: ProjectDetail): string | null => {
     if (isAdmin) return "manager"; // Superadmin is manager of everything
-    if (!user) return null;
-    if (project.created_by.uid === user.uid) return "manager";
+    if (!user || !project) return null;
+    if (project.created_by?.uid === user.uid) return "manager";
     
-    const membership = project.memberships.find(m => m.user.uid === user.uid);
+    const membership = project.memberships?.find(m => m.user?.uid === user.uid);
     return membership ? membership.role : null;
   };
 

@@ -4,6 +4,8 @@
  * It ALWAYS talks to the Next.js Proxy at /api/...
  */
 
+import { db, flushSyncQueue } from '../offline/db';
+
 export interface BffOptions extends RequestInit {
   skipAuth?: boolean;
 }
@@ -20,8 +22,10 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
   // Ensure url starts with /
   const path = url.startsWith("/") ? url : `/${url}`;
   const fullUrl = `${baseURL}${path}`;
+  const method = options.method || "GET";
 
-  const res = await fetch(fullUrl, {
+  const finalOptions: RequestInit = {
+    method,
     cache: "no-store",
     ...options,
     credentials: "include", // Essential for sending HttpOnly cookies to the BFF
@@ -29,7 +33,55 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
       ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...options.headers,
     },
-  });
+  };
+
+  // Offline support
+  if (!isServer && !window.navigator.onLine) {
+    if (method !== 'GET') {
+      // Queue mutation
+      await db.syncQueue.add({
+        url: fullUrl,
+        method: method,
+        body: finalOptions.body,
+        headers: finalOptions.headers,
+        createdAt: Date.now(),
+        retryCount: 0,
+        status: 'PENDING'
+      });
+      console.warn(`[Offline] Queued ${method} request to ${fullUrl}`);
+      return { _queued: true } as unknown as T;
+    } else {
+      // Try to serve from cache for GET
+      const cached = await db.apiCache.get(fullUrl);
+      if (cached) {
+        console.warn(`[Offline] Serving ${fullUrl} from cache`);
+        return cached.data as T;
+      } else {
+        throw new Error("You are offline and no cached data is available for this request.");
+      }
+    }
+  }
+
+  // Attempt the real fetch if online
+  let res: Response;
+  try {
+    res = await fetch(fullUrl, finalOptions);
+  } catch (err) {
+    if (!isServer && method !== 'GET') {
+      // If network fails unexpectedly while supposedly online, queue it
+      await db.syncQueue.add({
+        url: fullUrl,
+        method: method,
+        body: finalOptions.body,
+        headers: finalOptions.headers,
+        createdAt: Date.now(),
+        retryCount: 0,
+        status: 'PENDING'
+      });
+      return { _queued: true } as unknown as T;
+    }
+    throw err;
+  }
 
   if (!res.ok) {
     let errorDetail = "Request failed";
@@ -41,7 +93,6 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
       if (bd.detail || bd.message) {
         errorDetail = (bd.detail as string) || (bd.message as string);
       } else {
-        // Handle field-specific validation errors: {"field": ["error"]}
         errorDetail = Object.entries(bd)
           .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(", ") : val}`)
           .join(" | ");
@@ -50,25 +101,31 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
       // ignore
     }
     
-    // Auto logout logic
-    // The proxy clears cookies on hard refresh failure.
-    // So if it's 401 here, we know it's a hard 401.
     if (res.status === 401 && !options.skipAuth && !url.includes("auth/login")) {
       if (!isServer) {
-        window.location.href = "/login"; // Force client-side redirect
+        window.location.href = "/login";
       }
     }
 
-    const error = new Error(errorDetail) as ApiError;
+    const error = new Error(`[${url}] ${errorDetail}`) as ApiError;
     error.status = res.status;
     error.data = backendData;
     throw error;
   }
 
-  // Handle empty responses
+  // Handle successful response
   const text = await res.text().catch(() => "");
   try {
-    return text ? JSON.parse(text) : ({} as T);
+    const data = text ? JSON.parse(text) : ({} as T);
+    // Cache successful GET responses
+    if (!isServer && method === 'GET') {
+      db.apiCache.put({
+        url: fullUrl,
+        data,
+        updatedAt: Date.now()
+      }).catch(e => console.warn("Failed to cache response:", e));
+    }
+    return data;
   } catch {
     return {} as T;
   }

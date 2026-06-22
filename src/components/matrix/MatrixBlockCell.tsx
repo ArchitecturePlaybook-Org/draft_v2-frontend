@@ -5,6 +5,7 @@ import { MilestoneBlockCompact, BlockStatus } from "@/types/projects";
 interface MatrixBlockCellProps {
   block: MilestoneBlockCompact | null;
   zoneName: string;
+  isCritical?: boolean;
   onClick?: () => void;
 }
 
@@ -29,7 +30,7 @@ const STATUS_CONFIG: Record<BlockStatus, { bg: string; border: string; text: str
   },
 };
 
-export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneName, onClick }) => {
+export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneName, isCritical, onClick }) => {
   if (!block) {
     // Empty cell — no block exists for this zone/phase
     return (
@@ -53,7 +54,7 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneNam
       title={block.status === "LOCKED" ? "Locked — Click to plan tasks" : `${zoneName} — ${block.completed_tasks}/${block.total_tasks} tasks done`}
       className={`
         w-full h-[88px] border-2 rounded-xl p-3 text-left transition-all duration-200 relative overflow-hidden
-        ${cfg.bg} ${cfg.border} ${cfg.text}
+        ${isCritical ? 'bg-red-50/30 border-red-200 shadow-[inset_0_0_15px_rgba(239,68,68,0.05)] text-red-900' : `${cfg.bg} ${cfg.border} ${cfg.text}`}
         hover:shadow-lg hover:scale-[1.03] cursor-pointer
         ${block.status === "LOCKED" ? "opacity-75" : ""}
       `}
@@ -84,6 +85,19 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneNam
           <span className="w-2 h-2 bg-accent rounded-full animate-pulse mt-1" />
         )}
 
+        {/* Modern subtle CP Badge */}
+        {isCritical && (
+          <div 
+            className="flex items-center gap-1 bg-red-100/50 backdrop-blur-sm border border-red-200/50 text-red-600 px-1.5 py-0.5 rounded-md"
+            title="Critical Path"
+          >
+            <svg className="w-2.5 h-2.5 text-red-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="text-[7px] font-bold uppercase tracking-widest">CP</span>
+          </div>
+        )}
+
         <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md ${
           block.status === "DONE" ? "bg-emerald-100 text-emerald-700" :
           block.status === "ACTIVE" ? "bg-accent/10 text-accent" :
@@ -105,6 +119,12 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneNam
         </div>
       ) : (
         <p className="text-[9px] opacity-40 font-medium">No tasks yet</p>
+      )}
+
+      {block.notes && (
+        <div className="absolute bottom-2 right-2 text-surface-400" title="Block has notes">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
       )}
     </button>
   );

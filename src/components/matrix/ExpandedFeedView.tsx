@@ -356,6 +356,9 @@ export const ExpandedFeedView: React.FC<ExpandedFeedViewProps> = ({
           projectId={0}
           projectUid={projectUid}
           projectAssets={[]}
+          projectTasks={[]}
+          criticalPathUids={[]}
+          taskTags={[]}
           onClose={() => setSelectedTask(null)}
           onTaskUpdated={() => {
             projectsApi.getTask(selectedTask.uid).then(updated => {

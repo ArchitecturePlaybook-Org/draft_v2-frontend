@@ -19,7 +19,7 @@ export default function PublicShareDashboard() {
     
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch(`/api/projects/public/share/${token}/`);
+        const response = await fetch(`/api/v1//public/share/${token}/`);
         if (!response.ok) {
           throw new Error("This link is invalid, expired, or has been revoked.");
         }

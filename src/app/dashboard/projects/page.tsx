@@ -34,6 +34,10 @@ function ProjectsPageInner() {
   const [orgs, setOrgs] = useState<any[]>([]);
   const [initialData, setInitialData] = useState({ title: "", description: "" });
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("NEWEST");
+
   const handleSearchParams = (leadId: string | null, leadTitle: string | null, clientName: string | null) => {
     if (leadId) {
       setInitialData({
@@ -93,7 +97,21 @@ function ProjectsPageInner() {
     }
   }, [showCreateModal, orgs.length]);
 
-
+  const filteredProjects = projects.filter(p => {
+    if (statusFilter !== "ALL" && p.status !== statusFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchesTitle = p.title.toLowerCase().includes(q);
+      const matchesClient = p.client_name?.toLowerCase().includes(q) || false;
+      return matchesTitle || matchesClient;
+    }
+    return true;
+  }).sort((a, b) => {
+    if (sortBy === "NEWEST") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (sortBy === "OLDEST") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    if (sortBy === "A_Z") return a.title.localeCompare(b.title);
+    return 0;
+  });
 
   return (
     <div className="space-y-10 animate-fade-in pb-12">
@@ -112,21 +130,69 @@ function ProjectsPageInner() {
               : "Manage and oversee your active architectural designs, construction workflows, and collaborative project data mapped to your professional entities."}
           </p>
         </div>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          className="relative z-10 h-12 px-6 bg-primary text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent transition-colors flex items-center gap-3 shadow-md hover:shadow-xl"
-        >
-          <span className="text-lg leading-none mb-0.5">+</span> Establish Blueprint
-        </button>
+        <div className="flex items-center gap-4 relative z-10">
+          <button 
+            onClick={() => window.open("/api/proxy/projects/projects-export/", "_blank")}
+            className="h-12 px-6 border-2 border-surface-200 text-surface-600 font-bold text-xs uppercase tracking-widest rounded-xl hover:border-accent hover:text-accent transition-all flex items-center gap-2 bg-white"
+          >
+            <span>📊</span> Export Excel
+          </button>
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="h-12 px-6 bg-primary text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent transition-colors flex items-center gap-3 shadow-md hover:shadow-xl"
+          >
+            <span className="text-lg leading-none mb-0.5">+</span> Establish Blueprint
+          </button>
+        </div>
+      </div>
+
+      {/* Filter and Sort Bar */}
+      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-surface-200 shadow-sm relative z-10">
+        <div className="flex-1 flex items-center gap-3 bg-surface-50 px-4 rounded-lg border border-surface-100">
+          <span className="text-surface-400">🔍</span>
+          <input 
+            type="text"
+            placeholder="Search projects by title or client..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="flex-1 h-10 bg-transparent outline-none text-sm font-medium text-primary"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="text-surface-400 hover:text-primary pr-2">✕</button>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <select 
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="flex-1 md:flex-none h-10 px-4 bg-surface-50 border border-surface-100 rounded-lg text-xs font-bold text-primary outline-none cursor-pointer"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="To Start">To Start</option>
+            <option value="Work in Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+          </select>
+          
+          <select 
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+            className="flex-1 md:flex-none h-10 px-4 bg-surface-50 border border-surface-100 rounded-lg text-xs font-bold text-primary outline-none cursor-pointer"
+          >
+            <option value="NEWEST">Newest First</option>
+            <option value="OLDEST">Oldest First</option>
+            <option value="A_Z">A to Z</option>
+          </select>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 bg-white border border-surface-200 rounded-2xl">
           <Spinner size="lg" label="Retrieving architectural nodes..." />
         </div>
-      ) : projects.length > 0 ? (
+      ) : filteredProjects.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <ProjectCard key={project.uid} project={project} onStatusChange={handleStatusChange} />
           ))}
         </div>

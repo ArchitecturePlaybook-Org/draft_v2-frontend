@@ -48,9 +48,23 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChang
           </p>
         )}
 
-        <p className="text-sm text-surface-500 line-clamp-2 leading-relaxed mb-8 flex-1 relative z-10">
+        <p className="text-sm text-surface-500 line-clamp-2 leading-relaxed mb-6 flex-1 relative z-10">
           {project.description || "No architectural specification provided."}
         </p>
+
+        {/* Progress Bar */}
+        <div className="mb-6 relative z-10">
+          <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-widest text-surface-400 mb-2">
+            <span>Project Progress</span>
+            <span className="text-primary">{project.tasks_count > 0 ? Math.round(((project.tasks_done_count || 0) / project.tasks_count) * 100) : 0}%</span>
+          </div>
+          <div className="w-full bg-surface-100 h-1.5 rounded-full overflow-hidden">
+            <div 
+              className="bg-accent h-full transition-all duration-1000 ease-out" 
+              style={{ width: `${project.tasks_count > 0 ? Math.round(((project.tasks_done_count || 0) / project.tasks_count) * 100) : 0}%` }} 
+            />
+          </div>
+        </div>
 
         <div className="pt-5 border-t border-surface-100 flex justify-between items-center mt-auto relative z-10">
           <div className="flex gap-4">

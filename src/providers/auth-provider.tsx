@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 
 /**
- * Hydrates the auth store on mount by fetching the current user from /api/auth/me.
+ * Hydrates the auth store on mount by fetching the current user from /api/v1/auth/me.
  * Wrap around the entire app (in the root layout's client boundary).
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {

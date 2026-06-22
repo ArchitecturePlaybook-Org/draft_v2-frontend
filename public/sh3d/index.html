@@ -2558,7 +2558,7 @@
           if (loadToken) {
             fetchOpts.headers = { 'Authorization': 'Bearer ' + loadToken };
           }
-          fetch('/api/projects/assets/by-canonical/' + loadAssetId + '/', fetchOpts)
+          fetch('/api/v1/projects/assets/by-canonical/' + loadAssetId + '/', fetchOpts)
           .then(res => {
             if (!res.ok) throw new Error("Asset not found or unauthorized");
             return res.json();
@@ -2574,9 +2574,18 @@
             var ext = '.sh3d';
             var match = asset.file.match(/\.(sh3d|sh3x)(\?|$)/i);
             if (match) ext = match[0].split('?')[0];
-            
             window.__sh3d_ext = ext;
-            return fetch(asset.file, { credentials: 'same-origin' });
+            
+            // Fix CORS by ensuring we fetch through Next.js proxy for local media
+            var fileUrl = asset.file;
+            if (fileUrl && (fileUrl.includes('localhost:') || fileUrl.includes('127.0.0.1:'))) {
+              try {
+                var urlObj = new URL(fileUrl);
+                fileUrl = urlObj.pathname + urlObj.search;
+              } catch (e) {}
+            }
+            
+            return fetch(fileUrl, { credentials: 'same-origin' });
           })
           .then(res => res.blob())
           .then(blob => {
@@ -2759,7 +2768,7 @@
   </style>
 
   <div class="export-fab">
-    <button id="copy2dElements">Copy 2D</button>
+    <button id="syncPlanBtn" style="background: #2563eb; color: #fff; border: 1px solid #1d4ed8; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">Sync Plan</button>
   </div>
 
   <script>
@@ -2776,7 +2785,7 @@
         if (!all.length) return null;
         const nonGrid = all.filter(c => !/\b(grid|ruler|axes|background)\b/i.test(c.className));
         const list = nonGrid.length ? nonGrid : all;
-        return list.sort((a, b) => (parseInt(getComputedStyle(a).zIndex) || 0) - (parseInt(getComputedStyle(b).zIndex) || 0)).pop();
+        return list.sort((a, b) => (parseInt(getComputedStyle(a).zIndex) || 0) - (parseInt(getComputedStyle(b).zIndex) || 0)).shift();
       }
 
       // Remove white/very-light & low-saturation greys (typical grid/background)
@@ -2829,67 +2838,72 @@
         return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
       }
 
-      async function copyElementsOnly() {
-        const src = findPlanCanvas();
-        if (!src) { alert('Plan canvas not found'); return; }
+      async function syncAllLevels() {
+        const home = window.findHome();
+        if (!home) { alert('Model not loaded yet.'); return; }
+        
+        const proceed = confirm('Please ensure the Grid is turned OFF in the Preferences dialog (Double click the plan background) before syncing.\\n\\nHave you turned off the grid?');
+        if (!proceed) return;
 
-        document.documentElement.classList.add('copying-no-grid');
+        if (typeof home.isModified === 'function' && home.isModified()) {
+          alert('Please save the 3D model before syncing the plan.');
+          return;
+        }
 
-        // Render source into an offscreen canvas
-        const off = document.createElement('canvas');
-        off.width = src.width;
-        off.height = src.height;
-        const octx = off.getContext('2d');
-        octx.drawImage(src, 0, 0);
-
-        // Remove background/grid
-        const img = octx.getImageData(0, 0, off.width, off.height);
-        punchOutBackground(img);
-        octx.putImageData(img, 0, 0);
-
-        // Compute tight crop
-        const bbox = computeTightBBox(img);
-        document.documentElement.classList.remove('copying-no-grid');
-
-        if (!bbox) { alert('Nothing to copy (no elements detected)'); return; }
-
-        // Crop to content
-        const crop = document.createElement('canvas');
-        crop.width = bbox.w;
-        crop.height = bbox.h;
-        const cctx = crop.getContext('2d');
-        cctx.drawImage(off, bbox.x, bbox.y, bbox.w, bbox.h, 0, 0, bbox.w, bbox.h);
-
-        // Clipboard or download fallback
-        crop.toBlob(async (blob) => {
-          if (!blob) { alert('Could not capture elements'); return; }
-          try {
-            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-            const t = document.createElement('div'); t.textContent = 'Copied (cropped)! Paste in PowerPoint';
-            Object.assign(t.style, {
-              position: 'fixed',
-              right: '16px',
-              top: 'calc(50% + 48px)', // 48px below center (adjust as needed)
-              transform: 'translateY(0)',
-              background: '#121820cc',
-              color: '#fff',
-              padding: '8px 12px',
-              borderRadius: '10px',
-              border: '1px solid #1E2A36',
-              zIndex: 99999,
-              font: '600 12px system-ui'
-            });
-            document.body.appendChild(t); setTimeout(() => t.remove(), 1200);
-          } catch (e) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'plan-elements-cropped.png'; a.click();
-            URL.revokeObjectURL(url);
-            alert('Clipboard not allowed here. Downloaded plan-elements-cropped.png instead.');
+        const levelsList = typeof home.getLevels === 'function' ? home.getLevels() : null;
+        const numLevels = levelsList ? (typeof levelsList.size === 'function' ? levelsList.size() : levelsList.length) : 0;
+        
+        const levelsToCapture = [];
+        if (numLevels > 0) {
+          for (let i = 0; i < numLevels; i++) {
+            levelsToCapture.push(typeof levelsList.get === 'function' ? levelsList.get(i) : levelsList[i]);
           }
-        }, 'image/png');
+        } else {
+          levelsToCapture.push(home.getSelectedLevel && home.getSelectedLevel() ? home.getSelectedLevel() : null);
+        }
+
+        const capturedBlobs = [];
+        const btn = document.getElementById('syncPlanBtn');
+        const originalText = btn.textContent;
+        btn.textContent = 'Syncing...';
+        btn.disabled = true;
+
+        for (let i = 0; i < levelsToCapture.length; i++) {
+          const lvl = levelsToCapture[i];
+          const lvlName = lvl && typeof lvl.getName === 'function' && lvl.getName() ? lvl.getName() : (numLevels > 0 ? 'Level ' + (i+1) : 'Ground Floor');
+          
+          await new Promise((resolve) => {
+            window.captureLevelImage(home, lvl, function(blob) {
+              if (blob) {
+                capturedBlobs.push({ levelName: lvlName, blob: blob });
+              }
+              resolve();
+            });
+          });
+        }
+        
+        btn.textContent = originalText;
+        btn.disabled = false;
+
+        if (capturedBlobs.length === 0) {
+          alert('Could not capture any floor plans.');
+          return;
+        }
+
+        try {
+          window.parent.postMessage({
+            type: 'SH3D_SYNC_PLAN',
+            projectId: window.__sh3d_projectId || null,
+            levels: capturedBlobs
+          }, '*');
+          console.log('[SH3D] Dispatched SH3D_SYNC_PLAN with ' + capturedBlobs.length + ' levels.');
+        } catch(e) {
+          console.error('[SH3D] Failed to postMessage SH3D_SYNC_PLAN:', e);
+          alert('Error communicating with parent app.');
+        }
       }
 
-      document.getElementById('copy2dElements').onclick = copyElementsOnly;
+      document.getElementById('syncPlanBtn').onclick = syncAllLevels;
 
       // --- AUTO-SAVE PLAN LOGIC ---
       window.captureLevelImage = function (home, level, callback) {
@@ -2904,17 +2918,21 @@
 
         // Wait for render (a few rAF or timeout)
         setTimeout(() => {
-          const src = findPlanCanvas();
-          if (!src) { callback(null); return; }
+          const allCanvases = Array.from(document.querySelectorAll('#home-plan canvas'));
+          if (!allCanvases.length) { callback(null); return; }
 
           document.documentElement.classList.add('copying-no-grid');
 
           // temporary canvas
           const off = document.createElement('canvas');
-          off.width = src.width;
-          off.height = src.height;
+          off.width = allCanvases[0].width;
+          off.height = allCanvases[0].height;
           const octx = off.getContext('2d');
-          octx.drawImage(src, 0, 0);
+          
+          // Draw all canvases to capture background, grid, and walls
+          allCanvases.forEach(c => {
+             octx.drawImage(c, 0, 0);
+          });
 
           const img = octx.getImageData(0, 0, off.width, off.height);
           punchOutBackground(img);
@@ -3021,7 +3039,7 @@
     }
 
     // --- CUSTOM UI ACTIONS ---
-    window.customSaveModel = function() {
+    window.customSaveModel = function(skipPrompt) {
       if (!window.application) {
         alert('Editor not fully loaded yet. Please wait.');
         return;
@@ -3050,6 +3068,87 @@
       var modelName = home.getName();
       if (modelName.indexOf('.') < 0) modelName += '.sh3d';
 
+      if (window.__sh3d_assetId && !skipPrompt) {
+        // Show custom modal
+        var overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0'; overlay.style.left = '0';
+        overlay.style.width = '100vw'; overlay.style.height = '100vh';
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        overlay.style.zIndex = '1000000';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        
+        var modal = document.createElement('div');
+        modal.style.backgroundColor = '#fff';
+        modal.style.padding = '24px';
+        modal.style.borderRadius = '12px';
+        modal.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+        modal.style.width = '320px';
+        modal.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+        
+        var title = document.createElement('h3');
+        title.innerText = 'Save Options';
+        title.style.margin = '0 0 16px 0';
+        title.style.color = '#0f172a';
+        
+        var btnStyle = 'display: block; width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; text-align: left; transition: background 0.2s;';
+        
+        var btnOverwrite = document.createElement('button');
+        btnOverwrite.innerText = 'Overwrite Existing File';
+        btnOverwrite.style.cssText = btnStyle + 'background: #2563eb; color: #fff;';
+        btnOverwrite.onmouseover = function() { this.style.background = '#1d4ed8'; };
+        btnOverwrite.onmouseout = function() { this.style.background = '#2563eb'; };
+        btnOverwrite.onclick = function() {
+          overlay.remove();
+          window._executeSave(home, modelName, false, false);
+        };
+        
+        var btnRevision = document.createElement('button');
+        btnRevision.innerText = 'Save as New Revision';
+        btnRevision.style.cssText = btnStyle + 'background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1;';
+        btnRevision.onmouseover = function() { this.style.background = '#e2e8f0'; };
+        btnRevision.onmouseout = function() { this.style.background = '#f1f5f9'; };
+        btnRevision.onclick = function() {
+          overlay.remove();
+          window._executeSave(home, modelName, true, false);
+        };
+        
+        var btnNewFile = document.createElement('button');
+        btnNewFile.innerText = 'Save as New File';
+        btnNewFile.style.cssText = btnStyle + 'background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1;';
+        btnNewFile.onmouseover = function() { this.style.background = '#e2e8f0'; };
+        btnNewFile.onmouseout = function() { this.style.background = '#f1f5f9'; };
+        btnNewFile.onclick = function() {
+          overlay.remove();
+          window.customSaveAsModel();
+        };
+        
+        var btnCancel = document.createElement('button');
+        btnCancel.innerText = 'Cancel';
+        btnCancel.style.cssText = btnStyle + 'background: transparent; color: #64748b; text-align: center; margin-bottom: 0;';
+        btnCancel.onmouseover = function() { this.style.background = '#f8fafc'; };
+        btnCancel.onmouseout = function() { this.style.background = 'transparent'; };
+        btnCancel.onclick = function() {
+          overlay.remove();
+        };
+        
+        modal.appendChild(title);
+        modal.appendChild(btnOverwrite);
+        modal.appendChild(btnRevision);
+        modal.appendChild(btnNewFile);
+        modal.appendChild(btnCancel);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        return; // Wait for user choice
+      }
+
+      window._executeSave(home, modelName, false, false);
+    };
+
+    window._executeSave = function(home, modelName, asRevision, isSaveAs) {
       _sh3d_showSaveUI();
 
       var saveBtn = document.getElementById('sh3d-save-btn');
@@ -3086,7 +3185,9 @@
               thumbnailBlob: thumbnailBlob || null,
               projectId: window.__sh3d_projectId || null,
               sh3dSize: sh3dBlob.size,
-              thumbnailSize: thumbnailBlob ? thumbnailBlob.size : 0
+              thumbnailSize: thumbnailBlob ? thumbnailBlob.size : 0,
+              asRevision: asRevision,
+              isSaveAs: isSaveAs
             };
 
             // postMessage to parent (the React iframe parent)
@@ -3114,10 +3215,12 @@
         alert('Model not loaded yet.');
         return;
       }
-      var name = prompt('Enter a new name to Save As:', 'New Design (Copy)');
+      var name = prompt('Enter a new name to Save As:', home.getName() ? home.getName() + ' (Copy)' : 'New Design (Copy)');
       if (!name) return;
       home.setName(name);
-      window.customSaveModel();
+      var modelName = home.getName();
+      if (modelName.indexOf('.') < 0) modelName += '.sh3d';
+      window._executeSave(home, modelName, false, true);
     };
 
     window.customSyncPlan = function() {
@@ -3147,7 +3250,7 @@
            formData.append("category", "2d_plan");
            formData.append("name", name.replace(".sh3d", "") + " 2D Plan");
 
-           fetch('/api/projects/' + window.__sh3d_projectId + '/assets/', {
+           fetch('/api/v1/projects/assets/', {
              method: 'POST',
              credentials: 'same-origin',
              body: formData
@@ -3163,7 +3266,7 @@
              btn.disabled = false;
              
              // Optionally trigger linking API
-             fetch('/api/projects/assets/' + window.__sh3d_assetId + '/sync_sh3d_artifacts/', {
+             fetch('/api/v1/projects/assets/' + window.__sh3d_assetId + '/sync_sh3d_artifacts/', {
                method: 'POST',
                credentials: 'same-origin',
                headers: { 
@@ -3325,11 +3428,6 @@
 
   <!-- Floating Save Model button removed, integrated into pill toolbar -->
 
-  <div class="export-fab" style="top: calc(50% + 40px);">
-    <button id="manualSyncBtn"
-      onclick="window.customSyncPlan()"
-      style="background:#6366f1; color:#fff; border:1px solid #4f46e5; font-weight: bold;">🔄 Sync Plans</button>
-  </div>
 
   <div class="export-fab" style="top: calc(50% + 90px);">
     <button id="importObjBtn" style="background:#0ea5e9; color:#fff; border:1px solid #0284c7;">Import OBJ</button>

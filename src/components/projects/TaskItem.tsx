@@ -5,8 +5,11 @@ import { Task } from "@/types/projects";
 interface TaskItemProps {
   task: Task;
   isLocked?: boolean;
+  isCritical?: boolean;
   onClick?: () => void;
   onDragStart?: (e: React.DragEvent) => void;
+  isSelected?: boolean;
+  onSelectToggle?: () => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -33,8 +36,11 @@ const STATUS_LABELS: Record<string, string> = {
 export const TaskItem: React.FC<TaskItemProps> = ({
   task,
   isLocked = false,
+  isCritical = false,
   onClick,
   onDragStart,
+  isSelected = false,
+  onSelectToggle,
 }) => {
   const isMatrixTask = task.block !== null && task.block !== undefined;
   const hasTrade = task.trade !== null && task.trade !== undefined;
@@ -56,12 +62,35 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       >
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
+            {onSelectToggle && (
+              <input 
+                type="checkbox" 
+                checked={isSelected}
+                onChange={(e) => { e.stopPropagation(); onSelectToggle(); }}
+                className="w-4 h-4 rounded border-surface-300 text-primary focus:ring-accent mr-2 cursor-pointer"
+              />
+            )}
             <span className="text-[10px] font-mono font-medium text-surface-400 bg-surface-50 px-2 py-0.5 rounded border border-surface-200 shrink-0">{task.task_code || task.uid}</span>
+            {isCritical && (
+              <span className="bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 shrink-0">Critical</span>
+            )}
+            {task.priority === "HIGH" && <span className="bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 shrink-0" title="High Priority">High Priority</span>}
+            {task.priority === "MEDIUM" && <span className="bg-amber-100 text-amber-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-amber-200 shrink-0" title="Medium Priority">Medium Priority</span>}
+            {task.priority === "LOW" && <span className="bg-surface-100 text-surface-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-surface-200 shrink-0" title="Low Priority">Low Priority</span>}
             <h4 className="text-sm font-bold text-primary tracking-tight group-hover:text-accent transition-colors truncate">{task.title}</h4>
           </div>
           <p className="text-[11px] text-surface-500 leading-relaxed font-medium line-clamp-2">
             {task.description || "No specific architectural requirements detailed."}
           </p>
+          {task.tags && task.tags.length > 0 && (
+            <div className="flex gap-1 flex-wrap mt-2">
+              {task.tags.map(tag => (
+                <span key={tag.id} className="text-[9px] px-1.5 py-0.5 rounded border text-surface-600 font-bold uppercase tracking-widest" style={{ borderColor: tag.color, backgroundColor: `${tag.color}10` }}>
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4 shrink-0">
           {hasUnresolvedPunchList && (
@@ -74,6 +103,11 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           {task.requires_owner_response && (
             <span className="flex items-center justify-center w-5 h-5 bg-red-500 rounded-full shrink-0 shadow-sm animate-pulse" title="New message requires your response">
               <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+            </span>
+          )}
+          {task.depends_on && task.depends_on.length > 0 && (
+            <span className="flex items-center justify-center w-5 h-5 bg-surface-100 rounded-full shrink-0 shadow-sm" title={`Depends on ${task.depends_on.length} task(s)`}>
+              <svg className="w-3 h-3 text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
             </span>
           )}
           <span className={`px-3 py-1 text-[9px] font-bold uppercase tracking-[0.15em] rounded-md shadow-sm shrink-0 border ${statusColor}`}>
@@ -134,10 +168,21 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       {/* Card header */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex-1 min-w-0">
-          <div className="text-[9px] font-mono text-surface-400 mb-0.5 truncate">{task.task_code || task.uid}</div>
+          <div className="text-[9px] font-mono text-surface-400 mb-0.5 truncate">
+            {task.task_code || task.uid}
+            {isCritical && <span className="ml-2 bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 inline-block">Critical</span>}
+            {task.priority === "HIGH" && <span className="ml-2 bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 inline-block" title="High Priority">High Priority</span>}
+            {task.priority === "MEDIUM" && <span className="ml-2 bg-amber-100 text-amber-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-amber-200 inline-block" title="Medium Priority">Medium Priority</span>}
+            {task.priority === "LOW" && <span className="ml-2 bg-surface-100 text-surface-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-surface-200 inline-block" title="Low Priority">Low Priority</span>}
+          </div>
           <h4 className="font-bold text-[11px] text-primary leading-tight line-clamp-2 group-hover:text-accent transition-colors">
             {task.title}
           </h4>
+          {task.description && (
+            <p className="text-[9px] text-surface-500 mt-1.5 line-clamp-2 leading-snug">
+              {task.description}
+            </p>
+          )}
         </div>
         <span className={`shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${statusColor}`}>
           {statusLabel}
@@ -178,8 +223,18 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </div>
       )}
 
-      {/* Footer: checklist + issues count */}
+      {/* Footer: subtasks + checklist + issues count */}
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-surface-100">
+        {task.subtasks && task.subtasks.length > 0 && (
+          <div className="flex items-center gap-1">
+            <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+            <span className="text-[9px] font-bold text-indigo-500 tabular-nums">
+              {task.subtasks.filter((t: any) => t.status === 'DONE').length}/{task.subtasks.length} subtasks
+            </span>
+          </div>
+        )}
         {checklists.length > 0 && (
           <div className="flex items-center gap-1">
             <svg className="w-3 h-3 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,12 +255,24 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             </span>
           </div>
         )}
-        {(task.end_date || task.end_date) && (
+        {(task.due_date || task.end_date) && (
           <div className="flex items-center gap-1 ml-auto">
-            <svg className="w-3 h-3 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-3 h-3 ${task.due_date ? 'text-red-400' : 'text-surface-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span className="text-[8px] font-bold text-surface-400">{task.end_date || task.end_date}</span>
+            <span className={`text-[8px] font-bold ${task.due_date ? 'text-red-500' : 'text-surface-400'}`}>{task.due_date || task.end_date}</span>
+          </div>
+        )}
+        {task.is_recurring_template && (
+          <div className="flex items-center gap-1 ml-1" title={`Recurring: ${task.recurrence_pattern}`}>
+            <svg className="w-3 h-3 text-indigo-400 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+        )}
+        {task.depends_on && task.depends_on.length > 0 && (
+          <div className="flex items-center gap-1 ml-1" title={`Depends on ${task.depends_on.length} task(s)`}>
+            <svg className="w-3 h-3 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
           </div>
         )}
       </div>
