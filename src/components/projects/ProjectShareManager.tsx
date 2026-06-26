@@ -64,7 +64,7 @@ export default function ProjectShareManager({ projectId }: { projectId: string }
   };
 
   return (
-    <div className="bg-white rounded-lg border border-neutral-200 p-6 shadow-sm mt-6">
+    <div className="bg-surface-100 border-surface-200 rounded-lg border border-neutral-200 p-6 shadow-sm mt-6">
       <h3 className="text-lg font-semibold text-neutral-800 mb-2">Public Dashboard Links</h3>
       <p className="text-sm text-neutral-500 mb-6">
         Generate read-only, infographic-heavy dashboard links to share with clients or stakeholders. These links do not expose sensitive project tasks or internal communication.
@@ -107,7 +107,7 @@ export default function ProjectShareManager({ projectId }: { projectId: string }
       ) : (
         <div className="space-y-3">
           {links.map((link) => (
-            <div key={link.token} className="flex items-center justify-between p-3 rounded-md border border-neutral-200 bg-white shadow-sm hover:border-indigo-200 transition-colors">
+            <div key={link.token} className="flex items-center justify-between p-3 rounded-md border border-neutral-200 bg-surface-100 border-surface-200 shadow-sm hover:border-indigo-200 transition-colors">
               <div className="flex-1 min-w-0 pr-4">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm font-medium text-neutral-800 truncate">
@@ -134,7 +134,7 @@ export default function ProjectShareManager({ projectId }: { projectId: string }
                 </button>
                 <button
                   onClick={() => revokeLink(link.token)}
-                  className="p-1.5 text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                  className="p-1.5 text-neutral-500 hover:text-red-600 hover:bg-red-50 dark:bg-red-900/20 rounded-md transition-colors"
                   title="Revoke Link"
                 >
                   <Trash2 className="w-4 h-4" />

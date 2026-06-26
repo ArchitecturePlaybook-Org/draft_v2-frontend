@@ -78,9 +78,9 @@ export const MatrixOnboardingWizard: React.FC<MatrixOnboardingWizardProps> = ({ 
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-surface-200 shadow-xl overflow-hidden max-w-3xl mx-auto my-12 animate-fade-in-up">
+    <div className="bg-surface-100 rounded-3xl border border-surface-200 shadow-xl overflow-hidden max-w-3xl mx-auto my-12 animate-fade-in-up">
       {/* Header */}
-      <div className="bg-primary px-8 py-6 text-white flex items-center justify-between">
+      <div className="bg-accent text-background flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-black tracking-tight">Matrix Generator</h2>
           <p className="text-sm text-surface-300 font-medium mt-1">Configure your spatial zones and milestone phases.</p>
@@ -88,7 +88,7 @@ export const MatrixOnboardingWizard: React.FC<MatrixOnboardingWizardProps> = ({ 
         <div className="flex gap-2">
           {[1, 2, 3].map(s => (
             <div key={s} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-colors ${
-              step === s ? "bg-accent text-white" : step > s ? "bg-white/20 text-white" : "bg-white/5 text-white/30"
+              step === s ? "bg-accent text-background" : step > s ? "bg-white/20 text-white" : "bg-white/5 text-white/30"
             }`}>
               {s}
             </div>
@@ -103,8 +103,8 @@ export const MatrixOnboardingWizard: React.FC<MatrixOnboardingWizardProps> = ({ 
             <h3 className="text-lg font-bold text-primary">Define Spatial Zones (X-Axis)</h3>
             
             <div className="flex bg-surface-100 p-1 rounded-xl w-fit">
-              <button onClick={() => setZoneInputType("manual")} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${zoneInputType === "manual" ? "bg-white shadow-sm text-primary" : "text-surface-500 hover:text-primary"}`}>Manual Entry</button>
-              <button onClick={() => setZoneInputType("ai")} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1 ${zoneInputType === "ai" ? "bg-white shadow-sm text-accent" : "text-surface-500 hover:text-accent"}`}>
+              <button onClick={() => setZoneInputType("manual")} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${zoneInputType === "manual" ? "bg-surface-100 shadow-sm text-primary" : "text-surface-500 hover:text-primary"}`}>Manual Entry</button>
+              <button onClick={() => setZoneInputType("ai")} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1 ${zoneInputType === "ai" ? "bg-surface-100 shadow-sm text-accent" : "text-surface-500 hover:text-accent"}`}>
                 <span className="text-lg leading-none mt-[-2px]">✨</span> AI Auto-Extract
               </button>
             </div>
@@ -114,7 +114,7 @@ export const MatrixOnboardingWizard: React.FC<MatrixOnboardingWizardProps> = ({ 
                 <div className="text-4xl mb-4">🤖</div>
                 <h4 className="font-bold text-primary mb-2">Gemini Vision Extraction</h4>
                 <p className="text-sm text-surface-500 mb-6 max-w-md mx-auto">Upload a floor plan image (PNG/JPG) and our AI will automatically detect and extract room names.</p>
-                <label className={`inline-block h-12 px-6 bg-white border border-surface-200 text-primary font-bold text-xs uppercase tracking-widest rounded-xl hover:border-accent hover:text-accent transition-all cursor-pointer leading-[46px] ${isParsingAI ? "opacity-50 pointer-events-none" : ""}`}>
+                <label className={`inline-block h-12 px-6 bg-surface-100 border border-surface-200 text-primary font-bold text-xs uppercase tracking-widest rounded-xl hover:border-accent hover:text-accent transition-all cursor-pointer leading-[46px] ${isParsingAI ? "opacity-50 pointer-events-none" : ""}`}>
                   {isParsingAI ? "Analyzing Image..." : "Upload Floor Plan"}
                   <input type="file" accept="image/*" className="hidden" onChange={handleAIParsing} disabled={isParsingAI} />
                 </label>
@@ -145,7 +145,7 @@ export const MatrixOnboardingWizard: React.FC<MatrixOnboardingWizardProps> = ({ 
                         newZones[i].zone_type = e.target.value;
                         setZones(newZones);
                       }}
-                      className="w-24 bg-white border border-surface-200 rounded-lg px-2 py-1.5 text-[10px] outline-none text-surface-500 uppercase tracking-widest font-black focus:border-accent transition-colors"
+                      className="w-24 bg-surface-100 border border-surface-200 rounded-lg px-2 py-1.5 text-[10px] outline-none text-surface-500 uppercase tracking-widest font-black focus:border-accent transition-colors"
                       placeholder="Type"
                     />
                     <button 
@@ -272,7 +272,7 @@ export const MatrixOnboardingWizard: React.FC<MatrixOnboardingWizardProps> = ({ 
           <button 
             onClick={() => setStep(step + 1 as any)} 
             disabled={(step === 1 && zones.length === 0) || (step === 2 && phases.length === 0)}
-            className="h-11 px-8 bg-primary text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent transition-colors disabled:opacity-50"
+            className="h-11 px-8 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent transition-colors disabled:opacity-50"
           >
             Continue
           </button>
@@ -280,7 +280,7 @@ export const MatrixOnboardingWizard: React.FC<MatrixOnboardingWizardProps> = ({ 
           <button 
             onClick={handleGenerate} 
             disabled={isGenerating}
-            className="h-11 px-8 bg-accent text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary transition-all disabled:opacity-50 flex items-center gap-2"
+            className="h-11 px-8 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
           >
             {isGenerating ? (
               <><span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" /> Generating Matrix...</>

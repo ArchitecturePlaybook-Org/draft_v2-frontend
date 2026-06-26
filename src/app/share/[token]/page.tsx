@@ -46,7 +46,7 @@ export default function PublicShareDashboard() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-surface-50 flex flex-col items-center justify-center p-6">
-        <div className="bg-white p-10 rounded-2xl shadow-xl max-w-md w-full text-center border border-surface-200">
+        <div className="bg-surface-100 p-10 rounded-2xl shadow-xl max-w-md w-full text-center border border-surface-200">
           <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
             ⚠️
           </div>
@@ -85,7 +85,7 @@ export default function PublicShareDashboard() {
       <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
         
         {/* Header Section */}
-        <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-surface-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden">
+        <div className="bg-surface-100 rounded-3xl p-8 md:p-12 shadow-sm border border-surface-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
           
           <div className="relative z-10">
@@ -151,17 +151,17 @@ export default function PublicShareDashboard() {
 
         {/* High-Level Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
+          <div className="bg-surface-100 p-6 rounded-2xl shadow-sm border border-surface-200">
             <div className="text-3xl mb-2">📊</div>
             <div className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-1">Total Phases</div>
             <div className="text-2xl font-black">{completedPhasesCount} / {phases.length} <span className="text-sm font-medium text-surface-400 lowercase tracking-normal">completed</span></div>
           </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
+          <div className="bg-surface-100 p-6 rounded-2xl shadow-sm border border-surface-200">
             <div className="text-3xl mb-2">🏗️</div>
             <div className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-1">Active Blocks</div>
             <div className="text-2xl font-black">{phases.reduce((acc: number, p: any) => acc + p.done_blocks, 0)} / {phases.reduce((acc: number, p: any) => acc + p.total_blocks, 0)} <span className="text-sm font-medium text-surface-400 lowercase tracking-normal">done</span></div>
           </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-surface-200 relative overflow-hidden">
+          <div className="bg-surface-100 p-6 rounded-2xl shadow-sm border border-surface-200 relative overflow-hidden">
             <div className="text-3xl mb-2">⚠️</div>
             <div className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-1">Owner Action Req.</div>
             <div className={`text-2xl font-black ${tasks.requires_owner_response > 0 ? "text-amber-500" : "text-emerald-500"}`}>
@@ -177,7 +177,7 @@ export default function PublicShareDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Donut Chart: Task Distribution */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-surface-200">
+          <div className="bg-surface-100 rounded-3xl p-8 shadow-sm border border-surface-200">
             <h3 className="text-lg font-bold text-primary mb-6">Task Distribution</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -206,7 +206,7 @@ export default function PublicShareDashboard() {
           </div>
 
           {/* Bar Chart: Phase Completion */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-surface-200">
+          <div className="bg-surface-100 rounded-3xl p-8 shadow-sm border border-surface-200">
             <h3 className="text-lg font-bold text-primary mb-6">Phase Completion</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">

@@ -52,7 +52,7 @@ const Modal = ({
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-primary/10 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden relative z-10 animate-in zoom-in-95 duration-300">
+      <div className="bg-surface-50 rounded-2xl shadow-none border border-surface-200 w-full max-w-4xl max-h-[90vh] overflow-hidden relative z-10 animate-in zoom-in-95 duration-300">
         <button
           onClick={onClose}
           className="absolute top-6 right-6 p-2 hover:bg-surface-100 rounded-full transition-colors z-20"
@@ -150,7 +150,7 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex bg-white font-sans selection:bg-accent/10 selection:text-accent">
+    <div className="min-h-screen flex bg-background font-sans selection:bg-accent/10 selection:text-accent">
       {/* Left Panel */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-surface-100 overflow-hidden items-center justify-center p-20 border-r border-surface-200">
         <div className="absolute inset-0 arch-grid opacity-20" />
@@ -167,7 +167,7 @@ function LoginContent() {
             <h3 className="text-primary/10 text-9xl font-bold uppercase tracking-tighter select-none">ARCH</h3>
           </div>
         </div>
-        <div className="absolute bottom-16 left-16 right-16 text-primary/40">
+        <div className="absolute bottom-16 left-16 right-16 text-surface-400">
           <p className="text-sm font-medium tracking-tight uppercase">Intent Translation Platform v1.0</p>
           <div className="h-[1px] w-12 bg-accent/30 mt-4" />
         </div>
@@ -188,7 +188,7 @@ function LoginContent() {
               <h1 className="text-3xl font-bold tracking-tight text-primary">
                 {step === "login" ? "Welcome back" : step === "2fa" ? "Two-Factor Authentication" : "Passwordless Login"}
               </h1>
-              <p className="text-surface-600 font-medium">
+              <p className="text-text-secondary font-medium">
                 {step === "login" ? "Continue building your architectural vision." : step === "2fa" ? "Enter the 6-digit code from your authenticator app." : "Enter your email to receive a secure login link."}
               </p>
             </div>
@@ -206,7 +206,7 @@ function LoginContent() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-12 px-0 bg-transparent border-b-2 border-surface-200 outline-none transition-all focus:border-accent placeholder:text-surface-600/40"
+                    className="w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 outline-none transition-all focus:border-accent/50 focus:ring-4 focus:ring-accent/10 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40"
                     placeholder="name@company.com"
                   />
                 </div>
@@ -223,10 +223,10 @@ function LoginContent() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full h-12 px-0 bg-transparent border-b-2 border-surface-200 outline-none transition-all focus:border-accent placeholder:text-surface-600/40"
+                      className="w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 outline-none transition-all focus:border-accent/50 focus:ring-4 focus:ring-accent/10 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40"
                       placeholder="••••••••"
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 -translate-y-1/2 text-primary/40 hover:text-accent transition-colors p-2">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 -translate-y-1/2 text-surface-400 hover:text-accent transition-colors p-2">
                       {showPassword ? (
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a22.28 22.28 0 0 1 2.18-3.18"></path><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                       ) : (
@@ -244,7 +244,7 @@ function LoginContent() {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-surface-200 text-primary focus:ring-accent accent-primary"
                   />
-                  <label htmlFor="rememberMe" className="text-sm font-medium text-surface-600 cursor-pointer select-none">
+                  <label htmlFor="rememberMe" className="text-sm font-medium text-text-secondary cursor-pointer select-none">
                     Remember me for 90 days
                   </label>
                 </div>
@@ -268,7 +268,7 @@ function LoginContent() {
                         </svg>
                     </div>
                     <h3 className="text-lg font-bold text-primary">Email Not Verified</h3>
-                    <p className="text-sm text-surface-600">Please verify your email address to access your account. If you didn't receive the email, you can request a new one.</p>
+                    <p className="text-sm text-text-secondary">Please verify your email address to access your account. If you didn't receive the email, you can request a new one.</p>
                 </div>
                 <button 
                   type="button" 
@@ -281,7 +281,7 @@ function LoginContent() {
                           alert(e.message || "Failed to send verification email.");
                       }
                   }} 
-                  className="w-full h-12 border-2 border-primary text-primary font-bold uppercase tracking-widest text-[13px] hover:bg-surface-50 transition-all rounded"
+                  className="w-full h-12 bg-surface-100 border border-surface-200 text-foreground font-bold uppercase tracking-widest text-[13px] hover:bg-surface-200 transition-all rounded"
                 >
                   Resend Verification Email
                 </button>
@@ -307,11 +307,11 @@ function LoginContent() {
                     autoComplete="one-time-code"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
-                    className="w-full h-12 px-0 bg-transparent border-b-2 border-surface-200 outline-none transition-all focus:border-accent placeholder:text-surface-600/40 text-xl tracking-widest"
+                    className="w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 outline-none transition-all focus:border-accent/50 focus:ring-4 focus:ring-accent/10 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40 text-xl tracking-widest text-center"
                     placeholder="123456"
                     autoFocus
                   />
-                  <p className="text-xs text-surface-600 pt-2">You can also use a recovery code if you lost your device.</p>
+                  <p className="text-xs text-text-secondary pt-2">You can also use a recovery code if you lost your device.</p>
                 </div>
                 <button 
                   type="button" 
@@ -331,11 +331,11 @@ function LoginContent() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-12 px-0 bg-transparent border-b-2 border-surface-200 outline-none transition-all focus:border-accent placeholder:text-surface-600/40"
+                    className="w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 outline-none transition-all focus:border-accent/50 focus:ring-4 focus:ring-accent/10 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40"
                     placeholder="name@company.com"
                     autoFocus
                   />
-                  <p className="text-xs text-surface-600 pt-2">We'll send a secure, one-time link to your inbox.</p>
+                  <p className="text-xs text-text-secondary pt-2">We'll send a secure, one-time link to your inbox.</p>
                 </div>
                 <button 
                   type="button" 
@@ -356,7 +356,7 @@ function LoginContent() {
                 id="login-submit-btn"
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-14 bg-primary text-white font-bold uppercase tracking-[0.2em] transition-all hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed group flex items-center justify-center gap-4"
+                className="w-full h-14 bg-gradient-to-r from-accent to-accent/90 text-background rounded-xl font-black uppercase text-xs tracking-[0.2em] hover:shadow-[0_0_25px_rgba(255,186,8,0.4)] hover:-translate-y-1 transition-all shadow-lg shadow-accent/20 group flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Validating..." : (<>{step === "login" ? "Connect" : step === "2fa" ? "Verify" : "Send Link"} <ArrowRightIcon /></>)}
               </button>
@@ -368,7 +368,7 @@ function LoginContent() {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-surface-200" />
             </div>
-            <div className="relative flex justify-center text-[11px] font-bold uppercase bg-white px-4 text-surface-600/40 select-none">
+            <div className="relative flex justify-center text-[11px] font-bold uppercase bg-background px-4 text-surface-400 select-none">
               Or continue with
             </div>
           </div>
@@ -379,7 +379,7 @@ function LoginContent() {
               id="google-login-btn"
               type="button"
               onClick={initiateGoogleOAuth}
-              className="w-full h-14 border border-surface-200 font-bold uppercase tracking-widest text-[13px] transition-all hover:bg-surface-50 flex items-center justify-center gap-4 rounded"
+              className="w-full h-14 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 text-foreground font-bold uppercase tracking-widest text-[13px] transition-all hover:bg-surface-200/80 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/5 flex items-center justify-center gap-4 rounded-xl"
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -394,7 +394,7 @@ function LoginContent() {
               id="apple-login-btn"
               type="button"
               onClick={initiateAppleOAuth}
-              className="w-full h-14 bg-primary text-white font-bold uppercase tracking-widest text-[13px] transition-all hover:bg-primary/90 flex items-center justify-center gap-4 rounded"
+              className="w-full h-14 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 text-foreground font-bold uppercase tracking-widest text-[13px] transition-all hover:bg-surface-200/80 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/5 flex items-center justify-center gap-4 rounded-xl"
             >
               <AppleIcon />
               Continue with Apple
@@ -407,7 +407,7 @@ function LoginContent() {
             </Link>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="text-[11px] font-bold uppercase text-surface-600/60 hover:text-accent transition-colors flex items-center gap-2"
+              className="text-[11px] font-bold uppercase text-text-secondary/60 hover:text-accent transition-colors flex items-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
               How it works?
@@ -421,7 +421,7 @@ function LoginContent() {
         <div className="text-center space-y-12">
           <div className="space-y-4">
             <h2 className="text-4xl font-bold text-primary">The Architecture Playbook</h2>
-            <p className="text-surface-600 text-lg max-w-2xl mx-auto">Ensuring architectural intent is delivered to reality without losing meaning.</p>
+            <p className="text-text-secondary text-lg max-w-2xl mx-auto">Ensuring architectural intent is delivered to reality without losing meaning.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-left">
             {[
@@ -432,7 +432,7 @@ function LoginContent() {
               <div key={i} className="space-y-4 group">
                 <span className="text-5xl font-black text-surface-100 group-hover:text-accent/10 transition-colors">{item.step}</span>
                 <h3 className="text-xl font-bold text-primary">{item.title}</h3>
-                <p className="text-surface-600 text-sm leading-relaxed">{item.desc}</p>
+                <p className="text-text-secondary text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>

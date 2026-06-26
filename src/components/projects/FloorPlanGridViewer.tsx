@@ -86,7 +86,7 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
   return (
     <div className={inline ? "flex flex-col bg-surface-900 w-full h-full min-h-[500px] rounded-2xl overflow-hidden shadow-inner no-print border border-surface-200" : "fixed inset-0 z-50 bg-surface-900 flex flex-col no-print"}>
       {/* Header */}
-      <div className="h-16 px-6 bg-white border-b border-surface-200 flex items-center justify-between z-40 shrink-0">
+      <div className="h-16 px-6 bg-surface-100 border-surface-200 border-b border-surface-200 flex items-center justify-between z-40 shrink-0">
         <div className="flex items-center gap-4">
           {!inline && onClose && (
             <button onClick={onClose} className="p-2 hover:bg-surface-50 rounded-xl transition-colors text-lg">←</button>
@@ -99,9 +99,9 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
         
         <div className="flex items-center gap-3">
           <div className="flex bg-surface-100 p-1 rounded-xl">
-            <button onClick={() => handleZoom(-0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold text-lg">－</button>
+            <button onClick={() => handleZoom(-0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-100 border-surface-200 rounded-lg transition-all font-bold text-lg">－</button>
             <div className="px-3 flex items-center text-[10px] font-black text-primary uppercase">{(zoom * 100).toFixed(0)}%</div>
-            <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all font-bold text-lg">＋</button>
+            <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-100 border-surface-200 rounded-lg transition-all font-bold text-lg">＋</button>
           </div>
           <button 
             onClick={() => window.open(`/sh3d/index.html?projectId=${asset.project}`, "_blank")} 
@@ -110,12 +110,12 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
             <span>🏠</span> Open in SH3D
           </button>
           {inline && onToggleFullScreen && (
-            <button onClick={onToggleFullScreen} className="px-4 h-10 bg-surface-100 text-surface-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200">
+            <button onClick={onToggleFullScreen} className="px-4 h-10 bg-surface-100 text-surface-600 text-surface-300 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200">
               ⛶ Full Screen
             </button>
           )}
           {!inline && onClose && (
-            <button onClick={onClose} className="px-4 h-10 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20">Done Viewing</button>
+            <button onClick={onClose} className="px-4 h-10 bg-accent text-background font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20">Done Viewing</button>
           )}
         </div>
       </div>
@@ -191,7 +191,7 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
 
         {/* Legend / Tooltip */}
         <div 
-          className={`absolute bottom-6 left-6 bg-white/90 backdrop-blur-md border border-white shadow-xl z-40 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col justify-center ${showInstructions ? 'p-4 max-w-xs rounded-2xl' : 'w-12 h-12 rounded-full items-center'}`}
+          className={`absolute bottom-6 left-6 bg-surface-100 border-surface-200/90 backdrop-blur-md border border-white shadow-xl z-40 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col justify-center ${showInstructions ? 'p-4 max-w-xs rounded-2xl' : 'w-12 h-12 rounded-full items-center'}`}
           onMouseEnter={() => setShowInstructions(true)}
           onMouseLeave={() => setShowInstructions(false)}
           onClick={() => setShowInstructions(prev => !prev)}
@@ -201,7 +201,7 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
           ) : (
             <div className="w-64 animate-fade-in">
               <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Instructions</p>
-              <ul className="space-y-2 text-[10px] font-bold text-surface-500">
+              <ul className="space-y-2 text-[10px] font-bold text-surface-500 text-surface-400">
                 <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Click any zone (A1–H8) to add site photos</li>
                 <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Use ± or {inline ? "Ctrl + Scroll" : "Scroll"} to zoom for precision</li>
                 <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Drag to pan when zoomed in</li>

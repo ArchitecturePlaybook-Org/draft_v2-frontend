@@ -97,17 +97,17 @@ export default function SignupPage() {
          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
            {data.map(item => {
              const isChecked = (formData.selections[path] || []).includes(item);
-             return (
-               <label key={item} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${isChecked ? 'bg-accent/10 border-accent shadow-sm' : 'border-surface-200 hover:bg-surface-50'}`}>
-                 <input 
-                   type="checkbox" 
-                   className="mt-1 w-4 h-4 accent-accent rounded border-surface-300"
-                   checked={isChecked}
-                   onChange={() => handleCheckboxToggle(path, item)}
-                 />
-                 <span className="text-sm font-medium text-primary">{item}</span>
-               </label>
-             );
+              return (
+                <label key={item} className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition-all duration-300 ${isChecked ? 'bg-accent/10 border-accent/50 shadow-[0_0_15px_rgba(255,186,8,0.15)] ring-1 ring-accent/20' : 'border-surface-200/50 bg-surface-100/50 backdrop-blur-md hover:bg-surface-50 hover:border-accent/30 hover:shadow-md'}`}>
+                  <input 
+                    type="checkbox" 
+                    className="mt-1 w-4 h-4 accent-accent rounded border-surface-300 transition-all"
+                    checked={isChecked}
+                    onChange={() => handleCheckboxToggle(path, item)}
+                  />
+                  <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-accent' : 'text-primary'}`}>{item}</span>
+                </label>
+              );
            })}
          </div>
        );
@@ -176,7 +176,7 @@ export default function SignupPage() {
   const totalSelections = Object.values(formData.selections).flat().length;
 
   return (
-    <div className="min-h-screen flex bg-white font-sans selection:bg-accent/10 selection:text-accent">
+    <div className="min-h-screen flex bg-background font-sans selection:bg-accent/10 selection:text-accent">
       {/* Background Grid */}
       <div className="absolute inset-0 arch-grid opacity-10 pointer-events-none" />
 
@@ -192,14 +192,13 @@ export default function SignupPage() {
             </Link>
             <div className="space-y-1">
               <h1 className="text-3xl font-bold tracking-tight text-primary">Genesis Registration</h1>
-              <p className="text-surface-600 font-medium">
+              <p className="text-text-secondary font-medium">
                 Step {step} of 4: {step === 1 ? "Account Setup" : step === 2 ? "Primary Sector" : step === 3 ? "Specializations" : "Specifications"}
               </p>
             </div>
-            {/* Progress Bar */}
             <div className="flex gap-2 max-w-[250px] mx-auto pt-2">
                 {[1, 2, 3, 4].map(i => (
-                    <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${step >= i ? "bg-accent" : "bg-surface-200"}`} />
+                    <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= i ? "bg-accent shadow-[0_0_10px_rgba(255,186,8,0.5)]" : "bg-surface-200/50"}`} />
                 ))}
             </div>
           </div>
@@ -215,7 +214,7 @@ export default function SignupPage() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={`w-full h-12 bg-transparent border-b-2 outline-none transition-all placeholder:text-surface-600/30 ${formErrors.name ? 'border-red-500 text-red-500' : 'border-surface-200 focus:border-accent'}`}
+                    className={`w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border outline-none transition-all focus:ring-4 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40 ${formErrors.name ? 'border-red-500 text-red-500 focus:border-red-500/50 focus:ring-red-500/10' : 'border-surface-200/50 focus:border-accent/50 focus:ring-accent/10'}`}
                     placeholder="Alice Architect"
                   />
                   {formErrors.name && <p className="text-red-500 text-xs font-semibold">{formErrors.name}</p>}
@@ -226,7 +225,7 @@ export default function SignupPage() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className={`w-full h-12 bg-transparent border-b-2 outline-none transition-all placeholder:text-surface-600/30 ${formErrors.email ? 'border-red-500 text-red-500' : 'border-surface-200 focus:border-accent'}`}
+                    className={`w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border outline-none transition-all focus:ring-4 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40 ${formErrors.email ? 'border-red-500 text-red-500 focus:border-red-500/50 focus:ring-red-500/10' : 'border-surface-200/50 focus:border-accent/50 focus:ring-accent/10'}`}
                     placeholder="alice@studio.com"
                   />
                   {formErrors.email && <p className="text-red-500 text-xs font-semibold">{formErrors.email}</p>}
@@ -238,7 +237,7 @@ export default function SignupPage() {
                         type="password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className={`w-full h-12 bg-transparent border-b-2 outline-none transition-all ${formErrors.password ? 'border-red-500 text-red-500' : 'border-surface-200 focus:border-accent'}`}
+                        className={`w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border outline-none transition-all focus:ring-4 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40 ${formErrors.password ? 'border-red-500 text-red-500 focus:border-red-500/50 focus:ring-red-500/10' : 'border-surface-200/50 focus:border-accent/50 focus:ring-accent/10'}`}
                     />
                     {formErrors.password && <p className="text-red-500 text-xs font-semibold">{formErrors.password}</p>}
                     </div>
@@ -248,7 +247,7 @@ export default function SignupPage() {
                         type="password"
                         value={formData.password_confirm}
                         onChange={(e) => setFormData({ ...formData, password_confirm: e.target.value })}
-                        className={`w-full h-12 bg-transparent border-b-2 outline-none transition-all ${formErrors.password_confirm ? 'border-red-500 text-red-500' : 'border-surface-200 focus:border-accent'}`}
+                        className={`w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border outline-none transition-all focus:ring-4 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40 ${formErrors.password_confirm ? 'border-red-500 text-red-500 focus:border-red-500/50 focus:ring-red-500/10' : 'border-surface-200/50 focus:border-accent/50 focus:ring-accent/10'}`}
                     />
                     {formErrors.password_confirm && <p className="text-red-500 text-xs font-semibold">{formErrors.password_confirm}</p>}
                     </div>
@@ -259,7 +258,7 @@ export default function SignupPage() {
             {/* STEP 2: MAIN CATEGORY SELECTION */}
             {step === 2 && (
               <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500 max-w-xl mx-auto">
-                <div className="text-sm text-surface-600 mb-4">
+                <div className="text-sm text-text-secondary mb-4">
                    Select your primary industry sector:
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -271,9 +270,9 @@ export default function SignupPage() {
                         setFormData({ ...formData, main_category: mainCat, selections: {} });
                         nextStep();
                       }}
-                      className="p-5 text-left border-2 transition-all group relative overflow-hidden border-surface-200 hover:border-accent/40 bg-white hover:bg-surface-50 rounded-xl"
+                      className="p-6 text-left border border-surface-200/50 transition-all duration-500 group relative overflow-hidden hover:border-accent/50 bg-surface-100/50 backdrop-blur-xl hover:bg-surface-50 hover:shadow-[0_0_25px_rgba(255,186,8,0.15)] hover:-translate-y-1 rounded-2xl"
                     >
-                      <h3 className="font-bold text-primary text-base pr-6">{mainCat}</h3>
+                      <h3 className="font-bold text-primary text-base pr-6 group-hover:text-accent transition-colors">{mainCat}</h3>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-accent">
                          →
                       </div>
@@ -286,11 +285,11 @@ export default function SignupPage() {
             {/* STEP 3: MULTI-SELECT SUB-CATEGORIES */}
             {step === 3 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="p-6 bg-surface-50 border border-surface-200 rounded-xl">
-                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-surface-200">
+                <div className="p-8 bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl shadow-xl shadow-primary/5">
+                  <div className="flex items-center justify-between mb-8 pb-6 border-b border-surface-200/50">
                     <div>
-                      <h3 className="text-xl font-bold text-primary">{formData.main_category}</h3>
-                      <p className="text-sm text-surface-600 mt-1">Select all specializations that apply.</p>
+                      <h3 className="text-2xl font-black text-primary tracking-tight">{formData.main_category}</h3>
+                      <p className="text-sm text-text-secondary mt-1">Select all specializations that apply.</p>
                     </div>
                     <div className="bg-accent/10 text-accent font-bold px-3 py-1 rounded text-sm">
                       {totalSelections} Selected
@@ -322,7 +321,7 @@ export default function SignupPage() {
                                     <label className="text-[11px] font-bold uppercase tracking-wider">License Number</label>
                                     <input 
                                         type="text" 
-                                        className="w-full h-10 bg-white border border-surface-200 px-3 rounded outline-none focus:border-accent"
+                                        className="w-full h-10 bg-surface-100 border border-surface-200 px-3 rounded outline-none focus:border-accent"
                                         onChange={(e) => setFormData({...formData, metadata: {...formData.metadata, license_number: e.target.value}})}
                                     />
                                 </div>
@@ -330,7 +329,7 @@ export default function SignupPage() {
                                     <label className="text-[11px] font-bold uppercase tracking-wider">Registration Body</label>
                                     <input 
                                         type="text" 
-                                        className="w-full h-10 bg-white border border-surface-200 px-3 rounded outline-none focus:border-accent"
+                                        className="w-full h-10 bg-surface-100 border border-surface-200 px-3 rounded outline-none focus:border-accent"
                                         onChange={(e) => setFormData({...formData, metadata: {...formData.metadata, registration_body: e.target.value}})}
                                     />
                                 </div>
@@ -371,7 +370,7 @@ export default function SignupPage() {
                 <button
                   type="submit"
                   disabled={isLoading || (step === 3 && totalSelections === 0)}
-                  className="px-12 h-14 bg-primary text-white font-bold uppercase tracking-[0.2em] transition-all hover:bg-accent disabled:opacity-50 rounded"
+                  className="px-12 h-14 bg-gradient-to-r from-accent to-accent/90 text-background font-black uppercase text-xs tracking-[0.2em] transition-all hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,186,8,0.4)] disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none rounded-xl"
                 >
                   {isLoading ? "Processing..." : step === 4 ? "Complete" : "Continue"}
                 </button>

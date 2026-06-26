@@ -80,7 +80,7 @@ export const ProjectMapCard: React.FC<ProjectMapCardProps> = ({ project, onLocat
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-surface-200 shadow-sm flex flex-col h-full">
+    <div className="bg-surface-100 p-6 rounded-2xl border border-surface-200 shadow-sm flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h3 className="text-sm font-extrabold text-primary tracking-tight">Project Location</h3>
@@ -131,7 +131,7 @@ export const ProjectMapCard: React.FC<ProjectMapCardProps> = ({ project, onLocat
             <button
               onClick={handleGeocode}
               disabled={isGeocoding}
-              className="px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-accent transition-all disabled:opacity-50 shadow-sm"
+              className="px-4 py-2 bg-accent text-background text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-accent transition-all disabled:opacity-50 shadow-sm"
             >
               {isGeocoding ? "Geocoding..." : "Set Location"}
             </button>

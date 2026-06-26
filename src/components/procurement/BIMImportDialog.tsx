@@ -108,7 +108,7 @@ export default function BIMImportDialog({ isOpen, onClose, projectUid, onImportS
     <div className="relative z-50">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" aria-hidden="true" onClick={onClose} />
       <div className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none">
-        <div className="pointer-events-auto mx-auto w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="pointer-events-auto mx-auto w-full max-w-2xl bg-surface-100 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
           
           <div className="flex items-center justify-between p-6 border-b border-surface-200">
             <div>
@@ -169,7 +169,7 @@ export default function BIMImportDialog({ isOpen, onClose, projectUid, onImportS
                             <select
                               value={item.mapped_material_code}
                               onChange={(e) => handleMappingChange(item.category, e.target.value)}
-                              className="w-full h-8 px-2 border border-surface-300 rounded-md text-xs font-bold bg-white text-surface-600 focus:border-accent outline-none"
+                              className="w-full h-8 px-2 border border-surface-300 rounded-md text-xs font-bold bg-surface-100 text-surface-600 focus:border-accent outline-none"
                             >
                               <option value="">-- Keep as '{item.category}' --</option>
                               {existingMaterialCodes.map(code => (
@@ -196,7 +196,7 @@ export default function BIMImportDialog({ isOpen, onClose, projectUid, onImportS
             <button
               onClick={handleImport}
               disabled={!file || isImporting || groupedData.length === 0}
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-lg shadow-md hover:bg-primary/90 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent text-background text-xs font-black uppercase tracking-widest rounded-lg shadow-md hover:opacity-90/90 transition-all disabled:opacity-50"
             >
               {isImporting ? "Importing..." : (
                 <>

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ExpandedFeedPayload, ExpandedFeedSection, TaskStatus } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { TaskItem } from "../projects/TaskItem";
-import { TaskExecutionModal } from "../projects/TaskExecutionModal";
+import { TaskExecutionSidePanel } from "../projects/TaskExecutionSidePanel";
 import { toast } from "sonner";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
@@ -14,9 +14,9 @@ interface ExpandedFeedViewProps {
 
 const COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
   { id: "TODO", label: "To Do", color: "bg-surface-100 border-surface-200", dotColor: "bg-surface-400" },
-  { id: "WIP", label: "In Progress", color: "bg-blue-50 border-blue-100", dotColor: "bg-accent" },
-  { id: "QA", label: "Under Inspection", color: "bg-amber-50 border-amber-100", dotColor: "bg-amber-400" },
-  { id: "DONE", label: "Done", color: "bg-emerald-50 border-emerald-100", dotColor: "bg-emerald-500" },
+  { id: "WIP", label: "In Progress", color: "bg-blue-500/10 border-blue-500/20", dotColor: "bg-blue-400" },
+  { id: "QA", label: "Under Inspection", color: "bg-amber-500/10 border-amber-500/20", dotColor: "bg-amber-400" },
+  { id: "DONE", label: "Done", color: "bg-emerald-500/10 border-emerald-500/20", dotColor: "bg-emerald-500" },
 ];
 
 export const ExpandedFeedView: React.FC<ExpandedFeedViewProps> = ({
@@ -216,16 +216,16 @@ export const ExpandedFeedView: React.FC<ExpandedFeedViewProps> = ({
                 paddingBottom: "3rem"
               }}
             >
-              <div className="bg-white rounded-3xl border border-surface-200 overflow-hidden shadow-sm">
+              <div className="bg-surface-100 rounded-3xl border border-surface-200 overflow-hidden shadow-sm">
                 {/* Phase Header */}
           <div 
             className="px-8 py-5 border-b border-surface-200 sticky top-0 z-20 shadow-sm"
-            style={{ backgroundColor: `${section.phase.color_hex}10` }} // 10% opacity hex
+            style={{ backgroundColor: section.phase.color_hex ? `${section.phase.color_hex}15` : undefined }}
           >
             <div className="flex items-center gap-3">
               <span 
-                className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-xl"
-                style={{ backgroundColor: section.phase.color_hex }}
+                className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xl border border-white/20 shadow-inner"
+                style={{ backgroundColor: section.phase.color_hex || undefined, color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
               >
                 {section.phase.sequence_order}
               </span>
@@ -248,7 +248,7 @@ export const ExpandedFeedView: React.FC<ExpandedFeedViewProps> = ({
                   key={block.id} 
                   className={`
                     snap-center shrink-0 w-[420px] rounded-2xl border-2 flex flex-col relative overflow-hidden
-                    ${isLocked ? "border-dashed border-surface-200 bg-surface-50/50" : "border-surface-200 bg-white shadow-sm"}
+                    ${isLocked ? "border-dashed border-surface-200 bg-surface-50/50" : "border-surface-200 bg-surface-100 shadow-sm"}
                   `}
                 >
                   {/* Block Header */}
@@ -259,10 +259,10 @@ export const ExpandedFeedView: React.FC<ExpandedFeedViewProps> = ({
                         {block.total_tasks} Tasks · {block.completed_tasks} Done
                       </p>
                     </div>
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                      block.status === "DONE" ? "bg-emerald-100 text-emerald-700" :
-                      block.status === "ACTIVE" ? "bg-accent/10 text-accent" :
-                      "bg-surface-200 text-surface-500"
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${
+                      block.status === "DONE" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                      block.status === "ACTIVE" ? "bg-accent/10 text-accent border-accent/20" :
+                      "bg-surface-200 text-surface-400 border-surface-300"
                     }`}>
                       {block.status}
                     </span>
@@ -291,7 +291,7 @@ export const ExpandedFeedView: React.FC<ExpandedFeedViewProps> = ({
                               onDrop={e => handleDrop(e, block.id, col.id)}
                               className={`
                                 rounded-xl p-3 border-2 transition-all
-                                ${isDragTarget ? "border-accent bg-accent/5 scale-[1.02]" : "border-transparent bg-white"}
+                                ${isDragTarget ? "border-accent bg-accent/5 scale-[1.02]" : col.color}
                               `}
                             >
                               <div className="flex items-center justify-between mb-3">
@@ -351,7 +351,7 @@ export const ExpandedFeedView: React.FC<ExpandedFeedViewProps> = ({
 
       {/* Task Detail Modal */}
       {selectedTask && (
-        <TaskExecutionModal
+        <TaskExecutionSidePanel
           task={selectedTask}
           projectId={0}
           projectUid={projectUid}

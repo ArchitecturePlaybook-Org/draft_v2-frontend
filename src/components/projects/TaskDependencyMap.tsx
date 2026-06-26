@@ -71,15 +71,15 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "LR") => 
 const CustomTaskNode = ({ data }: { data: any }) => {
   const isCritical = data.isCritical;
   const statusColors = {
-    TODO: "bg-primary text-white",
-    WIP: "bg-accent text-white",
+    TODO: "bg-accent text-background",
+    WIP: "bg-accent text-background",
     DONE: "bg-emerald-500 text-white",
   };
   const colorClass = (statusColors as any)[data.status] || "bg-gray-500 text-white";
 
   return (
     <div
-      className={`px-4 py-3 rounded-xl border-2 bg-white shadow-sm transition-all hover:shadow-md ${
+      className={`px-4 py-3 rounded-xl border-2 bg-surface-100 border-surface-200 shadow-sm transition-all hover:shadow-md ${
         isCritical ? "border-red-400 shadow-red-200" : "border-surface-200"
       }`}
       style={{ width: nodeWidth }}
@@ -251,7 +251,7 @@ export const TaskDependencyMap: React.FC<TaskDependencyMapProps> = ({
   return (
     <div className="w-full h-[600px] bg-surface-50 rounded-2xl border border-surface-200 overflow-hidden relative">
       {isUpdating && (
-        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-surface-100 border-surface-200/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <Spinner label="Updating Dependencies..." />
         </div>
       )}
@@ -266,16 +266,16 @@ export const TaskDependencyMap: React.FC<TaskDependencyMapProps> = ({
         fitView
         attributionPosition="bottom-right"
       >
-        <Panel position="top-right" className="bg-white p-2 rounded-lg shadow-md border border-surface-200 flex gap-2">
+        <Panel position="top-right" className="bg-surface-100 border-surface-200 p-2 rounded-lg shadow-md border border-surface-200 flex gap-2">
           <button
             onClick={() => onLayout("TB")}
-            className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-surface-100 hover:bg-surface-200 rounded text-surface-600"
+            className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-surface-100 hover:bg-surface-200 rounded text-surface-600 text-surface-300"
           >
             Vertical Layout
           </button>
           <button
             onClick={() => onLayout("LR")}
-            className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-surface-100 hover:bg-surface-200 rounded text-surface-600"
+            className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-surface-100 hover:bg-surface-200 rounded text-surface-600 text-surface-300"
           >
             Horizontal Layout
           </button>

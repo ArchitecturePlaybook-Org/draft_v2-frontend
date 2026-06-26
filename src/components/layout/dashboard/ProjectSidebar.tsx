@@ -38,7 +38,20 @@ export const ProjectSidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="sidebar shadow-2xl z-50">
+    <aside className="sidebar shadow-2xl z-50 relative">
+      {/* Floating Toggle Button */}
+      <button
+        onClick={toggleSidebar}
+        className="absolute top-12 -right-3 z-50 flex items-center justify-center w-6 h-6 rounded-full bg-surface-50 border border-surface-200 text-surface-400 hover:bg-accent hover:text-background hover:border-accent hover:scale-110 hover:shadow-lg transition-all duration-200 focus:outline-none"
+        title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+      >
+        <svg 
+          width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+          className={`transform transition-transform duration-300 ${isSidebarCollapsed ? "rotate-180" : "rotate-0"}`}
+        >
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+      </button>
       {/* Toggle Collapse Button & Back to Portal */}
       <div className="flex items-center justify-between mb-6">
         <button 
@@ -46,34 +59,27 @@ export const ProjectSidebar: React.FC = () => {
             setProjectContext(null);
             router.push("/dashboard/projects");
           }}
-          className={`flex items-center gap-2 text-xs font-bold text-surface-500 hover:text-primary transition-colors ${isSidebarCollapsed ? 'justify-center w-10 h-10 bg-surface-50 rounded-xl' : 'uppercase tracking-widest'}`}
+          className={`flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-foreground transition-colors ${isSidebarCollapsed ? 'justify-center w-10 h-10 bg-surface-100 rounded-lg' : 'uppercase tracking-widest'}`}
           title="Back to Projects"
         >
           {isSidebarCollapsed ? (
             <span className="text-sm leading-none mt-px">←</span>
           ) : (
             <>
-              <span className="text-sm leading-none mt-px">←</span> Projects Registry
+              <span className="text-sm leading-none mt-px">←</span> Global Portfolio
             </>
           )}
-        </button>
-        <button 
-          onClick={toggleSidebar}
-          className="w-8 h-8 shrink-0 rounded-lg bg-surface-50 hover:bg-surface-100 border border-surface-200 flex items-center justify-center text-surface-500 transition-colors shadow-sm"
-          title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          {isSidebarCollapsed ? "▶" : "◀"}
         </button>
       </div>
 
       {/* Project Title Block */}
       {!isSidebarCollapsed && (
         <div className="mb-8">
-          <h2 className="text-xl font-extrabold text-primary tracking-tight leading-tight line-clamp-2">
+          <h2 className="text-xl font-extrabold text-foreground tracking-tight leading-tight line-clamp-2">
             {currentProjectTitle || "Loading Project..."}
           </h2>
-          <div className="mt-2 inline-flex items-center px-2 py-1 bg-surface-100 text-surface-600 text-[9px] font-bold uppercase tracking-widest rounded-md border border-surface-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
+          <div className="mt-2 inline-flex items-center px-2 py-1 bg-surface-100 text-text-secondary text-[9px] font-bold uppercase tracking-widest rounded-md border border-surface-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-semantic-green mr-1.5 animate-pulse" />
             Workspace Active
           </div>
         </div>
@@ -83,7 +89,7 @@ export const ProjectSidebar: React.FC = () => {
         {/* Workspace Views */}
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-surface-400 font-black">
+            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-black">
               Project Workspace
             </h4>
           )}
@@ -92,7 +98,7 @@ export const ProjectSidebar: React.FC = () => {
               <Link 
                 key={link.id} 
                 href={`/dashboard/projects/${currentProjectUid}?tab=${link.id}`} 
-                className={`nav-item ${currentTab === link.id && pathname === `/dashboard/projects/${currentProjectUid}` ? "active bg-primary/5 text-primary border-primary/10" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-10 h-10 rounded-xl mx-auto' : ''}`}
+                className={`nav-item ${currentTab === link.id && pathname === `/dashboard/projects/${currentProjectUid}` ? "active bg-surface-100 text-foreground border-surface-200" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-10 h-10 rounded-lg mx-auto' : ''}`}
                 title={isSidebarCollapsed ? link.label : undefined}
               >
                 <span className="text-lg leading-none grayscale opacity-70 transition-all group-hover:grayscale-0 group-hover:opacity-100 shrink-0">{link.icon}</span>
@@ -105,7 +111,7 @@ export const ProjectSidebar: React.FC = () => {
         {/* Project Tools */}
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-surface-400 font-black">
+            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-black">
               Project Tools
             </h4>
           )}
@@ -115,7 +121,7 @@ export const ProjectSidebar: React.FC = () => {
                 key={link.label} 
                 href={link.href} 
                 target={link.target}
-                className={`nav-item ${pathname === link.href ? "active bg-primary/5 text-primary border-primary/10" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-10 h-10 rounded-xl mx-auto' : ''}`}
+                className={`nav-item ${pathname === link.href ? "active bg-surface-100 text-foreground border-surface-200" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-10 h-10 rounded-lg mx-auto' : ''}`}
                 title={isSidebarCollapsed ? link.label : undefined}
               >
                 <span className="text-lg leading-none grayscale opacity-70 transition-all shrink-0">{link.icon}</span>

@@ -72,7 +72,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
 
       {/* Slide-in panel */}
       <div
-        className="relative h-full w-[480px] bg-white shadow-2xl flex flex-col animate-slide-in-right"
+        className="relative h-full w-[480px] bg-surface-100 border-surface-200 shadow-2xl flex flex-col animate-slide-in-right"
         onClick={e => e.stopPropagation()}
         style={{ animation: "slideInRight 0.25s ease-out" }}
       >
@@ -90,7 +90,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
           {/* Upload Revision Button */}
           <button
             onClick={() => setShowUploadForm(v => !v)}
-            className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-white rounded-xl font-bold text-sm hover:bg-accent/90 transition-all shadow-lg shadow-accent/20"
+            className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-background rounded-xl font-bold text-sm hover:bg-accent/90 transition-all shadow-lg shadow-accent/20"
           >
             <span>⬆</span>
             {showUploadForm ? "Cancel" : "Upload New Revision"}
@@ -99,7 +99,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
           {showUploadForm && (
             <div className="mt-3 p-4 bg-surface-50 rounded-xl border border-surface-200 space-y-3">
               <div>
-                <label className="text-xs font-bold text-surface-500 uppercase tracking-widest block mb-1">Revision Notes (Optional)</label>
+                <label className="text-xs font-bold text-surface-500 text-surface-400 uppercase tracking-widest block mb-1">Revision Notes (Optional)</label>
                 <textarea
                   value={revisionNotes}
                   onChange={e => setRevisionNotes(e.target.value)}
@@ -137,8 +137,8 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                     {/* Timeline dot */}
                     <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border-2 z-10 ${
                       version.is_latest
-                        ? "bg-accent text-white border-accent shadow-lg shadow-accent/30"
-                        : "bg-white text-surface-400 border-surface-200"
+                        ? "bg-accent text-background border-accent shadow-lg shadow-accent/30"
+                        : "bg-surface-100 border-surface-200 text-surface-400 border-surface-200"
                     }`}>
                       V{version.version_number}
                     </div>
@@ -147,7 +147,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                     <div className={`flex-1 rounded-xl border p-4 transition-all ${
                       version.is_latest
                         ? "border-accent/30 bg-accent/5 shadow-sm"
-                        : "border-surface-200 bg-white hover:border-surface-300"
+                        : "border-surface-200 bg-surface-100 border-surface-200 hover:border-surface-300"
                     }`}>
                       <div className="flex justify-between items-start">
                         <div className="flex-1 min-w-0">
@@ -161,7 +161,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                           </div>
                           <p className="text-[11px] text-surface-400 mt-0.5">{formatDate(version.created_at)}</p>
                           {version.uploaded_by && (
-                            <p className="text-[11px] text-surface-500 mt-0.5">
+                            <p className="text-[11px] text-surface-500 text-surface-400 mt-0.5">
                               by <span className="font-bold">{version.uploaded_by.first_name || version.uploaded_by.email}</span>
                             </p>
                           )}
@@ -178,14 +178,14 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                             href={version.file}
                             target="_blank"
                             rel="noreferrer"
-                            className="px-3 py-1 bg-surface-100 text-surface-600 rounded-lg text-[10px] font-bold hover:bg-surface-200 transition-all text-center"
+                            className="px-3 py-1 bg-surface-100 text-surface-600 text-surface-300 rounded-lg text-[10px] font-bold hover:bg-surface-200 transition-all text-center"
                           >
                             View
                           </a>
                           {!version.is_latest && (
                             <button
                               onClick={() => handlePromote(version)}
-                              className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-bold hover:bg-amber-100 transition-all"
+                              className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 border border-amber-200 dark:border-amber-800/30 rounded-lg text-[10px] font-bold hover:bg-amber-100 transition-all"
                             >
                               Restore
                             </button>

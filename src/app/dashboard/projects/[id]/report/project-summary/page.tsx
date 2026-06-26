@@ -214,7 +214,7 @@ export default function ProjectSummaryReportPage() {
           heading1: "text-5xl font-black tracking-tighter text-stone-900",
           heading2: "text-3xl font-bold tracking-tight text-stone-800",
           heading3: "text-sm font-bold uppercase tracking-[0.2em] text-stone-500",
-          card: "bg-white border border-stone-200 rounded-none shadow-sm",
+          card: "bg-surface-100 border-surface-200 border border-stone-200 rounded-none shadow-sm",
           accent: "text-stone-900",
           accentBg: "bg-stone-900 text-white"
         };
@@ -233,13 +233,13 @@ export default function ProjectSummaryReportPage() {
       default:
         return {
           container: "bg-surface-100 text-surface-900 font-sans",
-          page: "bg-white border-surface-200",
+          page: "bg-surface-100 border-surface-200 border-surface-200",
           heading1: "text-4xl font-extrabold text-primary tracking-tight",
           heading2: "text-2xl font-extrabold text-primary tracking-tight",
           heading3: "text-xs font-black text-surface-400 uppercase tracking-widest",
           card: "bg-surface-50 border border-surface-200 rounded-2xl",
           accent: "text-primary",
-          accentBg: "bg-primary text-white"
+          accentBg: "bg-accent text-background"
         };
     }
   };
@@ -249,11 +249,11 @@ export default function ProjectSummaryReportPage() {
     <div className="flex h-screen overflow-hidden bg-surface-50 font-sans">
       
       {/* LEFT PANE: CONFIGURATION BUILDER (Not Printed) */}
-      <div className="w-[340px] bg-white border-r border-surface-200 flex flex-col h-full shadow-2xl z-50 print:hidden overflow-hidden shrink-0">
+      <div className="w-[340px] bg-surface-100 border-surface-200 border-r border-surface-200 flex flex-col h-full shadow-2xl z-50 print:hidden overflow-hidden shrink-0">
         <div className="p-6 border-b border-surface-200 bg-surface-50/50">
-          <button onClick={() => window.close()} className="text-xs font-bold text-surface-500 hover:text-primary mb-4 flex items-center gap-1 transition-colors">← Back to Dashboard</button>
+          <button onClick={() => window.close()} className="text-xs font-bold text-surface-500 text-surface-400 hover:text-primary mb-4 flex items-center gap-1 transition-colors">← Back to Dashboard</button>
           <h2 className="text-xl font-black text-primary tracking-tight">Report Builder</h2>
-          <p className="text-xs font-bold text-surface-500 mt-1">Configure layout and data scope.</p>
+          <p className="text-xs font-bold text-surface-500 text-surface-400 mt-1">Configure layout and data scope.</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
@@ -269,7 +269,7 @@ export default function ProjectSummaryReportPage() {
                 <button
                   key={tpl.id}
                   onClick={() => setConfig(prev => ({ ...prev, template: tpl.id as TemplateType }))}
-                  className={`w-full text-left p-3 rounded-xl border transition-all ${config.template === tpl.id ? 'bg-primary border-primary text-white shadow-md' : 'bg-white border-surface-200 text-surface-600 hover:border-surface-300'}`}
+                  className={`w-full text-left p-3 rounded-xl border transition-all ${config.template === tpl.id ? 'bg-accent text-background shadow-md' : 'bg-surface-100 border-surface-200 border-surface-200 text-surface-600 text-surface-300 hover:border-surface-300'}`}
                 >
                   <div className="font-bold text-sm">{tpl.label}</div>
                   <div className={`text-[10px] uppercase tracking-widest mt-0.5 ${config.template === tpl.id ? 'text-primary-100' : 'text-surface-400'}`}>{tpl.desc}</div>
@@ -297,7 +297,7 @@ export default function ProjectSummaryReportPage() {
                     onChange={(e) => setConfig(prev => ({ ...prev, [sec.key]: e.target.checked }))}
                     className="w-4 h-4 rounded border-surface-300 text-primary focus:ring-primary"
                   />
-                  <span className="text-sm font-bold text-surface-600">{sec.label}</span>
+                  <span className="text-sm font-bold text-surface-600 text-surface-300">{sec.label}</span>
                 </label>
               ))}
             </div>
@@ -310,14 +310,14 @@ export default function ProjectSummaryReportPage() {
                 <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-widest">Image Selection</h3>
               </div>
               <div className="flex gap-2 mb-4">
-                <button onClick={() => setConfig(prev => ({ ...prev, selectedImageUrls: assetGroups.flatMap(g => [g.floorPlanUrl, ...g.sitePhotos.map(p => p.url)].filter(Boolean) as string[]) }))} className="flex-1 text-[9px] font-black uppercase tracking-widest bg-surface-100 hover:bg-surface-200 text-surface-600 py-1.5 rounded">Select All</button>
-                <button onClick={() => setConfig(prev => ({ ...prev, selectedImageUrls: [] }))} className="flex-1 text-[9px] font-black uppercase tracking-widest bg-surface-100 hover:bg-surface-200 text-surface-600 py-1.5 rounded">Clear All</button>
+                <button onClick={() => setConfig(prev => ({ ...prev, selectedImageUrls: assetGroups.flatMap(g => [g.floorPlanUrl, ...g.sitePhotos.map(p => p.url)].filter(Boolean) as string[]) }))} className="flex-1 text-[9px] font-black uppercase tracking-widest bg-surface-100 hover:bg-surface-200 text-surface-600 text-surface-300 py-1.5 rounded">Select All</button>
+                <button onClick={() => setConfig(prev => ({ ...prev, selectedImageUrls: [] }))} className="flex-1 text-[9px] font-black uppercase tracking-widest bg-surface-100 hover:bg-surface-200 text-surface-600 text-surface-300 py-1.5 rounded">Clear All</button>
               </div>
               <div className="space-y-6">
                 {assetGroups.map(group => {
                    return (
                      <div key={group.assetId}>
-                       <h4 className="text-[10px] font-bold text-surface-500 uppercase tracking-widest border-b border-surface-200 pb-1 mb-2 truncate" title={group.assetTitle}>📍 {group.assetTitle}</h4>
+                       <h4 className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest border-b border-surface-200 pb-1 mb-2 truncate" title={group.assetTitle}>📍 {group.assetTitle}</h4>
                        <div className="grid grid-cols-2 gap-2">
                          {group.floorPlanUrl && (
                            <div 
@@ -327,7 +327,7 @@ export default function ProjectSummaryReportPage() {
                            >
                              <img src={group.floorPlanUrl} alt="blueprint" className="w-full h-full object-cover" crossOrigin="anonymous" />
                              {config.selectedImageUrls.includes(group.floorPlanUrl) && (
-                               <div className="absolute top-1 right-1 bg-primary text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
+                               <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
                              )}
                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-[8px] text-white p-0.5 text-center uppercase tracking-widest">Blueprint</div>
                            </div>
@@ -342,7 +342,7 @@ export default function ProjectSummaryReportPage() {
                              >
                                <img src={img.url} alt="thumbnail" className="w-full h-full object-cover" crossOrigin="anonymous" />
                                {isSelected && (
-                                 <div className="absolute top-1 right-1 bg-primary text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
+                                 <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
                                )}
                              </div>
                            );

@@ -111,14 +111,14 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
     <div className="flex flex-col h-[calc(100vh-120px)] max-h-[1200px] max-w-7xl mx-auto bg-surface-50">
       
       {/* Header */}
-      <div className="flex justify-between items-center px-6 py-4 bg-white border-b border-surface-200 shrink-0">
+      <div className="flex justify-between items-center px-6 py-4 bg-surface-100 border-surface-200 border-b border-surface-200 shrink-0">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2 text-surface-800">Field Diaries</h1>
-          <p className="text-sm text-surface-500">Track daily site conditions, labor, and progress.</p>
+          <p className="text-sm text-surface-500 text-surface-400">Track daily site conditions, labor, and progress.</p>
         </div>
         <button 
           onClick={goToToday}
-          className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary font-bold rounded-lg hover:bg-primary/20 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-surface-200 text-primary font-bold rounded-lg hover:opacity-90/20 transition-colors"
         >
           <CalendarIcon className="w-4 h-4" /> Go to Today
         </button>
@@ -128,15 +128,15 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         
         {/* Left Panel: Entry List */}
-        <div className="w-full md:w-80 lg:w-96 bg-white border-r border-surface-200 flex flex-col shrink-0">
+        <div className="w-full md:w-80 lg:w-96 bg-surface-100 border-surface-200 border-r border-surface-200 flex flex-col shrink-0">
           
           {/* Month Navigator */}
           <div className="flex justify-between items-center p-4 border-b border-surface-100 bg-surface-50/50">
-            <button onClick={prevMonth} className="p-2 hover:bg-surface-200 rounded-full text-surface-500 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
+            <button onClick={prevMonth} className="p-2 hover:bg-surface-200 rounded-full text-surface-500 text-surface-400 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
             <h2 className="font-bold text-surface-700 tracking-wide">
               {currentMonthDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
             </h2>
-            <button onClick={nextMonth} className="p-2 hover:bg-surface-200 rounded-full text-surface-500 transition-colors"><ChevronRight className="w-5 h-5" /></button>
+            <button onClick={nextMonth} className="p-2 hover:bg-surface-200 rounded-full text-surface-500 text-surface-400 transition-colors"><ChevronRight className="w-5 h-5" /></button>
           </div>
 
           {/* List of Days */}
@@ -156,10 +156,10 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
                     onClick={() => handleDateClick(dateStr)}
                     className={`w-full text-left p-4 rounded-xl border transition-all ${
                       isSelected 
-                        ? "bg-primary text-white border-primary shadow-md" 
+                        ? "bg-accent text-background border-primary shadow-md" 
                         : isToday
-                          ? "bg-primary/5 border-primary/30 hover:bg-primary/10"
-                          : "bg-white border-surface-200 hover:border-surface-300 hover:bg-surface-50"
+                          ? "bg-primary/5 border-primary/30 hover:opacity-90/10"
+                          : "bg-surface-100 border-surface-200 border-surface-200 hover:border-surface-300 hover:bg-surface-50"
                     }`}
                   >
                     <div className="flex justify-between items-center mb-1">
@@ -170,7 +170,7 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
                       {entry && (
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                           isSelected 
-                            ? 'bg-white/20 text-white' 
+                            ? 'bg-surface-100 border-surface-200/20 text-white' 
                             : entry.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
                         }`}>
                           {entry.status}
@@ -179,7 +179,7 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
                     </div>
                     
                     {entry ? (
-                      <div className={`text-xs mt-2 flex gap-3 ${isSelected ? 'text-primary-100' : 'text-surface-500'}`}>
+                      <div className={`text-xs mt-2 flex gap-3 ${isSelected ? 'text-primary-100' : 'text-surface-500 text-surface-400'}`}>
                         {entry.activities?.length > 0 && <span>{entry.activities.length} tasks</span>}
                         {entry.labor_entries?.length > 0 && <span>{entry.labor_entries.length} crews</span>}
                         {entry.weather_delay && <span className="font-bold text-red-400">Delay</span>}

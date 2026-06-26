@@ -71,7 +71,7 @@ export function DeliveryScheduleView({ projectUid }: DeliveryScheduleViewProps) 
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+    <div className="bg-surface-100 border-surface-200 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Delivery Schedule</h2>
@@ -92,13 +92,13 @@ export function DeliveryScheduleView({ projectUid }: DeliveryScheduleViewProps) 
           <div className="bg-gray-100 dark:bg-gray-900 p-1 rounded-md flex">
             <button
               onClick={() => setViewMode("list")}
-              className={`px-3 py-1 text-sm font-medium rounded-sm ${viewMode === "list" ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500"}`}
+              className={`px-3 py-1 text-sm font-medium rounded-sm ${viewMode === "list" ? "bg-surface-100 border-surface-200 dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500"}`}
             >
               List
             </button>
             <button
               onClick={() => setViewMode("timeline")}
-              className={`px-3 py-1 text-sm font-medium rounded-sm ${viewMode === "timeline" ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500"}`}
+              className={`px-3 py-1 text-sm font-medium rounded-sm ${viewMode === "timeline" ? "bg-surface-100 border-surface-200 dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500"}`}
             >
               Timeline
             </button>
@@ -125,11 +125,11 @@ export function DeliveryScheduleView({ projectUid }: DeliveryScheduleViewProps) 
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="bg-surface-100 border-surface-200 dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {filteredAllocations.map((alloc) => {
                       const overdue = isOverdue(alloc.expected_on_site_by!, alloc.req_status);
                       return (
-                        <tr key={alloc.id} className={overdue ? "bg-red-50 dark:bg-red-900/10" : ""}>
+                        <tr key={alloc.id} className={overdue ? "bg-red-50 dark:bg-red-900/20 dark:bg-red-900/10" : ""}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`font-medium ${overdue ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white"}`}>
                               {alloc.expected_on_site_by}

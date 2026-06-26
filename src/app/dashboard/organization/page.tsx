@@ -304,12 +304,14 @@ export default function OrganizationPage() {
   return (
     <div className="max-w-7xl mx-auto py-10 px-6 space-y-12">
       
-      {/* Top Banner / Navigation */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-bold text-primary tracking-tighter uppercase flex items-center gap-4">
+      {/* 10X Top Banner / Navigation */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-surface-50/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 p-6 rounded-[2rem] shadow-xl shadow-primary/5 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-full arch-grid opacity-[0.03] pointer-events-none mix-blend-overlay" />
+        <div className="space-y-1 relative z-10">
+          <h1 className="text-4xl font-black text-primary tracking-tighter uppercase flex items-center gap-4 drop-shadow-[0_0_15px_rgba(var(--color-primary),0.3)]">
             Professional Entities
-            <span className="px-3 py-1 bg-surface-100 text-surface-400 text-[10px] rounded-md border border-surface-200">
+            <span className="px-4 py-1.5 bg-accent/10 text-accent font-bold text-[10px] rounded-full border border-accent/20 shadow-[0_0_10px_rgba(var(--color-accent),0.2)]">
               {orgs.length} Active
             </span>
           </h1>
@@ -328,65 +330,71 @@ export default function OrganizationPage() {
             }
             setShowCreate(!showCreate);
           }}
-          className={`px-10 h-14 font-bold uppercase text-[10px] tracking-[0.25em] transition-all shadow-xl ${
-            showCreate ? "bg-red-500 text-white" : "bg-primary text-white hover:bg-accent shadow-primary/20"
+          className={`px-10 h-14 font-bold uppercase text-[10px] tracking-[0.25em] transition-all rounded-xl shadow-xl relative z-10 ${
+            showCreate 
+              ? "bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30" 
+              : "bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 hover:shadow-[0_0_20px_rgba(var(--color-accent),0.4)]"
           }`}
         >
           {showCreate ? "Cancel Protocol" : "Establish New Firm"}
         </button>
       </div>
 
-      {/* Creation Modal */}
+      {/* 10X Creation Modal */}
       {showCreate && (
-        <form onSubmit={handleCreate} className="bg-white p-12 border-2 border-primary rounded-2xl shadow-2xl animate-in slide-in-from-top-6 duration-500 space-y-10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-full bg-primary/5 arch-grid opacity-10 pointer-events-none" />
-            <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-primary uppercase tracking-tight">Establishment Protocol</h2>
-                <p className="text-xs text-surface-400 uppercase tracking-widest">Register a new architectural or engineering firm in the central repository.</p>
+        <form onSubmit={handleCreate} className="bg-surface-50/60 backdrop-blur-3xl border border-white/20 dark:border-white/5 p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(var(--color-primary),0.1)] animate-in slide-in-from-top-8 duration-700 space-y-10 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-64 h-full bg-primary/5 arch-grid opacity-20 pointer-events-none mix-blend-overlay" />
+            <div className="space-y-2 relative z-10">
+                <h2 className="text-3xl font-black text-primary uppercase tracking-tight flex items-center gap-4">
+                  Establishment Protocol
+                  <span className="w-2 h-2 bg-accent rounded-full animate-pulse shadow-[0_0_8px_rgba(var(--color-accent),0.8)]" />
+                </h2>
+                <p className="text-xs text-surface-500 font-bold uppercase tracking-widest drop-shadow-sm">Register a new architectural or engineering firm in the central repository.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
                 <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-[0.2em]">Formal Firm Name</label>
+                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-[0.2em] flex items-center gap-2"><span className="text-accent">🏢</span> Formal Firm Name</label>
                     <input 
                         type="text" required value={newOrgName} onChange={(e) => setNewOrgName(e.target.value)}
-                        className="w-full h-14 bg-surface-50 border border-surface-200 px-5 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent font-bold"
+                        className="w-full h-14 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-5 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold shadow-inner transition-all placeholder:text-surface-400/50"
                         placeholder="SpaceDesign Studio & Partners"
                     />
                 </div>
                 <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-[0.2em]">Administrative Email</label>
+                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-[0.2em] flex items-center gap-2"><span className="text-accent">✉️</span> Administrative Email</label>
                     <input 
                         type="email" required value={newOrgEmail} onChange={(e) => setNewOrgEmail(e.target.value)}
-                        className="w-full h-14 bg-surface-50 border border-surface-200 px-5 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent font-bold"
+                        className="w-full h-14 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-5 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold shadow-inner transition-all placeholder:text-surface-400/50"
                         placeholder="operations@spacedesign.com"
                     />
                 </div>
             </div>
             
             {isDetecting && (
-              <div className="text-[10px] font-bold text-accent animate-pulse flex items-center gap-3 bg-accent/5 p-4 rounded-xl border border-accent/20">
+              <div className="text-[10px] font-bold text-accent animate-pulse flex items-center gap-3 bg-accent/5 backdrop-blur-md p-4 rounded-xl border border-accent/20 relative z-10 shadow-[0_0_15px_rgba(var(--color-accent),0.1)]">
                 <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
                 Auto-detecting regional configuration via browser locale...
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-surface-100">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-surface-200/50 relative z-10">
                 <div className="col-span-full mb-[-10px]">
-                  <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest flex items-center gap-2">
-                    <span className="text-accent">🌐</span> Regional Defaults
+                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest flex items-center gap-2">
+                    <span className="text-accent text-lg">🌐</span> Regional Defaults
                   </p>
                 </div>
                 <div className="space-y-3">
                     <label className="text-[9px] font-bold text-surface-500 uppercase tracking-[0.2em]">Base Timezone</label>
                     <input 
                         type="text" value={newOrgTimezone} onChange={(e) => setNewOrgTimezone(e.target.value)}
-                        className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent font-bold text-xs"
+                        className="w-full h-12 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-4 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold text-xs shadow-inner transition-all"
                     />
                 </div>
                 <div className="space-y-3">
                     <label className="text-[9px] font-bold text-surface-500 uppercase tracking-[0.2em]">Default Currency</label>
                     <select 
                         value={newOrgCurrency} onChange={(e) => setNewOrgCurrency(e.target.value)}
-                        className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent font-bold text-xs"
+                        className="w-full h-12 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-4 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold text-xs shadow-inner transition-all appearance-none"
                     >
                         <option value="USD">USD ($)</option>
                         <option value="EUR">EUR (€)</option>
@@ -403,7 +411,7 @@ export default function OrganizationPage() {
                     <label className="text-[9px] font-bold text-surface-500 uppercase tracking-[0.2em]">Unit System</label>
                     <select 
                         value={newOrgUnitSystem} onChange={(e) => setNewOrgUnitSystem(e.target.value)}
-                        className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent font-bold text-xs"
+                        className="w-full h-12 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-4 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold text-xs shadow-inner transition-all appearance-none"
                     >
                         <option value="metric">Metric (m, kg)</option>
                         <option value="imperial">Imperial (ft, lb)</option>
@@ -411,41 +419,48 @@ export default function OrganizationPage() {
                 </div>
             </div>
 
-            <button type="submit" disabled={isSaving || isDetecting} className="w-full h-16 bg-accent text-white font-bold uppercase tracking-[0.3em] text-xs hover:shadow-2xl transition-all disabled:opacity-50">
+            <button type="submit" disabled={isSaving || isDetecting} className="w-full h-16 bg-accent/10 border border-accent/30 text-accent font-black uppercase tracking-[0.3em] text-xs rounded-xl hover:bg-accent hover:text-background shadow-[0_0_15px_rgba(var(--color-accent),0.1)] hover:shadow-[0_0_30px_rgba(var(--color-accent),0.3)] transition-all disabled:opacity-50 relative z-10">
               {isSaving ? "Provisioning Entity..." : "Confirm Establishment"}
             </button>
         </form>
       )}
 
+      {/* 10X Empty State */}
       {orgs.length === 0 ? (
-        <div className="text-center py-32 bg-surface-50 border-4 border-dashed border-surface-200 rounded-[3rem] space-y-6">
-            <div className="w-24 h-24 bg-surface-100 rounded-full mx-auto flex items-center justify-center text-4xl opacity-20 italic font-bold">🏛️</div>
-            <div className="space-y-2">
-                <p className="text-xl font-bold text-primary tracking-tight">No Professional Firms Detected</p>
-                <p className="text-sm text-surface-500 max-w-sm mx-auto">Initialize a new firm protocol or request an invitation from an existing administrator.</p>
+        <div className="text-center py-32 bg-surface-50/20 backdrop-blur-3xl border-4 border-dashed border-white/20 dark:border-white/5 rounded-[4rem] space-y-8 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+            <div className="w-32 h-32 bg-surface-50/50 backdrop-blur-md rounded-[2rem] mx-auto flex items-center justify-center text-6xl shadow-[0_0_30px_rgba(var(--color-primary),0.05)] border border-white/10 relative z-10 transition-transform group-hover:scale-110 duration-500">🏛️</div>
+            <div className="space-y-3 relative z-10">
+                <p className="text-3xl font-black text-primary tracking-tight drop-shadow-md">No Professional Firms Detected</p>
+                <p className="text-sm text-surface-500 font-bold tracking-wide max-w-sm mx-auto">Initialize a new firm protocol or request an invitation from an existing administrator.</p>
             </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-12">
             
-            {/* Firm Selector Sidebar */}
+            {/* 10X Firm Selector Sidebar */}
             <div className="xl:col-span-1 space-y-6">
-                <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-surface-400 ml-2">Active Indices</label>
+                <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-surface-400 ml-2 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> Active Indices
+                </label>
                 <div className="space-y-3">
                     {orgs.map((org) => (
                         <div 
                             key={org.id} 
                             onClick={() => setSelectedOrg(org)}
-                            className={`p-6 rounded-2xl cursor-pointer transition-all border group relative overflow-hidden ${
+                            className={`p-6 rounded-2xl cursor-pointer transition-all duration-300 border relative overflow-hidden group ${
                                 selectedOrg?.id === org.id 
-                                ? "bg-primary text-white border-primary shadow-2xl scale-[1.02]" 
-                                : "bg-white text-primary border-surface-200 hover:border-accent/40 shadow-sm"
+                                ? "bg-surface-50/60 backdrop-blur-xl border-accent/50 shadow-[0_8px_30px_rgba(var(--color-accent),0.15)] -translate-y-1" 
+                                : "bg-surface-50/20 backdrop-blur-lg border-white/10 hover:border-accent/30 hover:shadow-lg hover:-translate-y-0.5"
                             }`}
                         >
-                            <div className="absolute top-0 right-0 w-20 h-full bg-white/5 arch-grid opacity-10" />
-                            <h3 className="font-bold text-sm tracking-tight mb-1 truncate">{org.name}</h3>
-                            <p className={`text-[10px] uppercase tracking-widest font-bold ${selectedOrg?.id === org.id ? "opacity-60" : "text-accent"}`}>
-                                {org.uid.split('ap')[1]} · organization
+                            <div className={`absolute top-0 right-0 w-32 h-full arch-grid transition-opacity duration-500 pointer-events-none mix-blend-overlay ${selectedOrg?.id === org.id ? "opacity-20" : "opacity-5"}`} />
+                            {selectedOrg?.id === org.id && <div className="absolute inset-0 bg-gradient-to-r from-accent/5 to-transparent pointer-events-none" />}
+                            <h3 className={`font-bold text-sm tracking-tight mb-1 truncate relative z-10 ${selectedOrg?.id === org.id ? "text-accent drop-shadow-[0_0_8px_rgba(var(--color-accent),0.5)]" : "text-primary"}`}>
+                              {org.name}
+                            </h3>
+                            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-surface-500 relative z-10">
+                                {org.uid.split('ap')[1]} · org
                             </p>
                         </div>
                     ))}
@@ -456,10 +471,11 @@ export default function OrganizationPage() {
             {selectedOrg && (
                 <div className="xl:col-span-3 space-y-10 animate-in fade-in slide-in-from-right-4 duration-700">
                     
-                    {/* Workspace Header */}
-                    <div className="bg-white p-10 border border-surface-200 rounded-3xl shadow-sm flex flex-col md:flex-row items-center gap-10 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-80 h-full bg-primary/5 arch-grid opacity-10 pointer-events-none" />
-                        <div className="relative group shrink-0">
+                    {/* 10X Workspace Header */}
+                    <div className="bg-surface-50/40 backdrop-blur-3xl border border-white/20 dark:border-white/5 p-10 rounded-[2.5rem] shadow-2xl shadow-primary/5 flex flex-col md:flex-row items-center gap-10 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                        <div className="absolute top-0 right-0 w-1/2 h-full bg-accent/5 arch-grid opacity-[0.05] pointer-events-none mix-blend-overlay" />
+                        <div className="relative group shrink-0 z-10">
                             <input 
                                 type="file" 
                                 ref={logoInputRef} 
@@ -469,51 +485,51 @@ export default function OrganizationPage() {
                             />
                             <div 
                                 onClick={() => logoInputRef.current?.click()}
-                                className="w-24 h-24 bg-primary text-white rounded-2xl flex items-center justify-center text-3xl font-bold shadow-2xl border-4 border-white overflow-hidden cursor-pointer relative"
+                                className="w-28 h-28 bg-surface-50/50 backdrop-blur-md text-primary rounded-[2rem] flex items-center justify-center text-4xl font-black shadow-[0_0_30px_rgba(var(--color-primary),0.1)] border border-white/20 overflow-hidden cursor-pointer relative transition-transform hover:scale-105"
                             >
                                 {selectedOrg.logo ? (
                                     <img src={selectedOrg.logo} className="w-full h-full object-cover" />
                                 ) : (
                                     selectedOrg.name.charAt(0)
                                 )}
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <svg className="w-8 h-8 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-1 space-y-3 text-center md:text-left">
+                        <div className="flex-1 space-y-3 text-center md:text-left z-10">
                             <div className="space-y-1">
-                                <h2 className="text-3xl font-bold text-primary tracking-tighter">{selectedOrg.name}</h2>
-                                <p className="text-accent text-[11px] font-bold uppercase tracking-[0.3em] italic">{selectedOrg.tagline || "No professional tagline defined"}</p>
+                                <h2 className="text-4xl font-black text-primary tracking-tighter drop-shadow-[0_0_15px_rgba(var(--color-primary),0.2)]">{selectedOrg.name}</h2>
+                                <p className="text-accent text-[11px] font-bold uppercase tracking-[0.3em] italic drop-shadow-[0_0_10px_rgba(var(--color-accent),0.3)]">{selectedOrg.tagline || "No professional tagline defined"}</p>
                             </div>
                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                                <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Verified Entity
+                                <span className="text-[10px] font-bold text-surface-500 uppercase tracking-[0.2em] flex items-center gap-2 bg-surface-100/50 px-3 py-1 rounded-full border border-surface-200/50 backdrop-blur-md">
+                                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" /> Verified Entity
                                 </span>
-                                <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">
+                                <span className="text-[10px] font-bold text-surface-400 uppercase tracking-[0.2em] bg-surface-100/50 px-3 py-1 rounded-full border border-surface-200/50 backdrop-blur-md">
                                     EST {new Date(selectedOrg.created_at || new Date().toISOString()).getFullYear()}
                                 </span>
                             </div>
                         </div>
-                        <div className="flex gap-3">
-                            <button onClick={() => setIsEditing(!isEditing)} className="px-6 py-3 border border-surface-200 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-50 transition-all">
+                        <div className="flex gap-3 z-10">
+                            <button onClick={() => setIsEditing(!isEditing)} className="px-6 py-3 bg-surface-50/50 backdrop-blur-md border border-white/20 dark:border-white/5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-100 transition-all hover:shadow-lg">
                                 {isEditing ? "Lock Data" : "Edit Specification"}
                             </button>
                         </div>
                     </div>
 
-                    {/* Navigation Tabs */}
-                    <div className="flex border-b border-surface-200 overflow-x-auto no-scrollbar scroll-smooth">
+                    {/* 10X Navigation Tabs */}
+                    <div className="flex items-center gap-2 p-2 bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl overflow-x-auto no-scrollbar scroll-smooth">
                         {(["overview", "team", "brand", "compliance", "templates", "activity", "security", "preferences", "webhooks"] as OrgTabType[])
                         .filter(tab => canManageOrg || !["team", "compliance", "security", "webhooks"].includes(tab))
                         .map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all border-b-2 -mb-[2px] whitespace-nowrap ${
+                            className={`px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all rounded-xl whitespace-nowrap ${
                             activeTab === tab 
-                                ? "border-accent text-accent" 
-                                : "border-transparent text-surface-400 hover:text-primary"
+                                ? "bg-accent/10 text-accent shadow-[0_0_15px_rgba(var(--color-accent),0.15)] border border-accent/20" 
+                                : "bg-transparent text-surface-400 hover:bg-surface-100/50 hover:text-primary border border-transparent"
                             }`}
                         >
                             {tab}
@@ -525,61 +541,81 @@ export default function OrganizationPage() {
                     <div className="animate-in fade-in duration-500">
                         {activeTab === "overview" && (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-8">
-                                    <h3 className="text-xs font-bold text-primary uppercase tracking-[0.3em] border-l-4 border-accent pl-4">Contact Specification</h3>
-                                    <div className="space-y-6">
+                                <section className="bg-surface-50/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 p-10 rounded-[2rem] shadow-xl shadow-primary/5 space-y-8 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-full bg-primary/5 arch-grid opacity-20 pointer-events-none mix-blend-overlay" />
+                                    <h3 className="text-xs font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3">
+                                      <span className="w-1 h-5 bg-accent rounded-full shadow-[0_0_10px_rgba(var(--color-accent),0.5)]" />
+                                      Contact Specification
+                                    </h3>
+                                    <div className="space-y-6 relative z-10">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Office HQ Address</label>
+                                            <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest flex items-center gap-2"><span className="text-accent">📍</span> Office HQ Address</label>
                                             {isEditing ? (
-                                                <textarea value={editData.address || ""} onChange={e => setEditData({...editData, address: e.target.value})} className="w-full h-24 p-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:border-accent text-sm" />
+                                                <textarea value={editData.address || ""} onChange={e => setEditData({...editData, address: e.target.value})} className="w-full h-24 p-4 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 text-sm" />
                                             ) : (
-                                                <p className="text-sm font-bold text-primary leading-relaxed">{selectedOrg.address || "No address defined."}</p>
+                                                <div className="p-4 bg-surface-50/30 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl">
+                                                  <p className="text-sm font-bold text-primary leading-relaxed">{selectedOrg.address || "No address defined."}</p>
+                                                </div>
                                             )}
                                         </div>
                                         <div className="grid grid-cols-2 gap-8">
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Business Phone</label>
+                                                <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest flex items-center gap-2"><span className="text-accent">📞</span> Business Phone</label>
                                                 {isEditing ? (
-                                                    <input type="text" value={editData.phone || ""} onChange={e => setEditData({...editData, phone: e.target.value})} className="w-full h-11 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:border-accent text-sm" />
+                                                    <input type="text" value={editData.phone || ""} onChange={e => setEditData({...editData, phone: e.target.value})} className="w-full h-11 px-4 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 text-sm" />
                                                 ) : (
-                                                    <p className="text-sm font-bold text-primary">{selectedOrg.phone || "—"}</p>
+                                                    <div className="p-3 bg-surface-50/30 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl">
+                                                      <p className="text-sm font-bold text-primary">{selectedOrg.phone || "—"}</p>
+                                                    </div>
                                                 )}
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Main Website</label>
+                                                <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest flex items-center gap-2"><span className="text-accent">🌍</span> Main Website</label>
                                                 {isEditing ? (
-                                                    <input type="text" value={editData.website || ""} onChange={e => setEditData({...editData, website: e.target.value})} className="w-full h-11 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:border-accent text-sm" />
+                                                    <input type="text" value={editData.website || ""} onChange={e => setEditData({...editData, website: e.target.value})} className="w-full h-11 px-4 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 text-sm" />
                                                 ) : (
-                                                    <p className="text-sm font-bold text-accent truncate underline">{selectedOrg.website || "—"}</p>
+                                                    <div className="p-3 bg-surface-50/30 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl">
+                                                      <p className="text-sm font-bold text-accent truncate hover:underline cursor-pointer">{selectedOrg.website || "—"}</p>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
                                     {isEditing && (
-                                        <button onClick={handleUpdate} disabled={isSaving} className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent shadow-xl shadow-primary/10">
+                                        <button onClick={handleUpdate} disabled={isSaving} className="w-full h-14 bg-accent/10 border border-accent/30 text-accent font-bold uppercase text-[10px] tracking-[0.3em] rounded-xl hover:bg-accent hover:text-background transition-all shadow-[0_0_15px_rgba(var(--color-accent),0.1)] relative z-10">
                                             {isSaving ? "Saving..." : "Commit Overview Changes"}
                                         </button>
                                     )}
                                 </section>
 
                                 <section className="space-y-8">
-                                    <div className="bg-surface-900 text-white p-10 rounded-2xl space-y-6 relative overflow-hidden shadow-2xl">
-                                        <div className="absolute top-0 right-0 w-40 h-40 arch-grid opacity-10 pointer-events-none" />
-                                        <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">System Registry</h3>
-                                        <div className="space-y-6">
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-bold uppercase opacity-30 tracking-[0.2em]">Global UID</label>
-                                                <p className="text-xs font-mono text-white/90">{selectedOrg.uid}</p>
+                                    <div className="bg-surface-900 border border-surface-800 text-white p-10 rounded-[2rem] space-y-6 relative overflow-hidden shadow-2xl">
+                                        <div className="absolute top-0 right-0 w-40 h-full arch-grid opacity-[0.05] pointer-events-none mix-blend-overlay" />
+                                        <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent pointer-events-none" />
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-accent flex items-center gap-2 relative z-10">
+                                          <span className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(var(--color-accent),0.8)]" />
+                                          System Registry
+                                        </h3>
+                                        <div className="space-y-6 relative z-10">
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-bold uppercase text-white/40 tracking-[0.2em]">Global UID</label>
+                                                <div className="px-4 py-3 bg-black/40 border border-white/10 rounded-xl font-mono text-xs text-white/90 break-all select-all">
+                                                  {selectedOrg.uid}
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-bold uppercase opacity-30 tracking-[0.2em]">Entity Type</label>
-                                                <p className="text-xs font-bold text-white/90 uppercase tracking-widest">organization</p>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-bold uppercase text-white/40 tracking-[0.2em]">Entity Type</label>
+                                                <p className="text-xs font-bold text-white/90 uppercase tracking-widest bg-white/5 inline-block px-3 py-1 rounded-md border border-white/10">organization</p>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="bg-white border border-surface-200 p-8 rounded-2xl shadow-sm space-y-4">
-                                        <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest">Social Footprint</h3>
-                                        <div className="flex flex-col gap-4">
+                                    <div className="bg-surface-50/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 p-8 rounded-[2rem] shadow-xl shadow-primary/5 space-y-4 relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                                        <h3 className="text-[10px] font-black text-primary uppercase tracking-widest relative z-10 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(var(--color-accent),0.8)]" />
+                                            Social Footprint
+                                        </h3>
+                                        <div className="flex flex-col gap-4 relative z-10">
                                             {['LinkedIn', 'Instagram', 'Twitter'].map(link => {
                                                 const key = link.toLowerCase();
                                                 const val = (editData.social_links as any)?.[key] || "";
@@ -588,7 +624,7 @@ export default function OrganizationPage() {
                                                 if (isEditing) {
                                                     return (
                                                         <div key={link} className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 shrink-0 bg-surface-50 border border-surface-200 rounded-lg flex items-center justify-center text-xs">🔗</div>
+                                                            <div className="w-10 h-10 shrink-0 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl flex items-center justify-center text-xs shadow-inner">🔗</div>
                                                             <input 
                                                                 type="text" 
                                                                 placeholder={`${link} URL`}
@@ -597,7 +633,7 @@ export default function OrganizationPage() {
                                                                     ...prev, 
                                                                     social_links: { ...(prev.social_links || {}), [key]: e.target.value }
                                                                 }))}
-                                                                className="flex-1 h-10 px-4 bg-surface-50 border border-surface-200 rounded-lg outline-none focus:border-accent text-sm"
+                                                                className="flex-1 h-10 px-4 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 text-sm shadow-inner transition-all"
                                                             />
                                                         </div>
                                                     );
@@ -605,9 +641,9 @@ export default function OrganizationPage() {
                                                 
                                                 if (!staticVal) return null;
                                                 return (
-                                                    <a key={link} href={staticVal} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-surface-50 border border-surface-200 rounded-xl hover:border-accent transition-all group cursor-pointer">
-                                                        <div className="w-8 h-8 bg-white border border-surface-100 rounded-md flex items-center justify-center text-xs group-hover:scale-110 transition-transform">🔗</div>
-                                                        <span className="text-sm font-bold text-primary">{link}</span>
+                                                    <a key={link} href={staticVal} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-surface-50/30 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl hover:border-accent/50 hover:shadow-[0_0_15px_rgba(var(--color-accent),0.2)] transition-all group cursor-pointer">
+                                                        <div className="w-8 h-8 bg-surface-100/50 border border-white/10 dark:border-white/5 rounded-md flex items-center justify-center text-xs group-hover:scale-110 transition-transform shadow-inner">🔗</div>
+                                                        <span className="text-sm font-bold text-primary group-hover:text-accent transition-colors">{link}</span>
                                                     </a>
                                                 );
                                             })}
@@ -624,30 +660,32 @@ export default function OrganizationPage() {
                             canManageOrg ? (
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                                 <div className="lg:col-span-2 space-y-8">
-                                    <section className="bg-white border border-surface-200 rounded-2xl overflow-hidden shadow-sm">
-                                        <div className="p-8 border-b border-surface-100 flex justify-between items-center bg-surface-50/30">
-                                            <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.3em]">Active Personnel</h3>
-                                            <span className="text-[10px] font-bold text-surface-400 uppercase">{members.length} Members</span>
+                                    <section className="bg-surface-50/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[2rem] overflow-hidden shadow-xl shadow-primary/5">
+                                        <div className="p-8 border-b border-surface-200/50 flex justify-between items-center bg-surface-100/30">
+                                            <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3">
+                                              <span className="text-accent text-lg">👥</span> Active Personnel
+                                            </h3>
+                                            <span className="px-4 py-1.5 bg-primary/5 border border-primary/10 text-primary font-bold text-[10px] uppercase rounded-full">{members.length} Members</span>
                                         </div>
-                                        <div className="divide-y divide-surface-100">
+                                        <div className="divide-y divide-surface-200/30">
                                             {members.map((member) => (
-                                                <div key={member.id} className="p-8 flex items-center justify-between hover:bg-surface-50/50 transition-colors">
+                                                <div key={member.id} className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-surface-50/80 transition-all duration-300 group hover:shadow-[inset_0_0_20px_rgba(var(--color-primary),0.02)]">
                                                     <div className="flex items-center gap-5">
-                                                        <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-bold text-lg">
+                                                        <div className="w-14 h-14 bg-surface-100/80 backdrop-blur-md text-primary rounded-[1rem] flex items-center justify-center font-black text-xl shadow-inner border border-white/10 dark:border-white/5 group-hover:scale-105 transition-transform">
                                                             {member.user.name.charAt(0)}
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <p className="font-bold text-primary text-sm tracking-tight">{member.user.name}</p>
-                                                            <p className="text-[10px] text-surface-400 font-medium">{member.user.email}</p>
+                                                            <p className="font-black text-primary text-sm tracking-tight">{member.user.name}</p>
+                                                            <p className="text-[10px] text-surface-500 font-medium tracking-wide">{member.user.email}</p>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-6">
-                                                        <span className={`px-3 py-1 text-white text-[9px] font-bold uppercase tracking-[0.15em] rounded-md shadow-sm ${ROLE_DISPLAY[member.role]?.color || 'bg-surface-400'}`}>
+                                                        <span className={`px-4 py-1.5 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-md shadow-md ${ROLE_DISPLAY[member.role]?.color || 'bg-surface-400'}`}>
                                                             {ROLE_DISPLAY[member.role]?.label || member.role}
                                                         </span>
                                                         <button 
                                                             onClick={() => handleRemoveMember(member.id, member.user.name)}
-                                                            className="text-surface-300 hover:text-red-500 transition-colors"
+                                                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-100/50 hover:bg-red-500/10 text-surface-400 hover:text-red-500 transition-all"
                                                             title="Remove Personnel"
                                                         >
                                                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -659,35 +697,35 @@ export default function OrganizationPage() {
                                     </section>
 
                                     {invitations.length > 0 && (
-                                        <section className="bg-white border border-surface-200 rounded-2xl overflow-hidden shadow-sm animate-in slide-in-from-bottom-2 duration-500">
-                                            <div className="p-8 border-b border-surface-100 flex justify-between items-center bg-amber-50/20">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-                                                    <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.3em]">Pending Dispatches</h3>
+                                        <section className="bg-amber-500/5 backdrop-blur-2xl border border-amber-500/20 rounded-[2rem] overflow-hidden shadow-xl shadow-amber-500/5 animate-in slide-in-from-bottom-4 duration-700">
+                                            <div className="p-8 border-b border-amber-500/10 flex justify-between items-center">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.6)]" />
+                                                    <h3 className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-[0.3em]">Pending Dispatches</h3>
                                                 </div>
-                                                <span className="text-[10px] font-bold text-surface-400 uppercase">{invitations.length} Awaiting</span>
+                                                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">{invitations.length} Awaiting</span>
                                             </div>
-                                            <div className="divide-y divide-surface-100">
+                                            <div className="divide-y divide-amber-500/10">
                                                 {invitations.map((invite) => (
-                                                    <div key={invite.id} className="p-8 flex items-center justify-between">
+                                                    <div key={invite.id} className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-amber-500/5 transition-colors">
                                                         <div className="flex items-center gap-5">
-                                                            <div className="w-12 h-12 bg-amber-50 border border-amber-100 text-amber-600 rounded-xl flex items-center justify-center font-bold text-lg opacity-60">
+                                                            <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-[1rem] flex items-center justify-center font-bold text-lg">
                                                                 {invite.email.charAt(0).toUpperCase()}
                                                             </div>
                                                             <div className="space-y-1">
-                                                                <p className="font-bold text-primary/60 text-sm tracking-tight italic">{invite.email}</p>
+                                                                <p className="font-bold text-amber-700 dark:text-amber-300 text-sm tracking-tight">{invite.email}</p>
                                                                 <p className="text-[9px] text-amber-600/70 font-bold uppercase tracking-widest">
                                                                     Expires {new Date(invite.expires_at).toLocaleDateString()}
                                                                 </p>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-6">
-                                                            <span className="px-3 py-1 bg-surface-100 text-surface-500 text-[9px] font-bold uppercase tracking-[0.15em] rounded-md">
+                                                            <span className="px-4 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[9px] font-black uppercase tracking-[0.2em] rounded-md">
                                                                 {ROLE_DISPLAY[invite.role]?.label || invite.role}
                                                             </span>
                                                             <button 
                                                                 onClick={() => handleRevoke(invite.id)}
-                                                                className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                                className="px-5 py-2 text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 rounded-xl transition-all"
                                                             >
                                                                 Revoke
                                                             </button>
@@ -700,27 +738,30 @@ export default function OrganizationPage() {
                                 </div>
 
                                 <section className="space-y-8">
-                                    <div className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-8">
-                                        <h3 className="text-[10px] font-bold text-primary uppercase tracking-[0.3em]">Dispatch Invitation</h3>
-                                        <form onSubmit={handleInvite} className="space-y-6">
-                                            <div className="space-y-2">
+                                    <div className="bg-surface-50/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 p-10 rounded-[2rem] shadow-xl shadow-primary/5 space-y-8 relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                                        <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3 relative z-10">
+                                          <span className="text-accent text-base">✉️</span> Dispatch Invitation
+                                        </h3>
+                                        <form onSubmit={handleInvite} className="space-y-6 relative z-10">
+                                            <div className="space-y-3">
                                                 <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Colleague Email</label>
-                                                <input type="email" required value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:border-accent text-sm" placeholder="colleague@firm.com" />
+                                                <input type="email" required value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 text-sm placeholder:text-surface-400/50 shadow-inner transition-all" placeholder="colleague@firm.com" />
                                             </div>
-                                            <div className="space-y-2">
+                                            <div className="space-y-3">
                                                 <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Assigned Role</label>
-                                                <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:border-accent text-sm">
+                                                <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/20 text-sm shadow-inner transition-all appearance-none">
                                                     {Object.entries(ROLE_DISPLAY).map(([role, info]) => (
                                                         <option key={role} value={role}>{info.label}</option>
                                                     ))}
                                                 </select>
                                             </div>
-                                            <button type="submit" className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.2em] hover:bg-accent shadow-xl shadow-primary/10">
+                                            <button type="submit" className="w-full h-16 bg-accent/10 border border-accent/30 text-accent font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:bg-accent hover:text-background transition-all shadow-[0_0_15px_rgba(var(--color-accent),0.1)] hover:shadow-[0_0_30px_rgba(var(--color-accent),0.4)] hover:-translate-y-1">
                                                 Dispatch Secure Token
                                             </button>
                                         </form>
-                                        <div className="pt-4 border-t border-surface-100">
-                                            <p className="text-[9px] text-surface-400 leading-relaxed uppercase tracking-widest">
+                                        <div className="pt-6 border-t border-surface-200/50 relative z-10">
+                                            <p className="text-[9px] text-surface-400 font-medium leading-relaxed uppercase tracking-widest">
                                                 Invited users will have access to the firm's shared project repository and resource pool according to their role specification.
                                             </p>
                                         </div>
@@ -728,7 +769,7 @@ export default function OrganizationPage() {
                                 </section>
                             </div>
                             ) : (
-                                <div className="p-20 text-center bg-white border border-surface-200 rounded-3xl">
+                                <div className="p-20 text-center bg-surface-100 border-surface-200 border border-surface-200 rounded-3xl">
                                     <div className="text-4xl mb-4 opacity-50">🔒</div>
                                     <p className="text-red-500 font-bold uppercase tracking-[0.2em] text-xs">Restricted Access</p>
                                     <p className="text-surface-400 text-xs mt-2 font-medium">You must be an Organization Owner or Principal to view this section.</p>
@@ -738,50 +779,55 @@ export default function OrganizationPage() {
 
                         {activeTab === "brand" && (
                             <div className="max-w-4xl space-y-10">
-                                <section className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
-                                    <div className="space-y-2">
-                                        <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Visual Identity Specification</h3>
-                                        <p className="text-xs text-surface-400 uppercase tracking-widest">Manage how your firm is perceived in project documents and AI reports.</p>
+                                <section className="bg-surface-50/40 backdrop-blur-3xl border border-white/20 dark:border-white/5 p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(var(--color-primary),0.1)] space-y-12 relative overflow-hidden group animate-in slide-in-from-bottom-4 duration-700">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                                    <div className="absolute top-0 right-0 w-64 h-full bg-primary/5 arch-grid opacity-20 pointer-events-none mix-blend-overlay" />
+                                    <div className="space-y-2 relative z-10">
+                                        <h3 className="text-xl font-black text-primary uppercase tracking-tight flex items-center gap-3">
+                                            <span className="w-2 h-2 bg-accent rounded-full animate-pulse shadow-[0_0_8px_rgba(var(--color-accent),0.8)]" />
+                                            Visual Identity Specification
+                                        </h3>
+                                        <p className="text-xs text-surface-500 font-bold uppercase tracking-widest">Manage how your firm is perceived in project documents and AI reports.</p>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16 relative z-10">
                                         <div className="space-y-8">
                                             <div className="space-y-4">
                                                 <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Firm Logo (Primary)</label>
                                                 <div 
                                                     onClick={() => logoInputRef.current?.click()}
-                                                    className="w-40 h-40 bg-surface-50 border-2 border-dashed border-surface-200 rounded-3xl flex flex-col items-center justify-center text-center p-6 gap-3 group cursor-pointer hover:border-accent hover:bg-white transition-all overflow-hidden relative"
+                                                    className="w-40 h-40 bg-surface-50/50 backdrop-blur-md border-2 border-dashed border-white/20 dark:border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-6 gap-3 group cursor-pointer hover:border-accent/50 hover:bg-surface-50/80 transition-all overflow-hidden relative shadow-inner"
                                                 >
                                                     {selectedOrg.logo ? (
                                                         <>
                                                             <img src={selectedOrg.logo} className="absolute inset-0 w-full h-full object-cover" />
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <span className="text-[9px] font-bold text-white uppercase tracking-widest">Update Logo</span>
+                                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                                                                <span className="text-[9px] font-bold text-white uppercase tracking-widest drop-shadow-md">Update Logo</span>
                                                             </div>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <span className="text-2xl opacity-20 group-hover:scale-110 transition-transform">🖼️</span>
-                                                            <span className="text-[9px] font-bold text-surface-400 uppercase tracking-widest">Drop SVG / PNG</span>
+                                                            <span className="text-3xl opacity-40 group-hover:scale-110 transition-transform drop-shadow-sm text-primary">🖼️</span>
+                                                            <span className="text-[9px] font-bold text-surface-500 uppercase tracking-widest">Drop SVG / PNG</span>
                                                         </>
                                                     )}
                                                 </div>
                                             </div>
                                             <div className="space-y-4">
                                                 <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Firm Tagline / Motto</label>
-                                                <input type="text" value={editData.tagline || ""} onChange={e => setEditData({...editData, tagline: e.target.value})} className="w-full h-12 bg-surface-50 border border-surface-200 px-5 rounded-xl outline-none focus:border-accent font-medium text-sm" placeholder="Elevating Structural Excellence" />
+                                                <input type="text" value={editData.tagline || ""} onChange={e => setEditData({...editData, tagline: e.target.value})} className="w-full h-14 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-5 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold shadow-inner transition-all text-sm placeholder:text-surface-400/50" placeholder="Elevating Structural Excellence" />
                                             </div>
                                         </div>
-                                        <div className="bg-surface-50 rounded-3xl p-10 border border-surface-100 flex flex-col justify-center space-y-6">
-                                            <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-accent">🎨</div>
+                                        <div className="bg-surface-50/30 backdrop-blur-md rounded-[2rem] p-10 border border-white/10 dark:border-white/5 flex flex-col justify-center space-y-6 shadow-inner">
+                                            <div className="w-14 h-14 bg-accent/10 border border-accent/20 rounded-2xl flex items-center justify-center text-accent text-2xl shadow-[0_0_15px_rgba(var(--color-accent),0.2)]">🎨</div>
                                             <div className="space-y-2">
-                                                <h4 className="text-sm font-bold text-primary tracking-tight">Identity Synchronization</h4>
-                                                <p className="text-xs text-surface-500 leading-relaxed">Your brand assets will be automatically embedded in generated blueprints, task reports, and client presentations to maintain professional consistency.</p>
+                                                <h4 className="text-base font-black text-primary tracking-tight drop-shadow-sm">Identity Synchronization</h4>
+                                                <p className="text-xs text-surface-500 leading-relaxed font-medium">Your brand assets will be automatically embedded in generated blueprints, task reports, and client presentations to maintain professional consistency.</p>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="pt-6 border-t border-surface-100 flex justify-end">
-                                        <button onClick={handleUpdate} disabled={isSaving} className="px-10 h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em]">Save Visual Identity</button>
+                                    <div className="pt-8 border-t border-surface-200/50 flex justify-end relative z-10">
+                                        <button onClick={handleUpdate} disabled={isSaving} className="px-12 h-16 bg-accent/10 border border-accent/30 text-accent font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:bg-accent hover:text-background transition-all shadow-[0_0_15px_rgba(var(--color-accent),0.1)] hover:shadow-[0_0_30px_rgba(var(--color-accent),0.4)] disabled:opacity-50">Save Visual Identity</button>
                                     </div>
                                 </section>
                             </div>
@@ -790,13 +836,18 @@ export default function OrganizationPage() {
                         {activeTab === "compliance" && (
                             canManageOrg ? (
                             <div className="max-w-4xl space-y-10">
-                                <section className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
-                                    <div className="space-y-2">
-                                        <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Regulatory & Compliance Layer</h3>
-                                        <p className="text-xs text-surface-400 uppercase tracking-widest font-medium italic text-red-600/70">Restricted to Account Owners & Principals</p>
+                                <section className="bg-surface-50/40 backdrop-blur-3xl border border-white/20 dark:border-white/5 p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(var(--color-primary),0.1)] space-y-12 relative overflow-hidden group animate-in slide-in-from-bottom-4 duration-700">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                                    <div className="absolute top-0 right-0 w-64 h-full bg-red-500/5 arch-grid opacity-20 pointer-events-none mix-blend-overlay" />
+                                    <div className="space-y-2 relative z-10">
+                                        <h3 className="text-xl font-black text-primary uppercase tracking-tight flex items-center gap-3">
+                                            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                                            Regulatory & Compliance Layer
+                                        </h3>
+                                        <p className="text-xs text-red-500/80 font-bold uppercase tracking-widest">Restricted to Account Owners & Principals</p>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
                                         {[
                                             { key: 'company_reg', label: 'Company Registration Number', type: 'text' },
                                             { key: 'tax_id', label: 'Tax / VAT Identification', type: 'text' },
@@ -809,21 +860,21 @@ export default function OrganizationPage() {
                                                     type="text" 
                                                     value={String((editData.metadata as any)?.[field.key] || "")} 
                                                     onChange={e => updateMetadata(field.key, e.target.value)}
-                                                    className="w-full h-12 bg-surface-50 border border-surface-200 px-5 rounded-xl outline-none focus:border-accent text-sm font-mono" 
+                                                    className="w-full h-14 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-5 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold shadow-inner transition-all text-sm font-mono" 
                                                 />
                                             </div>
                                         ))}
                                     </div>
 
-                                    <div className="pt-8 border-t border-surface-100">
-                                        <button onClick={handleUpdate} disabled={isSaving} className="w-full h-16 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent shadow-2xl shadow-primary/20 transition-all">
+                                    <div className="pt-8 border-t border-surface-200/50 relative z-10">
+                                        <button onClick={handleUpdate} disabled={isSaving} className="w-full h-16 bg-red-500/10 border border-red-500/30 text-red-500 font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)] hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] disabled:opacity-50">
                                             {isSaving ? "Synchronizing Compliance Index..." : "Update Regulatory Metadata"}
                                         </button>
                                     </div>
                                 </section>
                             </div>
                             ) : (
-                                <div className="p-20 text-center bg-white border border-surface-200 rounded-3xl">
+                                <div className="p-20 text-center bg-surface-100 border-surface-200 border border-surface-200 rounded-3xl">
                                     <div className="text-4xl mb-4 opacity-50">🔒</div>
                                     <p className="text-red-500 font-bold uppercase tracking-[0.2em] text-xs">Restricted Access</p>
                                     <p className="text-surface-400 text-xs mt-2 font-medium">You must be an Organization Owner or Principal to view this section.</p>
@@ -834,16 +885,21 @@ export default function OrganizationPage() {
                         {activeTab === "security" && (
                             canManageOrg ? (
                             <div className="max-w-4xl space-y-10">
-                                <section className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
-                                    <div className="space-y-2">
-                                        <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Security & Onboarding</h3>
-                                        <p className="text-xs text-surface-400 uppercase tracking-widest font-medium">Manage access protocols and domain claiming.</p>
+                                <section className="bg-surface-50/40 backdrop-blur-3xl border border-white/20 dark:border-white/5 p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(var(--color-primary),0.1)] space-y-12 relative overflow-hidden group animate-in slide-in-from-bottom-4 duration-700">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                                    <div className="absolute top-0 right-0 w-64 h-full bg-primary/5 arch-grid opacity-20 pointer-events-none mix-blend-overlay" />
+                                    <div className="space-y-2 relative z-10">
+                                        <h3 className="text-xl font-black text-primary uppercase tracking-tight flex items-center gap-3">
+                                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                                            Security & Onboarding
+                                        </h3>
+                                        <p className="text-xs text-surface-500 font-bold uppercase tracking-widest">Manage access protocols and domain claiming.</p>
                                     </div>
 
-                                    <div className="space-y-8 bg-surface-50 p-8 rounded-2xl border border-surface-200">
+                                    <div className="space-y-8 bg-surface-50/30 backdrop-blur-md p-10 rounded-[2rem] border border-white/10 dark:border-white/5 shadow-inner relative z-10">
                                         <div className="space-y-2">
-                                            <h4 className="font-bold text-primary uppercase tracking-widest text-xs">Domain Auto-Join</h4>
-                                            <p className="text-xs text-surface-500 max-w-2xl leading-relaxed">
+                                            <h4 className="font-black text-primary uppercase tracking-widest text-xs">Domain Auto-Join</h4>
+                                            <p className="text-xs text-surface-500 max-w-2xl leading-relaxed font-medium">
                                                 Allow anyone with a verified company email address to automatically join this organization without an explicit invitation. They will be granted the lowest <strong>Member</strong> role by default.
                                             </p>
                                         </div>
@@ -856,7 +912,7 @@ export default function OrganizationPage() {
                                                     value={editData.auto_join_domain || ""} 
                                                     onChange={e => setEditData({...editData, auto_join_domain: e.target.value})}
                                                     placeholder="acme-architecture.com"
-                                                    className="flex-1 h-12 bg-white border border-surface-200 px-5 rounded-xl outline-none focus:border-accent text-sm font-mono"
+                                                    className="flex-1 h-14 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-5 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold shadow-inner transition-all text-sm font-mono"
                                                 />
                                                 <button 
                                                     onClick={() => {
@@ -877,18 +933,18 @@ export default function OrganizationPage() {
                                                 </button>
                                             </div>
                                             {editData.auto_join_domain && PUBLIC_EMAIL_DOMAINS.includes(editData.auto_join_domain.toLowerCase()) && (
-                                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-bold flex items-center gap-2">
-                                                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
+                                                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-bold flex items-center gap-2">
+                                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                                                     Auto-join is not available for public email domains (e.g., @gmail.com).
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="pt-4 flex justify-end">
+                                        <div className="pt-6 flex justify-end">
                                             <button 
                                                 onClick={handleUpdate} 
                                                 disabled={isSaving || (editData.auto_join_domain ? PUBLIC_EMAIL_DOMAINS.includes(editData.auto_join_domain.toLowerCase()) : false)} 
-                                                className="px-10 h-12 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent disabled:opacity-50 transition-all"
+                                                className="px-12 h-14 bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-black uppercase text-[10px] tracking-[0.3em] hover:bg-emerald-500 hover:text-white disabled:opacity-50 transition-all rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
                                             >
                                                 {isSaving ? "Saving..." : "Update Security Settings"}
                                             </button>
@@ -897,7 +953,7 @@ export default function OrganizationPage() {
                                 </section>
                             </div>
                             ) : (
-                                <div className="p-20 text-center bg-white border border-surface-200 rounded-3xl">
+                                <div className="p-20 text-center bg-surface-100 border-surface-200 border border-surface-200 rounded-3xl">
                                     <div className="text-4xl mb-4 opacity-50">🔒</div>
                                     <p className="text-red-500 font-bold uppercase tracking-[0.2em] text-xs">Restricted Access</p>
                                     <p className="text-surface-400 text-xs mt-2 font-medium">You must be an Organization Owner or Principal to view this section.</p>
@@ -907,26 +963,31 @@ export default function OrganizationPage() {
                         
                         {activeTab === "preferences" && (
                             <div className="max-w-4xl space-y-10">
-                                <section className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
-                                    <div className="space-y-2 flex justify-between items-start">
-                                        <div>
-                                            <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Localization & Preferences</h3>
-                                            <p className="text-xs text-surface-400 uppercase tracking-widest font-medium">Standardize formats for all firm members.</p>
+                                <section className="bg-surface-50/40 backdrop-blur-3xl border border-white/20 dark:border-white/5 p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(var(--color-primary),0.1)] space-y-12 relative overflow-hidden group animate-in slide-in-from-bottom-4 duration-700">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                                    <div className="absolute top-0 right-0 w-64 h-full bg-primary/5 arch-grid opacity-20 pointer-events-none mix-blend-overlay" />
+                                    <div className="flex justify-between items-start relative z-10">
+                                        <div className="space-y-2">
+                                            <h3 className="text-xl font-black text-primary uppercase tracking-tight flex items-center gap-3">
+                                                <span className="w-2 h-2 bg-accent rounded-full animate-pulse shadow-[0_0_8px_rgba(var(--color-accent),0.8)]" />
+                                                Localization & Preferences
+                                            </h3>
+                                            <p className="text-xs text-surface-500 font-bold uppercase tracking-widest">Standardize formats for all firm members.</p>
                                         </div>
                                         {(!selectedOrg.metadata?.timezone || !selectedOrg.metadata?.currency) && (
-                                            <span className="px-3 py-1 bg-blue-50 border border-blue-100 text-blue-600 text-[10px] font-bold uppercase tracking-widest rounded-md animate-pulse">
+                                            <span className="px-4 py-2 bg-accent/10 border border-accent/20 text-accent text-[10px] font-bold uppercase tracking-widest rounded-xl animate-pulse shadow-[0_0_15px_rgba(var(--color-accent),0.2)]">
                                                 ✨ Auto-Detected Defaults
                                             </span>
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
                                         <div className="space-y-3">
                                             <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Base Timezone</label>
                                             <select 
                                                 value={String((editData.metadata as any)?.[`timezone`] || "")} 
                                                 onChange={e => updateMetadata("timezone", e.target.value)}
-                                                className="w-full h-12 bg-surface-50 border border-surface-200 px-5 rounded-xl outline-none focus:border-accent text-sm"
+                                                className="w-full h-14 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-5 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold shadow-inner transition-all text-sm appearance-none"
                                             >
                                                 <option value="">Select Timezone...</option>
                                                 {/* In a real app, you'd map a full IANA list here. We'll use a simplified list. */}
@@ -950,7 +1011,7 @@ export default function OrganizationPage() {
                                             <select 
                                                 value={String((editData.metadata as any)?.[`currency`] || "")} 
                                                 onChange={e => updateMetadata("currency", e.target.value)}
-                                                className="w-full h-12 bg-surface-50 border border-surface-200 px-5 rounded-xl outline-none focus:border-accent text-sm"
+                                                className="w-full h-14 bg-surface-50/50 backdrop-blur-md border border-white/10 dark:border-white/5 px-5 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent/50 font-bold shadow-inner transition-all text-sm appearance-none"
                                             >
                                                 <option value="">Select Currency...</option>
                                                 <option value="USD">USD - US Dollar</option>
@@ -968,20 +1029,20 @@ export default function OrganizationPage() {
                                             <div className="flex gap-4">
                                                 <button 
                                                     onClick={() => updateMetadata("unit_system", "metric")}
-                                                    className={`flex-1 py-4 border rounded-xl font-bold uppercase text-xs tracking-widest transition-all ${
+                                                    className={`flex-1 py-5 border rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
                                                         (editData.metadata as any)?.unit_system === "metric" 
-                                                        ? "bg-primary border-primary text-white shadow-xl" 
-                                                        : "bg-surface-50 border-surface-200 text-surface-500 hover:border-accent"
+                                                        ? "bg-accent/10 border-accent/30 text-accent shadow-[0_0_15px_rgba(var(--color-accent),0.2)]" 
+                                                        : "bg-surface-50/50 backdrop-blur-md border-white/10 dark:border-white/5 text-surface-400 hover:border-accent/30 hover:text-primary shadow-inner"
                                                     }`}
                                                 >
                                                     Metric (m, cm, kg)
                                                 </button>
                                                 <button 
                                                     onClick={() => updateMetadata("unit_system", "imperial")}
-                                                    className={`flex-1 py-4 border rounded-xl font-bold uppercase text-xs tracking-widest transition-all ${
+                                                    className={`flex-1 py-5 border rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
                                                         (editData.metadata as any)?.unit_system === "imperial" 
-                                                        ? "bg-primary border-primary text-white shadow-xl" 
-                                                        : "bg-surface-50 border-surface-200 text-surface-500 hover:border-accent"
+                                                        ? "bg-accent/10 border-accent/30 text-accent shadow-[0_0_15px_rgba(var(--color-accent),0.2)]" 
+                                                        : "bg-surface-50/50 backdrop-blur-md border-white/10 dark:border-white/5 text-surface-400 hover:border-accent/30 hover:text-primary shadow-inner"
                                                     }`}
                                                 >
                                                     Imperial (ft, in, lbs)
@@ -990,8 +1051,8 @@ export default function OrganizationPage() {
                                         </div>
                                     </div>
 
-                                    <div className="pt-8 border-t border-surface-100">
-                                        <button onClick={handleUpdate} disabled={isSaving} className="w-full h-16 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent shadow-2xl shadow-primary/20 transition-all">
+                                    <div className="pt-8 border-t border-surface-200/50 relative z-10">
+                                        <button onClick={handleUpdate} disabled={isSaving} className="w-full h-16 bg-accent/10 border border-accent/30 text-accent font-black uppercase text-[10px] tracking-[0.3em] rounded-xl hover:bg-accent hover:text-background transition-all shadow-[0_0_15px_rgba(var(--color-accent),0.1)] hover:shadow-[0_0_30px_rgba(var(--color-accent),0.4)] disabled:opacity-50">
                                             {isSaving ? "Synchronizing Preferences..." : "Update Preferences"}
                                         </button>
                                     </div>
@@ -1017,7 +1078,7 @@ export default function OrganizationPage() {
                                 <WebhooksView orgId={selectedOrg.id} />
                             </div>
                             ) : (
-                                <div className="p-20 text-center bg-white border border-surface-200 rounded-3xl">
+                                <div className="p-20 text-center bg-surface-100 border-surface-200 border border-surface-200 rounded-3xl">
                                     <div className="text-4xl mb-4 opacity-50">🔒</div>
                                     <p className="text-red-500 font-bold uppercase tracking-[0.2em] text-xs">Restricted Access</p>
                                     <p className="text-surface-400 text-xs mt-2 font-medium">You must be an Organization Owner or Principal to view this section.</p>
@@ -1033,11 +1094,11 @@ export default function OrganizationPage() {
       {/* Crop Modal */}
       {isCropModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-surface-200">
+          <div className="bg-surface-100 border-surface-200 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-surface-200">
             <div className="p-8 border-b border-surface-100 flex justify-between items-center bg-surface-50">
               <div>
                 <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Adjust Organization Logo</h3>
-                <p className="text-xs text-surface-500 font-medium tracking-widest mt-1">Scale and position to fit the 1:1 format.</p>
+                <p className="text-xs text-surface-500 text-surface-400 font-medium tracking-widest mt-1">Scale and position to fit the 1:1 format.</p>
               </div>
               <button onClick={() => setIsCropModalOpen(false)} className="text-surface-400 hover:text-red-500 transition-colors">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -1067,14 +1128,14 @@ export default function OrganizationPage() {
             <div className="p-8 bg-surface-50 border-t border-surface-200 flex justify-end gap-4">
               <button 
                 onClick={() => setIsCropModalOpen(false)}
-                className="px-8 h-12 bg-white border border-surface-200 text-surface-600 font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-surface-50 transition-colors"
+                className="px-8 h-12 bg-surface-100 border-surface-200 border border-surface-200 text-surface-600 text-surface-300 font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-surface-50 transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleCropSubmit}
                 disabled={!completedCrop || isSaving}
-                className="px-8 h-12 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-colors disabled:opacity-50"
+                className="px-8 h-12 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-colors disabled:opacity-50"
               >
                 {isSaving ? "Uploading..." : "Confirm & Upload"}
               </button>

@@ -50,19 +50,19 @@ export default function OnboardingPage() {
             return (
               <label
                 key={item}
-                className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition-all duration-300 ${
                   checked
-                    ? "bg-accent/10 border-accent shadow-sm"
-                    : "border-surface-200 hover:bg-surface-50"
+                    ? "bg-accent/10 border-accent/50 shadow-[0_0_15px_rgba(255,186,8,0.15)] ring-1 ring-accent/20"
+                    : "border-surface-200/50 bg-surface-100/50 backdrop-blur-md hover:bg-surface-50 hover:border-accent/30 hover:shadow-md"
                 }`}
               >
                 <input
                   type="checkbox"
-                  className="mt-1 w-4 h-4 accent-accent rounded"
+                  className="mt-1 w-4 h-4 accent-accent rounded transition-all"
                   checked={checked}
                   onChange={() => handleCheckboxToggle(path, item)}
                 />
-                <span className="text-sm font-medium text-primary">{item}</span>
+                <span className={`text-sm font-medium transition-colors ${checked ? 'text-accent' : 'text-primary'}`}>{item}</span>
               </label>
             );
           })}
@@ -125,7 +125,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-white font-sans selection:bg-accent/10 selection:text-accent">
+    <div className="min-h-screen flex bg-background font-sans selection:bg-accent/10 selection:text-accent">
       <div className="absolute inset-0 arch-grid opacity-10 pointer-events-none" />
 
       <div className="w-full flex flex-col items-center justify-center px-6 py-12 relative z-10">
@@ -149,13 +149,12 @@ export default function OnboardingPage() {
                   : "Step 2 of 2 — Select your specializations"}
               </p>
             </div>
-            {/* Progress */}
             <div className="flex gap-2 max-w-[160px] mx-auto pt-2">
               {[1, 2].map((i) => (
                 <div
                   key={i}
-                  className={`h-1 flex-1 rounded-full transition-colors ${
-                    step >= i ? "bg-accent" : "bg-surface-200"
+                  className={`h-1 flex-1 rounded-full transition-all duration-500 ${
+                    step >= i ? "bg-accent shadow-[0_0_10px_rgba(255,186,8,0.5)]" : "bg-surface-200/50"
                   }`}
                 />
               ))}
@@ -182,9 +181,9 @@ export default function OnboardingPage() {
                         setSelections({});
                         setStep(2);
                       }}
-                      className="p-5 text-left border-2 transition-all group relative overflow-hidden border-surface-200 hover:border-accent/40 bg-white hover:bg-surface-50 rounded-xl"
+                      className="p-6 text-left border border-surface-200/50 transition-all duration-500 group relative overflow-hidden hover:border-accent/50 bg-surface-100/50 backdrop-blur-xl hover:bg-surface-50 hover:shadow-[0_0_25px_rgba(255,186,8,0.15)] hover:-translate-y-1 rounded-2xl"
                     >
-                      <h3 className="font-bold text-primary text-base pr-6">{cat}</h3>
+                      <h3 className="font-bold text-primary text-base pr-6 group-hover:text-accent transition-colors">{cat}</h3>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-accent">
                         →
                       </div>
@@ -197,10 +196,10 @@ export default function OnboardingPage() {
             {/* STEP 2: Pick specializations */}
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="p-6 bg-surface-50 border border-surface-200 rounded-xl">
-                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-surface-200">
+                <div className="p-8 bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl shadow-xl shadow-primary/5">
+                  <div className="flex items-center justify-between mb-8 pb-6 border-b border-surface-200/50">
                     <div>
-                      <h3 className="text-xl font-bold text-primary">{mainCategory}</h3>
+                      <h3 className="text-2xl font-black text-primary tracking-tight">{mainCategory}</h3>
                       <p className="text-sm text-surface-600 mt-1">
                         Select all specializations that apply.
                       </p>
@@ -230,7 +229,7 @@ export default function OnboardingPage() {
                   <button
                     type="submit"
                     disabled={isLoading || totalSelections === 0}
-                    className="px-12 h-14 bg-primary text-white font-bold uppercase tracking-[0.2em] transition-all hover:bg-accent disabled:opacity-50 rounded"
+                    className="px-12 h-14 bg-gradient-to-r from-accent to-accent/90 text-background font-black uppercase text-xs tracking-[0.2em] transition-all hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,186,8,0.4)] disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none rounded-xl"
                   >
                     {isLoading ? "Saving..." : "Enter Dashboard →"}
                   </button>

@@ -19,7 +19,6 @@ export default function ProcurementDashboard() {
   const params = useParams();
   const projectId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<"TAKE_OFF" | "ESTIMATION" | "BOQ" | "ASSEMBLIES" | "TRACKING" | "VENDORS" | "CATALOG" | "POs" | "INVOICES">("TRACKING");
   
   const [items, setItems] = useState<ProcurementAggregatorItem[]>([]);
   const [phases, setPhases] = useState<MilestonePhase[]>([]);
@@ -159,11 +158,22 @@ export default function ProcurementDashboard() {
 
 
   // Material-Centric Grouping logic
+  const [activePillar, setActivePillar] = useState<"PRE_CONSTRUCTION" | "BUDGETING" | "EXECUTION">("BUDGETING");
+  const [activeSubTab, setActiveSubTab] = useState<"TAKE_OFF" | "ESTIMATION" | "BOQ" | "ASSEMBLIES" | "TRACKING" | "VENDORS" | "CATALOG" | "POs" | "INVOICES">("BOQ");
+
+  useEffect(() => {
+    if (activePillar === "PRE_CONSTRUCTION") setActiveSubTab("TAKE_OFF");
+    else if (activePillar === "BUDGETING") setActiveSubTab("BOQ");
+    else if (activePillar === "EXECUTION") setActiveSubTab("TRACKING");
+  }, [activePillar]);
+
+  // Handle derived activeTab for downstream components
+  const activeTab = activeSubTab;
+
   const groupedMaterials = React.useMemo(() => {
     const groups: Record<string, any> = {};
     
     items.forEach(boqItem => {
-      // Respect the existing Phase filter
       if (boqPhaseFilter && boqItem.phase?.toString() !== boqPhaseFilter) return;
 
       boqItem.sub_items?.forEach(sub => {
@@ -196,99 +206,82 @@ export default function ProcurementDashboard() {
     return Object.values(groups).sort((a, b) => b.total_cost - a.total_cost);
   }, [items, boqPhaseFilter]);
 
+  const PILLARS = [
+    { id: "PRE_CONSTRUCTION", label: "Pre-Construction", icon: "📐" },
+    { id: "BUDGETING", label: "Budgeting & Planning", icon: "📊" },
+    { id: "EXECUTION", label: "Execution & Purchasing", icon: "🏗️" }
+  ];
+
+  const SUB_TABS = {
+    PRE_CONSTRUCTION: [
+      { id: "TAKE_OFF", label: "Take-Off" },
+      { id: "ESTIMATION", label: "Estimation" }
+    ],
+    BUDGETING: [
+      { id: "BOQ", label: "BOQ Builder" },
+      { id: "ASSEMBLIES", label: "Composition" },
+      { id: "CATALOG", label: "Catalog" }
+    ],
+    EXECUTION: [
+      { id: "TRACKING", label: "Procurement Tracking" },
+      { id: "VENDORS", label: "Vendors" },
+      { id: "POs", label: "Purchase Orders" },
+      { id: "INVOICES", label: "Invoices" }
+    ]
+  };
+
   return (
-    <div className="flex-1 flex flex-col bg-surface-50 h-full overflow-hidden">
+    <div className="flex-1 flex flex-col bg-surface-50 h-full overflow-hidden animate-fade-in">
       {/* Header */}
-      <div className="px-8 py-6 bg-white border-b border-surface-200 shrink-0">
+      <div className="px-8 pt-8 pb-4 bg-surface-100 border-surface-200 border-b border-surface-200 shrink-0">
         <div className="flex items-center gap-4">
           <Link 
             href={`/dashboard/projects/${projectId}`}
-            className="flex items-center justify-center w-8 h-8 rounded-full bg-surface-100 text-surface-500 hover:bg-primary hover:text-white transition-colors font-bold text-lg"
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-surface-100 text-surface-500 text-surface-400 hover:opacity-90 hover:text-white transition-colors font-bold text-lg"
             title="Back to Project"
           >
             ←
           </Link>
           <div>
             <h1 className="text-2xl font-black text-primary uppercase tracking-tight">PROCUREMENT LEDGER</h1>
-            <p className="text-sm font-bold text-surface-500 mt-1">Project-level BOQ Management & Buy Signals</p>
+            <p className="text-sm font-bold text-surface-500 text-surface-400 mt-1">Project-level BOQ Management & Buy Signals</p>
           </div>
         </div>
         
-        {/* Tabs */}
-        <div className="mt-6 flex gap-4 overflow-x-auto pb-2">
-          <button
-            onClick={() => setActiveTab("TAKE_OFF")}
-            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "TAKE_OFF" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            Take-Off
-          </button>
-          <button
-            onClick={() => setActiveTab("ESTIMATION")}
-            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "ESTIMATION" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            Estimation
-          </button>
-          <button
-            onClick={() => setActiveTab("ASSEMBLIES")}
-            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "ASSEMBLIES" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            Composition
-          </button>
-          <button
-            onClick={() => setActiveTab("BOQ")}
-            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "BOQ" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            BOQ Builder
-          </button>
-          <button
-            onClick={() => setActiveTab("TRACKING")}
-            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "TRACKING" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            Procurement & Tracking
-          </button>
-          <button
-            onClick={() => setActiveTab("VENDORS")}
-            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "VENDORS" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            Vendors
-          </button>
-          <button
-            onClick={() => setActiveTab("CATALOG")}
-            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "CATALOG" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            Catalog
-          </button>
-          <button
-            onClick={() => setActiveTab("POs")}
-            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "POs" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            Purchase Orders
-          </button>
-          <button
-            onClick={() => setActiveTab("INVOICES")}
-            className={`shrink-0 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
-              activeTab === "INVOICES" ? "bg-primary text-white" : "bg-surface-100 text-surface-500 hover:bg-surface-200"
-            }`}
-          >
-            Invoices
-          </button>
+        {/* Main Pillars */}
+        <div className="mt-8 flex gap-2">
+          {PILLARS.map(pillar => (
+            <button
+              key={pillar.id}
+              onClick={() => setActivePillar(pillar.id as any)}
+              className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-t-2xl font-black uppercase tracking-widest text-xs transition-all border-b-4 ${
+                activePillar === pillar.id 
+                  ? "bg-surface-50 text-primary border-accent shadow-[0_-4px_10px_-4px_rgba(0,0,0,0.1)]" 
+                  : "bg-surface-100 text-surface-400 border-transparent hover:bg-surface-50/50 hover:text-primary"
+              }`}
+            >
+              <span className="text-lg">{pillar.icon}</span>
+              {pillar.label}
+            </button>
+          ))}
         </div>
+      </div>
+
+      {/* Sub Tabs Bar */}
+      <div className="px-8 py-3 bg-surface-50 border-b border-surface-200 flex gap-4 shrink-0 overflow-x-auto">
+        {SUB_TABS[activePillar as keyof typeof SUB_TABS].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSubTab(tab.id as any)}
+            className={`shrink-0 px-6 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${
+              activeSubTab === tab.id 
+                ? "bg-surface-200 text-primary shadow-inner" 
+                : "text-surface-400 hover:bg-surface-100 hover:text-primary"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex-1 overflow-y-auto p-8">
@@ -303,7 +296,7 @@ export default function ProcurementDashboard() {
                   <select
                     value={boqPhaseFilter}
                     onChange={e => setBoqPhaseFilter(e.target.value)}
-                    className="h-8 px-2 border border-surface-300 rounded-md text-xs font-bold bg-white text-surface-500 focus:border-accent outline-none"
+                    className="h-8 px-2 border border-surface-300 rounded-md text-xs font-bold bg-surface-100 border-surface-200 text-surface-500 text-surface-400 focus:border-accent outline-none"
                   >
                     <option value="">-- All Phases --</option>
                     {phases.map(p => (
@@ -314,13 +307,13 @@ export default function ProcurementDashboard() {
                 <div className="flex bg-surface-100 p-1 rounded-lg">
                   <button
                     onClick={() => setBoqViewMode('assembly')}
-                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${boqViewMode === 'assembly' ? 'bg-white text-primary shadow-sm' : 'text-surface-500 hover:text-primary'}`}
+                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${boqViewMode === 'assembly' ? 'bg-surface-100 border-surface-200 text-primary shadow-sm' : 'text-surface-500 text-surface-400 hover:text-primary'}`}
                   >
                     Assembly View
                   </button>
                   <button
                     onClick={() => setBoqViewMode('material')}
-                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${boqViewMode === 'material' ? 'bg-white text-primary shadow-sm' : 'text-surface-500 hover:text-primary'}`}
+                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${boqViewMode === 'material' ? 'bg-surface-100 border-surface-200 text-primary shadow-sm' : 'text-surface-500 text-surface-400 hover:text-primary'}`}
                   >
                     Raw Material View
                   </button>
@@ -328,19 +321,19 @@ export default function ProcurementDashboard() {
                 <div className="flex bg-surface-100 p-1 rounded-lg ml-4 gap-1">
                   <button
                     onClick={() => setIsBIMImportOpen(true)}
-                    className="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-surface-500 hover:bg-white hover:text-accent hover:shadow-sm"
+                    className="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-surface-500 text-surface-400 hover:bg-surface-100 border-surface-200 hover:text-accent hover:shadow-sm"
                   >
                     Import from BIM
                   </button>
                   <button
                     onClick={() => projectsApi.exportProjectData(projectId, "boq", "excel")}
-                    className="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-surface-500 hover:bg-white hover:text-emerald-600 hover:shadow-sm"
+                    className="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-surface-500 text-surface-400 hover:bg-surface-100 border-surface-200 hover:text-emerald-600 hover:shadow-sm"
                   >
                     Export Excel
                   </button>
                   <button
                     onClick={() => projectsApi.exportProjectData(projectId, "boq", "csv")}
-                    className="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-surface-500 hover:bg-white hover:text-primary hover:shadow-sm"
+                    className="px-4 py-1.5 text-xs font-bold rounded-md transition-all text-surface-500 text-surface-400 hover:bg-surface-100 border-surface-200 hover:text-primary hover:shadow-sm"
                   >
                     Export CSV
                   </button>
@@ -348,7 +341,7 @@ export default function ProcurementDashboard() {
               </div>
 
               {/* BOQ Table */}
-              <div className="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
+              <div className="bg-surface-100 border-surface-200 rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     {boqViewMode === 'assembly' ? (
@@ -377,17 +370,17 @@ export default function ProcurementDashboard() {
                             <td className="py-4 px-6">
                               <button 
                                 onClick={() => toggleRow(item.id)}
-                                className="w-6 h-6 rounded-md bg-surface-200 text-surface-600 flex items-center justify-center hover:bg-accent hover:text-white transition-all font-bold"
+                                className="w-6 h-6 rounded-md bg-surface-200 text-surface-600 text-surface-300 flex items-center justify-center hover:bg-accent hover:text-white transition-all font-bold"
                               >
                                 {isExpanded ? "v" : ">"}
                               </button>
                             </td>
                             <td className="py-4 px-6 font-extrabold text-primary">{item.material_code}</td>
-                            <td className="py-2 px-6 font-bold text-surface-500">
+                            <td className="py-2 px-6 font-bold text-surface-500 text-surface-400">
                               <select 
                                 value={item.phase || ""}
                                 onChange={(e) => handleUpdateBOQPhase(item.id, e.target.value)}
-                                className="w-full h-8 px-2 border border-surface-300 rounded-md text-xs font-bold bg-surface-50 focus:bg-white focus:border-accent outline-none"
+                                className="w-full h-8 px-2 border border-surface-300 rounded-md text-xs font-bold bg-surface-50 focus:bg-surface-100 border-surface-200 focus:border-accent outline-none"
                               >
                                 <option value="">-- Global --</option>
                                 {phases.map(p => (
@@ -395,8 +388,8 @@ export default function ProcurementDashboard() {
                                 ))}
                               </select>
                             </td>
-                            <td className="py-4 px-6 font-bold tabular-nums text-surface-600">{item.total_budgeted_qty}</td>
-                            <td className="py-4 px-6 font-bold tabular-nums text-surface-600">₹{item.unit_rate}</td>
+                            <td className="py-4 px-6 font-bold tabular-nums text-surface-600 text-surface-300">{item.total_budgeted_qty}</td>
+                            <td className="py-4 px-6 font-bold tabular-nums text-surface-600 text-surface-300">₹{item.unit_rate}</td>
                             <td className="py-4 px-6 font-bold tabular-nums text-emerald-600">₹{item.remaining_budget}</td>
                           </tr>
                           
@@ -404,8 +397,8 @@ export default function ProcurementDashboard() {
                             <tr>
                               <td colSpan={6} className="p-0 border-b border-surface-200">
                                 <div className="bg-surface-100/50 px-14 py-4 border-l-4 border-accent">
-                                  <h4 className="text-[10px] font-black uppercase text-surface-500 mb-2">Detailed Breakdown</h4>
-                                  <table className="w-full text-left bg-white rounded-lg border border-surface-200 overflow-hidden mb-4">
+                                  <h4 className="text-[10px] font-black uppercase text-surface-500 text-surface-400 mb-2">Detailed Breakdown</h4>
+                                  <table className="w-full text-left bg-surface-100 border-surface-200 rounded-lg border border-surface-200 overflow-hidden mb-4">
                                     <thead className="bg-surface-50 border-b border-surface-200">
                                       <tr>
                                         <th className="py-2 px-3 text-[10px] font-black text-surface-400 uppercase w-[20%]">Sub Material Code</th>
@@ -420,9 +413,9 @@ export default function ProcurementDashboard() {
                                       {item.sub_items?.map(sub => (
                                         <tr key={sub.id} className="border-b border-surface-100 last:border-0 hover:bg-surface-50 transition-colors">
                                           <td className="py-2 px-3 font-bold text-sm text-primary">{sub.material_code}</td>
-                                          <td className="py-2 px-3 text-xs font-medium text-surface-500">{sub.description || "-"}</td>
-                                          <td className="py-2 px-3 font-black text-sm tabular-nums text-surface-600">{sub.quantity}</td>
-                                          <td className="py-2 px-3 font-bold text-sm tabular-nums text-surface-600">₹{sub.unit_rate}</td>
+                                          <td className="py-2 px-3 text-xs font-medium text-surface-500 text-surface-400">{sub.description || "-"}</td>
+                                          <td className="py-2 px-3 font-black text-sm tabular-nums text-surface-600 text-surface-300">{sub.quantity}</td>
+                                          <td className="py-2 px-3 font-bold text-sm tabular-nums text-surface-600 text-surface-300">₹{sub.unit_rate}</td>
                                           <td className="py-2 px-3 font-black text-sm tabular-nums text-emerald-600 text-right">
                                             ₹{(Number(sub.quantity) * (1 + (Number(sub.waste_percentage) || 0) / 100) * Number(sub.unit_rate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                           </td>
@@ -447,7 +440,7 @@ export default function ProcurementDashboard() {
                                             type="text" 
                                             value={sForm.material_code} 
                                             onChange={e => setSubItemForm(prev => ({...prev, [item.id]: {...sForm, material_code: e.target.value}}))} 
-                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white rounded text-sm font-bold outline-none transition-all" 
+                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-surface-100 border-surface-200 rounded text-sm font-bold outline-none transition-all" 
                                             placeholder="Code *" 
                                           />
                                         </td>
@@ -456,7 +449,7 @@ export default function ProcurementDashboard() {
                                             type="text" 
                                             value={sForm.description} 
                                             onChange={e => setSubItemForm(prev => ({...prev, [item.id]: {...sForm, description: e.target.value}}))} 
-                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white rounded text-sm font-bold outline-none transition-all" 
+                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-surface-100 border-surface-200 rounded text-sm font-bold outline-none transition-all" 
                                             placeholder="Description" 
                                           />
                                         </td>
@@ -465,7 +458,7 @@ export default function ProcurementDashboard() {
                                             type="number" step="any" 
                                             value={sForm.quantity} 
                                             onChange={e => setSubItemForm(prev => ({...prev, [item.id]: {...sForm, quantity: e.target.value}}))} 
-                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white rounded text-sm font-bold outline-none transition-all" 
+                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-surface-100 border-surface-200 rounded text-sm font-bold outline-none transition-all" 
                                             placeholder="Qty *" 
                                           />
                                         </td>
@@ -474,7 +467,7 @@ export default function ProcurementDashboard() {
                                             type="number" step="any" 
                                             value={sForm.unit_rate} 
                                             onChange={e => setSubItemForm(prev => ({...prev, [item.id]: {...sForm, unit_rate: e.target.value}}))} 
-                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white rounded text-sm font-bold outline-none transition-all" 
+                                            className="w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-surface-100 border-surface-200 rounded text-sm font-bold outline-none transition-all" 
                                             placeholder="Cost *" 
                                           />
                                         </td>
@@ -485,7 +478,7 @@ export default function ProcurementDashboard() {
                                           <button 
                                             onClick={(e) => handleAddSubItem(e as any, item.id)} 
                                             disabled={isProcessing} 
-                                            className="px-3 h-7 rounded bg-primary text-white text-[10px] font-black uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                            className="px-3 h-7 rounded bg-accent text-background text-[10px] font-black uppercase tracking-wider hover:opacity-90/90 transition-colors disabled:opacity-50"
                                           >
                                             Add
                                           </button>
@@ -523,23 +516,23 @@ export default function ProcurementDashboard() {
                                   <td className="py-4 px-6">
                                     <button 
                                       onClick={() => toggleRow(`mat_${material.material_code}`)}
-                                      className="w-6 h-6 rounded-md bg-surface-200 text-surface-600 flex items-center justify-center hover:bg-accent hover:text-white transition-all font-bold"
+                                      className="w-6 h-6 rounded-md bg-surface-200 text-surface-600 text-surface-300 flex items-center justify-center hover:bg-accent hover:text-white transition-all font-bold"
                                     >
                                       {isExpanded ? "v" : ">"}
                                     </button>
                                   </td>
                                   <td className="py-4 px-6 font-extrabold text-primary">{material.material_code}</td>
-                                  <td className="py-4 px-6 font-bold text-surface-500">{material.description || "-"}</td>
-                                  <td className="py-4 px-6 font-black tabular-nums text-surface-600 text-right">{material.total_quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                  <td className="py-4 px-6 font-bold tabular-nums text-surface-600 text-right">₹{material.unit_rate}</td>
+                                  <td className="py-4 px-6 font-bold text-surface-500 text-surface-400">{material.description || "-"}</td>
+                                  <td className="py-4 px-6 font-black tabular-nums text-surface-600 text-surface-300 text-right">{material.total_quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                  <td className="py-4 px-6 font-bold tabular-nums text-surface-600 text-surface-300 text-right">₹{material.unit_rate}</td>
                                   <td className="py-4 px-6 font-black tabular-nums text-emerald-600 text-right">₹{material.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                                 {isExpanded && (
                                   <tr>
                                     <td colSpan={6} className="p-0 border-b border-surface-200">
                                       <div className="bg-surface-100/50 px-14 py-4 border-l-4 border-emerald-500">
-                                        <h4 className="text-[10px] font-black uppercase text-surface-500 mb-2">Used In Assemblies</h4>
-                                        <table className="w-full text-left bg-white rounded-lg border border-surface-200 overflow-hidden mb-4">
+                                        <h4 className="text-[10px] font-black uppercase text-surface-500 text-surface-400 mb-2">Used In Assemblies</h4>
+                                        <table className="w-full text-left bg-surface-100 border-surface-200 rounded-lg border border-surface-200 overflow-hidden mb-4">
                                           <thead className="bg-surface-50 border-b border-surface-200">
                                             <tr>
                                               <th className="py-2 px-3 text-[10px] font-black text-surface-400 uppercase w-[40%]">Parent Assembly</th>
@@ -551,7 +544,7 @@ export default function ProcurementDashboard() {
                                             {material.parent_assemblies.map((parent: any, pIdx: number) => (
                                               <tr key={pIdx} className="border-b border-surface-100 last:border-0 hover:bg-surface-50 transition-colors">
                                                 <td className="py-2 px-3 font-bold text-sm text-primary">{parent.parent_code}</td>
-                                                <td className="py-2 px-3 font-black text-sm tabular-nums text-surface-600 text-right">{parent.quantity}</td>
+                                                <td className="py-2 px-3 font-black text-sm tabular-nums text-surface-600 text-surface-300 text-right">{parent.quantity}</td>
                                                 <td className="py-2 px-3 font-bold text-sm tabular-nums text-emerald-600 text-right">₹{parent.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                               </tr>
                                             ))}
@@ -582,11 +575,11 @@ export default function ProcurementDashboard() {
           )}
 
           {activeTab === "TRACKING" && (
-            <div className="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
+            <div className="bg-surface-100 border-surface-200 rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
               {loading ? (
-                <div className="p-10 text-center text-surface-500 font-bold">Loading ledger...</div>
+                <div className="p-10 text-center text-surface-500 text-surface-400 font-bold">Loading ledger...</div>
               ) : items.length === 0 ? (
-                <div className="p-10 text-center text-surface-500">
+                <div className="p-10 text-center text-surface-500 text-surface-400">
                   <p className="font-bold">No material items found.</p>
                 </div>
               ) : (
@@ -621,13 +614,13 @@ export default function ProcurementDashboard() {
                               <td className="py-4 px-6">
                                 <button 
                                   onClick={() => toggleRow(item.id)}
-                                  className="w-6 h-6 rounded-md bg-surface-200 text-surface-600 flex items-center justify-center hover:bg-accent hover:text-white transition-all font-bold"
+                                  className="w-6 h-6 rounded-md bg-surface-200 text-surface-600 text-surface-300 flex items-center justify-center hover:bg-accent hover:text-white transition-all font-bold"
                                 >
                                   {isExpanded ? "v" : ">"}
                                 </button>
                               </td>
                               <td className="py-4 px-6 font-extrabold text-primary">{item.material_code}</td>
-                              <td className="py-4 px-6 font-bold text-surface-500">
+                              <td className="py-4 px-6 font-bold text-surface-500 text-surface-400">
                                 {item.phase ? phases.find(p => p.id == item.phase)?.name || `Phase ${item.phase}` : "Global"}
                               </td>
                               <td className="py-4 px-6 font-black tabular-nums text-emerald-600">
@@ -638,17 +631,17 @@ export default function ProcurementDashboard() {
                               <td className="py-4 px-6 font-bold tabular-nums">
                                 {allocations.length} {anomalyCount > 0 && <span className="text-red-500 ml-2">({anomalyCount} 🚨)</span>}
                               </td>
-                              <td className="py-4 px-6 font-black tabular-nums border-l border-surface-200 bg-surface-50/50 text-surface-600">
+                              <td className="py-4 px-6 font-black tabular-nums border-l border-surface-200 bg-surface-50/50 text-surface-600 text-surface-300">
                                 ${budgetCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                               </td>
-                              <td className="py-4 px-6 font-black tabular-nums bg-surface-50/50 text-surface-600">
+                              <td className="py-4 px-6 font-black tabular-nums bg-surface-50/50 text-surface-600 text-surface-300">
                                 ${poCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                               </td>
                               <td className="py-4 px-6 font-black tabular-nums bg-surface-50/50">
                                 {variance >= 0 ? (
-                                  <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">+${variance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                  <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-md">+${variance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                 ) : (
-                                  <span className="text-red-600 bg-red-50 px-2 py-1 rounded-md">-${Math.abs(variance).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                  <span className="text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-md">-${Math.abs(variance).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                 )}
                               </td>
                             </tr>
@@ -670,7 +663,7 @@ export default function ProcurementDashboard() {
                                       <tbody>
                                         {allocations.map(alloc => (
                                           <React.Fragment key={alloc.id}>
-                                            <tr className={`border-b border-surface-100 hover:bg-white transition-colors ${alloc.is_anomaly ? "bg-red-50/50" : ""}`}>
+                                            <tr className={`border-b border-surface-100 hover:bg-surface-100 border-surface-200 transition-colors ${alloc.is_anomaly ? "bg-red-50 dark:bg-red-900/20/50" : ""}`}>
                                               <td className="py-3 px-4 font-bold text-sm text-primary flex items-center gap-2">
                                                 <span className="text-surface-400">↳</span>
                                                 {alloc.task_zone_name ? `${alloc.task_zone_name} (${alloc.task_title})` : alloc.task_title}
@@ -680,7 +673,7 @@ export default function ProcurementDashboard() {
                                                   </span>
                                                 )}
                                               </td>
-                                              <td className="py-3 px-4 font-black tabular-nums text-surface-600 w-32">
+                                              <td className="py-3 px-4 font-black tabular-nums text-surface-600 text-surface-300 w-32">
                                                 {alloc.allocated_qty}
                                               </td>
                                               <td className={`py-3 px-4 font-black tabular-nums w-32 ${alloc.is_anomaly ? "text-red-600" : "text-emerald-600"}`}>
@@ -698,13 +691,13 @@ export default function ProcurementDashboard() {
                                                     <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-blue-100 text-blue-600">🔵 Ordered</span>
                                                     <button
                                                       onClick={() => handlePrintPO(alloc.id)}
-                                                      className="flex items-center gap-1 px-2 py-1 bg-surface-200 text-surface-600 text-[9px] font-black uppercase tracking-widest rounded hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                                                      className="flex items-center gap-1 px-2 py-1 bg-surface-200 text-surface-600 text-surface-300 text-[9px] font-black uppercase tracking-widest rounded hover:bg-blue-100 hover:text-blue-600 transition-colors"
                                                     >
                                                       🖨️ Print
                                                     </button>
                                                   </>
                                                 ) : alloc.req_status === "REQUISITIONED" ? (
-                                                  <label className="flex items-center gap-2 cursor-pointer group bg-amber-50 px-2 py-1 rounded">
+                                                  <label className="flex items-center gap-2 cursor-pointer group bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
                                                     <input 
                                                       type="checkbox" 
                                                       checked={!!selectedAllocations[alloc.id]}
@@ -714,7 +707,7 @@ export default function ProcurementDashboard() {
                                                     <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 group-hover:text-primary">Buy Now</span>
                                                   </label>
                                                 ) : (
-                                                  <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-surface-200 text-surface-600">⏳ Pending</span>
+                                                  <span className="px-2 py-1 text-[9px] font-black uppercase rounded bg-surface-200 text-surface-600 text-surface-300">⏳ Pending</span>
                                                 )}
                                               </td>
                                               <td className="py-3 px-4 w-32 font-bold text-emerald-600">
@@ -728,7 +721,7 @@ export default function ProcurementDashboard() {
                                                 <td colSpan={5} className="py-2 px-8">
                                                   <div className="space-y-1">
                                                     {alloc.logs.map(log => (
-                                                      <div key={log.id} className="text-[10px] flex items-center gap-4 text-surface-500 font-medium">
+                                                      <div key={log.id} className="text-[10px] flex items-center gap-4 text-surface-500 text-surface-400 font-medium">
                                                         <span className="w-24 border-r border-surface-200">{new Date(log.created_at).toLocaleDateString()}</span>
                                                         <span className="w-24 border-r border-surface-200">Qty: {log.consumed_qty}</span>
                                                         <span className="w-24 border-r border-surface-200">Cost: ${log.total_cost}</span>
@@ -774,7 +767,7 @@ export default function ProcurementDashboard() {
           )}
 
           {activeTab === "ASSEMBLIES" && (
-            <div className="bg-white rounded-3xl border border-surface-200 shadow-sm p-6">
+            <div className="bg-surface-100 border-surface-200 rounded-3xl border border-surface-200 shadow-sm p-6">
               <MaterialAssemblyManager />
             </div>
           )}
@@ -785,7 +778,7 @@ export default function ProcurementDashboard() {
 
           {/* Action Footer */}
           {activeTab === "TRACKING" && selectedCount > 0 && (
-            <div className="sticky bottom-8 bg-primary text-white rounded-2xl shadow-2xl p-4 px-6 flex items-center justify-between animate-fade-in border border-surface-200/20">
+            <div className="sticky bottom-8 bg-accent text-background rounded-2xl shadow-2xl p-4 px-6 flex items-center justify-between animate-fade-in border border-surface-200/20">
               <div>
                 <p className="text-sm font-bold">{selectedCount} items selected for Purchase Order</p>
                 <p className="text-xs text-white/60">Selected allocations will become locked as ORDERED.</p>
@@ -793,7 +786,7 @@ export default function ProcurementDashboard() {
               <button
                 onClick={handleGeneratePO}
                 disabled={isProcessing}
-                className="h-12 px-8 bg-accent text-white font-black text-[11px] uppercase tracking-widest rounded-xl hover:bg-white hover:text-accent transition-all shadow-lg disabled:opacity-50"
+                className="h-12 px-8 bg-accent text-background font-black text-[11px] uppercase tracking-widest rounded-xl hover:bg-surface-100 border-surface-200 hover:text-accent transition-all shadow-lg disabled:opacity-50"
               >
                 {isProcessing ? "Processing..." : `[ GENERATE PURCHASE ORDER FOR SELECTED ITEMS (${selectedCount}) ]`}
               </button>

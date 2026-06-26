@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white font-sans selection:bg-accent/10 selection:text-accent">
+    <div className="min-h-screen flex bg-surface-100 font-sans selection:bg-accent/10 selection:text-accent">
       {/* Left Panel */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-surface-100 overflow-hidden items-center justify-center p-20 border-r border-surface-200">
         <div className="absolute inset-0 arch-grid opacity-20" />
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={status === "loading"}
-                className="w-full h-14 bg-primary text-white font-bold uppercase tracking-[0.2em] transition-all hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed group flex items-center justify-center gap-4"
+                className="w-full h-14 bg-accent text-background font-bold uppercase tracking-[0.2em] transition-all hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed group flex items-center justify-center gap-4"
               >
                 {status === "loading" ? "Sending..." : (<>Send Link <ArrowRightIcon /></>)}
               </button>

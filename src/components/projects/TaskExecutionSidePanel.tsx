@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { motion } from "framer-motion";
 import { Task, ProjectAsset, TaskChecklistItem, SpatialZone, MilestonePhase, ChecklistTemplate, TaskComment } from "@/types/projects";
 import { usePermissions } from "@/hooks/use-permissions";
 import { projectsApi } from "@/domains/projects/api";
@@ -11,8 +12,9 @@ import ModelViewer from "@/components/ModelViewer";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { TaskHSETab } from "./TaskHSETab";
 import { TaskFieldDiaryTab } from "./TaskFieldDiaryTab";
+import Link from "next/link";
 
-interface TaskExecutionModalProps {
+interface TaskExecutionSidePanelProps {
   task: Task;
   projectId: number;
   projectUid: string;
@@ -24,94 +26,8 @@ interface TaskExecutionModalProps {
   onTaskUpdated: () => void;
 }
 
-type TaskTab = "execution" | "subtasks" | "boq" | "checklist" | "issues" | "drawing" | "comments" | "time" | "dependencies" | "hse" | "diary" | "photos";
+type TaskTab = "execution" | "subtasks" | "boq" | "checklist" | "issues" | "drawing" | "time" | "dependencies" | "hse" | "diary" | "photos";
 
-const TaskCommentsTab: React.FC<{ taskUid: string }> = ({ taskUid }) => {
-  const [comments, setComments] = React.useState<TaskComment[]>([]);
-  const [newComment, setNewComment] = React.useState("");
-  const [loading, setLoading] = React.useState(true);
-
-  const fetchComments = React.useCallback(async () => {
-    try {
-      const data = await projectsApi.getTaskComments(taskUid);
-      setComments(data);
-    } catch (err) {
-      toast.error("Failed to load comments.");
-    } finally {
-      setLoading(false);
-    }
-  }, [taskUid]);
-
-  React.useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
-
-  const handlePost = async () => {
-    if (!newComment.trim()) return;
-    try {
-      await projectsApi.createTaskComment(taskUid, newComment.trim());
-      setNewComment("");
-      fetchComments();
-      toast.success("Comment posted.");
-    } catch (err) {
-      toast.error("Failed to post comment.");
-    }
-  };
-
-  return (
-    <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-280px)]">
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
-        {loading ? (
-          <p className="text-sm text-surface-400 font-bold">Loading comments...</p>
-        ) : comments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-center bg-white rounded-2xl border border-surface-200">
-            <span className="text-2xl mb-2">💬</span>
-            <p className="text-sm font-bold text-surface-400">No comments yet. Start the discussion!</p>
-          </div>
-        ) : (
-          comments.map(c => (
-            <div key={c.id} className="bg-white p-4 rounded-2xl border border-surface-200 shadow-sm flex gap-4">
-              <div className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-black text-surface-400 uppercase">
-                  {c.user?.first_name?.[0] || c.user?.email?.[0] || "?"}
-                </span>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-xs font-bold text-primary">{c.user?.first_name} {c.user?.last_name}</span>
-                  <span className="text-[10px] font-bold text-surface-400">{new Date(c.created_at).toLocaleString()}</span>
-                </div>
-                <p className="text-sm text-surface-600 whitespace-pre-wrap">{c.content}</p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-      <div className="bg-white p-4 rounded-2xl border border-surface-200 shadow-sm flex gap-3 shrink-0">
-        <textarea
-          value={newComment}
-          onChange={e => setNewComment(e.target.value)}
-          placeholder="Write a comment..."
-          className="flex-1 h-12 bg-surface-50 border border-transparent focus:border-surface-200 focus:bg-white rounded-xl px-4 py-3 outline-none font-medium text-sm text-primary resize-none transition-all placeholder:text-surface-300"
-          rows={1}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handlePost();
-            }
-          }}
-        />
-        <button
-          onClick={handlePost}
-          disabled={!newComment.trim()}
-          className="h-12 px-6 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all disabled:opacity-40"
-        >
-          Post
-        </button>
-      </div>
-    </div>
-  );
-};
 
 const TaskPhotosTab: React.FC<{ task: Task; projectId: number; onRefresh: () => void }> = ({ task, projectId, onRefresh }) => {
   const [isUploading, setIsUploading] = React.useState(false);
@@ -152,10 +68,10 @@ const TaskPhotosTab: React.FC<{ task: Task; projectId: number; onRefresh: () => 
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-surface-200 shadow-sm">
+      <div className="flex justify-between items-center bg-surface-100 border-surface-200 p-6 rounded-2xl border border-surface-200 shadow-sm">
         <div>
           <h3 className="text-xl font-bold text-primary">Site Photos</h3>
-          <p className="text-sm text-surface-500 font-medium">Visual documentation of work progress.</p>
+          <p className="text-sm text-surface-500 text-surface-400 font-medium">Visual documentation of work progress.</p>
         </div>
         <div>
           <input 
@@ -169,7 +85,7 @@ const TaskPhotosTab: React.FC<{ task: Task; projectId: number; onRefresh: () => 
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="h-11 px-6 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all disabled:opacity-50 flex items-center gap-2"
+            className="h-11 px-6 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
           >
             {isUploading ? "Uploading..." : "Upload Photos"}
           </button>
@@ -180,7 +96,7 @@ const TaskPhotosTab: React.FC<{ task: Task; projectId: number; onRefresh: () => 
         <div className="text-center py-20 bg-surface-50 border border-dashed border-surface-200 rounded-3xl">
           <span className="text-4xl mb-4 block">📸</span>
           <h4 className="text-lg font-bold text-primary mb-1">No Photos Yet</h4>
-          <p className="text-sm text-surface-500">Upload progress photos to document completion.</p>
+          <p className="text-sm text-surface-500 text-surface-400">Upload progress photos to document completion.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -188,13 +104,13 @@ const TaskPhotosTab: React.FC<{ task: Task; projectId: number; onRefresh: () => 
             const asset = link.latest_asset;
             if (!asset) return null;
             return (
-              <div key={link.id} className="group relative bg-white rounded-2xl border border-surface-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
+              <div key={link.id} className="group relative bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
                 <div className="aspect-square bg-surface-100 relative">
                   <img src={asset.file} alt={asset.title} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-primary/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
                     <button 
                       onClick={() => window.open(asset.file, '_blank')}
-                      className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition-colors"
+                      className="w-10 h-10 rounded-full bg-surface-100 border-surface-200/20 hover:bg-surface-100 border-surface-200/40 text-white flex items-center justify-center transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                     </button>
@@ -221,7 +137,7 @@ const TaskPhotosTab: React.FC<{ task: Task; projectId: number; onRefresh: () => 
   );
 };
 
-export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({ 
+export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({ 
   task: initialTask, 
   projectId,
   projectUid,
@@ -232,7 +148,8 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   onClose,
   onTaskUpdated
 }) => {
-  const { hasGlobalPermission, canEditProject } = usePermissions();
+  const [panelWidth, setPanelWidth] = useState(800);
+  const { isAdmin, hasGlobalPermission, canEditProject } = usePermissions();
   const [task, setTask] = useState<Task>(initialTask);
   const [activeTab, setActiveTab] = useState<TaskTab>("execution");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -269,8 +186,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   const [isSavingDependencies, setIsSavingDependencies] = useState(false);
   
   const isMatrixTask = task.block !== null && task.block !== undefined;
-  // TODO: Use true roles from auth context, using generic flags for now
-  const isAdmin = true;
+  const isArchitect = true; // Temporary bypass since we don't have full ProjectDetail here
   const isContractor = false;
   const isQA = false;
   
@@ -551,6 +467,9 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   const issues = task.punch_list_items || [];
   const uncheckedCount = checklists.filter((i: any) => !i.is_completed).length;
   const openIssueCount = issues.filter((i: any) => !i.is_resolved).length;
+  // Diary-sourced counts for notification badges
+  const diarySourcedIssueCount = issues.filter((i: any) => !i.is_resolved && i.source_diary_entry != null).length;
+  const openSafetyCount = (task as any).diary_safety_entries?.filter((s: any) => s.incident_reported).length || 0;
   
   const estimatedCost = parseFloat(task.estimated_cost as any) || 0;
   const burnCost = task.actual_burn_cost || 0;
@@ -568,7 +487,6 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
     { id: "diary", label: "Field Diary" },
     { id: "boq", label: "Materials & Requisition", hidden: isContractor },
     { id: "drawing", label: "Context & Models", hidden: !isMatrixTask },
-    { id: "comments", label: "Comments" },
   ];
 
   const linked2dPlanLinks = task.asset_links?.filter(l => l.latest_asset?.category === "2d_plan") || [];
@@ -578,20 +496,53 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
   const linked2dPlanUids = new Set(linked2dPlanLinks.map(l => l.latest_asset?.canonical_uid));
 
   return (
-    <div className="fixed inset-0 z-50 flex animate-fade-in bg-surface-900/60 backdrop-blur-md overflow-hidden">
-      <div className="bg-white w-full h-full md:w-[95%] md:h-[95%] md:rounded-3xl m-auto shadow-2xl flex flex-col relative overflow-hidden border border-surface-200">
+    <>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-background/80 backdrop-blur-2xl"
+      />
+      <motion.div 
+        initial={{ x: "100%", opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: "100%", opacity: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        style={{ width: panelWidth }}
+        className="fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200"
+      >
+        {/* Resize Handle */}
+        <div 
+          className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-accent/50 z-50 transition-colors"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startWidth = panelWidth;
+            const handleMove = (moveEvent: PointerEvent) => {
+              const delta = startX - moveEvent.clientX;
+              setPanelWidth(Math.max(400, Math.min(window.innerWidth - 100, startWidth + delta)));
+            };
+            const handleUp = () => {
+              window.removeEventListener("pointermove", handleMove);
+              window.removeEventListener("pointerup", handleUp);
+            };
+            window.addEventListener("pointermove", handleMove);
+            window.addEventListener("pointerup", handleUp);
+          }}
+        />
         
         {/* Header */}
-        <div className="px-8 py-6 border-b border-surface-200 bg-surface-50 flex flex-col md:flex-row justify-between items-start md:items-center shrink-0 relative overflow-hidden gap-6">
+        <div className="sticky top-0 z-50 px-8 py-6 border-b border-surface-200 bg-surface-50/80 bg-background/80 backdrop-blur-2xl flex flex-col md:flex-row justify-between items-start md:items-center shrink-0 relative overflow-hidden gap-6 shadow-sm">
           <div className="absolute -top-20 -right-20 w-64 h-64 arch-grid opacity-5 pointer-events-none" />
           
           <div className="relative z-10 flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border ${
-                currentStatus === "DONE" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
+                currentStatus === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30" :
                 currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
-                currentStatus === "QA" ? "bg-amber-50 text-amber-600 border-amber-200" :
-                "bg-surface-200 text-surface-600 border-surface-300"
+                currentStatus === "QA" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800/30" :
+                "bg-surface-200 text-surface-600 text-surface-300 border-surface-300"
               }`}>
                 {currentStatus}
               </span>
@@ -628,7 +579,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   onClick={() => handleStatusChange(s)}
                   disabled={isUpdating}
                   className={`px-4 py-2 text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all ${
-                    currentStatus === s ? "bg-white shadow-xl text-primary" : "text-surface-500 hover:text-primary"
+                    currentStatus === s ? "bg-surface-100 border-surface-200 shadow-xl text-primary" : "text-surface-500 text-surface-400 hover:text-primary"
                   }`}
                 >
                   {s}
@@ -638,7 +589,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
             
             <button 
               onClick={handleCopyLink}
-              className="h-11 px-6 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap"
+              className="h-11 px-6 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap"
             >
               🔗 Copy Link
             </button>
@@ -648,11 +599,11 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   navigator.clipboard.writeText(url);
                   toast.success("Share link copied to clipboard!");
                 }}
-                className="h-11 px-6 rounded-xl bg-surface-200 text-surface-600 hover:bg-surface-300 font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap"
+                className="h-11 px-6 rounded-xl bg-surface-200 text-surface-600 text-surface-300 hover:bg-surface-300 font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap"
               >
                 Share
               </button>
-            <button onClick={onClose} className="w-11 h-11 rounded-xl bg-surface-200 text-surface-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm">
+            <button onClick={onClose} className="w-11 h-11 rounded-xl bg-surface-200 text-surface-600 text-surface-300 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm">
               ✕
             </button>
           </div>
@@ -660,23 +611,43 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
 
         {/* Layout: Main Content */}
         <div className="flex flex-1 overflow-hidden">
-          <div className="flex-1 flex flex-col bg-white overflow-hidden">
+          <div className="flex-1 flex flex-col bg-surface-100 border-surface-200 overflow-hidden">
             {/* Tabs */}
-            <div className="flex px-8 border-b border-surface-100 bg-white pt-2 shrink-0 overflow-x-auto">
+            <div className="flex px-8 border-b border-surface-200 bg-surface-100 pt-4 pb-2 shrink-0 overflow-x-auto gap-2 custom-scrollbar">
               {tabs.filter(t => !t.hidden).map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as TaskTab)}
-                  className={`px-6 py-4 font-bold text-[10px] tracking-widest uppercase transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 ${
-                    activeTab === tab.id ? "border-accent text-accent" : "border-transparent text-surface-400 hover:text-primary"
+                  className={`relative px-5 py-2.5 font-bold text-[10px] tracking-widest uppercase transition-colors whitespace-nowrap flex items-center gap-2 rounded-full z-10 ${
+                    activeTab === tab.id ? "text-background" : "text-surface-500 hover:text-primary hover:bg-surface-200/50"
                   }`}
                 >
+                  {activeTab === tab.id && (
+                    <motion.div 
+                      layoutId="activeTaskTab"
+                      className="absolute inset-0 bg-accent rounded-full -z-10 shadow-md"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
                   {tab.label}
                   {tab.id === "checklist" && uncheckedCount > 0 && (
-                    <span className="w-4 h-4 bg-amber-400 text-white text-[8px] font-black rounded-full flex items-center justify-center">{uncheckedCount}</span>
+                    <span className={`w-4 h-4 text-[8px] font-black rounded-full flex items-center justify-center ${activeTab === tab.id ? 'bg-background/20 text-background' : 'bg-amber-400 text-white'}`}>{uncheckedCount}</span>
                   )}
                   {tab.id === "issues" && openIssueCount > 0 && (
-                    <span className={`w-4 h-4 ${task.has_active_blocker ? "bg-red-500 animate-pulse" : "bg-amber-400"} text-white text-[8px] font-black rounded-full flex items-center justify-center`}>{openIssueCount}</span>
+                    <span className={`w-4 h-4 text-[8px] font-black rounded-full flex items-center justify-center ${
+                      activeTab === tab.id ? 'bg-background/20 text-background' : 
+                      task.has_active_blocker ? 'bg-red-500 animate-pulse text-white' : 'bg-amber-400 text-white'
+                    }`}>{openIssueCount}</span>
+                  )}
+                  {tab.id === "hse" && openSafetyCount > 0 && (
+                    <span className={`w-4 h-4 text-[8px] font-black rounded-full flex items-center justify-center ${
+                      activeTab === tab.id ? 'bg-background/20 text-background' : 'bg-orange-500 animate-pulse text-white'
+                    }`}>{openSafetyCount}</span>
+                  )}
+                  {tab.id === "diary" && diarySourcedIssueCount > 0 && (
+                    <span className={`w-4 h-4 text-[8px] font-black rounded-full flex items-center justify-center ${
+                      activeTab === tab.id ? 'bg-background/20 text-background' : 'bg-red-400 text-white'
+                    }`}>{diarySourcedIssueCount}</span>
                   )}
                 </button>
               ))}
@@ -692,7 +663,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   <div className="flex-1 space-y-8 overflow-y-auto pr-2 pb-8 max-w-4xl">
                     {/* If Matrix, show quantity progress */}
                   {isMatrixTask && (
-                    <div className="bg-white rounded-2xl border border-surface-200 p-6 flex items-center gap-6 shadow-sm">
+                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-6 flex items-center gap-6 shadow-sm">
                       <div className="relative w-20 h-20 shrink-0">
                         <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
                           <circle cx="40" cy="40" r="32" fill="none" stroke="#e2e8f0" strokeWidth="8"/>
@@ -722,7 +693,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
 
                   {/* If Matrix & Admin/Contractor, show progress logger */}
                   {isMatrixTask && (isContractor || isAdmin) && (
-                    <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm">
+                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-5 shadow-sm">
                       <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-3">Log Field Progress</h4>
                       <div className="flex gap-3">
                         <div className="flex-1 relative">
@@ -742,7 +713,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                         <button
                           onClick={handleLogProgress}
                           disabled={isUpdating || !quantityDelta}
-                          className="h-12 px-6 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all disabled:opacity-40 shrink-0"
+                          className="h-12 px-6 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all disabled:opacity-40 shrink-0"
                         >
                           {isUpdating ? "Saving..." : "Log"}
                         </button>
@@ -753,10 +724,10 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   {/* Matrix Location */}
                   <div>
                     <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Matrix Location</h3>
-                    <div className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm space-y-8">
+                    <div className="bg-surface-100 border-surface-200 p-8 rounded-2xl border border-surface-200 shadow-sm space-y-8">
                       <div className="grid grid-cols-2 gap-8">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Zone</label>
+                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Zone</label>
                           <select 
                             value={selectedZoneId}
                             onChange={(e) => {
@@ -772,7 +743,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                           </select>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Phase</label>
+                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Phase</label>
                           <select 
                             value={selectedPhaseId}
                             onChange={(e) => {
@@ -794,10 +765,10 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   {/* Standard Directives & Timeline */}
                   <div>
                     <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Timeline & Directives</h3>
-                    <div className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm space-y-8">
+                    <div className="bg-surface-100 border-surface-200 p-8 rounded-2xl border border-surface-200 shadow-sm space-y-8">
                       <div className="grid grid-cols-2 gap-8">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Start Date</label>
+                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Start Date</label>
                           <input 
                             type="date" 
                             value={task.start_date || ""} 
@@ -809,7 +780,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Due Date</label>
+                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Due Date</label>
                           <input 
                             type="date" 
                             value={task.due_date || task.end_date || ""} 
@@ -821,7 +792,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Priority</label>
+                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Priority</label>
                           <select
                             value={task.priority || "MEDIUM"}
                             onChange={async (e) => {
@@ -836,7 +807,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                           </select>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Tags</label>
+                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Tags</label>
                           <div className="flex flex-wrap gap-1 mb-1">
                             {task.tags?.map(tag => (
                               <span key={tag.id} className="text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-widest flex items-center gap-1" style={{ borderColor: tag.color, backgroundColor: `${tag.color}10`, color: tag.color }}>
@@ -869,7 +840,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Execution Directives</label>
+                        <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Execution Directives</label>
                         <textarea
                           rows={4}
                           value={task.description || ""}
@@ -896,7 +867,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
               {/* CHECKLISTS TAB */}
               {activeTab === "checklist" && (
                 <div className="max-w-4xl space-y-4">
-                  <div className="bg-white rounded-2xl border border-surface-200 overflow-hidden shadow-sm">
+                  <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 overflow-hidden shadow-sm">
                     {checklists.length === 0 ? (
                       <div className="p-8 text-center text-surface-400">
                         <p className="text-3xl mb-2">📋</p>
@@ -952,8 +923,8 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                     )}
                   </div>
 
-                  {(isAdmin || isQA) && (
-                    <div className="bg-white rounded-2xl border border-surface-200 p-4 shadow-sm">
+                  {(isAdmin || isArchitect || isQA) && (
+                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-4 shadow-sm">
                       <div className="flex gap-3">
                         <input
                           type="text"
@@ -966,7 +937,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                         <button
                           onClick={handleAddChecklistItem}
                           disabled={!newChecklistDesc.trim()}
-                          className="h-10 px-4 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
+                          className="h-10 px-4 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
                         >
                           + Add
                         </button>
@@ -1003,9 +974,9 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   {issues.map((issue: any) => (
                     <div
                       key={issue.id}
-                      className={`bg-white rounded-2xl border p-5 shadow-sm ${
+                      className={`bg-surface-100 border-surface-200 rounded-2xl border p-5 shadow-sm ${
                         issue.severity === "HIGH" && !issue.is_resolved
-                          ? "border-red-300 bg-red-50/30"
+                          ? "border-red-300 bg-red-50 dark:bg-red-900/20/30"
                           : "border-surface-200"
                       }`}
                     >
@@ -1015,11 +986,11 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                             <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
                               issue.severity === "HIGH" ? "bg-red-100 text-red-600" :
                               issue.severity === "MEDIUM" ? "bg-amber-100 text-amber-700" :
-                              "bg-surface-100 text-surface-500"
+                              "bg-surface-100 text-surface-500 text-surface-400"
                             }`}>
                               {issue.severity === "HIGH" ? "🚨 Blocker" : issue.severity}
                             </span>
-                            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 border border-surface-200">
+                            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 text-surface-300 border border-surface-200">
                               {issue.issue_type} | {issue.root_cause}
                             </span>
                             {issue.is_resolved && (
@@ -1027,7 +998,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                             )}
                           </div>
                           <h5 className="font-bold text-sm text-primary">{issue.title}</h5>
-                          <p className="text-xs text-surface-500 mt-1 leading-relaxed">{issue.description}</p>
+                          <p className="text-xs text-surface-500 text-surface-400 mt-1 leading-relaxed">{issue.description}</p>
                           {issue.attachments && issue.attachments.length > 0 && (
                             <div className="flex gap-2 mt-3">
                               {issue.attachments.map((att: any) => (
@@ -1055,14 +1026,14 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   ))}
 
                   {issues.length === 0 && !showIssueForm && (
-                    <div className="bg-white rounded-2xl border border-surface-200 p-10 text-center shadow-sm">
+                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-10 text-center shadow-sm">
                       <p className="text-3xl mb-2">🟢</p>
                       <p className="text-sm font-bold text-surface-400">No issue tracker items reported</p>
                     </div>
                   )}
 
                   {showIssueForm ? (
-                    <div className="bg-white rounded-2xl border border-surface-200 p-5 space-y-4 shadow-sm">
+                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-5 space-y-4 shadow-sm">
                       <h4 className="text-sm font-bold text-primary">Add Issue Tracker Item</h4>
                       <input
                         type="text"
@@ -1112,11 +1083,11 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                         </select>
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest block mb-2">Photo Evidence</label>
-                        <input type="file" ref={photoRef} accept="image/*" multiple className="text-sm font-bold text-surface-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-100 file:text-primary hover:file:bg-surface-200" />
+                        <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest block mb-2">Photo Evidence</label>
+                        <input type="file" ref={photoRef} accept="image/*" multiple className="text-sm font-bold text-surface-500 text-surface-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-100 file:text-primary hover:file:bg-surface-200" />
                       </div>
                       <div className="flex gap-2 justify-end mt-4">
-                        <button onClick={() => setShowIssueForm(false)} className="h-9 px-4 text-surface-500 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-100 transition-all">Cancel</button>
+                        <button onClick={() => setShowIssueForm(false)} className="h-9 px-4 text-surface-500 text-surface-400 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-100 transition-all">Cancel</button>
                         <button
                           onClick={handleCreateIssue}
                           disabled={isUpdating}
@@ -1129,7 +1100,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   ) : (
                     <button
                       onClick={() => setShowIssueForm(true)}
-                      className="w-full py-3 border-2 border-dashed border-surface-300 rounded-xl text-surface-500 font-bold text-xs uppercase tracking-widest hover:border-red-400 hover:text-red-500 transition-colors"
+                      className="w-full py-3 border-2 border-dashed border-surface-300 rounded-xl text-surface-500 text-surface-400 font-bold text-xs uppercase tracking-widest hover:border-red-400 hover:text-red-500 transition-colors"
                     >
                       + Add Issue Tracker Item
                     </button>
@@ -1168,10 +1139,10 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
               {/* SUBTASKS TAB */}
               {activeTab === "subtasks" && (
                 <div className="flex flex-col gap-6 max-w-4xl mx-auto h-[calc(100vh-280px)]">
-                  <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-surface-200 shadow-sm">
+                  <div className="flex items-center justify-between bg-surface-100 border-surface-200 p-6 rounded-2xl border border-surface-200 shadow-sm">
                     <div>
                       <h3 className="text-xl font-bold text-primary">Subtasks</h3>
-                      <p className="text-xs text-surface-500 font-medium mt-1">Break this task down into smaller actionable steps.</p>
+                      <p className="text-xs text-surface-500 text-surface-400 font-medium mt-1">Break this task down into smaller actionable steps.</p>
                     </div>
                   </div>
 
@@ -1186,31 +1157,31 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                               handleUpdateSubtask(subtask.uid, { status: nextStatus });
                             }}
                             className={`p-5 rounded-2xl border shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md ${
-                              subtask.status === "DONE" ? "bg-emerald-50 border-emerald-200" :
-                              subtask.status === "WIP" ? "bg-blue-50 border-blue-200" :
-                              "bg-white border-surface-200 hover:border-accent"
+                              subtask.status === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/30" :
+                              subtask.status === "WIP" ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/30" :
+                              "bg-surface-100 border-surface-200 border-surface-200 hover:border-accent"
                             }`}
                           >
                             <div className="flex justify-between items-start mb-2 gap-2">
-                              <h4 className={`text-sm font-bold ${subtask.status === "DONE" ? "text-surface-500 line-through" : "text-primary"}`}>{subtask.title}</h4>
+                              <h4 className={`text-sm font-bold ${subtask.status === "DONE" ? "text-surface-500 text-surface-400 line-through" : "text-primary"}`}>{subtask.title}</h4>
                               <span className={`shrink-0 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md border ${
-                                subtask.status === "DONE" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
-                                subtask.status === "WIP" ? "bg-blue-100 text-blue-700 border-blue-200" :
-                                "bg-surface-100 text-surface-500 border-surface-200"
+                                subtask.status === "DONE" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:border-emerald-800/30" :
+                                subtask.status === "WIP" ? "bg-blue-100 text-blue-700 border-blue-200 dark:border-blue-800/30" :
+                                "bg-surface-100 text-surface-500 text-surface-400 border-surface-200"
                               }`}>
                                 {subtask.status}
                               </span>
                             </div>
                             {subtask.description && (
-                              <p className={`text-xs mt-2 line-clamp-3 ${subtask.status === "DONE" ? "text-emerald-700/60" : "text-surface-500"}`}>{subtask.description}</p>
+                              <p className={`text-xs mt-2 line-clamp-3 ${subtask.status === "DONE" ? "text-emerald-700/60" : "text-surface-500 text-surface-400"}`}>{subtask.description}</p>
                             )}
                             {subtask.assigned_to && (
-                              <div className="mt-4 flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[8px] font-bold uppercase">
+                              <Link href={`/dashboard/team/${subtask.assigned_to.id}`} className="mt-4 flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                <div className="w-5 h-5 rounded-full bg-accent text-background flex items-center justify-center text-[8px] font-bold uppercase">
                                   {subtask.assigned_to.name.charAt(0)}
                                 </div>
-                                <span className={`text-[10px] font-bold ${subtask.status === "DONE" ? "text-emerald-700/60" : "text-surface-500"}`}>{subtask.assigned_to.name}</span>
-                              </div>
+                                <span className={`text-[10px] font-bold hover:underline ${subtask.status === "DONE" ? "text-emerald-700/60" : "text-surface-500 text-surface-400"}`}>{subtask.assigned_to.name}</span>
+                              </Link>
                             )}
                           </div>
                         ))}
@@ -1220,53 +1191,55 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                         <svg className="w-8 h-8 text-surface-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
                         </svg>
-                        <p className="text-surface-500 font-medium text-sm">No subtasks added yet.</p>
+                        <p className="text-surface-500 text-surface-400 font-medium text-sm">No subtasks added yet.</p>
                       </div>
                     )}
                   </div>
 
-                  <div className="bg-surface-50 p-5 rounded-2xl border border-surface-200 shadow-inner shrink-0">
-                    <form 
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.currentTarget);
-                        const title = formData.get("title") as string;
-                        const description = formData.get("description") as string;
-                        if (title.trim()) {
-                          handleCreateSubtask(title.trim(), description?.trim() || "");
-                          e.currentTarget.reset();
-                        }
-                      }}
-                      className="flex flex-col gap-3"
-                    >
-                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-surface-500">Create Subtask</h4>
-                      <input
-                        type="text"
-                        name="title"
-                        placeholder="Subtask title..."
-                        className="bg-white border border-surface-200 rounded-lg px-4 py-2.5 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder:text-surface-400 placeholder:font-medium transition-all"
-                        required
-                        disabled={isUpdating}
-                      />
-                      <textarea
-                        name="description"
-                        placeholder="Description (optional)..."
-                        rows={2}
-                        className="bg-white border border-surface-200 rounded-lg px-4 py-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder:text-surface-400 transition-all resize-none"
-                        disabled={isUpdating}
-                      />
-                      <div className="flex justify-end">
-                        <button
-                          type="submit"
+                  {(isAdmin || isArchitect) && (
+                    <div className="bg-surface-50 p-5 rounded-2xl border border-surface-200 shadow-inner shrink-0">
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          const title = formData.get("title") as string;
+                          const description = formData.get("description") as string;
+                          if (title.trim()) {
+                            handleCreateSubtask(title.trim(), description?.trim() || "");
+                            e.currentTarget.reset();
+                          }
+                        }}
+                        className="flex flex-col gap-3"
+                      >
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-surface-500 text-surface-400">Create Subtask</h4>
+                        <input
+                          type="text"
+                          name="title"
+                          placeholder="Subtask title..."
+                          className="bg-surface-100 border-surface-200 border border-surface-200 rounded-lg px-4 py-2.5 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder:text-surface-400 placeholder:font-medium transition-all"
+                          required
                           disabled={isUpdating}
-                          className="px-6 py-2.5 bg-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-accent transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
-                          Add Subtask Card
-                        </button>
-                      </div>
-                    </form>
-                  </div>
+                        />
+                        <textarea
+                          name="description"
+                          placeholder="Description (optional)..."
+                          rows={2}
+                          className="bg-surface-100 border-surface-200 border border-surface-200 rounded-lg px-4 py-2.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder:text-surface-400 transition-all resize-none"
+                          disabled={isUpdating}
+                        />
+                        <div className="flex justify-end">
+                          <button
+                            type="submit"
+                            disabled={isUpdating}
+                            className="px-6 py-2.5 bg-accent text-background text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-accent transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                            Add Subtask Card
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1288,7 +1261,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   <div className={`grid gap-6 h-full min-h-0 ${(linked2dPlanLinks.length > 0) && linked3dModel ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 max-w-4xl'}`}>
                   {/* 2D Plan Section */}
                   {linked2dPlanLinks.length > 0 && (
-                    <div className="flex-none flex flex-col min-h-[500px] bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden p-4 shrink-0">
+                    <div className="flex-none flex flex-col min-h-[500px] bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 shadow-sm overflow-hidden p-4 shrink-0">
                       <div className="flex justify-between items-center mb-4 shrink-0">
                         <div>
                           <h4 className="text-sm font-bold text-primary">Linked 2D Plans</h4>
@@ -1306,7 +1279,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                                 <button 
                                   onClick={() => handleUnlinkDrawing(link.id)}
                                   disabled={isLinking}
-                                  className="h-7 px-3 shrink-0 bg-red-50 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                                  className="h-7 px-3 shrink-0 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
                                 >
                                   Unlink
                                 </button>
@@ -1329,7 +1302,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
 
                   {/* 3D Model Section */}
                   {linked3dModel && (
-                    <div className="flex-none flex flex-col min-h-[500px] bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden p-4 shrink-0">
+                    <div className="flex-none flex flex-col min-h-[500px] bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 shadow-sm overflow-hidden p-4 shrink-0">
                       <div className="flex justify-between items-center mb-4">
                         <div>
                           <h4 className="text-sm font-bold text-primary">{linked3dModel.title}</h4>
@@ -1338,14 +1311,14 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                         <div className="flex gap-2">
                           <button 
                             onClick={() => setIsFullScreen3D(true)}
-                            className="h-8 px-4 bg-surface-100 text-surface-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-surface-200 hover:text-primary transition-all"
+                            className="h-8 px-4 bg-surface-100 text-surface-600 text-surface-300 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-surface-200 hover:text-primary transition-all"
                           >
                             Full Screen
                           </button>
                           <button 
                             onClick={() => handleUnlinkDrawing(linked3dModelLink!.id)}
                             disabled={isLinking}
-                            className="h-8 px-4 bg-red-50 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                            className="h-8 px-4 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
                           >
                             Unlink
                           </button>
@@ -1370,7 +1343,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                     (a.category === "2d_plan" && !linked2dPlanUids.has(a.canonical_uid)) || 
                     ((a.category === "3d_model" || a.category === "sh3d") && !linked3dModel)
                   ).length > 0 && (
-                    <div className="bg-white rounded-2xl border border-surface-200 p-10 text-center shadow-sm space-y-6 shrink-0">
+                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-10 text-center shadow-sm space-y-6 shrink-0">
                       <div>
                         <p className="text-3xl mb-2">📐</p>
                         <p className="text-sm font-bold text-surface-400">Context & Models</p>
@@ -1378,11 +1351,11 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                       </div>
                       
                       <div className="max-w-sm mx-auto p-5 bg-surface-50 rounded-xl border border-surface-200 text-left space-y-4">
-                        <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-widest">Select Asset to Link</label>
+                        <label className="block text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Select Asset to Link</label>
                         <select 
                           value={selectedAssetToLink}
                           onChange={e => setSelectedAssetToLink(e.target.value)}
-                          className="w-full h-11 bg-white border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                          className="w-full h-11 bg-surface-100 border-surface-200 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
                         >
                           <option value="" disabled>Select Asset...</option>
                           {projectAssets
@@ -1397,7 +1370,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                         <button 
                           onClick={handleLinkDrawing}
                           disabled={!selectedAssetToLink || isLinking}
-                          className="w-full h-11 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
+                          className="w-full h-11 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
                         >
                           {isLinking ? "Linking..." : "Link Asset"}
                         </button>
@@ -1411,18 +1384,18 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
             {/* DEPENDENCIES TAB */}
             {activeTab === "dependencies" && (
               <div className="max-w-4xl space-y-6">
-                <div className="bg-white p-6 rounded-2xl border border-surface-200 shadow-sm">
+                <div className="bg-surface-100 border-surface-200 p-6 rounded-2xl border border-surface-200 shadow-sm">
                   <h3 className="text-xl font-bold text-primary mb-2">Task Dependencies</h3>
-                  <p className="text-xs text-surface-500 font-medium mb-6">
+                  <p className="text-xs text-surface-500 text-surface-400 font-medium mb-6">
                     Select tasks that must be completed before this task can begin. The backend will automatically detect and prevent cyclic dependencies.
                   </p>
                   
                   <div className="space-y-4">
-                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest block mb-2">Predecessor Tasks</label>
+                    <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest block mb-2">Predecessor Tasks</label>
                     
                     <div className="flex flex-col gap-2 max-h-96 overflow-y-auto border border-surface-200 rounded-xl p-2 bg-surface-50">
                       {projectTasks.filter(t => t.uid !== task.uid).map(pt => (
-                        <label key={pt.uid} className="flex items-center gap-3 p-3 bg-white border border-surface-100 rounded-lg cursor-pointer hover:border-accent transition-colors">
+                        <label key={pt.uid} className="flex items-center gap-3 p-3 bg-surface-100 border-surface-200 border border-surface-100 rounded-lg cursor-pointer hover:border-accent transition-colors">
                           <input 
                             type="checkbox" 
                             checked={selectedDependencyUids.includes(pt.uid)}
@@ -1440,15 +1413,15 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                             <p className="text-[10px] text-surface-400 font-mono mt-0.5">{pt.task_code || pt.uid.slice(0,8)}</p>
                           </div>
                           <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border ${
-                            pt.status === "DONE" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
-                            "bg-surface-100 text-surface-500 border-surface-200"
+                            pt.status === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30" :
+                            "bg-surface-100 text-surface-500 text-surface-400 border-surface-200"
                           }`}>
                             {pt.status}
                           </span>
                         </label>
                       ))}
                       {projectTasks.length <= 1 && (
-                        <div className="p-4 text-center text-surface-500 text-xs font-medium">
+                        <div className="p-4 text-center text-surface-500 text-surface-400 text-xs font-medium">
                           No other tasks available in this project to link.
                         </div>
                       )}
@@ -1458,7 +1431,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                       <button
                         onClick={handleSaveDependencies}
                         disabled={isSavingDependencies}
-                        className="h-11 px-6 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md disabled:opacity-50"
+                        className="h-11 px-6 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md disabled:opacity-50"
                       >
                         {isSavingDependencies ? "Saving..." : "Save Dependencies"}
                       </button>
@@ -1466,11 +1439,6 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* COMMENTS TAB */}
-            {activeTab === "comments" && (
-              <TaskCommentsTab taskUid={task.uid} />
             )}
 
             {/* PHOTOS TAB */}
@@ -1481,7 +1449,7 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
       
       {/* Full Screen Drawing Modal Overlay */}
       {fullScreenDrawingId && (
@@ -1495,10 +1463,10 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
       {/* Full Screen 3D Model Modal Overlay */}
       {isFullScreen3D && linked3dModel && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-6xl h-[80vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl relative">
+          <div className="bg-surface-100 border-surface-200 w-full max-w-6xl h-[80vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl relative">
             <button 
               onClick={() => setIsFullScreen3D(false)}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/50 hover:bg-white rounded-full flex items-center justify-center text-lg shadow-sm transition-colors text-surface-900 font-bold"
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-surface-100 border-surface-200/50 hover:bg-surface-100 border-surface-200 rounded-full flex items-center justify-center text-lg shadow-sm transition-colors text-surface-900 font-bold"
             >
               ✕
             </button>
@@ -1518,25 +1486,25 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
       {/* Checklist Proof Modal */}
       {checklistProofModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl flex flex-col overflow-hidden shadow-2xl relative p-6 space-y-6">
+          <div className="bg-surface-100 border-surface-200 w-full max-w-md rounded-2xl flex flex-col overflow-hidden shadow-2xl relative p-6 space-y-6">
             <h3 className="text-xl font-bold text-primary tracking-tight">Visual Proof Required</h3>
-            <p className="text-sm text-surface-600 leading-relaxed">
+            <p className="text-sm text-surface-600 text-surface-300 leading-relaxed">
               To verify <strong className="text-primary">"{checklistProofModal.title}"</strong>, please upload photo evidence of the completed work.
             </p>
             <div>
-              <input type="file" ref={checklistPhotoRef} accept="image/*" multiple className="w-full text-sm font-bold text-surface-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-100 file:text-primary hover:file:bg-surface-200" />
+              <input type="file" ref={checklistPhotoRef} accept="image/*" multiple className="w-full text-sm font-bold text-surface-500 text-surface-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-100 file:text-primary hover:file:bg-surface-200" />
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button 
                 onClick={() => setChecklistProofModal(null)}
-                className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest text-surface-500 hover:bg-surface-100 transition-colors"
+                className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest text-surface-500 text-surface-400 hover:bg-surface-100 transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleConfirmChecklistProof}
                 disabled={isUpdating}
-                className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest bg-accent text-white shadow-lg shadow-accent/20 hover:bg-primary transition-all disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+                className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest bg-accent text-background shadow-lg shadow-accent/20 hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center min-w-[120px]"
               >
                 {isUpdating ? "Verifying..." : "Verify & Complete"}
               </button>
@@ -1552,6 +1520,6 @@ export const TaskExecutionModal: React.FC<TaskExecutionModalProps> = ({
           onClose={() => setLightboxImageUrl(null)} 
         />
       )}
-    </div>
+      </>
   );
 };

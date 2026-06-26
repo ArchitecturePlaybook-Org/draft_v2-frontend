@@ -6,6 +6,7 @@ import { Bot, X, Send, Sparkles, AlertCircle, TrendingUp, Hammer, ClipboardCheck
 import { fetchFromBff } from "@/shared/api/fetchFromBff";
 import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
+import { useProjectStore } from "@/store/project-store";
 
 // A simple hook for a typewriter effect
 function useTypewriter(text: string, speed: number = 10) {
@@ -62,8 +63,18 @@ export function AnalystBot() {
 
   const params = useParams();
   const projectUid = params.id as string | undefined;
+  
+  const { project, activeTask, isSidePanelOpen } = useProjectStore();
 
-  const chips = projectUid ? PROJECT_CHIPS : GLOBAL_CHIPS;
+  let chips = projectUid ? [...PROJECT_CHIPS] : [...GLOBAL_CHIPS];
+  
+  if (isSidePanelOpen && activeTask) {
+    chips = [
+      { id: "task_safety_checklist", label: `Safety Risks for ${activeTask.task_code || 'Task'}`, icon: <AlertCircle size={14} /> },
+      { id: "task_dependencies", label: "Analyze Dependencies", icon: <Hammer size={14} /> },
+      ...chips
+    ];
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -89,6 +100,9 @@ export function AnalystBot() {
       // 3. Fetch from API
       let url = `/api/v1/core/analytics-bot/?intent=${chipId}`;
       if (projectUid) url += `&project_uid=${projectUid}`;
+      if (isSidePanelOpen && activeTask) {
+        url += `&task_uid=${activeTask.uid}`;
+      }
 
       const res = await fetchFromBff<any>(url);
       
@@ -123,30 +137,30 @@ export function AnalystBot() {
 
       {/* Chat Window */}
       <div
-        className={`fixed bottom-6 right-6 w-[400px] h-[600px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-32px)] bg-white rounded-2xl shadow-2xl border border-surface-200 flex flex-col z-50 overflow-hidden transition-all duration-300 origin-bottom-right ${
+        className={`fixed bottom-6 right-6 w-[400px] h-[600px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-32px)] bg-white/80 dark:bg-[#09090b]/70 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] border border-surface-200 dark:border-white/10 flex flex-col z-50 overflow-hidden transition-all duration-300 origin-bottom-right ${
           isOpen ? "scale-100 opacity-100 pointer-events-auto" : "scale-50 opacity-0 pointer-events-none"
         }`}
       >
         {/* Header */}
-        <div className="h-16 bg-gradient-to-r from-surface-900 to-primary flex items-center justify-between px-4 text-white shrink-0">
+        <div className="h-16 bg-transparent border-b border-surface-200 dark:border-white/10 flex items-center justify-between px-4 text-primary dark:text-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-surface-200 dark:bg-white/10 flex items-center justify-center">
               <Bot size={18} className="text-accent" />
             </div>
             <div>
               <h3 className="font-bold text-sm tracking-wide">Analyst Assistant</h3>
-              <p className="text-[10px] text-white/50 uppercase tracking-widest">
-                {projectUid ? "Project Context Active" : "Global Context Active"}
+              <p className="text-[10px] text-surface-500 dark:text-white/50 uppercase tracking-widest truncate max-w-[200px]">
+                {isSidePanelOpen && activeTask ? `Task Context: ${activeTask.title}` : projectUid ? `Project Context: ${(project as any)?.title || 'Active'}` : "Global Context Active"}
               </p>
             </div>
           </div>
-          <button onClick={() => setIsOpen(false)} className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
+          <button onClick={() => setIsOpen(false)} className="w-8 h-8 rounded-full hover:bg-surface-200 dark:hover:bg-white/10 flex items-center justify-center transition-colors">
             <X size={18} />
           </button>
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-50">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent">
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
@@ -154,7 +168,7 @@ export function AnalystBot() {
         </div>
 
         {/* Input Area (Chips) */}
-        <div className="p-4 bg-white border-t border-surface-200 shrink-0">
+        <div className="p-4 bg-transparent border-t border-surface-200 dark:border-white/10 shrink-0">
           <p className="text-[10px] uppercase font-bold text-surface-400 tracking-widest mb-3 px-1">
             Suggested Queries
           </p>
@@ -163,7 +177,7 @@ export function AnalystBot() {
               <button
                 key={chip.id}
                 onClick={() => handleChipClick(chip.id, chip.label)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-100 hover:bg-primary hover:text-white text-surface-700 text-xs rounded-full transition-colors border border-surface-200 shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-surface-300 border-surface-200 hover:border-accent dark:hover:border-accent text-surface-700 text-surface-300 hover:text-accent dark:hover:text-accent text-xs rounded-full transition-colors shadow-sm"
               >
                 {chip.icon}
                 {chip.label}
@@ -187,8 +201,8 @@ function MessageBubble({ message }: { message: Message }) {
       <div
         className={`max-w-[85%] rounded-2xl p-3 text-sm ${
           isBot
-            ? "bg-white border border-surface-200 text-surface-800 shadow-sm rounded-tl-sm"
-            : "bg-primary text-white shadow-md rounded-tr-sm"
+            ? "bg-surface-100 border border-surface-200 text-surface-800 shadow-sm rounded-tl-sm"
+            : "bg-accent text-background shadow-md rounded-tr-sm"
         }`}
       >
         {message.isTyping ? (

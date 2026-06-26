@@ -295,6 +295,12 @@ export const projectsApi = {
     return fetchFromBff<void>(`/api/v1/projects/time-logs/${logId}/`, { method: "DELETE" });
   },
 
+  // ── Field Diary ───────────────────────────────────────────────────────────
+  getDiaryEntries: async (projectUid: string) => {
+    const res = await fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectUid}`, { method: "GET" });
+    return Array.isArray(res) ? res : (res as any).results || [];
+  },
+
   // ── Issues ────────────────────────────────────────────────────────────────
   getPunchListItems: async (projectUid: string) => {
     const res = await fetchFromBff<any>(`/api/v1/projects/punch-list-items/?project_uid=${projectUid}`, { method: "GET" });

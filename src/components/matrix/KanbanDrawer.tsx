@@ -6,7 +6,7 @@ import {
 } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { TaskItem } from "../projects/TaskItem";
-import { TaskExecutionModal } from "../projects/TaskExecutionModal";
+import { TaskExecutionSidePanel } from "../projects/TaskExecutionSidePanel";
 import { toast } from "sonner";
 
 interface KanbanDrawerProps {
@@ -21,10 +21,10 @@ interface KanbanDrawerProps {
 }
 
 const COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
-  { id: "TODO", label: "To Do", color: "bg-surface-100 border-surface-200", dotColor: "bg-surface-400" },
-  { id: "WIP", label: "In Progress", color: "bg-blue-50 border-blue-100", dotColor: "bg-accent" },
-  { id: "QA", label: "Under Inspection", color: "bg-amber-50 border-amber-100", dotColor: "bg-amber-400" },
-  { id: "DONE", label: "Done", color: "bg-emerald-50 border-emerald-100", dotColor: "bg-emerald-500" },
+  { id: "TODO", label: "To Do", color: "border-t-[3px] border-surface-300 bg-transparent", dotColor: "bg-surface-300" },
+  { id: "WIP", label: "In Progress", color: "border-t-[3px] border-semantic-blue bg-transparent", dotColor: "bg-semantic-blue" },
+  { id: "QA", label: "Under Inspection", color: "border-t-[3px] border-accent bg-transparent", dotColor: "bg-accent" },
+  { id: "DONE", label: "Done", color: "border-t-[3px] border-semantic-green bg-transparent", dotColor: "bg-semantic-green" },
 ];
 
 const getUpdatedBlock = (currentBlock: MilestoneBlockExpanded, updatedTasks: Task[]): MilestoneBlockExpanded => {
@@ -223,21 +223,18 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   return (
     <>
       {/* Backdrop */}
-      <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-30 transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+      <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 transition-opacity"
         onClick={onClose}
       />
 
       {/* Drawer Panel */}
       <div className={`
-        fixed right-0 top-0 bottom-0 z-40 w-full max-w-5xl
-        bg-white shadow-2xl border-l border-surface-200
-        flex flex-col overflow-hidden
-        transition-transform duration-300 ease-out
+        fixed top-0 right-0 h-screen w-full max-w-4xl bg-background border-l border-surface-200 shadow-premium z-50 flex flex-col transform transition-transform duration-300 ease-out
         ${isOpen ? "translate-x-0" : "translate-x-full"}
       `}>
         {/* Drawer Header */}
-        <div className="flex items-center justify-between px-7 py-5 border-b border-surface-100 bg-surface-50 shrink-0">
+        <div className="flex items-center justify-between px-7 py-5 border-b border-surface-100 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50 shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span
@@ -256,10 +253,10 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                 {block.status}
               </span>
             </div>
-            <h2 className="text-xl font-extrabold text-primary tracking-tight">
+            <h2 className="text-xl font-extrabold text-primary dark:text-white tracking-tight">
               {zone.name} — Kanban Board
             </h2>
-            <p className="text-xs text-surface-400 font-medium mt-0.5">
+            <p className="text-xs text-surface-400 dark:text-surface-500 font-medium mt-0.5">
               {tasks.length} tasks · {block.completed_tasks}/{block.total_tasks} done
             </p>
           </div>
@@ -267,7 +264,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             <select
               value={priorityFilter || ""}
               onChange={(e) => setPriorityFilter(e.target.value || null)}
-              className="h-9 px-3 bg-surface-100 border border-transparent hover:border-surface-200 rounded-xl outline-none focus:border-accent text-[10px] font-bold uppercase tracking-widest text-surface-500 transition-colors"
+              className="h-9 px-3 bg-surface-100 dark:bg-surface-800 border border-transparent hover:border-surface-200 dark:hover:border-surface-700 rounded-xl outline-none focus:border-accent text-[10px] font-bold uppercase tracking-widest text-surface-500 text-surface-400 transition-colors"
             >
               <option value="">All Priorities</option>
               <option value="HIGH">High Priority</option>
@@ -277,14 +274,14 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             {userRole === "admin" && (
               <button
                 onClick={() => setIsAddingTask(true)}
-                className="h-9 px-4 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all"
+                className="h-9 px-4 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all"
               >
                 + Add Task
               </button>
             )}
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-surface-100 hover:bg-red-500 hover:text-white text-surface-500 flex items-center justify-center transition-all font-bold"
+              className="w-9 h-9 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-red-500 hover:text-white text-surface-500 text-surface-400 flex items-center justify-center transition-all font-bold"
             >
               ✕
             </button>
@@ -292,9 +289,9 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         </div>
 
         {/* Block Notes */}
-        <div className="px-7 py-3 border-b border-surface-100 bg-white shrink-0">
+        <div className="px-7 py-3 border-b border-surface-100 dark:border-surface-800 bg-surface-100 bg-background shrink-0">
           <textarea
-            className="w-full text-xs text-surface-600 bg-surface-50 hover:bg-white border border-transparent hover:border-surface-200 focus:border-accent focus:bg-white rounded-lg p-3 outline-none resize-none transition-all placeholder:text-surface-300 font-medium"
+            className="w-full text-xs text-surface-600 text-surface-300 bg-surface-50 dark:bg-surface-800 hover:bg-surface-100 dark:hover:bg-surface-900 border border-transparent hover:border-surface-200 dark:hover:border-surface-700 focus:border-accent focus:bg-surface-100 dark:focus:bg-surface-900 rounded-lg p-3 outline-none resize-none transition-all placeholder:text-surface-300 dark:placeholder:text-surface-600 font-medium"
             rows={2}
             placeholder="Add notes for this block... (e.g. key blockers, handover instructions)"
             defaultValue={block.notes || ""}
@@ -314,11 +311,11 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
 
         {/* Locked banner */}
         {isLocked && (
-          <div className="px-7 py-3 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
+          <div className="px-7 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/30 flex items-center gap-2">
             <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <p className="text-xs font-bold text-amber-700">
+            <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
               This block is <strong>Locked</strong> — complete the previous milestone phase first to unlock.
             </p>
           </div>
@@ -337,12 +334,12 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                 if (e.key === "Escape") setIsAddingTask(false);
               }}
               placeholder="New task title..."
-              className="flex-1 h-10 bg-white border border-surface-200 rounded-xl px-4 outline-none focus:border-accent text-sm font-bold text-primary"
+              className="flex-1 h-10 bg-surface-100 bg-background border border-surface-200 border-surface-200 rounded-xl px-4 outline-none focus:border-accent text-sm font-bold text-primary dark:text-white"
             />
-            <button onClick={handleAddTask} className="h-10 px-5 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all">
+            <button onClick={handleAddTask} className="h-10 px-5 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all">
               Add
             </button>
-            <button onClick={() => { setIsAddingTask(false); setNewTaskTitle(""); }} className="h-10 px-4 text-surface-500 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-100 transition-all">
+            <button onClick={() => { setIsAddingTask(false); setNewTaskTitle(""); }} className="h-10 px-4 text-surface-500 text-surface-400 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-all">
               Cancel
             </button>
           </div>
@@ -363,9 +360,9 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                   onDrop={e => handleDrop(e, col.id)}
                   className={`
                     flex flex-col flex-1 min-w-[180px] max-w-[260px]
-                    border-2 rounded-2xl transition-all duration-150
+                    rounded-t-sm transition-all duration-150
                     ${isDragTarget
-                      ? "border-accent bg-accent/5 shadow-lg scale-[1.01]"
+                      ? "border-semantic-blue bg-surface-100/50 scale-[1.01]"
                       : `${col.color} ${isLocked ? "opacity-60" : ""}`
                     }
                   `}
@@ -374,9 +371,9 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                   <div className="flex items-center justify-between px-4 py-3 shrink-0">
                     <div className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">{col.label}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">{col.label}</span>
                     </div>
-                    <span className="text-[10px] font-black tabular-nums bg-white px-2 py-0.5 rounded-full border border-surface-200 text-surface-600">
+                    <span className="text-[10px] font-black tabular-nums bg-surface-100 px-2 py-0.5 rounded-full border border-surface-200 text-text-secondary">
                       {colTasks.length}
                     </span>
                   </div>
@@ -399,10 +396,10 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                         transition-all duration-150
                         ${isDragTarget
                           ? "border-accent bg-accent/10"
-                          : "border-surface-200/60"
+                          : "border-surface-200/60 border-surface-200/60"
                         }
                       `}>
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-surface-300">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-surface-300 dark:text-surface-600">
                           {isDragTarget ? "Drop here" : "Empty"}
                         </span>
                       </div>
@@ -415,12 +412,12 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         </div>
 
         {/* Summary footer */}
-        <div className="px-7 py-3 border-t border-surface-100 bg-surface-50 shrink-0 flex items-center gap-6">
+        <div className="px-7 py-3 border-t border-surface-100 dark:border-surface-800 bg-surface-50 bg-background shrink-0 flex items-center gap-6">
           {COLUMNS.map(col => (
             <div key={col.id} className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
-              <span className="text-[9px] font-bold text-surface-500">{col.label}</span>
-              <span className="text-[9px] font-black tabular-nums text-primary">{tasksByStatus(col.id).length}</span>
+              <span className="text-[9px] font-bold text-surface-500 text-surface-400">{col.label}</span>
+              <span className="text-[9px] font-black tabular-nums text-primary dark:text-white">{tasksByStatus(col.id).length}</span>
             </div>
           ))}
           <div className="ml-auto">
@@ -430,7 +427,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       </div>
 
       {selectedTask && (
-        <TaskExecutionModal
+        <TaskExecutionSidePanel
           task={selectedTask}
           projectId={0}
           projectUid={projectUid || ""}

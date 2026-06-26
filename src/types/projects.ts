@@ -100,6 +100,7 @@ export interface Task {
   uid: string;
   task_code?: string;
   project: string;
+  project_uid?: string;
   title: string;
   description: string;
   cost: string;

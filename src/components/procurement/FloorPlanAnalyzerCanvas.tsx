@@ -1106,7 +1106,7 @@ export function FloorPlanAnalyzerCanvas({
             </TransformComponent>
 
             {/* Always-on Toolbar (Zoom & Panning & Draw tools) */}
-            <div className="absolute top-4 right-4 flex items-center gap-2 bg-white p-2 rounded-2xl shadow-xl border border-gray-200 z-50 animate-in slide-in-from-top-4 duration-300">
+            <div className="absolute top-4 right-4 flex items-center gap-2 bg-surface-100 p-2 rounded-2xl shadow-xl border border-gray-200 z-50 animate-in slide-in-from-top-4 duration-300">
               
               <button onClick={() => zoomIn()} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500 transition-all" title="Zoom In"><ZoomIn className="w-5 h-5"/></button>
               <button onClick={() => zoomOut()} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500 transition-all" title="Zoom Out"><ZoomOut className="w-5 h-5"/></button>
@@ -1204,7 +1204,7 @@ export function FloorPlanAnalyzerCanvas({
              </button>
            )
         ) : (
-          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-2xl w-80 animate-in slide-in-from-top-4 duration-300">
+          <div className="bg-surface-100 border border-gray-200 p-5 rounded-2xl shadow-2xl w-80 animate-in slide-in-from-top-4 duration-300">
             {existingScale && !forceRecalibrate ? (
               <>
                 <div className="flex items-center gap-2 text-gray-900 mb-3">

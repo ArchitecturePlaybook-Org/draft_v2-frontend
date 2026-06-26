@@ -54,7 +54,7 @@ export function TaskAccessRequestsList({ projectId }: { projectId: string }) {
   };
 
   if (loading) {
-    return <div className="text-sm text-surface-500 py-4">Loading pending requests...</div>;
+    return <div className="text-sm text-surface-500 text-surface-400 py-4">Loading pending requests...</div>;
   }
 
   if (requests.length === 0) {
@@ -62,17 +62,17 @@ export function TaskAccessRequestsList({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-amber-200 p-6 shadow-sm mt-6">
+    <div className="bg-surface-100 border-surface-200 rounded-lg border border-amber-200 dark:border-amber-800/30 p-6 shadow-sm mt-6">
       <h3 className="text-lg font-semibold text-amber-800 mb-2 flex items-center gap-2">
         <Clock className="w-5 h-5" /> Pending Task Access Requests
       </h3>
-      <p className="text-sm text-surface-500 mb-6">
+      <p className="text-sm text-surface-500 text-surface-400 mb-6">
         External users have requested access to specific tasks. Approving will allow them to view and edit the task.
       </p>
 
       <div className="space-y-3">
         {requests.map(req => (
-          <div key={req.id} className="flex items-center justify-between p-4 rounded-md border border-amber-100 bg-amber-50 shadow-sm">
+          <div key={req.id} className="flex items-center justify-between p-4 rounded-md border border-amber-100 bg-amber-50 dark:bg-amber-900/20 shadow-sm">
             <div className="flex-1 min-w-0 pr-4">
               <div className="text-sm font-bold text-neutral-800 mb-1">
                 {req.user?.name || req.user?.email} <span className="font-normal text-neutral-500">requests access to</span> {req.task_title}
@@ -90,7 +90,7 @@ export function TaskAccessRequestsList({ projectId }: { projectId: string }) {
               </button>
               <button 
                 onClick={() => handleReject(req.id)}
-                className="flex items-center gap-1 h-8 px-3 bg-surface-200 text-surface-600 font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                className="flex items-center gap-1 h-8 px-3 bg-surface-200 text-surface-600 text-surface-300 font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all"
               >
                 <X className="w-3 h-3" /> Deny
               </button>

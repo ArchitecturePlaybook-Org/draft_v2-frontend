@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useCommandPaletteStore } from "@/store/command-palette-store";
+import { useQuery } from "@tanstack/react-query";
 
 interface SearchResult {
   type: "project" | "task" | "zone" | "system";
@@ -17,8 +18,7 @@ export function CommandPalette() {
   const router = useRouter();
   const { isOpen, setIsOpen, toggle } = useCommandPaletteStore();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   
   const inputRef = useRef<HTMLInputElement>(null);
@@ -44,37 +44,33 @@ export function CommandPalette() {
   useEffect(() => {
     if (isOpen) {
       setQuery("");
-      setResults([]);
+      setDebouncedQuery("");
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
 
-  // Debounced Search
+  // Debounce query
   useEffect(() => {
-    if (!isOpen || !query.trim()) {
-      setResults([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/v1/projects/search/?q=${encodeURIComponent(query)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setResults(data);
-          setSelectedIndex(0);
-        }
-      } catch (err) {
-        console.error("Search failed:", err);
-      } finally {
-        setLoading(false);
-      }
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+      setSelectedIndex(0);
     }, 300);
-
     return () => clearTimeout(timer);
-  }, [query, isOpen]);
+  }, [query]);
+
+  // React Query for Search
+  const { data: results = [], isLoading: loading } = useQuery<SearchResult[]>({
+    queryKey: ['search', debouncedQuery],
+    queryFn: async () => {
+      if (!debouncedQuery.trim()) return [];
+      const res = await fetch(`/api/v1/projects/search/?q=${encodeURIComponent(debouncedQuery)}`);
+      if (!res.ok) throw new Error("Search failed");
+      return res.json();
+    },
+    enabled: isOpen && !!debouncedQuery.trim(),
+    staleTime: 1000 * 60 * 5, // Cache search results for 5 mins
+  });
 
   // Handle keyboard navigation within results
   useEffect(() => {

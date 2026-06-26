@@ -117,16 +117,16 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
     return (
       <div className="w-full h-64 flex flex-col items-center justify-center border-2 border-dashed border-surface-200 rounded-2xl bg-surface-50">
          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-         <p className="text-surface-500 font-bold">Loading Today's Field Diary...</p>
+         <p className="text-surface-500 text-surface-400 font-bold">Loading Today's Field Diary...</p>
       </div>
     );
   }
 
   if (!todayEntry) {
     return (
-      <div className="w-full h-64 flex flex-col items-center justify-center border-2 border-dashed border-red-200 rounded-2xl bg-red-50 text-red-500">
+      <div className="w-full h-64 flex flex-col items-center justify-center border-2 border-dashed border-red-200 dark:border-red-800/30 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-500">
          <p className="font-bold">Failed to load or create today's diary.</p>
-         <button onClick={fetchOrCreateTodayEntry} className="mt-4 px-4 py-2 bg-white rounded-lg border border-red-200 font-bold hover:bg-red-100">
+         <button onClick={fetchOrCreateTodayEntry} className="mt-4 px-4 py-2 bg-surface-100 border-surface-200 rounded-lg border border-red-200 dark:border-red-800/30 font-bold hover:bg-red-100">
            Retry
          </button>
       </div>
@@ -186,7 +186,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
              </Button>
            </div>
          ) : (
-           <div className="bg-white/50 p-3 rounded-lg border border-indigo-100 text-sm text-indigo-800 font-medium flex items-center gap-2">
+           <div className="bg-surface-100 border-surface-200/50 p-3 rounded-lg border border-indigo-100 text-sm text-indigo-800 font-medium flex items-center gap-2">
              <CheckCircle2 className="w-4 h-4 text-green-600" />
              Today's diary is signed and locked. You cannot log more progress today.
            </div>
@@ -194,14 +194,12 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
        </div>
 
        {/* Full Site Diary Below */}
-       <div className="relative min-h-[600px]">
-         <div className="absolute inset-0">
-           <DiaryEntryDetail 
-             entry={todayEntry} 
-             projectId={projectUid} 
-             onUpdate={handleUpdate} 
-           />
-         </div>
+       <div className="w-full">
+         <DiaryEntryDetail 
+           entry={todayEntry} 
+           projectId={projectUid} 
+           onUpdate={handleUpdate} 
+         />
        </div>
     </div>
   );

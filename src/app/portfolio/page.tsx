@@ -56,25 +56,26 @@ export default function PublicPortfoliosPage() {
 
 
   return (
-    <div className="min-h-screen bg-surface-50 pt-32 pb-20 px-6">
-      <div className="max-w-[1400px] mx-auto space-y-12">
+    <div className="min-h-screen bg-surface-50 pt-32 pb-20 px-6 relative overflow-hidden">
+      <div className="absolute inset-0 arch-grid opacity-[0.03] pointer-events-none" />
+      <div className="max-w-[1400px] mx-auto space-y-12 relative z-10">
         {/* Header Section */}
-        <div className="max-w-3xl space-y-6">
+        <div className="max-w-3xl space-y-6 animate-in slide-in-from-bottom-4 duration-700">
           <h1 className="text-5xl font-bold text-primary tracking-tight leading-tight">
-            Discover Exceptional <span className="text-accent italic">Architectural Talent</span>
+            Discover Exceptional <span className="bg-gradient-to-r from-accent to-accent/60 bg-clip-text text-transparent italic">Architectural Talent</span>
           </h1>
-          <p className="text-lg text-surface-500 leading-relaxed">
+          <p className="text-lg text-surface-500 leading-relaxed font-medium">
             Browse through a curated collection of professional portfolios. Filter by expertise, location, and project type to find the perfect partner for your next endeavor.
           </p>
         </div>
 
         {/* Search & Filter Bar */}
-        <div className="bg-white p-4 rounded-3xl border border-surface-200 shadow-xl shadow-primary/5 flex flex-col md:flex-row gap-4 items-center">
+        <div className="bg-surface-100/40 backdrop-blur-2xl p-4 rounded-3xl border border-surface-200/50 shadow-xl shadow-primary/5 flex flex-col md:flex-row gap-4 items-center focus-within:shadow-[0_0_30px_rgba(255,186,8,0.15)] transition-shadow duration-500 animate-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-both">
           <form onSubmit={handleSearch} className="flex-1 w-full relative">
             <input 
               type="text" 
               placeholder="Search projects, names, or keywords..."
-              className="w-full h-14 pl-14 pr-6 bg-surface-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-accent/20 transition-all text-primary font-medium"
+              className="w-full h-14 pl-14 pr-6 bg-surface-50/50 backdrop-blur-sm border border-transparent rounded-2xl outline-none focus:bg-surface-50 focus:border-accent/30 focus:ring-4 focus:ring-accent/10 transition-all text-primary font-bold placeholder:font-medium placeholder:text-surface-400"
               value={filters.q}
               onChange={(e) => setFilters({...filters, q: e.target.value})}
             />
@@ -83,11 +84,12 @@ export default function PublicPortfoliosPage() {
             </svg>
           </form>
 
-          <div className="flex w-full md:w-auto gap-4">
+          <div className="flex w-full md:w-auto gap-3">
             <select 
-              className="h-14 px-6 bg-surface-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-accent/20 text-sm font-bold text-primary uppercase tracking-widest cursor-pointer"
+              className="h-14 px-6 bg-surface-50/50 backdrop-blur-sm border border-transparent rounded-2xl outline-none focus:bg-surface-50 focus:border-accent/30 focus:ring-4 focus:ring-accent/10 transition-all text-[11px] font-bold text-primary uppercase tracking-widest cursor-pointer appearance-none pr-10 relative"
               value={filters.category}
               onChange={(e) => setFilters({...filters, category: e.target.value})}
+              style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%23A1A1AA"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
             >
               {CATEGORIES.map(cat => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -95,9 +97,10 @@ export default function PublicPortfoliosPage() {
             </select>
 
             <select 
-              className="h-14 px-6 bg-surface-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-accent/20 text-sm font-bold text-primary uppercase tracking-widest cursor-pointer"
+              className="h-14 px-6 bg-surface-50/50 backdrop-blur-sm border border-transparent rounded-2xl outline-none focus:bg-surface-50 focus:border-accent/30 focus:ring-4 focus:ring-accent/10 transition-all text-[11px] font-bold text-primary uppercase tracking-widest cursor-pointer appearance-none pr-10 relative"
               value={filters.sort}
               onChange={(e) => setFilters({...filters, sort: e.target.value})}
+              style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%23A1A1AA"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
             >
               <option value="recent">Most Recent</option>
               <option value="popular">Most Popular</option>
@@ -106,7 +109,7 @@ export default function PublicPortfoliosPage() {
             <input 
               type="text" 
               placeholder="City"
-              className="h-14 px-6 bg-surface-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-accent/20 text-sm font-bold text-primary uppercase tracking-widest w-32"
+              className="h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-transparent rounded-2xl outline-none focus:bg-surface-50 focus:border-accent/30 focus:ring-4 focus:ring-accent/10 transition-all text-[11px] font-bold text-primary uppercase tracking-widest w-28 placeholder:text-surface-400"
               value={filters.city}
               onChange={(e) => setFilters({...filters, city: e.target.value})}
             />
@@ -114,14 +117,14 @@ export default function PublicPortfoliosPage() {
             <input 
               type="text" 
               placeholder="Country"
-              className="h-14 px-6 bg-surface-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-accent/20 text-sm font-bold text-primary uppercase tracking-widest w-32"
+              className="h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-transparent rounded-2xl outline-none focus:bg-surface-50 focus:border-accent/30 focus:ring-4 focus:ring-accent/10 transition-all text-[11px] font-bold text-primary uppercase tracking-widest w-32 placeholder:text-surface-400"
               value={filters.country}
               onChange={(e) => setFilters({...filters, country: e.target.value})}
             />
 
             <button 
               onClick={handleSearch}
-              className="h-14 px-8 bg-primary text-white rounded-2xl font-bold uppercase text-[11px] tracking-[0.2em] hover:bg-accent transition-all shadow-lg shadow-primary/20"
+              className="h-14 px-8 bg-accent text-background rounded-2xl font-bold uppercase text-[11px] tracking-[0.2em] hover:bg-accent transition-all shadow-lg shadow-primary/20"
             >
               Search
             </button>
@@ -132,7 +135,7 @@ export default function PublicPortfoliosPage() {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} className="aspect-[16/12] bg-white rounded-3xl border border-surface-100 animate-pulse" />
+              <div key={i} className="aspect-[16/12] bg-surface-100 rounded-3xl border border-surface-100 animate-pulse" />
             ))}
           </div>
         ) : items.length > 0 ? (
@@ -149,7 +152,7 @@ export default function PublicPortfoliosPage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-surface-50 text-surface-500 hover:bg-primary hover:text-white disabled:opacity-50 disabled:hover:bg-surface-50 disabled:hover:text-surface-500 transition-all"
+                  className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-surface-50 text-surface-500 hover:opacity-90 hover:text-white disabled:opacity-50 disabled:hover:bg-surface-50 disabled:hover:text-surface-500 transition-all"
                 >
                   Previous
                 </button>
@@ -159,7 +162,7 @@ export default function PublicPortfoliosPage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-surface-50 text-surface-500 hover:bg-primary hover:text-white disabled:opacity-50 disabled:hover:bg-surface-50 disabled:hover:text-surface-500 transition-all"
+                  className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-surface-50 text-surface-500 hover:opacity-90 hover:text-white disabled:opacity-50 disabled:hover:bg-surface-50 disabled:hover:text-surface-500 transition-all"
                 >
                   Next
                 </button>

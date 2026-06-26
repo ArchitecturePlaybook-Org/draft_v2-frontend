@@ -34,9 +34,9 @@ export const ChecklistManager: React.FC<ChecklistManagerProps> = ({ projectUid }
 
   if (checklists.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-surface-200 p-20 text-center shadow-sm mt-6">
+      <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-20 text-center shadow-sm mt-6">
         <p className="text-4xl mb-4 opacity-50">📋</p>
-        <p className="text-sm font-bold text-surface-500">No checklists found in this project.</p>
+        <p className="text-sm font-bold text-surface-500 text-surface-400">No checklists found in this project.</p>
         <p className="text-xs text-surface-400 mt-2">Add checklists within individual tasks.</p>
       </div>
     );
@@ -54,13 +54,13 @@ export const ChecklistManager: React.FC<ChecklistManagerProps> = ({ projectUid }
 
   return (
     <div className="space-y-6 mt-6 animate-fade-in">
-      <div className="bg-white rounded-2xl border border-surface-200 overflow-hidden shadow-sm p-6">
+      <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 overflow-hidden shadow-sm p-6">
         <h2 className="text-xl font-extrabold text-primary mb-6">Master Checklists</h2>
         
         <div className="space-y-8">
           {(Object.entries(groupedByTask) as [string, any[]][]).map(([taskTitle, items]) => (
             <div key={taskTitle} className="space-y-4">
-              <h3 className="text-sm font-bold text-surface-500 uppercase tracking-widest border-b border-surface-100 pb-2">
+              <h3 className="text-sm font-bold text-surface-500 text-surface-400 uppercase tracking-widest border-b border-surface-100 pb-2">
                 Task: {taskTitle}
               </h3>
               
@@ -73,7 +73,7 @@ export const ChecklistManager: React.FC<ChecklistManagerProps> = ({ projectUid }
                           {item.is_completed ? '✓' : ''}
                         </div>
                         <div>
-                          <p className={`text-sm font-bold ${item.is_completed ? 'text-surface-500 line-through' : 'text-primary'}`}>
+                          <p className={`text-sm font-bold ${item.is_completed ? 'text-surface-500 text-surface-400 line-through' : 'text-primary'}`}>
                             {item.title || item.description}
                           </p>
                           <div className="flex gap-2 items-center mt-1">
@@ -88,7 +88,7 @@ export const ChecklistManager: React.FC<ChecklistManagerProps> = ({ projectUid }
                       </div>
                       
                       {!item.is_completed && (
-                        <span className="px-2 py-1 rounded bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest">
+                        <span className="px-2 py-1 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-600 text-[9px] font-black uppercase tracking-widest">
                           Pending
                         </span>
                       )}

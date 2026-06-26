@@ -109,7 +109,7 @@ export default function NCRManager({ projectUid }: NCRManagerProps) {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm"
+          className="bg-accent text-background px-4 py-2 rounded-lg font-medium hover:opacity-90/90 transition-colors shadow-sm"
         >
           + Raise NCR
         </button>
@@ -126,7 +126,7 @@ export default function NCRManager({ projectUid }: NCRManagerProps) {
           <p className="text-surface-500">The project currently has no non-conformance reports.</p>
         </div>
       ) : (
-        <div className="bg-white border border-surface-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-surface-100 border border-surface-200 rounded-xl overflow-hidden shadow-sm">
           <table className="w-full text-left text-sm">
             <thead className="bg-surface-50 border-b border-surface-200 text-surface-500">
               <tr>
@@ -163,7 +163,7 @@ export default function NCRManager({ projectUid }: NCRManagerProps) {
       {/* Detail Modal */}
       {selectedNcr && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-y-auto max-h-[90vh] border border-surface-200 p-8 relative">
+          <div className="bg-surface-100 rounded-2xl shadow-xl w-full max-w-2xl overflow-y-auto max-h-[90vh] border border-surface-200 p-8 relative">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <div className="flex items-center gap-3 mb-2">
@@ -245,7 +245,7 @@ export default function NCRManager({ projectUid }: NCRManagerProps) {
       {/* Create Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-surface-200 p-8">
+          <div className="bg-surface-100 rounded-2xl shadow-xl w-full max-w-lg border border-surface-200 p-8">
             <h3 className="text-xl font-bold text-surface-900 mb-6">
               Raise Non-Conformance Report
             </h3>
@@ -298,7 +298,7 @@ export default function NCRManager({ projectUid }: NCRManagerProps) {
                 </button>
                 <button
                   type="submit"
-                  className="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm"
+                  className="bg-accent text-background px-6 py-2 rounded-lg font-medium hover:opacity-90/90 transition-colors shadow-sm"
                 >
                   Submit Report
                 </button>

@@ -138,7 +138,7 @@ export function CellPhotoDrawer({ asset, col, row, onClose, onPhotoUploaded }: C
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
       
       <div 
-        className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-slide-in-right"
+        className="relative w-full max-w-md bg-surface-100 border-surface-200 h-full shadow-2xl flex flex-col animate-slide-in-right"
         onClick={e => e.stopPropagation()}
         style={{ animation: 'slideRight 0.3s ease-out' }}
       >
@@ -153,11 +153,11 @@ export function CellPhotoDrawer({ asset, col, row, onClose, onPhotoUploaded }: C
           </div>
 
           {/* GPS Status */}
-          <div className={`p-4 rounded-xl border transition-all ${gpsData ? 'bg-emerald-50 border-emerald-100' : 'bg-surface-50 border-surface-200'}`}>
+          <div className={`p-4 rounded-xl border transition-all ${gpsData ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100' : 'bg-surface-50 border-surface-200'}`}>
             <div className="flex items-center gap-3">
               <div className={`w-2 h-2 rounded-full ${isCapturingGps ? 'bg-amber-400 animate-pulse' : gpsData ? 'bg-emerald-500' : 'bg-surface-300'}`} />
               <div className="flex-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-surface-500 mb-1">GPS Attestation</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-surface-500 text-surface-400 mb-1">GPS Attestation</p>
                 {isCapturingGps ? (
                   <p className="text-sm font-bold text-primary">Capturing live coordinates...</p>
                 ) : gpsData ? (
@@ -184,7 +184,7 @@ export function CellPhotoDrawer({ asset, col, row, onClose, onPhotoUploaded }: C
               placeholder="Add a caption... (e.g. Pillar crack observed)"
               value={caption}
               onChange={e => setCaption(e.target.value)}
-              className="w-full h-11 px-4 bg-white border border-surface-200 rounded-xl outline-none focus:border-accent text-sm font-medium transition-all"
+              className="w-full h-11 px-4 bg-surface-100 border-surface-200 border border-surface-200 rounded-xl outline-none focus:border-accent text-sm font-medium transition-all"
             />
             <input 
               ref={fileInputRef}
@@ -197,7 +197,7 @@ export function CellPhotoDrawer({ asset, col, row, onClose, onPhotoUploaded }: C
             <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="w-full h-12 bg-primary text-white font-black text-[11px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+              className="w-full h-12 bg-accent text-background font-black text-[11px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
             >
               {isUploading ? "Uploading to Cloud..." : "📷 Take or Pick Photo"}
             </button>
@@ -216,7 +216,7 @@ export function CellPhotoDrawer({ asset, col, row, onClose, onPhotoUploaded }: C
           ) : (
             <div className="space-y-4">
               {photos.map(photo => (
-                <div key={photo.id} className="group relative bg-white border border-surface-200 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
+                <div key={photo.id} className="group relative bg-surface-100 border-surface-200 border border-surface-200 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
                   <div className="aspect-[4/3] bg-surface-100 relative">
                     <img src={photo.image} className="w-full h-full object-cover" />
                     <button 

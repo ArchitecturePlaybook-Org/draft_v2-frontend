@@ -37,10 +37,10 @@ export const ProjectProgressBar: React.FC<ProjectProgressBarProps> = ({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 bg-white/60 backdrop-blur-md rounded-xl p-3 border border-surface-200 shadow-sm">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 bg-surface-100 border-surface-200/60 backdrop-blur-md rounded-xl p-3 border border-surface-200 shadow-sm">
       {/* Progress Bar */}
       <div className="flex-1 min-w-[200px]">
-        <div className="flex justify-between text-xs font-bold text-surface-500 mb-2">
+        <div className="flex justify-between text-xs font-bold text-surface-500 text-surface-400 mb-2">
           <span>Task Progress</span>
           <span className="text-primary">{progressPercent}%</span>
         </div>
@@ -70,14 +70,14 @@ export const ProjectProgressBar: React.FC<ProjectProgressBarProps> = ({
       {/* Overdue Alert */}
       <div className="flex items-center gap-2">
         {overdueCount > 0 ? (
-          <div className="px-2.5 py-1 bg-red-50 border border-red-100 rounded-md flex items-center gap-2">
+          <div className="px-2.5 py-1 bg-red-50 dark:bg-red-900/20 border border-red-100 rounded-md flex items-center gap-2">
             <span className="text-sm">⚠️</span>
             <span className="text-[10px] font-bold uppercase tracking-widest text-red-600">
               {overdueCount} Overdue
             </span>
           </div>
         ) : (
-          <div className="px-2.5 py-1 bg-emerald-50 border border-emerald-100 rounded-md flex items-center gap-2">
+          <div className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 rounded-md flex items-center gap-2">
             <span className="text-sm">✅</span>
             <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
               On Track

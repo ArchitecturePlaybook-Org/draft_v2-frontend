@@ -32,11 +32,76 @@ interface SketchBoardProps {
   onSave: (json: string, title: string, thumbnail?: Blob) => void;
   onClose: () => void;
   initialData?: any;
+  sketchId?: string;
 }
 
-export const SketchBoard: React.FC<SketchBoardProps> = ({ onSave, onClose, initialData }) => {
+export const SketchBoard: React.FC<SketchBoardProps> = ({ onSave, onClose, initialData, sketchId = "global-sketch" }) => {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [title, setTitle] = useState("Concept Sketch " + new Date().toLocaleDateString());
+
+  // Yjs Collaboration Refs
+  const yDocRef = React.useRef<any>(null);
+  const wsProviderRef = React.useRef<any>(null);
+  const yElementsRef = React.useRef<any>(null);
+  const isUpdatingFromYjs = React.useRef(false);
+
+  useEffect(() => {
+    if (!excalidrawAPI) return;
+    
+    let active = true;
+    Promise.all([
+      import("yjs"),
+      import("y-websocket")
+    ]).then(([Y, { WebsocketProvider }]) => {
+      if (!active) return;
+      const doc = new Y.Doc();
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+      const provider = new WebsocketProvider(wsUrl, `sketch-${sketchId}`, doc);
+      const yElements = doc.getMap('elements');
+      
+      yDocRef.current = doc;
+      wsProviderRef.current = provider;
+      yElementsRef.current = yElements;
+
+      // Handle element updates from peers
+      yElements.observe(() => {
+        if (!excalidrawAPI) return;
+        isUpdatingFromYjs.current = true;
+        
+        // Retrieve elements and sort them if necessary, but updateScene handles merge
+        const elementsArray = Array.from(yElements.values());
+        excalidrawAPI.updateScene({ elements: elementsArray });
+        
+        // Prevent echo loop
+        setTimeout(() => { isUpdatingFromYjs.current = false; }, 100);
+      });
+
+      // Handle live cursors (awareness)
+      provider.awareness.on("change", () => {
+        if (!excalidrawAPI) return;
+        const states = provider.awareness.getStates();
+        const collaborators = new Map();
+        
+        states.forEach((state: any, clientId: number) => {
+          if (clientId !== provider.awareness.clientID && state.user) {
+            collaborators.set(clientId.toString(), {
+              pointer: state.user.pointer,
+              button: state.user.button,
+              username: state.user.name || "Architect",
+              selectedElementIds: state.user.selectedElementIds,
+            });
+          }
+        });
+        excalidrawAPI.updateScene({ collaborators });
+      });
+    });
+
+    return () => {
+      active = false;
+      if (wsProviderRef.current) wsProviderRef.current.destroy();
+      if (yDocRef.current) yDocRef.current.destroy();
+    };
+  }, [excalidrawAPI, sketchId]);
 
   const handleSave = async () => {
     if (!excalidrawAPI || !serializeAsJSON) {
@@ -77,9 +142,9 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({ onSave, onClose, initi
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-white flex flex-col animate-in fade-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-[100] bg-surface-100 flex flex-col animate-in fade-in zoom-in-95 duration-300">
       {/* Sketch Header */}
-      <div className="h-16 border-b border-surface-200 flex justify-between items-center px-8 bg-white shrink-0 shadow-sm">
+      <div className="h-16 border-b border-surface-200 flex justify-between items-center px-8 bg-surface-100 shrink-0 shadow-sm">
         <div className="flex items-center gap-6">
           <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-xl">✏️</div>
           <div className="w-64">
@@ -105,6 +170,39 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({ onSave, onClose, initi
         <Excalidraw 
           excalidrawAPI={(api: any) => setExcalidrawAPI(api)}
           initialData={initialData}
+          onChange={(elements: readonly any[], appState: any) => {
+            if (isUpdatingFromYjs.current || !yElementsRef.current || !yDocRef.current) return;
+            
+            const yElements = yElementsRef.current;
+            yDocRef.current.transact(() => {
+              elements.forEach(el => {
+                const existing = yElements.get(el.id);
+                if (!existing || existing.version < el.version) {
+                  yElements.set(el.id, el);
+                }
+              });
+            });
+
+            // Update local selection state for peers
+            if (wsProviderRef.current?.awareness) {
+              const currentState = wsProviderRef.current.awareness.getLocalState()?.user || {};
+              wsProviderRef.current.awareness.setLocalStateField("user", {
+                ...currentState,
+                selectedElementIds: appState.selectedElementIds,
+              });
+            }
+          }}
+          onPointerUpdate={(payload: any) => {
+            if (wsProviderRef.current?.awareness) {
+              const currentState = wsProviderRef.current.awareness.getLocalState()?.user || {};
+              wsProviderRef.current.awareness.setLocalStateField("user", {
+                ...currentState,
+                pointer: payload.pointer,
+                button: payload.button,
+                name: "You",
+              });
+            }
+          }}
           UIOptions={{
             canvasActions: {
               toggleTheme: true,

@@ -55,9 +55,9 @@ export const LeadGenerationModal: React.FC<LeadGenerationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/40 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/20 flex flex-col md:flex-row min-h-[500px]">
+      <div className="bg-surface-100 w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/20 flex flex-col md:flex-row min-h-[500px]">
         {/* Left Side: Visual/Context */}
-        <div className="w-full md:w-1/3 bg-primary p-8 text-white flex flex-col justify-between relative overflow-hidden">
+        <div className="w-full md:w-1/3 bg-accent text-background flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-accent/20 rounded-full blur-3xl -mr-16 -mt-16" />
           <div className="relative z-10 space-y-6">
             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-2xl">🤝</div>
@@ -136,7 +136,7 @@ export const LeadGenerationModal: React.FC<LeadGenerationModalProps> = ({
                         onClick={() => setFormData({...formData, budget: b})}
                         className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
                           formData.budget === b 
-                          ? 'bg-accent text-white shadow-lg shadow-accent/20' 
+                          ? 'bg-accent text-background shadow-lg shadow-accent/20' 
                           : 'bg-surface-50 text-surface-400 border border-surface-100 hover:border-accent'
                         }`}
                       >

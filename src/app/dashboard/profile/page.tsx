@@ -9,6 +9,7 @@ import { portfoliosApi, PortfolioItem } from "@/domains/portfolios/api";
 import { QRCodeSVG } from "qrcode.react";
 import ReactCrop, { Crop, PixelCrop, makeAspectCrop, centerCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
+import { motion } from "framer-motion";
 
 import { CATEGORY_SCHEMAS, calculateProfileCompleteness } from "@/lib/utils/profile";
 import { toast } from "sonner";
@@ -286,18 +287,7 @@ export default function ProfilePage() {
   };
 
   async function initiate2FASetup() {
-    setIsLoading(true);
-    try {
-      const { secret, qr_uri } = await authApi.setup2FA();
-      setMfaSecret(secret);
-      setMfaUri(qr_uri);
-      setIs2FASetupModalOpen(true);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to initiate 2FA setup");
-    } finally {
-      setIsLoading(false);
-    }
+    alert("Two-Factor Authentication (2FA) backend services are currently under development and will be available soon!");
   }
 
   async function confirm2FASetup() {
@@ -385,10 +375,11 @@ export default function ProfilePage() {
   return (
     <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 space-y-8">
       {/* Profile Header */}
-      <div className="bg-white border border-surface-200 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-8 shadow-sm overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-80 h-full bg-primary/5 arch-grid opacity-20 pointer-events-none" />
+      <div className="bg-surface-50/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[2rem] p-8 flex flex-col md:flex-row items-center gap-8 shadow-2xl shadow-primary/5 overflow-hidden relative group">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-full bg-primary/5 arch-grid opacity-20 pointer-events-none mix-blend-overlay" />
         
-        <div className="relative group">
+        <div className="relative z-10">
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -398,61 +389,69 @@ export default function ProfilePage() {
           />
           <div 
             onClick={() => fileInputRef.current?.click()}
-            className="w-28 h-28 rounded-2xl bg-primary flex items-center justify-center text-4xl text-white font-bold shadow-xl border-4 border-white overflow-hidden relative group cursor-pointer"
+            className="w-32 h-32 rounded-full bg-accent text-background font-bold shadow-2xl border-[6px] border-surface-100 dark:border-surface-50 overflow-hidden relative group/avatar cursor-pointer hover:scale-105 hover:rotate-3 transition-all duration-500 ease-out"
           >
             {user.profile?.profile_picture ? (
               <img src={user.profile.profile_picture as string} alt={user.name || user.email} className="w-full h-full object-cover" />
             ) : (
-              <span>{(user.name || user.email || "?").charAt(0).toUpperCase()}</span>
+              <span className="text-4xl flex items-center justify-center h-full">{(user.name || user.email || "?").charAt(0).toUpperCase()}</span>
             )}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="text-[10px] text-white font-bold uppercase tracking-[0.2em]">Upload</span>
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 group-hover/avatar:opacity-100 transition-all duration-300 flex items-center justify-center">
+              <span className="text-[10px] text-white font-bold uppercase tracking-[0.2em] transform translate-y-4 group-hover/avatar:translate-y-0 transition-transform duration-300">Upload</span>
             </div>
           </div>
         </div>
         
-        <div className="flex-1 space-y-3 text-center md:text-left">
+        <div className="flex-1 space-y-3 text-center md:text-left relative z-10">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-primary tracking-tight">{user.name || user.email.split('@')[0]}</h1>
+            <h1 className="text-4xl font-bold text-primary tracking-tight">{user.name || user.email.split('@')[0]}</h1>
             <p className="text-surface-400 text-sm font-medium">{user.email}</p>
           </div>
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-             <span className="px-3 py-1 bg-primary text-white text-[9px] font-bold uppercase tracking-[0.2em] rounded-md">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
+             <span className="px-4 py-1.5 bg-accent text-background text-[10px] font-bold uppercase tracking-[0.2em] rounded-full shadow-lg shadow-accent/20">
                {categorySlug}
              </span>
-             <span className="px-3 py-1 bg-accent/10 text-accent text-[9px] font-bold uppercase tracking-[0.2em] rounded-md border border-accent/20">
+             <span className="px-4 py-1.5 bg-surface-200/50 backdrop-blur-md text-primary text-[10px] font-bold uppercase tracking-[0.2em] rounded-full border border-white/10">
                {user.role || "Standard Access"}
              </span>
           </div>
         </div>
 
-        <div className="w-full md:w-64 space-y-3">
-          <div className="flex justify-between items-end">
-             <label className="text-[10px] font-bold text-surface-400 uppercase tracking-[0.2em]">Profile Integrity</label>
-             <span className="text-xs font-bold text-primary">{completionPercentage}%</span>
+        <div className="w-full md:w-72 space-y-3 relative z-10 bg-surface-100/50 backdrop-blur-md p-5 rounded-2xl border border-white/10 dark:border-white/5">
+          <div className="flex justify-between items-end mb-1">
+             <label className="text-[9px] font-bold text-surface-400 uppercase tracking-[0.2em]">Profile Integrity</label>
+             <span className="text-xs font-bold text-accent drop-shadow-[0_0_8px_rgba(var(--color-accent),0.6)]">{completionPercentage}%</span>
           </div>
-          <div className="h-2 w-full bg-surface-100 rounded-full overflow-hidden border border-surface-100">
+          <div className="h-2 w-full bg-surface-200/50 rounded-full overflow-hidden border border-black/5 dark:border-white/5 shadow-inner">
             <div 
-              className="h-full bg-accent transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(var(--color-accent),0.5)]" 
+              className="h-full bg-accent transition-all duration-1000 ease-out relative overflow-hidden" 
               style={{ width: `${completionPercentage}%` }}
-            />
+            >
+              <div className="absolute inset-0 bg-white/20 w-[200%] animate-[shimmer_2s_infinite] -skew-x-12" />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-surface-200 overflow-x-auto no-scrollbar scroll-smooth">
+      <div className="flex border-b border-surface-200/50 overflow-x-auto no-scrollbar scroll-smooth relative">
         {(["overview", "professional", "portfolio", "organization", "security", "activity"] as TabType[]).map((tab) => (
           <button
             key={tab}
             onClick={() => { setActiveTab(tab); setIsEditing(false); }}
-            className={`px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all border-b-2 -mb-[2px] whitespace-nowrap ${
+            className={`px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all relative whitespace-nowrap ${
               activeTab === tab 
-                ? "border-accent text-accent" 
-                : "border-transparent text-surface-400 hover:text-primary"
+                ? "text-primary" 
+                : "text-surface-400 hover:text-primary/70 hover:bg-surface-50/50"
             }`}
           >
-            {tab}
+            <span className="relative z-10">{tab}</span>
+            {activeTab === tab && (
+              <motion.div 
+                layoutId="profileTabIndicator"
+                className="absolute bottom-0 left-0 right-0 h-[3px] bg-accent rounded-t-full shadow-[0_-2px_10px_rgba(var(--color-accent),0.5)]" 
+              />
+            )}
           </button>
         ))}
       </div>
@@ -460,9 +459,9 @@ export default function ProfilePage() {
       {/* Tab Content */}
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {activeTab === "overview" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-8">
+          <motion.div initial="hidden" animate="show" variants={{hidden: {opacity: 0}, show: {opacity: 1, transition: {staggerChildren: 0.1}}}} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <motion.div variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="lg:col-span-2 space-y-8">
+              <section className="bg-surface-100 border-surface-200 p-10 border border-surface-200 rounded-2xl shadow-sm space-y-8">
                 <div className="flex justify-between items-center">
                     <h2 className="text-xs font-bold text-primary uppercase tracking-[0.3em] border-l-4 border-accent pl-4">Core Identity Specification</h2>
                     <button 
@@ -475,32 +474,32 @@ export default function ProfilePage() {
 
                 <div className="space-y-8">
                     <div className="space-y-3">
-                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Professional Biography</label>
+                        <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2">Professional Biography</label>
                         {isEditing ? (
                             <textarea 
                                 value={bio}
                                 onChange={(e) => setBio(e.target.value)}
-                                className="w-full h-40 p-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all text-sm leading-relaxed"
+                                className="w-full h-40 p-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-2xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all text-sm leading-relaxed shadow-inner"
                                 placeholder="Define your professional expertise and architectural vision..."
                             />
                         ) : (
-                            <p className="text-primary leading-relaxed text-sm bg-surface-50/50 p-6 rounded-xl border border-dashed border-surface-200">{bio || "Biographical data missing. Please update your specification."}</p>
+                            <p className="text-primary leading-relaxed text-sm bg-surface-50/30 backdrop-blur-sm p-6 rounded-2xl border border-dashed border-surface-200/50">{bio || "Biographical data missing. Please update your specification."}</p>
                         )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
                         <div className="space-y-3">
-                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Global Contact Line</label>
+                            <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2">Global Contact Line</label>
                             {isEditing ? (
                                 <input 
                                     type="text" 
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-                                    className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all text-sm"
+                                    className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all text-sm shadow-inner"
                                     placeholder="+XX XXXXX XXXXX"
                                 />
                             ) : (
-                                <p className="font-bold text-primary text-sm tracking-tight">{phone || "No contact line defined"}</p>
+                                <p className="font-bold text-primary text-sm tracking-tight bg-surface-50/30 p-4 rounded-xl border border-surface-200/30">{phone || "No contact line defined"}</p>
                             )}
                         </div>
                     </div>
@@ -511,13 +510,13 @@ export default function ProfilePage() {
                         <button 
                             onClick={handleUpdate}
                             disabled={isLoading}
-                            className="px-10 h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.25em] hover:bg-accent transition-all disabled:opacity-50 shadow-lg shadow-primary/20"
+                            className="px-10 h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.25em] hover:bg-accent transition-all disabled:opacity-50 shadow-lg shadow-primary/20"
                         >
                             {isLoading ? "Synchronizing..." : "Synchronize Identity"}
                         </button>
                     </div>
                 )}
-                {success && <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-[0.2em] text-center bg-emerald-50 py-3 rounded-lg border border-emerald-100">{success}</p>}
+                {success && <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-[0.2em] text-center bg-emerald-50 dark:bg-emerald-900/20 py-3 rounded-lg border border-emerald-100">{success}</p>}
               </section>
 
               {/* Specializations */}
@@ -530,7 +529,7 @@ export default function ProfilePage() {
                                 <h3 className="text-[10px] font-bold text-surface-400 uppercase tracking-[0.2em] border-b border-surface-200 pb-3">{group}</h3>
                                 <div className="flex flex-wrap gap-2">
                                     {(specs as string[]).map((spec, idx) => (
-                                        <span key={idx} className="px-3 py-2 bg-white border border-surface-200 text-primary text-[10px] font-bold uppercase tracking-tight rounded-md shadow-sm hover:border-accent transition-colors">
+                                        <span key={idx} className="px-3 py-2 bg-surface-100 border-surface-200 border border-surface-200 text-primary text-[10px] font-bold uppercase tracking-tight rounded-md shadow-sm hover:border-accent transition-colors">
                                             {spec}
                                         </span>
                                     ))}
@@ -540,9 +539,9 @@ export default function ProfilePage() {
                     </div>
                 </section>
               )}
-            </div>
+            </motion.div>
 
-            <div className="space-y-8">
+            <motion.div variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="space-y-8">
               <section className="bg-surface-900 text-white p-10 rounded-2xl space-y-8 relative overflow-hidden shadow-2xl">
                   <div className="absolute top-0 right-0 w-40 h-40 arch-grid opacity-10 pointer-events-none" />
                   <div className="space-y-2">
@@ -565,7 +564,7 @@ export default function ProfilePage() {
                   </div>
               </section>
 
-              <section className="bg-white border border-surface-200 p-8 rounded-2xl space-y-6 shadow-sm">
+              <section className="bg-surface-100 border-surface-200 border border-surface-200 p-8 rounded-2xl space-y-6 shadow-sm">
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Professional Accolades</h2>
                 <div className="grid grid-cols-3 gap-6">
                   {[1, 2, 3].map(i => (
@@ -577,13 +576,13 @@ export default function ProfilePage() {
                   ))}
                 </div>
               </section>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
 
         {activeTab === "professional" && (
-          <div className="max-w-4xl space-y-8">
-            <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-10">
+          <motion.div initial="hidden" animate="show" variants={{hidden: {opacity: 0}, show: {opacity: 1, transition: {staggerChildren: 0.1}}}} className="max-w-4xl space-y-8">
+            <motion.section variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="bg-surface-100 border-surface-200 p-10 border border-surface-200 rounded-2xl shadow-sm space-y-10">
               <div className="flex justify-between items-center border-b border-surface-100 pb-6">
                 <div className="space-y-1">
                   <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Professional Specification</h2>
@@ -596,16 +595,19 @@ export default function ProfilePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-8">
-                  <h3 className="text-[10px] font-bold text-accent uppercase tracking-[0.2em] mb-4">Category Specifics</h3>
+                  <h3 className="text-[10px] font-bold text-accent uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    Category Specifics
+                  </h3>
                   {currentSchema.map((field) => (
                     <div key={field.key} className="space-y-2">
-                      <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">{field.label}</label>
+                      <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2">{field.label}</label>
                       {isEditing ? (
                         field.type === "select" ? (
                           <select 
                             value={String(metadata[field.key] || "")} 
                             onChange={e => updateMetadataField(field.key, e.target.value)}
-                            className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm"
+                            className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent text-sm shadow-inner"
                           >
                             <option value="">Select option...</option>
                             {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -616,11 +618,11 @@ export default function ProfilePage() {
                             value={String(metadata[field.key] || "")} 
                             onChange={e => updateMetadataField(field.key, e.target.value)}
                             placeholder={field.placeholder}
-                            className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" 
+                            className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent text-sm shadow-inner" 
                           />
                         )
                       ) : (
-                        <p className="text-sm font-bold text-primary tracking-tight bg-surface-50/30 p-3 rounded-lg border border-surface-100 min-h-[44px] flex items-center">
+                        <p className="text-sm font-bold text-primary tracking-tight bg-surface-50/30 p-4 rounded-xl border border-surface-100/50 min-h-[56px] flex items-center">
                           {String(metadata[field.key] || "—")}
                         </p>
                       )}
@@ -628,33 +630,38 @@ export default function ProfilePage() {
                   ))}
                 </div>
 
-                <div className="space-y-8 border-l border-surface-100 pl-12">
-                  <h3 className="text-[10px] font-bold text-accent uppercase tracking-[0.2em] mb-4">Digital Footprint</h3>
+                <div className="space-y-8 md:border-l border-surface-200/50 md:pl-12">
+                  <h3 className="text-[10px] font-bold text-accent uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                    Digital Footprint
+                  </h3>
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Official Portfolio/Website</label>
+                      <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2">Official Portfolio/Website</label>
                       {isEditing ? (
-                        <input type="text" value={website} onChange={e => setWebsite(e.target.value)} className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="https://..." />
+                        <input type="text" value={website} onChange={e => setWebsite(e.target.value)} className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent text-sm shadow-inner" placeholder="https://..." />
                       ) : (
-                        <a href={website} target="_blank" className="text-sm font-bold text-accent hover:underline flex items-center gap-2 group">
-                          {website || "Unspecified"}
-                          <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                        </a>
+                        <div className="bg-surface-50/30 p-4 rounded-xl border border-surface-100/50 flex items-center">
+                          <a href={website} target="_blank" className="text-sm font-bold text-accent hover:underline flex items-center gap-2 group w-full truncate">
+                            {website || "Unspecified"}
+                            {website && <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>}
+                          </a>
+                        </div>
                       )}
                     </div>
                     {Object.entries(socialLinks).map(([key, value]) => (
                       <div key={key} className="space-y-2">
-                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest capitalize">{key}</label>
+                        <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2 capitalize">{key}</label>
                         {isEditing ? (
                           <input 
                             type="text" 
                             value={String(value)} 
                             onChange={e => setSocialLinks({...socialLinks, [key]: e.target.value})} 
-                            className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" 
+                            className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent text-sm shadow-inner" 
                             placeholder={`Your ${key} profile URL`}
                           />
                         ) : (
-                          <p className="text-sm text-primary font-medium">{String(value) || "—"}</p>
+                          <p className="text-sm text-primary font-medium bg-surface-50/30 p-4 rounded-xl border border-surface-100/50 truncate">{String(value) || "—"}</p>
                         )}
                       </div>
                     ))}
@@ -664,54 +671,64 @@ export default function ProfilePage() {
 
               {isEditing && (
                 <div className="pt-10 border-t border-surface-100 flex justify-end">
-                  <button onClick={handleUpdate} disabled={isLoading} className="px-10 h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl shadow-primary/20">
+                  <button onClick={handleUpdate} disabled={isLoading} className="px-10 h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl shadow-primary/20">
                     {isLoading ? "Saving Specification..." : "Commit Professional Data"}
                   </button>
                 </div>
               )}
-            </section>
-          </div>
+            </motion.section>
+          </motion.div>
         )}
 ...
         {activeTab === "portfolio" && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-8">
-              <div className="flex justify-between items-center">
+          <motion.div initial="hidden" animate="show" variants={{hidden: {opacity: 0}, show: {opacity: 1, transition: {staggerChildren: 0.1}}}} className="space-y-8">
+            <motion.section variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="bg-surface-100/50 backdrop-blur-xl p-10 border border-white/10 dark:border-white/5 rounded-3xl shadow-xl space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
+              <div className="flex justify-between items-center relative z-10">
                 <div className="space-y-1">
-                  <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Work Portfolio</h2>
+                  <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em] flex items-center gap-3">
+                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    Work Portfolio
+                  </h2>
                   <p className="text-[10px] text-surface-400 uppercase tracking-widest font-medium">Showcase your architectural projects to the public</p>
                 </div>
                 <button 
                   onClick={() => setIsUploadingPortfolio(true)}
-                  className="px-6 py-3 bg-primary text-white text-[10px] font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-accent transition-all shadow-lg shadow-primary/20"
+                  className="px-6 py-3 bg-accent text-background text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(var(--color-accent),0.4)]"
                 >
                   Add Project
                 </button>
               </div>
 
               {portfolioItems.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 pt-4 relative z-10">
                   {portfolioItems.map((item) => (
-                    <div key={item.id} className="group relative bg-surface-50 rounded-2xl border border-surface-100 overflow-hidden hover:border-accent transition-all">
-                      <div className="aspect-[4/3] relative overflow-hidden">
+                    <motion.div 
+                      key={item.id} 
+                      whileHover={{ rotateY: 2, rotateX: -2, y: -5, z: 20 }}
+                      style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+                      className="group relative bg-surface-50/50 backdrop-blur-sm rounded-2xl border border-white/10 dark:border-white/5 overflow-hidden hover:border-accent/50 hover:shadow-2xl hover:shadow-accent/10 transition-all duration-500"
+                    >
+                      <div className="aspect-[4/3] relative overflow-hidden bg-surface-100">
                         {item.image ? (
-                          <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-out" />
                         ) : (
-                          <div className="w-full h-full bg-surface-200 flex items-center justify-center text-xs text-surface-400 font-bold uppercase tracking-widest">
+                          <div className="w-full h-full bg-surface-200/50 flex items-center justify-center text-xs text-surface-400 font-bold uppercase tracking-widest">
                             No Image
                           </div>
                         )}
                         
                         {!item.is_owner && (
-                          <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest backdrop-blur-sm">
+                          <div className="absolute top-3 right-3 bg-black/60 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest backdrop-blur-md border border-white/10">
                             Contributor
                           </div>
                         )}
                         
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6 justify-end gap-3">
                           {item.is_owner ? (
                             <button 
-                              onClick={async () => {
+                              onClick={async (e) => {
+                                e.preventDefault();
                                 if (confirm("Permanently decommission this project from your portfolio?")) {
                                   try {
                                     await portfoliosApi.deletePortfolioItem(item.id);
@@ -721,45 +738,46 @@ export default function ProfilePage() {
                                   }
                                 }
                               }}
-                              className="w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors"
+                              className="w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
                             >
                               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             </button>
-                          ) : (
-                            <Link 
-                              href={`/portfolio/${item.id}`} 
-                              className="w-10 h-10 bg-white text-primary rounded-xl flex items-center justify-center hover:bg-surface-50 transition-colors"
-                            >
-                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                            </Link>
-                          )}
+                          ) : null}
+                          <Link 
+                            href={`/portfolio/${item.id}`} 
+                            className="w-10 h-10 bg-white/20 backdrop-blur-md border border-white/20 text-white rounded-xl flex items-center justify-center hover:bg-white/40 transition-colors shadow-lg"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          </Link>
                         </div>
                       </div>
-                      <div className="p-5 space-y-1">
-                        <h3 className="text-sm font-bold text-primary truncate">{item.title}</h3>
-                        <p className="text-[10px] text-surface-400 uppercase tracking-widest font-mono">
+                      <div className="p-6 space-y-2 relative bg-surface-50/80 backdrop-blur-md">
+                        <h3 className="text-sm font-bold text-primary truncate group-hover:text-accent transition-colors">{item.title}</h3>
+                        <p className="text-[10px] text-surface-400 uppercase tracking-widest font-mono flex items-center gap-2">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                           {item.project_date || "Date Unspecified"}
                         </p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="py-20 text-center space-y-4 border-2 border-dashed border-surface-100 rounded-2xl bg-surface-50/30">
-                  <div className="w-16 h-16 bg-surface-100 rounded-2xl mx-auto flex items-center justify-center text-surface-300">
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <div className="py-24 text-center space-y-6 border border-white/10 rounded-3xl bg-gradient-to-b from-surface-50/50 to-transparent backdrop-blur-sm relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-primary/5 arch-grid opacity-10 pointer-events-none mix-blend-overlay group-hover:opacity-20 transition-opacity duration-1000" />
+                  <div className="w-24 h-24 bg-surface-100/50 backdrop-blur-md rounded-[2rem] mx-auto flex items-center justify-center text-surface-300 border border-white/10 shadow-2xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-700">
+                    <svg className="w-12 h-12 text-accent/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-primary">No portfolio items detected</p>
-                    <p className="text-[10px] text-surface-400 uppercase tracking-widest">Initialize your digital showcase to attract clients</p>
+                  <div className="space-y-2 relative z-10">
+                    <p className="text-lg font-bold text-primary tracking-tight">No portfolio items detected</p>
+                    <p className="text-[10px] text-surface-400 uppercase tracking-widest max-w-sm mx-auto leading-relaxed">Initialize your digital showcase to attract clients and demonstrate architectural mastery.</p>
                   </div>
                 </div>
               )}
-            </section>
+            </motion.section>
 
             {isUploadingPortfolio && (
-              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+              <motion.div variants={{hidden: {opacity: 0, scale: 0.95}, show: {opacity: 1, scale: 1}}} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                <div className="bg-surface-100 border-surface-200 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
                   <div className="p-8 space-y-8">
                     <div className="flex justify-between items-center">
                       <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Project Specification</h3>
@@ -789,30 +807,30 @@ export default function ProfilePage() {
                       className="space-y-6"
                     >
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Project Title</label>
+                        <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Project Title</label>
                         <input name="title" required className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. Minimalist Glass Villa" />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Main Thumbnail</label>
-                          <input type="file" name="image" required accept="image/*" className="w-full text-sm text-surface-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Main Thumbnail</label>
+                          <input type="file" name="image" required accept="image/*" className="w-full text-sm text-surface-500 text-surface-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Gallery Images</label>
-                          <input type="file" name="images" multiple accept="image/*" className="w-full text-sm text-surface-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Gallery Images</label>
+                          <input type="file" name="images" multiple accept="image/*" className="w-full text-sm text-surface-500 text-surface-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Video URL (Optional)</label>
+                        <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Video URL (Optional)</label>
                         <input name="video_url" type="url" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. https://www.youtube.com/watch?v=..." />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Execution Description</label>
+                        <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Execution Description</label>
                         <textarea name="description" className="w-full h-32 p-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="Define the architectural parameters and outcome..." />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Project Date</label>
+                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Project Date</label>
                           <input type="date" name="project_date" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" />
                         </div>
                         <div className="flex items-center gap-3 pt-6">
@@ -824,7 +842,7 @@ export default function ProfilePage() {
                             defaultChecked 
                             className="w-5 h-5 rounded-lg border-surface-200 text-accent focus:ring-accent/20" 
                           />
-                          <label htmlFor="is_public_check" className="text-[10px] font-bold text-surface-600 uppercase tracking-widest cursor-pointer">Public Visibility</label>
+                          <label htmlFor="is_public_check" className="text-[10px] font-bold text-surface-600 text-surface-300 uppercase tracking-widest cursor-pointer">Public Visibility</label>
                         </div>
                       </div>
                       
@@ -832,15 +850,15 @@ export default function ProfilePage() {
                         <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Discovery Filters (Optional)</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Category</label>
+                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Category</label>
                             <input name="category" type="text" className="w-full h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. Residential" />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">City</label>
+                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">City</label>
                             <input name="city" type="text" className="w-full h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. New York" />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Country</label>
+                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Country</label>
                             <input name="country" type="text" className="w-full h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. USA" />
                           </div>
                         </div>
@@ -848,26 +866,32 @@ export default function ProfilePage() {
                       <button 
                         type="submit" 
                         disabled={isLoading}
-                        className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl shadow-primary/20"
+                        className="w-full h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl shadow-primary/20"
                       >
                         {isLoading ? "Ingesting Data..." : "Synchronize Project"}
                       </button>
                     </form>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {activeTab === "organization" && (
-           <div className="max-w-4xl space-y-8">
+           <motion.div initial="hidden" animate="show" variants={{hidden: {opacity: 0}, show: {opacity: 1, transition: {staggerChildren: 0.1}}}} className="max-w-4xl space-y-8">
               {organizations.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {organizations.map((org) => (
-                    <div key={org.id} className="bg-white p-8 border border-surface-200 rounded-2xl shadow-sm space-y-4 hover:border-accent transition-all group">
+                    <motion.div 
+                      key={org.id} 
+                      variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}}
+                      whileHover={{ rotateY: 2, rotateX: -2, y: -5, z: 20 }}
+                      style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+                      className="bg-surface-100 border-surface-200 p-8 border border-surface-200 rounded-2xl shadow-sm space-y-4 hover:border-accent transition-all group"
+                    >
                       <div className="flex justify-between items-start">
-                        <div className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center font-bold text-xl">
+                        <div className="w-12 h-12 bg-accent text-background rounded-xl flex items-center justify-center font-bold text-xl">
                           {(org.name || "?").charAt(0).toUpperCase()}
                         </div>
                         <span className="text-[9px] font-bold text-accent uppercase tracking-widest bg-accent/10 px-2 py-1 rounded">Active Practice</span>
@@ -876,10 +900,10 @@ export default function ProfilePage() {
                         <h3 className="text-lg font-bold text-primary tracking-tight">{org.name}</h3>
                         <p className="text-[10px] text-surface-400 uppercase tracking-widest font-mono">{org.uid}</p>
                       </div>
-                      <Link href="/dashboard/organization" className="block w-full py-3 bg-surface-50 border border-surface-100 text-center text-[10px] font-bold uppercase tracking-widest hover:bg-primary hover:text-white transition-all">
+                      <Link href="/dashboard/organization" className="block w-full py-3 bg-surface-50 border border-surface-100 text-center text-[10px] font-bold uppercase tracking-widest hover:opacity-90 hover:text-white transition-all">
                         Access Practice Dashboard
                       </Link>
-                    </div>
+                    </motion.div>
                   ))}
                   <Link href="/dashboard/organization?create=true" className="border-2 border-dashed border-surface-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-4 hover:border-accent hover:bg-surface-50 transition-all group">
                     <div className="w-12 h-12 bg-surface-50 rounded-full flex items-center justify-center text-surface-300 group-hover:scale-110 transition-transform">
@@ -889,31 +913,31 @@ export default function ProfilePage() {
                   </Link>
                 </div>
               ) : (
-                <section className="bg-white p-16 border border-surface-200 rounded-2xl shadow-sm text-center space-y-8 relative overflow-hidden">
+                <motion.section variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="bg-surface-100 border-surface-200 p-16 border border-surface-200 rounded-2xl shadow-sm text-center space-y-8 relative overflow-hidden">
                   <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-accent to-transparent opacity-30" />
                   <div className="w-24 h-24 bg-surface-50 rounded-3xl mx-auto flex items-center justify-center text-surface-200 border border-surface-100 shadow-inner">
                     <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4m0 10V4m-4 6h4m1 5h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                   </div>
                   <div className="space-y-3">
                     <h2 className="text-2xl font-bold text-primary tracking-tight">Organizational Affiliation</h2>
-                    <p className="text-sm text-surface-500 max-w-md mx-auto leading-relaxed">You are currently operating under a <span className="font-bold text-accent italic">Solo Identity</span>. Synchronize with a professional firm to enable enterprise resource planning and team collaboration.</p>
+                    <p className="text-sm text-surface-500 text-surface-400 max-w-md mx-auto leading-relaxed">You are currently operating under a <span className="font-bold text-accent italic">Solo Identity</span>. Synchronize with a professional firm to enable enterprise resource planning and team collaboration.</p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                    <Link href="/dashboard/organization" className="w-full sm:w-auto px-10 h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.25em] hover:bg-accent transition-all shadow-lg shadow-primary/20 flex items-center justify-center">
+                    <Link href="/dashboard/organization" className="w-full sm:w-auto px-10 h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.25em] hover:bg-accent transition-all shadow-lg shadow-primary/20 flex items-center justify-center">
                       Link to Firm
                     </Link>
-                    <Link href="/dashboard/organization?create=true" className="w-full sm:w-auto px-10 h-14 border-2 border-surface-200 text-surface-500 font-bold uppercase text-[10px] tracking-[0.25em] hover:border-primary hover:text-primary transition-all flex items-center justify-center">
+                    <Link href="/dashboard/organization?create=true" className="w-full sm:w-auto px-10 h-14 border-2 border-surface-200 text-surface-500 text-surface-400 font-bold uppercase text-[10px] tracking-[0.25em] hover:border-primary hover:text-primary transition-all flex items-center justify-center">
                       Register New Entity
                     </Link>
                   </div>
-                </section>
+                </motion.section>
               )}
-           </div>
+           </motion.div>
         )}
 
         {activeTab === "activity" && (
-          <div className="max-w-4xl space-y-8">
-            <section className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
+          <motion.div initial="hidden" animate="show" variants={{hidden: {opacity: 0}, show: {opacity: 1, transition: {staggerChildren: 0.1}}}} className="max-w-4xl space-y-8">
+            <motion.section variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="bg-surface-100 border-surface-200 p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
               <div className="space-y-1">
                 <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Operational Timeline</h2>
                 <p className="text-[10px] text-surface-400 uppercase tracking-widest">Immutable audit trail of identity modifications</p>
@@ -924,25 +948,25 @@ export default function ProfilePage() {
                   { date: "May 10, 2026", event: "Classification Applied", desc: `Identity categorized as ${categorySlug.toUpperCase()} in the primary index.`, icon: "⚓" },
                   { date: "May 05, 2026", event: "Identity Provisioned", desc: "Security credentials and core account layer established.", icon: "●" }
                 ].map((item, idx) => (
-                  <div key={idx} className="relative">
-                    <div className="absolute -left-[50px] top-0 w-5 h-5 bg-white border-2 border-accent rounded-full flex items-center justify-center text-[10px] font-bold text-accent z-10 shadow-sm shadow-accent/20">
+                  <motion.div key={idx} variants={{hidden: {opacity: 0, x: -20}, show: {opacity: 1, x: 0}}} className="relative">
+                    <div className="absolute -left-[50px] top-0 w-5 h-5 bg-surface-100 border-surface-200 border-2 border-accent rounded-full flex items-center justify-center text-[10px] font-bold text-accent z-10 shadow-sm shadow-accent/20">
                       {item.icon}
                     </div>
                     <div className="space-y-2 group">
                       <p className="text-[10px] font-bold text-surface-400 uppercase tracking-[0.2em]">{item.date}</p>
                       <h3 className="text-base font-bold text-primary group-hover:text-accent transition-colors">{item.event}</h3>
-                      <p className="text-sm text-surface-500 leading-relaxed max-w-2xl">{item.desc}</p>
+                      <p className="text-sm text-surface-500 text-surface-400 leading-relaxed max-w-2xl">{item.desc}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-            </section>
-          </div>
+            </motion.section>
+          </motion.div>
         )}
 
         {activeTab === "security" && (
-          <div className="max-w-3xl space-y-8">
-            <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-10">
+          <motion.div initial="hidden" animate="show" variants={{hidden: {opacity: 0}, show: {opacity: 1, transition: {staggerChildren: 0.1}}}} className="max-w-3xl space-y-8">
+            <motion.section variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="bg-surface-100 border-surface-200 p-10 border border-surface-200 rounded-2xl shadow-sm space-y-10">
               <div className="space-y-2">
                 <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em] border-l-4 border-red-500 pl-4">Security Specification</h2>
                 <p className="text-[10px] text-surface-400 uppercase tracking-widest font-medium">Manage authentication layers and credential rotation</p>
@@ -951,31 +975,31 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Current Security Token</label>
+                    <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Current Security Token</label>
                     <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/10 focus:border-red-500/50 transition-all" />
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">New Security Token</label>
+                    <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">New Security Token</label>
                     <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent transition-all" />
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Verify New Token</label>
+                    <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Verify New Token</label>
                     <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent transition-all" />
                   </div>
-                  <button onClick={handleChangePassword} disabled={isLoading} className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl shadow-primary/20 mt-4 disabled:opacity-50">
+                  <button onClick={handleChangePassword} disabled={isLoading} className="w-full h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl shadow-primary/20 mt-4 disabled:opacity-50">
                     {isLoading ? "Processing..." : "Rotate Security Credentials"}
                   </button>
                 </div>
                 <div className="bg-surface-50 rounded-2xl p-8 space-y-4 border border-surface-100 flex flex-col justify-center">
                   <h3 className="text-[11px] font-bold text-primary uppercase tracking-widest">Two-Factor Authentication</h3>
-                  <p className="text-[11px] text-surface-500 leading-relaxed">
+                  <p className="text-[11px] text-surface-500 text-surface-400 leading-relaxed">
                     Protect your account with an extra layer of security. Multi-factor authentication is recommended for all accounts.
                   </p>
                   <div className="pt-4">
                     {user?.is_2fa_enabled ? (
                       <button 
                         onClick={() => setIsDisable2FAModalOpen(true)}
-                        className="w-full h-12 bg-red-50 text-red-600 font-bold uppercase text-[10px] tracking-[0.2em] border border-red-200 hover:bg-red-100 transition-all rounded-lg"
+                        className="w-full h-12 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold uppercase text-[10px] tracking-[0.2em] border border-red-200 dark:border-red-800/30 hover:bg-red-100 transition-all rounded-lg"
                       >
                         Disable 2FA
                       </button>
@@ -983,7 +1007,7 @@ export default function ProfilePage() {
                       <button 
                         onClick={initiate2FASetup}
                         disabled={isLoading}
-                        className="w-full h-12 bg-accent text-white font-bold uppercase text-[10px] tracking-[0.2em] hover:bg-primary transition-all shadow-lg shadow-accent/20 rounded-lg"
+                        className="w-full h-12 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.2em] hover:opacity-90 transition-all shadow-lg shadow-accent/20 rounded-lg"
                       >
                         {isLoading ? "Loading..." : "Enable 2FA Protection"}
                       </button>
@@ -991,9 +1015,9 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-            </section>
+            </motion.section>
 
-            <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-6">
+            <motion.section variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="bg-surface-100 border-surface-200 p-10 border border-surface-200 rounded-2xl shadow-sm space-y-6">
               <div className="space-y-2">
                 <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em] border-l-4 border-accent pl-4">Change Email Address</h2>
                 <p className="text-[10px] text-surface-400 uppercase tracking-widest font-medium">Update the primary communication channel</p>
@@ -1001,21 +1025,21 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">New Email Address</label>
+                    <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">New Email Address</label>
                     <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="new.email@example.com" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent transition-all" />
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Verify Password</label>
+                    <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Verify Password</label>
                     <input type="password" value={changeEmailPassword} onChange={e => setChangeEmailPassword(e.target.value)} placeholder="••••••••" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent transition-all" />
                   </div>
-                  <button onClick={handleRequestEmailChange} disabled={isLoading} className="w-full h-14 bg-surface-800 text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-primary transition-all shadow-xl shadow-surface-800/20 mt-4 disabled:opacity-50">
+                  <button onClick={handleRequestEmailChange} disabled={isLoading} className="w-full h-14 bg-surface-800 text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:opacity-90 transition-all shadow-xl shadow-surface-800/20 mt-4 disabled:opacity-50">
                     {isLoading ? "Processing..." : "Request Email Change"}
                   </button>
                 </div>
               </div>
-            </section>
+            </motion.section>
 
-            <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-6">
+            <motion.section variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="bg-surface-100 border-surface-200 p-10 border border-surface-200 rounded-2xl shadow-sm space-y-6">
               <div className="space-y-2">
                 <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em] border-l-4 border-accent pl-4">Active Sessions</h2>
                 <p className="text-[10px] text-surface-400 uppercase tracking-widest font-medium">Manage and revoke active logins across devices</p>
@@ -1025,16 +1049,16 @@ export default function ProfilePage() {
                   <div key={session.id} className="flex justify-between items-center bg-surface-50 p-4 border border-surface-100 rounded-xl">
                     <div className="space-y-1">
                       <p className="text-xs font-bold text-primary">{session.device_name || "Unknown Device"} ({session.ip_address})</p>
-                      <p className="text-[10px] text-surface-500 uppercase tracking-widest">Last Active: {new Date(session.last_active_at).toLocaleString()}</p>
+                      <p className="text-[10px] text-surface-500 text-surface-400 uppercase tracking-widest">Last Active: {new Date(session.last_active_at).toLocaleString()}</p>
                     </div>
                     <button onClick={() => handleRevokeSession(session.id)} className="text-[10px] text-red-500 uppercase font-bold tracking-widest hover:text-red-700">Revoke</button>
                   </div>
                 ))}
-                {sessions.length === 0 && <p className="text-xs text-surface-500">No active sessions found.</p>}
+                {sessions.length === 0 && <p className="text-xs text-surface-500 text-surface-400">No active sessions found.</p>}
               </div>
-            </section>
+            </motion.section>
 
-            <section className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm space-y-6">
+            <motion.section variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} className="bg-surface-100 border-surface-200 p-10 border border-surface-200 rounded-2xl shadow-sm space-y-6">
               <div className="space-y-2">
                 <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em] border-l-4 border-accent pl-4">Privacy & Visibility</h2>
                 <p className="text-[10px] text-surface-400 uppercase tracking-widest font-medium">Manage your public discovery presence</p>
@@ -1042,7 +1066,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between p-6 bg-surface-50 border border-surface-100 rounded-xl">
                 <div className="space-y-1">
                   <h3 className="text-xs font-bold text-primary uppercase tracking-widest">Public Profile</h3>
-                  <p className="text-xs text-surface-500 max-w-md leading-relaxed">
+                  <p className="text-xs text-surface-500 text-surface-400 max-w-md leading-relaxed">
                     When disabled, your identity and all portfolio items are completely hidden from the public discovery network. You will operate in stealth mode.
                   </p>
                 </div>
@@ -1056,51 +1080,52 @@ export default function ProfilePage() {
                   <span className="sr-only">Toggle Public Profile</span>
                   <span
                     aria-hidden="true"
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out ${
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-surface-100 border-surface-200 shadow ring-0 transition duration-300 ease-in-out ${
                       (user?.profile?.is_public ?? true) ? 'translate-x-3' : '-translate-x-3'
                     }`}
                   />
                 </button>
               </div>
-            </section>
+            </motion.section>
 
-            <section className="bg-red-50 border border-red-100 p-10 rounded-2xl space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
-                <h3 className="text-xs font-bold text-red-900 uppercase tracking-[0.2em]">Critical Decommission Zone</h3>
+            <motion.section variants={{hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0}}} whileHover={{ scale: 1.01, boxShadow: "0px 0px 60px rgba(239,68,68,0.3)" }} className="bg-red-50/50 dark:bg-red-900/10 backdrop-blur-md border border-red-500/30 p-10 rounded-3xl space-y-6 shadow-[0_0_40px_rgba(239,68,68,0.1)] relative overflow-hidden transition-all duration-300">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgc3Ryb2tlPSIjZWY0NDQ0IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBmaWxsPSJub25lIj48cGF0aCBkPSJNMCAwTDYwIDYwTTAlMjA2MEw2MCUwIi8+PC9nPjwvc3ZnPg==')] opacity-50" />
+              <div className="relative z-10 flex items-center gap-3">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                <h3 className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-[0.3em]">Critical Decommission Zone</h3>
               </div>
-              <p className="text-xs text-red-700 leading-relaxed max-w-lg">Initiating identity decommissioning will permanently terminate all project access, membership tokens, and audit logs associated with this UID. (30-day grace period applies).</p>
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <p className="relative z-10 text-xs text-red-800/70 dark:text-red-200/70 leading-relaxed max-w-lg font-medium">Initiating identity decommissioning will permanently terminate all project access, membership tokens, and audit logs associated with this UID. (30-day grace period applies).</p>
+              <div className="relative z-10 flex flex-col sm:flex-row gap-4 pt-4">
                 <button 
                   onClick={handleExportData}
                   disabled={isLoading}
-                  className="px-6 py-3 bg-white text-surface-700 border border-surface-300 font-bold uppercase text-[10px] tracking-widest hover:bg-surface-50 transition-all rounded-lg"
+                  className="px-6 py-3.5 bg-surface-100/50 backdrop-blur-md border border-red-500/20 text-red-900 dark:text-red-300 font-bold uppercase text-[10px] tracking-widest hover:bg-red-500/10 transition-all rounded-xl"
                 >
                   Download GDPR Data Export
                 </button>
                 <button 
                   onClick={() => setIsDecommissionModalOpen(true)}
-                  className="px-6 py-3 bg-red-600 text-white font-bold uppercase text-[10px] tracking-widest hover:bg-red-700 transition-all rounded-lg shadow-lg shadow-red-500/20"
+                  className="px-6 py-3.5 bg-red-600/90 backdrop-blur-md text-white font-bold uppercase text-[10px] tracking-widest hover:bg-red-500 transition-all rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.4)]"
                 >
                   Decommission System Identity
                 </button>
               </div>
-            </section>
-          </div>
+            </motion.section>
+          </motion.div>
         )}
       </div>
 
       {/* Decommission Modal */}
       {isDecommissionModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="bg-surface-100 border-surface-200 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="p-8 space-y-6 border-t-8 border-red-600">
               <h3 className="text-sm font-bold text-red-600 uppercase tracking-[0.3em]">Confirm Decommission</h3>
-              <p className="text-sm text-surface-600 leading-relaxed">
+              <p className="text-sm text-surface-600 text-surface-300 leading-relaxed">
                 This action will schedule your account for permanent anonymization in 30 days. You will immediately lose access to all projects and organizations.
               </p>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Verify Password</label>
+                <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Verify Password</label>
                 <input 
                   type="password" 
                   value={decommissionPassword}
@@ -1112,7 +1137,7 @@ export default function ProfilePage() {
               <div className="flex gap-4 pt-2">
                 <button 
                   onClick={() => { setIsDecommissionModalOpen(false); setDecommissionPassword(""); }}
-                  className="w-full h-12 bg-surface-100 text-surface-600 font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-surface-200 transition-all"
+                  className="w-full h-12 bg-surface-100 text-surface-600 text-surface-300 font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-surface-200 transition-all"
                 >
                   Cancel
                 </button>
@@ -1132,7 +1157,7 @@ export default function ProfilePage() {
       {/* Image Cropping Modal */}
       {isCropModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="bg-surface-100 border-surface-200 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="p-8 space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Adjust Profile Image</h3>
@@ -1157,7 +1182,7 @@ export default function ProfilePage() {
               <button 
                 onClick={handleCropSubmit}
                 disabled={!completedCrop || isLoading}
-                className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all disabled:opacity-50 shadow-xl rounded-xl"
+                className="w-full h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all disabled:opacity-50 shadow-xl rounded-xl"
               >
                 {isLoading ? "Saving..." : "Crop & Save"}
               </button>
@@ -1169,7 +1194,7 @@ export default function ProfilePage() {
       {/* 2FA Setup Modal */}
       {is2FASetupModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="bg-surface-100 border-surface-200 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="p-8 space-y-8">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">
@@ -1189,7 +1214,7 @@ export default function ProfilePage() {
 
               {recoveryCodes.length > 0 ? (
                 <div className="space-y-6">
-                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-amber-800 text-sm">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800/30 text-amber-800 text-sm">
                     <strong>Save these recovery codes in a safe place!</strong> They are the only way to access your account if you lose your device.
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -1201,30 +1226,30 @@ export default function ProfilePage() {
                   </div>
                   <button 
                     onClick={() => { setIs2FASetupModalOpen(false); setRecoveryCodes([]); setMfaCode(""); }} 
-                    className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl rounded-xl"
+                    className="w-full h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl rounded-xl"
                   >
                     I Have Saved Them
                   </button>
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <p className="text-sm text-surface-600 leading-relaxed text-center">
+                  <p className="text-sm text-surface-600 text-surface-300 leading-relaxed text-center">
                     Scan the QR code below with your authenticator app (like Google Authenticator or Authy).
                   </p>
                   
-                  <div className="flex justify-center bg-white p-4 border border-surface-200 rounded-xl mx-auto w-max">
+                  <div className="flex justify-center bg-surface-100 border-surface-200 p-4 border border-surface-200 rounded-xl mx-auto w-max">
                     <QRCodeSVG value={mfaUri} size={200} />
                   </div>
                   
                   <div className="text-center">
-                    <p className="text-xs text-surface-500 uppercase tracking-widest font-bold mb-2">Manual Entry Code:</p>
+                    <p className="text-xs text-surface-500 text-surface-400 uppercase tracking-widest font-bold mb-2">Manual Entry Code:</p>
                     <code className="text-sm bg-surface-50 px-3 py-2 rounded-lg border border-surface-200 font-mono text-primary">
                       {mfaSecret}
                     </code>
                   </div>
 
                   <div className="space-y-4 pt-4 border-t border-surface-100">
-                    <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Verify Code</label>
+                    <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Verify Code</label>
                     <input 
                       type="text" 
                       value={mfaCode}
@@ -1236,7 +1261,7 @@ export default function ProfilePage() {
                     <button 
                       onClick={confirm2FASetup}
                       disabled={mfaCode.length !== 6 || isLoading}
-                      className="w-full h-14 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all disabled:opacity-50 shadow-xl rounded-xl"
+                      className="w-full h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all disabled:opacity-50 shadow-xl rounded-xl"
                     >
                       {isLoading ? "Verifying..." : "Verify & Enable"}
                     </button>
@@ -1251,10 +1276,10 @@ export default function ProfilePage() {
       {/* Disable 2FA Modal */}
       {isDisable2FAModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="bg-surface-100 border-surface-200 w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="p-8 space-y-6">
               <h3 className="text-sm font-bold text-red-600 uppercase tracking-[0.3em]">Disable 2FA</h3>
-              <p className="text-sm text-surface-600">Enter your password to confirm disabling two-factor authentication.</p>
+              <p className="text-sm text-surface-600 text-surface-300">Enter your password to confirm disabling two-factor authentication.</p>
               <input 
                 type="password" 
                 value={disablePassword}
@@ -1265,7 +1290,7 @@ export default function ProfilePage() {
               <div className="flex gap-4">
                 <button 
                   onClick={() => { setIsDisable2FAModalOpen(false); setDisablePassword(""); }}
-                  className="w-full h-12 bg-surface-100 text-surface-600 font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-surface-200 transition-all"
+                  className="w-full h-12 bg-surface-100 text-surface-600 text-surface-300 font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-surface-200 transition-all"
                 >
                   Cancel
                 </button>

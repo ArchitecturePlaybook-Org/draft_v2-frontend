@@ -30,38 +30,38 @@ export const ProjectActionsMenu: React.FC<ProjectActionsMenuProps> = ({ project 
     <div className="relative" ref={menuRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-surface-200 rounded-lg text-xs font-bold text-surface-500 hover:text-primary hover:border-surface-300 transition-colors shadow-sm"
+        className="flex items-center gap-2 px-3 py-1.5 bg-surface-100 border border-surface-200 rounded-md text-xs font-bold text-text-secondary hover:text-[#D4AF37] hover:border-[#D4AF37] transition-colors shadow-none"
       >
         <span>⚙️ Actions</span>
         <span className="text-[10px]">▾</span>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-surface-200 rounded-xl shadow-xl overflow-hidden z-50 py-1 animate-fade-in-up" style={{ animationDuration: '0.15s' }}>
-          <button className="w-full text-left px-4 py-2 text-xs font-semibold text-surface-600 hover:bg-surface-50 hover:text-primary transition-colors flex items-center gap-2">
+        <div className="absolute right-0 top-full mt-2 w-48 bg-surface-100 border border-surface-200 rounded-md shadow-none overflow-hidden z-50 py-1 animate-fade-in-up" style={{ animationDuration: '0.15s' }}>
+          <button className="w-full text-left px-4 py-2 text-xs font-semibold text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2">
             <span>👤</span> Assign Personnel
           </button>
           
           <button 
-            className="w-full text-left px-4 py-2 text-xs font-semibold text-surface-600 hover:bg-surface-50 hover:text-primary transition-colors flex items-center gap-2"
+            className="w-full text-left px-4 py-2 text-xs font-semibold text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2"
             onClick={() => window.open(`/dashboard/projects/${project.uid}/report/project-summary`, '_blank')}
           >
             <span>📄</span> Generate Report
           </button>
           
-          <button className="w-full text-left px-4 py-2 text-xs font-semibold text-surface-600 hover:bg-surface-50 hover:text-primary transition-colors flex items-center gap-2">
+          <button className="w-full text-left px-4 py-2 text-xs font-semibold text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2">
             <span>🔁</span> Clone Project
           </button>
 
           {project.status === "Completed" && (
-            <button className="w-full text-left px-4 py-2 text-xs font-semibold text-surface-600 hover:bg-surface-50 hover:text-primary transition-colors flex items-center gap-2">
+            <button className="w-full text-left px-4 py-2 text-xs font-semibold text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2">
               <span>🚀</span> Publish to Portfolio
             </button>
           )}
 
           <div className="h-px bg-surface-100 my-1 mx-2" />
 
-          <button className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2">
+          <button className="w-full text-left px-4 py-2 text-xs font-semibold text-semantic-red hover:bg-semantic-red/10 transition-colors flex items-center gap-2">
             <span>🗑️</span> Delete Blueprint
           </button>
         </div>

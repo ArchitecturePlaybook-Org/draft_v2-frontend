@@ -85,7 +85,7 @@ export default function OAuthCallbackPage() {
   }, [provider, searchParams, router, setUser]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-surface-100 font-sans">
       <div className="text-center space-y-6 animate-in fade-in duration-500">
         {/* Animated logo */}
         <div className="flex items-center justify-center">

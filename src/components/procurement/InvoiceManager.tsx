@@ -26,7 +26,7 @@ export default function InvoiceManager({ projectId }: { projectId: string }) {
   if (loading) return <div className="p-4">Loading invoices...</div>;
 
   return (
-    <div className="bg-white rounded-3xl border border-surface-200 shadow-sm p-6">
+    <div className="bg-surface-100 rounded-3xl border border-surface-200 shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-black text-primary uppercase tracking-tight">Vendor Invoices</h2>
       </div>
@@ -61,7 +61,7 @@ export default function InvoiceManager({ projectId }: { projectId: string }) {
                 <td className="py-3 px-4 text-right">
                   <button 
                     onClick={() => projectsApi.exportVendorInvoice(invoice.id)} 
-                    className="px-3 py-1 bg-surface-200 text-surface-600 text-[10px] font-bold uppercase rounded hover:bg-primary hover:text-white transition-all flex items-center justify-end gap-2 ml-auto"
+                    className="px-3 py-1 bg-surface-200 text-surface-600 text-[10px] font-bold uppercase rounded hover:opacity-90 hover:text-white transition-all flex items-center justify-end gap-2 ml-auto"
                   >
                     <span>📄</span> Download PDF
                   </button>

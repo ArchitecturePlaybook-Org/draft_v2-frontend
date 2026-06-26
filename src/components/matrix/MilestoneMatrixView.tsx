@@ -201,20 +201,22 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     }
     
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center gap-4 bg-white rounded-2xl border border-surface-200 shadow-sm p-8">
-        <div className="w-16 h-16 rounded-2xl bg-surface-100 flex items-center justify-center text-3xl">🏗️</div>
-        <div>
-          <h3 className="text-xl font-black text-primary tracking-tight">No Matrix Configured</h3>
-          <p className="text-sm text-surface-400 mt-2 font-medium max-w-md mx-auto">
+      <div className="flex flex-col items-center justify-center h-64 text-center gap-4 glass-card bg-surface-100/50 backdrop-blur-md relative overflow-hidden p-8">
+        <div className="absolute inset-0 arch-grid opacity-10 pointer-events-none" />
+        <div className="w-16 h-16 rounded-2xl bg-surface-200/50 dark:bg-surface-700/50 flex items-center justify-center text-3xl shadow-inner relative z-10">🏗️</div>
+        <div className="relative z-10">
+          <h3 className="text-xl font-black text-foreground tracking-tight">No Matrix Configured</h3>
+          <p className="text-sm text-text-secondary mt-2 font-medium max-w-md mx-auto">
             Use the Onboarding Wizard to define the spatial zones and milestone phases for this project.
           </p>
         </div>
         {userRole === "admin" && (
           <button 
             onClick={() => setShowWizard(true)}
-            className="mt-2 h-11 px-8 bg-primary text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md"
+            className="mt-2 relative group overflow-hidden h-11 px-8 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_30px_-10px_var(--accent)] z-10"
           >
-            Configure Matrix
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
+            <span className="relative z-10">Configure Matrix</span>
           </button>
         )}
       </div>
@@ -250,21 +252,21 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
       <div className="relative">
         <div
           ref={scrollRef}
-          className="overflow-auto rounded-2xl border border-surface-200 bg-white shadow-sm"
+          className="overflow-auto rounded-2xl border border-surface-200 border-surface-200 bg-surface-100 shadow-sm"
           style={{ maxHeight: "70vh" }}
         >
           <table className="border-collapse" style={{ minWidth: HEADER_W + zones.length * ZONE_COL_W }}>
-            <thead className="sticky top-0 z-20 bg-white">
+            <thead className="sticky top-0 z-20 bg-surface-100 shadow-sm">
               <tr>
                 {/* Corner cell */}
                 <th
-                  className="sticky left-0 z-30 bg-white border-b border-r border-surface-200 text-[9px] font-black text-surface-400 uppercase tracking-widest text-center"
+                  className="sticky left-0 z-30 bg-surface-100/90 backdrop-blur-md border-b border-r border-surface-200 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] text-center shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)]"
                   style={{ width: HEADER_W, minWidth: HEADER_W, height: 52 }}
                 >
                   <div className="flex flex-col items-center justify-center h-full">
-                    <span className="text-surface-300">Phase</span>
-                    <span className="mx-2 text-surface-200">/</span>
-                    <span className="text-surface-300">Zone</span>
+                    <span className="text-text-secondary">Phase</span>
+                    <span className="mx-2 text-surface-300 dark:text-surface-600">/</span>
+                    <span className="text-text-secondary">Zone</span>
                   </div>
                 </th>
                 {/* Zone headers */}
@@ -272,11 +274,11 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                   <th
                     key={zone.id}
                     style={{ width: ZONE_COL_W, minWidth: ZONE_COL_W, height: 52 }}
-                    className="border-b border-r border-surface-200 px-2 text-center"
+                    className="border-b border-r border-surface-200 px-2 text-center bg-surface-100/90 backdrop-blur-md"
                   >
-                    <p className="text-[9px] font-black text-primary uppercase tracking-widest truncate" title={zone.name}>{zone.name}</p>
+                    <p className="text-[10px] font-black text-foreground uppercase tracking-[0.1em] truncate" title={zone.name}>{zone.name}</p>
                     {zone.zone_type && (
-                      <p className="text-[7px] text-surface-400 font-bold uppercase tracking-widest mt-0.5 truncate">{zone.zone_type}</p>
+                      <p className="text-[8px] text-text-secondary font-bold uppercase tracking-[0.2em] mt-0.5 truncate">{zone.zone_type}</p>
                     )}
                   </th>
                 ))}
@@ -285,7 +287,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                 {userRole === "admin" && (
                   <th
                     style={{ width: ZONE_COL_W, minWidth: ZONE_COL_W, height: 52 }}
-                    className="border-b border-surface-200 px-2 text-center align-middle"
+                    className="border-b border-surface-200 px-2 text-center align-middle bg-surface-100/90 backdrop-blur-md"
                   >
                     {showAddZoneInput ? (
                       <div className="flex flex-col gap-1 p-1">
@@ -299,17 +301,17 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                             if (e.key === 'Escape') setShowAddZoneInput(false);
                           }}
                           placeholder="Zone name..."
-                          className="w-full text-[9px] p-1 border border-surface-300 rounded outline-none focus:border-accent text-surface-900"
+                          className="w-full text-[10px] p-1 border border-surface-300 dark:border-surface-600 rounded outline-none focus:border-accent text-foreground bg-surface-50"
                         />
                         <div className="flex gap-1">
-                          <button onClick={submitAddZone} disabled={isAddingZone || !newZoneName.trim()} className="flex-1 bg-accent text-white text-[8px] font-bold py-1 rounded">Add</button>
-                          <button onClick={() => setShowAddZoneInput(false)} className="flex-1 bg-surface-200 text-surface-500 hover:text-surface-700 text-[8px] font-bold py-1 rounded">Cancel</button>
+                          <button onClick={submitAddZone} disabled={isAddingZone || !newZoneName.trim()} className="flex-1 bg-accent text-background text-[9px] font-bold py-1 rounded hover:scale-105 transition-transform">Add</button>
+                          <button onClick={() => setShowAddZoneInput(false)} className="flex-1 bg-surface-200 text-text-secondary hover:text-foreground text-[9px] font-bold py-1 rounded transition-colors">Cancel</button>
                         </div>
                       </div>
                     ) : (
                       <button
                         onClick={() => setShowAddZoneInput(true)}
-                        className="text-[9px] font-bold text-surface-400 hover:text-accent uppercase tracking-widest border border-dashed border-surface-300 hover:border-accent rounded-lg w-full h-8 flex items-center justify-center transition-colors"
+                        className="text-[10px] font-bold text-text-secondary hover:text-accent uppercase tracking-[0.2em] border border-dashed border-surface-300 hover:border-accent hover:shadow-[0_0_15px_var(--accent)] hover:shadow-accent/20 rounded-lg w-full h-8 flex items-center justify-center transition-all duration-300"
                       >
                         + Add Zone
                       </button>
@@ -330,19 +332,19 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                   <tr key={phase.id}>
                     {/* Phase label — sticky left */}
                     <td
-                      className="sticky left-0 z-10 bg-white border-b border-r border-surface-200 px-4"
+                      className="sticky left-0 z-10 bg-surface-100/90 backdrop-blur-md border-b border-r border-surface-200 px-4 hover:bg-surface-200/50 transition-colors shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)]"
                       style={{ width: HEADER_W, minWidth: HEADER_W, height: PHASE_ROW_H }}
                     >
                       <div className="flex flex-col h-full justify-center">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: phase.color_hex }} />
-                          <span className="text-[10px] font-black text-primary uppercase tracking-wide leading-tight line-clamp-2">{phase.name}</span>
+                          <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-[0_0_8px_currentColor]" style={{ backgroundColor: phase.color_hex, color: phase.color_hex }} />
+                          <span className="text-[11px] font-black text-foreground uppercase tracking-[0.1em] leading-tight line-clamp-2">{phase.name}</span>
                         </div>
                         {/* Phase progress summary */}
-                        <div className="text-[9px] font-bold text-surface-400 tabular-nums">
+                        <div className="text-[10px] font-bold text-text-secondary tabular-nums">
                           {phaseDone}/{phaseTotal} zones done
                         </div>
-                        <div className="h-1 bg-surface-100 rounded-full mt-1.5 overflow-hidden">
+                        <div className="h-1 bg-surface-100 dark:bg-surface-700 rounded-full mt-1.5 overflow-hidden">
                           <div
                             className="h-full bg-emerald-400 rounded-full transition-all"
                             style={{ width: phaseTotal > 0 ? `${(phaseDone / phaseTotal) * 100}%` : "0%" }}
@@ -363,11 +365,11 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                       return (
                         <td
                           key={zone.id}
-                          className="border-b border-r border-surface-100 p-1.5 align-top"
+                          className="border-b border-r border-surface-100 border-surface-200/50 p-1.5 align-top"
                           style={{ width: ZONE_COL_W, minWidth: ZONE_COL_W, height: PHASE_ROW_H }}
                         >
                           {isLoading ? (
-                            <div className="h-[88px] rounded-xl bg-surface-50 flex items-center justify-center">
+                            <div className="h-[88px] rounded-xl bg-surface-50 dark:bg-surface-800/50 flex items-center justify-center">
                               <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
                             </div>
                           ) : (
@@ -384,7 +386,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                     
                     {/* Empty cell under Add Zone Button */}
                     {userRole === "admin" && (
-                      <td className="border-b border-surface-100 bg-surface-50/30" />
+                      <td className="border-b border-surface-100 border-surface-200/50 bg-surface-50/30 dark:bg-surface-800/30" />
                     )}
                   </tr>
                 );
@@ -393,7 +395,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
               {/* Add Phase Row */}
               {userRole === "admin" && (
                 <tr>
-                  <td className="border-r border-surface-200 p-4 sticky left-0 z-10 bg-white">
+                  <td className="border-r border-surface-200 p-4 sticky left-0 z-10 bg-surface-100/90 backdrop-blur-md shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)]">
                     {showAddPhaseInput ? (
                       <div className="flex flex-col gap-1">
                         <input 
@@ -406,17 +408,17 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                             if (e.key === 'Escape') setShowAddPhaseInput(false);
                           }}
                           placeholder="Phase name..."
-                          className="w-full text-[10px] p-1.5 border border-surface-300 rounded outline-none focus:border-accent text-surface-900"
+                          className="w-full text-[11px] p-1.5 border border-surface-300 dark:border-surface-600 rounded outline-none focus:border-accent text-foreground bg-surface-50"
                         />
                         <div className="flex gap-1 mt-1">
-                          <button onClick={submitAddPhase} disabled={isAddingPhase || !newPhaseName.trim()} className="flex-1 bg-accent text-white text-[9px] font-bold py-1.5 rounded">Add</button>
-                          <button onClick={() => setShowAddPhaseInput(false)} className="flex-1 bg-surface-200 text-surface-500 hover:text-surface-700 text-[9px] font-bold py-1.5 rounded">Cancel</button>
+                          <button onClick={submitAddPhase} disabled={isAddingPhase || !newPhaseName.trim()} className="flex-1 bg-accent text-background text-[10px] font-bold py-1.5 rounded hover:scale-105 transition-transform">Add</button>
+                          <button onClick={() => setShowAddPhaseInput(false)} className="flex-1 bg-surface-200 text-text-secondary hover:text-foreground text-[10px] font-bold py-1.5 rounded transition-colors">Cancel</button>
                         </div>
                       </div>
                     ) : (
                       <button
                         onClick={() => setShowAddPhaseInput(true)}
-                        className="text-[9px] font-bold text-surface-400 hover:text-accent uppercase tracking-widest border border-dashed border-surface-300 hover:border-accent rounded-lg w-full h-8 flex items-center justify-center transition-colors"
+                        className="text-[10px] font-bold text-text-secondary hover:text-accent uppercase tracking-[0.2em] border border-dashed border-surface-300 hover:border-accent hover:shadow-[0_0_15px_var(--accent)] hover:shadow-accent/20 rounded-lg w-full h-8 flex items-center justify-center transition-all duration-300"
                       >
                         + Add Phase
                       </button>

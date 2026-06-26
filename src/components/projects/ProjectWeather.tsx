@@ -84,9 +84,9 @@ export default function ProjectWeather({ project }: ProjectWeatherProps) {
   if (!project.latitude || !project.longitude) return null;
   if (loading && !forecast) {
     return (
-      <div className="bg-white rounded-3xl border border-surface-200 shadow-sm p-6 flex flex-col items-center justify-center h-[280px]">
+      <div className="bg-surface-100 border-surface-200 rounded-3xl border border-surface-200 shadow-sm p-6 flex flex-col items-center justify-center h-[280px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-        <p className="text-surface-500 font-bold text-xs uppercase tracking-widest">Loading Forecast...</p>
+        <p className="text-surface-500 text-surface-400 font-bold text-xs uppercase tracking-widest">Loading Forecast...</p>
       </div>
     );
   }
@@ -95,25 +95,25 @@ export default function ProjectWeather({ project }: ProjectWeatherProps) {
 
   const classifyWMOCode = (code: number) => {
     // 0-2: Clear/Partly Cloudy
-    if (code <= 2) return { label: "Clear", icon: <Sun size={20} className="text-amber-500" />, bg: "bg-amber-50" };
+    if (code <= 2) return { label: "Clear", icon: <Sun size={20} className="text-amber-500" />, bg: "bg-amber-50 dark:bg-amber-900/20" };
     // 3, 45, 48: Overcast/Fog
     if (code === 3 || code === 45 || code === 48) return { label: "Overcast", icon: <CloudFog size={20} className="text-slate-500" />, bg: "bg-slate-50" };
     // 51-67: Rain
-    if (code >= 51 && code <= 67) return { label: "Rain", icon: <CloudRain size={20} className="text-blue-500" />, bg: "bg-blue-50", warning: true };
+    if (code >= 51 && code <= 67) return { label: "Rain", icon: <CloudRain size={20} className="text-blue-500" />, bg: "bg-blue-50 dark:bg-blue-900/20", warning: true };
     // 71-77: Snow
     if (code >= 71 && code <= 77) return { label: "Snow", icon: <CloudSnow size={20} className="text-sky-400" />, bg: "bg-sky-50", warning: true };
     // 80-82: Showers
     if (code >= 80 && code <= 82) return { label: "Showers", icon: <CloudRain size={20} className="text-indigo-500" />, bg: "bg-indigo-50" };
     // 95-99: Thunderstorm
-    if (code >= 95 && code <= 99) return { label: "Storm", icon: <CloudLightning size={20} className="text-red-500" />, bg: "bg-red-50", critical: true };
+    if (code >= 95 && code <= 99) return { label: "Storm", icon: <CloudLightning size={20} className="text-red-500" />, bg: "bg-red-50 dark:bg-red-900/20", critical: true };
     
     return { label: "Unknown", icon: <Cloud size={20} className="text-surface-400" />, bg: "bg-surface-50" };
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-surface-200 shadow-sm flex flex-col h-[280px]">
+    <div className="bg-surface-100 border-surface-200 rounded-3xl border border-surface-200 shadow-sm flex flex-col h-[280px]">
       <div className="p-4 border-b border-surface-100 flex justify-between items-center bg-surface-50 rounded-t-3xl">
-        <div className="flex items-center gap-2 text-surface-600">
+        <div className="flex items-center gap-2 text-surface-600 text-surface-300">
           <Sun size={16} />
           <h3 className="font-bold text-sm">15-Day Weather Outlook</h3>
         </div>
@@ -137,10 +137,10 @@ export default function ProjectWeather({ project }: ProjectWeatherProps) {
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <div className={`text-[10px] uppercase font-black tracking-widest ${isToday ? 'text-primary' : 'text-surface-500'}`}>
+                  <div className={`text-[10px] uppercase font-black tracking-widest ${isToday ? 'text-primary' : 'text-surface-500 text-surface-400'}`}>
                     {isToday ? "Today" : dayName}
                   </div>
-                  <div className="text-xs font-bold text-surface-600">{dayNum}</div>
+                  <div className="text-xs font-bold text-surface-600 text-surface-300">{dayNum}</div>
                 </div>
                 {icon}
               </div>
@@ -162,7 +162,7 @@ export default function ProjectWeather({ project }: ProjectWeatherProps) {
                   </div>
                 )}
                 {!warning && !critical && (
-                  <div className="mt-1 text-[9px] font-bold text-surface-500 px-1.5 py-0.5 rounded uppercase text-center w-full truncate">
+                  <div className="mt-1 text-[9px] font-bold text-surface-500 text-surface-400 px-1.5 py-0.5 rounded uppercase text-center w-full truncate">
                     {label}
                   </div>
                 )}

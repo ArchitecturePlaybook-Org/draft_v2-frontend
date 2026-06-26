@@ -20,7 +20,7 @@ export default function EditorClient() {
   if (!projectId) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-white">
+    <div className="fixed inset-0 z-50 bg-surface-100 border-surface-200">
       {/* We use fixed inset-0 to cover the whole screen, overlaying any existing dashboard layout */}
 
       <SweetHome3DEditor 

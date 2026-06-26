@@ -251,7 +251,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
 
   if (!data || data.items.length === 0) {
     return (
-      <div className="p-16 text-center text-surface-500 bg-white rounded-3xl border border-surface-200">
+      <div className="p-16 text-center text-surface-500 bg-surface-100 rounded-3xl border border-surface-200">
         <p className="text-4xl mb-4">📐</p>
         <p className="font-black text-xl text-primary">No Take-Off Data Found</p>
         <p className="mt-2 text-sm max-w-md mx-auto">
@@ -266,7 +266,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
       {/* Missing Recipe Modal Overlay */}
       {showMissingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-surface-200 overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-surface-100 rounded-3xl w-full max-w-4xl shadow-2xl border border-surface-200 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-8 py-6 border-b border-surface-200 bg-surface-50 shrink-0 flex justify-between items-start">
               <div>
                 <h3 className="text-xl font-black text-primary uppercase tracking-tight">Missing Recipe Detected</h3>
@@ -353,7 +353,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
               <button 
                 onClick={handleSaveRecipeAndContinue}
                 disabled={isSavingRecipe || isPushing || recipeData.components.length === 0}
-                className="bg-primary text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-accent transition-all disabled:opacity-50"
+                className="bg-accent text-background px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-accent transition-all disabled:opacity-50"
               >
                 {isSavingRecipe ? "Saving..." : "Save Recipe & Continue"}
               </button>
@@ -363,7 +363,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
       )}
 
       {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-6 rounded-3xl border border-surface-200 shadow-sm gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface-100 p-6 rounded-3xl border border-surface-200 shadow-sm gap-4">
         <div>
           <h2 className="text-lg font-black text-primary uppercase tracking-tight">Master Estimate</h2>
           <p className="text-xs text-surface-500 font-bold mt-1">Aggregated quantities from all floor plans</p>
@@ -372,14 +372,14 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
           <div className="bg-surface-50 border border-surface-200 p-1 rounded-xl flex">
             <button
               onClick={() => projectsApi.exportProjectData(projectId, "estimations", "excel", "flat")}
-              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-surface-100 hover:shadow-sm rounded-lg transition-all"
               title="Export Flat Excel"
             >
               📊 Excel (Flat)
             </button>
             <button
               onClick={() => projectsApi.exportProjectData(projectId, "estimations", "excel", "floor_plan")}
-              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-surface-100 hover:shadow-sm rounded-lg transition-all"
               title="Export Grouped Excel"
             >
               📑 Excel (Grouped)
@@ -387,14 +387,14 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
             <div className="w-px bg-surface-200 mx-1 my-1" />
             <button
               onClick={() => projectsApi.exportProjectData(projectId, "estimations", "pdf", "flat")}
-              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-surface-100 hover:shadow-sm rounded-lg transition-all"
               title="Export Flat PDF"
             >
               📄 PDF (Flat)
             </button>
             <button
               onClick={() => projectsApi.exportProjectData(projectId, "estimations", "pdf", "floor_plan")}
-              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-surface-600 hover:bg-surface-100 hover:shadow-sm rounded-lg transition-all"
               title="Export Grouped PDF"
             >
               🖨️ PDF (Grouped)
@@ -403,7 +403,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
           <button
             onClick={handleInitiatePush}
             disabled={isPushing}
-            className="bg-accent text-white px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-accent-dark transition-all shadow-md disabled:opacity-50"
+            className="bg-accent text-background px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-accent-dark transition-all shadow-md disabled:opacity-50"
           >
             {isPushing ? "Pushing..." : "Push Estimate to BOQ ↗"}
           </button>
@@ -411,7 +411,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
       </div>
 
       {/* Grid */}
-      <div className="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
+      <div className="bg-surface-100 rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -474,7 +474,7 @@ export default function EstimationTab({ onPushToBoq, onSwitchToBoq }: Estimation
       </div>
 
       {/* Sticky Footer */}
-      <div className="fixed bottom-0 left-[260px] right-0 bg-white border-t border-surface-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] p-4 px-12 z-20 flex justify-between items-center pointer-events-none">
+      <div className="fixed bottom-0 left-[260px] right-0 bg-surface-100 border-t border-surface-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] p-4 px-12 z-20 flex justify-between items-center pointer-events-none">
         <div className="pointer-events-auto">
           <p className="text-[10px] font-black uppercase tracking-widest text-surface-500">Project Master Estimate</p>
         </div>

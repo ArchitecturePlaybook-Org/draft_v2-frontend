@@ -90,13 +90,13 @@ export const TaskHSETab: React.FC<TaskHSETabProps> = ({ task, projectUid }) => {
   return (
     <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
       {/* Form Card */}
-      <div className="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+      <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-surface-200 bg-surface-50 flex justify-between items-center">
           <div>
             <h3 className="font-bold text-primary flex items-center gap-2">
               <span className="text-xl">🛡️</span> Report Safety Incident
             </h3>
-            <p className="text-[10px] text-surface-500 font-bold uppercase tracking-widest mt-1">
+            <p className="text-[10px] text-surface-500 text-surface-400 font-bold uppercase tracking-widest mt-1">
               Context: Task {task.uid}
             </p>
           </div>
@@ -111,7 +111,7 @@ export const TaskHSETab: React.FC<TaskHSETabProps> = ({ task, projectUid }) => {
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-surface-500 uppercase tracking-widest mb-1">Date</label>
+              <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase tracking-widest mb-1">Date</label>
               <input
                 required
                 type="date"
@@ -121,7 +121,7 @@ export const TaskHSETab: React.FC<TaskHSETabProps> = ({ task, projectUid }) => {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-surface-500 uppercase tracking-widest mb-1">Type</label>
+              <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase tracking-widest mb-1">Type</label>
               <select
                 required
                 className="w-full h-10 px-3 rounded-lg border border-surface-200 text-sm focus:ring-2 focus:ring-accent outline-none font-bold text-primary"
@@ -136,7 +136,7 @@ export const TaskHSETab: React.FC<TaskHSETabProps> = ({ task, projectUid }) => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-surface-500 uppercase tracking-widest mb-1">Severity</label>
+              <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase tracking-widest mb-1">Severity</label>
               <select
                 required
                 className="w-full h-10 px-3 rounded-lg border border-surface-200 text-sm focus:ring-2 focus:ring-accent outline-none font-bold text-primary"
@@ -153,7 +153,7 @@ export const TaskHSETab: React.FC<TaskHSETabProps> = ({ task, projectUid }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-surface-500 uppercase tracking-widest mb-1">Description</label>
+            <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase tracking-widest mb-1">Description</label>
             <textarea
               required
               className="w-full min-h-[80px] p-3 rounded-lg border border-surface-200 text-sm focus:ring-2 focus:ring-accent outline-none resize-y font-medium placeholder:text-surface-300"
@@ -179,7 +179,7 @@ export const TaskHSETab: React.FC<TaskHSETabProps> = ({ task, projectUid }) => {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-primary transition-all disabled:opacity-50 shadow-md"
+              className="px-6 py-2.5 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all disabled:opacity-50 shadow-md"
             >
               {loading ? "Submitting..." : "Submit Incident"}
             </button>
@@ -188,7 +188,7 @@ export const TaskHSETab: React.FC<TaskHSETabProps> = ({ task, projectUid }) => {
       </div>
 
       {/* Task-Specific Incidents List */}
-      <div className="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+      <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
          <div className="p-4 border-b border-surface-200 bg-surface-50">
             <h3 className="font-bold text-surface-700 text-sm uppercase tracking-widest">Incidents Logged on this Task</h3>
          </div>
@@ -202,18 +202,18 @@ export const TaskHSETab: React.FC<TaskHSETabProps> = ({ task, projectUid }) => {
                {incidents.map((inc, i) => (
                  <div key={inc.id || i} className="p-4 hover:bg-surface-50 transition-colors">
                    <div className="flex justify-between items-start mb-1">
-                     <span className="text-xs font-bold text-surface-500">{inc.incident_date}</span>
+                     <span className="text-xs font-bold text-surface-500 text-surface-400">{inc.incident_date}</span>
                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
                         inc.severity === 'fatal' || inc.severity === 'critical' ? 'bg-red-100 text-red-600' : 
-                        inc.severity === 'major' ? 'bg-orange-100 text-orange-600' : 'bg-surface-100 text-surface-600'
+                        inc.severity === 'major' ? 'bg-orange-100 text-orange-600' : 'bg-surface-100 text-surface-600 text-surface-300'
                      }`}>
                        {inc.severity}
                      </span>
                    </div>
                    <p className="text-sm font-medium text-primary mt-1">{inc.description.replace(`[Task: ${task.uid}] `, '')}</p>
                    <div className="flex gap-2 mt-2">
-                     <span className="text-[10px] bg-surface-100 text-surface-500 px-2 py-0.5 rounded uppercase font-bold">{inc.incident_type.replace('_', ' ')}</span>
-                     {inc.osha_recordable && <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded uppercase font-bold">OSHA</span>}
+                     <span className="text-[10px] bg-surface-100 text-surface-500 text-surface-400 px-2 py-0.5 rounded uppercase font-bold">{inc.incident_type.replace('_', ' ')}</span>
+                     {inc.osha_recordable && <span className="text-[10px] bg-red-50 dark:bg-red-900/20 text-red-600 px-2 py-0.5 rounded uppercase font-bold">OSHA</span>}
                    </div>
                  </div>
                ))}

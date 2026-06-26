@@ -89,7 +89,7 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
 
   if (!isMatrixTask) {
     return (
-      <div className="bg-white rounded-2xl border border-surface-200 p-8 text-center shadow-sm">
+      <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-8 text-center shadow-sm">
         <p className="text-sm font-bold text-surface-400">Bill of Quantities is only available for field Matrix tasks.</p>
         <p className="text-xs text-surface-400 mt-2">Generic task budget is: ${Number(task.cost || 0).toLocaleString()}</p>
       </div>
@@ -100,13 +100,13 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Estimated Cost", value: `$${estimatedCost.toLocaleString("en", { minimumFractionDigits: 2 })}`, color: "text-primary", bg: "bg-white" },
-          { label: "Actual Burn", value: `$${burnCost.toLocaleString("en", { minimumFractionDigits: 2 })}`, color: "text-primary", bg: "bg-white" },
+          { label: "Estimated Cost", value: `$${estimatedCost.toLocaleString("en", { minimumFractionDigits: 2 })}`, color: "text-primary", bg: "bg-surface-100 border-surface-200" },
+          { label: "Actual Burn", value: `$${burnCost.toLocaleString("en", { minimumFractionDigits: 2 })}`, color: "text-primary", bg: "bg-surface-100 border-surface-200" },
           {
             label: "Variance",
             value: `${variance >= 0 ? "+" : ""}$${Math.abs(variance).toLocaleString("en", { minimumFractionDigits: 2 })}`,
             color: isOverBudget ? "text-red-600" : "text-emerald-600",
-            bg: isOverBudget ? "bg-red-50" : "bg-emerald-50",
+            bg: isOverBudget ? "bg-red-50 dark:bg-red-900/20" : "bg-emerald-50 dark:bg-emerald-900/20",
           },
         ].map(m => (
           <div key={m.label} className={`${m.bg} rounded-2xl border border-surface-200 p-5 shadow-sm`}>
@@ -116,7 +116,7 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
         ))}
       </div>
       
-      <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-6">
+      <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-5 shadow-sm space-y-6">
         <div>
           <div className="flex justify-between items-center mb-4">
             <p className="text-[9px] font-bold text-surface-400 uppercase tracking-widest">THIS TASK'S ALLOCATED MATERIAL LEDGER</p>
@@ -131,12 +131,12 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
               const isOverLimit = maxQty !== Infinity && requestedQty > maxQty;
 
               return (
-                <div key={stateKey} className="border border-surface-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                <div key={stateKey} className="border border-surface-200 rounded-xl overflow-hidden bg-surface-100 border-surface-200 shadow-sm">
                   {/* Header / Info Section */}
                   <div className="p-5 border-b border-surface-100 bg-surface-50 flex justify-between items-start gap-4">
                     <div>
                       <h4 className="font-extrabold text-primary text-base">{alloc.boq_item_detail?.material_code}</h4>
-                      <ul className="mt-2 space-y-1 text-sm text-surface-500 font-medium">
+                      <ul className="mt-2 space-y-1 text-sm text-surface-500 text-surface-400 font-medium">
                         <li>• Dynamic Target for this Task: <strong className="text-primary">{alloc.allocated_qty}</strong></li>
                         {alloc.suggested_consumption_range && (
                           <li>• Suggested Range: <strong className="text-primary">{alloc.suggested_consumption_range.min.toFixed(2)} - {alloc.suggested_consumption_range.max.toFixed(2)}</strong> (+/- 20%)</li>
@@ -145,12 +145,12 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
                     </div>
                     {alloc.is_logged ? (
                       <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${
-                        alloc.is_anomaly ? "bg-red-50 text-red-600 border-red-200" : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                        alloc.is_anomaly ? "bg-red-50 dark:bg-red-900/20 text-red-600 border-red-200 dark:border-red-800/30" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30"
                       }`}>
                         {alloc.is_anomaly ? "🚨 Anomaly Flagged" : "✅ Logged"}
                       </span>
                     ) : (
-                      <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border bg-surface-100 text-surface-600 border-surface-200">
+                      <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border bg-surface-100 text-surface-600 text-surface-300 border-surface-200">
                         ⏳ Pending Log
                       </span>
                     )}
@@ -171,7 +171,7 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
                             value={quantities[stateKey as any] ?? ""}
                             placeholder="e.g. 25.5"
                             onChange={(e) => setQuantities({ ...quantities, [stateKey as any]: e.target.value })}
-                            className="w-full h-10 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-medium bg-white"
+                            className="w-full h-10 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-medium bg-surface-100 border-surface-200"
                           />
                         </div>
 
@@ -182,7 +182,7 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
                             value={totalCosts[stateKey as any] ?? ""}
                             placeholder="e.g. 500.00"
                             onChange={(e) => setTotalCosts({ ...totalCosts, [stateKey as any]: e.target.value })}
-                            className="w-full h-10 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-medium bg-white"
+                            className="w-full h-10 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-medium bg-surface-100 border-surface-200"
                           />
                         </div>
                         
@@ -195,7 +195,7 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
                                 setReceipts({ ...receipts, [stateKey as any]: e.target.files[0] });
                               }
                             }}
-                            className="w-full h-10 border border-surface-200 bg-white rounded-xl px-3 outline-none focus:border-accent text-sm font-medium py-2 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-surface-100 file:text-surface-700 hover:file:bg-surface-200"
+                            className="w-full h-10 border border-surface-200 bg-surface-100 border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-medium py-2 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-surface-100 file:text-surface-700 hover:file:bg-surface-200"
                           />
                         </div>
                       </div>
@@ -204,7 +204,7 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
                         <button
                           onClick={() => handleLogConsumption(alloc.id, alloc.boq_item)}
                           disabled={isUpdating}
-                          className="w-full h-11 bg-primary text-white font-bold text-[11px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          className="w-full h-11 bg-accent text-background font-bold text-[11px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                           📝 Submit Usage Log
                         </button>
@@ -218,7 +218,7 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
                       <p className="text-[10px] font-black text-surface-400 uppercase tracking-widest mb-3">Logged Usage History</p>
                       <div className="space-y-3">
                         {alloc.logs.map((log: any) => (
-                          <div key={log.id} className="grid grid-cols-4 gap-4 text-sm font-medium text-surface-600 bg-white p-3 rounded-xl border border-surface-200 shadow-sm">
+                          <div key={log.id} className="grid grid-cols-4 gap-4 text-sm font-medium text-surface-600 text-surface-300 bg-surface-100 border-surface-200 p-3 rounded-xl border border-surface-200 shadow-sm">
                             <div><span className="text-surface-400 block text-xs">Date</span> {new Date(log.created_at).toLocaleDateString()}</div>
                             <div><span className="text-surface-400 block text-xs">Qty Consumed</span> <strong className="text-primary">{log.consumed_qty}</strong></div>
                             <div><span className="text-surface-400 block text-xs">Cost</span> <strong className="text-emerald-600">${log.total_cost}</strong></div>
@@ -233,10 +233,10 @@ export const TaskMaterialTab: React.FC<TaskMaterialTabProps> = ({
                       </div>
                       
                       <div className="mt-4 pt-4 border-t border-surface-200 flex justify-between items-center text-sm">
-                        <span className="font-bold text-surface-500">Total Consumption:</span>
+                        <span className="font-bold text-surface-500 text-surface-400">Total Consumption:</span>
                         <div className="flex gap-6">
                           <span>Qty: <strong className={alloc.is_anomaly ? "text-red-600" : "text-primary"}>{alloc.actual_consumed_qty}</strong></span>
-                          <span>Target: <strong className="text-surface-600">{alloc.allocated_qty}</strong></span>
+                          <span>Target: <strong className="text-surface-600 text-surface-300">{alloc.allocated_qty}</strong></span>
                         </div>
                       </div>
                     </div>

@@ -525,7 +525,7 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
 
   if (!topLevelTasks || topLevelTasks.length === 0) {
     return (
-      <div className="p-16 text-center text-surface-400 bg-white rounded-2xl border border-surface-200 shadow-sm">
+      <div className="p-16 text-center text-surface-400 bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 shadow-sm">
         <span className="text-5xl opacity-20 block mb-4">📊</span>
         <p className="text-sm font-bold">
           No tasks to display in the Gantt timeline.
@@ -538,7 +538,7 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
   }
 
   return (
-    <div className="w-full overflow-x-auto bg-white p-10 rounded-[2.5rem] border border-surface-200 shadow-2xl shadow-primary/5 animate-in fade-in duration-700">
+    <div className="w-full overflow-x-auto bg-surface-100 border-surface-200 p-10 rounded-[2.5rem] border border-surface-200 shadow-2xl shadow-primary/5 animate-in fade-in duration-700">
       {/* ── Controls Bar ───────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -568,8 +568,8 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
                 onClick={() => setGroupBy(opt.id)}
                 className={`px-4 py-1.5 text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all ${
                   groupBy === opt.id
-                    ? "bg-white shadow-md text-primary"
-                    : "text-surface-500 hover:text-primary"
+                    ? "bg-surface-100 border-surface-200 shadow-md text-primary"
+                    : "text-surface-500 text-surface-400 hover:text-primary"
                 }`}
               >
                 {opt.label}
@@ -635,7 +635,7 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
             {groupedTasks.map(([groupName, groupTasks]) => (
               <div key={groupName} className="space-y-3">
                 <div className="flex items-center gap-3 pb-2 border-b border-surface-100">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-surface-500">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-surface-500 text-surface-400">
                     {groupName}
                   </h4>
                   <span className="text-[9px] font-bold text-surface-400 bg-surface-100 px-2 py-0.5 rounded-full">
@@ -657,7 +657,7 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
                               {task.title}
                             </h4>
                             {isCritical && (
-                              <span className="bg-red-100 text-red-700 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 shrink-0">
+                              <span className="bg-red-100 text-red-700 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 dark:border-red-800/30 shrink-0">
                                 ⚡ Critical
                               </span>
                             )}
@@ -689,7 +689,7 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
                         <div className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity w-10 shrink-0">
                           <button
                             onClick={() => onTaskClick(task)}
-                            className="w-10 h-10 rounded-xl bg-surface-100 text-surface-500 hover:bg-primary hover:text-white transition-all flex items-center justify-center text-xs"
+                            className="w-10 h-10 rounded-xl bg-surface-100 text-surface-500 text-surface-400 hover:opacity-90 hover:text-white transition-all flex items-center justify-center text-xs"
                           >
                             ⚙️
                           </button>
@@ -721,25 +721,25 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
           </span>
           <div className="flex items-center gap-2">
             <div className="w-4 h-2 bg-primary rounded-sm" />
-            <span className="text-[9px] font-bold text-surface-500">
+            <span className="text-[9px] font-bold text-surface-500 text-surface-400">
               To Do
             </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-2 bg-accent rounded-sm" />
-            <span className="text-[9px] font-bold text-surface-500">
+            <span className="text-[9px] font-bold text-surface-500 text-surface-400">
               In Progress
             </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-2 bg-emerald-500 rounded-sm" />
-            <span className="text-[9px] font-bold text-surface-500">
+            <span className="text-[9px] font-bold text-surface-500 text-surface-400">
               Done
             </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-2 bg-red-500 rounded-sm ring-2 ring-red-300 ring-offset-1" />
-            <span className="text-[9px] font-bold text-surface-500">
+            <span className="text-[9px] font-bold text-surface-500 text-surface-400">
               Critical Path
             </span>
           </div>
@@ -756,7 +756,7 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
                 markerEnd="url(#arrowhead)"
               />
             </svg>
-            <span className="text-[9px] font-bold text-surface-500">
+            <span className="text-[9px] font-bold text-surface-500 text-surface-400">
               Dependency
             </span>
           </div>

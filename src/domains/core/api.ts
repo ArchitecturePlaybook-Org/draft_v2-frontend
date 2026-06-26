@@ -26,7 +26,8 @@ export interface WebhookEndpoint {
 
 export const webhooksApi = {
   list: async () => {
-    return fetchFromBff<WebhookEndpoint[]>("/api/v1/core/webhooks/", { method: "GET" });
+    const data = await fetchFromBff<any>("/api/v1/core/webhooks/", { method: "GET" });
+    return (Array.isArray(data) ? data : (data.results || [])) as WebhookEndpoint[];
   },
   create: async (data: { account: number; url: string; events: string[]; is_active: boolean }) => {
     return fetchFromBff<WebhookEndpoint>("/api/v1/core/webhooks/", {

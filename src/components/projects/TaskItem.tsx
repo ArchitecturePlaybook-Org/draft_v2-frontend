@@ -10,17 +10,21 @@ interface TaskItemProps {
   onDragStart?: (e: React.DragEvent) => void;
   isSelected?: boolean;
   onSelectToggle?: () => void;
+  innerRef?: (element: HTMLElement | null) => void;
+  draggableProps?: any;
+  dragHandleProps?: any;
+  isDragging?: boolean;
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  TODO: "bg-surface-100 text-surface-500 border-surface-200",
-  WIP: "bg-blue-50 text-blue-700 border-blue-200",
-  QA: "bg-amber-50 text-amber-700 border-amber-200",
-  DONE: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  TODO: "bg-surface-100 text-text-secondary border-surface-200",
+  WIP: "bg-semantic-blue/10 text-semantic-blue border-semantic-blue/30",
+  QA: "bg-accent/10 text-accent border-accent/30",
+  DONE: "bg-semantic-green/10 text-semantic-green border-semantic-green/30",
   // Fallbacks for generic tasks if they still use old statuses before DB update
-  "Pending": "bg-surface-100 text-surface-500 border-surface-200",
-  "In Progress": "bg-blue-50 text-blue-700 border-blue-200",
-  "Done": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "Pending": "bg-surface-100 text-text-secondary border-surface-200",
+  "In Progress": "bg-semantic-blue/10 text-semantic-blue border-semantic-blue/30",
+  "Done": "bg-semantic-green/10 text-semantic-green border-semantic-green/30",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -41,6 +45,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onDragStart,
   isSelected = false,
   onSelectToggle,
+  innerRef,
+  draggableProps,
+  dragHandleProps,
+  isDragging = false,
 }) => {
   const isMatrixTask = task.block !== null && task.block !== undefined;
   const hasTrade = task.trade !== null && task.trade !== undefined;
@@ -55,10 +63,15 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     // GENERIC KANBAN TASK RENDER
     return (
       <div 
-        draggable={!!onDragStart}
+        ref={innerRef}
+        {...draggableProps}
+        {...dragHandleProps}
+        draggable={draggableProps ? undefined : !!onDragStart}
         onDragStart={onDragStart}
         onClick={onClick}
-        className="bg-white p-6 rounded-2xl border border-surface-200 hover:border-accent hover:shadow-lg transition-all group flex flex-col md:flex-row justify-between items-start md:items-center gap-6 cursor-pointer"
+        className={`bg-surface-100 p-5 rounded-2xl border border-surface-200 hover:-translate-y-1 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] hover:border-semantic-blue/50 transition-all duration-300 group flex flex-col md:flex-row justify-between items-start md:items-center gap-6 cursor-pointer ${
+          isDragging ? 'shadow-2xl opacity-95 scale-[1.02] rotate-2 z-50 border-semantic-blue shadow-semantic-blue/20' : 'shadow-sm'
+        }`}
       >
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
@@ -70,22 +83,22 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 className="w-4 h-4 rounded border-surface-300 text-primary focus:ring-accent mr-2 cursor-pointer"
               />
             )}
-            <span className="text-[10px] font-mono font-medium text-surface-400 bg-surface-50 px-2 py-0.5 rounded border border-surface-200 shrink-0">{task.task_code || task.uid}</span>
+            <span className="text-[9px] font-mono font-black text-text-secondary bg-surface-50 px-2.5 py-1 rounded-md border border-surface-200 shrink-0 tracking-widest uppercase">{task.task_code || task.uid.substring(0,8)}</span>
             {isCritical && (
-              <span className="bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 shrink-0">Critical</span>
+              <span className="bg-semantic-red/10 text-semantic-red text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-semantic-red/30 shrink-0">Critical</span>
             )}
-            {task.priority === "HIGH" && <span className="bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 shrink-0" title="High Priority">High Priority</span>}
-            {task.priority === "MEDIUM" && <span className="bg-amber-100 text-amber-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-amber-200 shrink-0" title="Medium Priority">Medium Priority</span>}
-            {task.priority === "LOW" && <span className="bg-surface-100 text-surface-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-surface-200 shrink-0" title="Low Priority">Low Priority</span>}
-            <h4 className="text-sm font-bold text-primary tracking-tight group-hover:text-accent transition-colors truncate">{task.title}</h4>
+            {task.priority === "HIGH" && <span className="bg-semantic-red/10 text-semantic-red text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-semantic-red/30 shrink-0" title="High Priority">High Priority</span>}
+            {task.priority === "MEDIUM" && <span className="bg-accent/10 text-accent text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-accent/30 shrink-0" title="Medium Priority">Medium Priority</span>}
+            {task.priority === "LOW" && <span className="bg-surface-100 text-text-secondary text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-surface-200 shrink-0" title="Low Priority">Low Priority</span>}
+            <h4 className="text-sm font-bold text-foreground tracking-tight group-hover:text-semantic-blue transition-colors truncate">{task.title}</h4>
           </div>
-          <p className="text-[11px] text-surface-500 leading-relaxed font-medium line-clamp-2">
+          <p className="text-[11px] text-text-secondary leading-relaxed line-clamp-2">
             {task.description || "No specific architectural requirements detailed."}
           </p>
           {task.tags && task.tags.length > 0 && (
             <div className="flex gap-1 flex-wrap mt-2">
               {task.tags.map(tag => (
-                <span key={tag.id} className="text-[9px] px-1.5 py-0.5 rounded border text-surface-600 font-bold uppercase tracking-widest" style={{ borderColor: tag.color, backgroundColor: `${tag.color}10` }}>
+                <span key={tag.id} className="text-[9px] px-1.5 py-0.5 rounded border text-text-secondary font-bold uppercase tracking-widest" style={{ borderColor: tag.color, backgroundColor: `${tag.color}10` }}>
                   {tag.name}
                 </span>
               ))}
@@ -94,20 +107,20 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </div>
         <div className="flex items-center gap-4 shrink-0">
           {hasUnresolvedPunchList && (
-            <span className="flex items-center justify-center w-5 h-5 bg-amber-500 rounded-full shrink-0 shadow-sm animate-pulse" title="Unresolved Issue Tracker items">
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span className="flex items-center justify-center w-6 h-6 bg-accent rounded-full shrink-0 shadow-[0_0_15px_var(--accent)] animate-pulse" title="Unresolved Issue Tracker items">
+              <svg className="w-3 h-3 text-background" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </span>
           )}
           {task.requires_owner_response && (
-            <span className="flex items-center justify-center w-5 h-5 bg-red-500 rounded-full shrink-0 shadow-sm animate-pulse" title="New message requires your response">
-              <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+            <span className="flex items-center justify-center w-5 h-5 bg-semantic-red rounded-full shrink-0 shadow-none animate-pulse" title="New message requires your response">
+              <span className="w-1.5 h-1.5 bg-background rounded-full"></span>
             </span>
           )}
           {task.depends_on && task.depends_on.length > 0 && (
-            <span className="flex items-center justify-center w-5 h-5 bg-surface-100 rounded-full shrink-0 shadow-sm" title={`Depends on ${task.depends_on.length} task(s)`}>
-              <svg className="w-3 h-3 text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            <span className="flex items-center justify-center w-5 h-5 bg-surface-100 rounded-full shrink-0 shadow-none" title={`Depends on ${task.depends_on.length} task(s)`}>
+              <svg className="w-3 h-3 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
             </span>
           )}
           <span className={`px-3 py-1 text-[9px] font-bold uppercase tracking-[0.15em] rounded-md shadow-sm shrink-0 border ${statusColor}`}>
@@ -126,17 +139,21 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   // MATRIX TASK RENDER
   return (
     <div
-      draggable={!isLocked}
+      ref={innerRef}
+      {...draggableProps}
+      {...dragHandleProps}
+      draggable={draggableProps ? undefined : !isLocked}
       onDragStart={isLocked ? undefined : onDragStart}
       onClick={onClick}
       title={isLocked ? "This zone is locked" : task.title}
       className={`
-        relative group bg-white border rounded-xl p-3.5 shadow-sm transition-all duration-200
+        relative group bg-surface-100 border rounded-md p-3.5 transition-all duration-300
         ${isLocked
           ? "opacity-60 cursor-not-allowed border-surface-200"
-          : "cursor-pointer hover:shadow-md hover:border-accent/40 hover:-translate-y-0.5 active:scale-95"
+          : "cursor-pointer hover:border-semantic-blue transition-colors"
         }
-        ${task.has_active_blocker ? "border-red-300 bg-red-50/30" : "border-surface-200"}
+        ${task.has_active_blocker ? "border-semantic-red bg-semantic-red/10" : "border-surface-200"}
+        ${isDragging ? 'shadow-none opacity-95 scale-[1.03] rotate-2 z-50 border-semantic-blue' : ''}
       `}
     >
       {/* Unresolved Issue Tracker Indicator */}
@@ -151,7 +168,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       {/* Needs Response Indicator */}
       {task.requires_owner_response && (
         <div className="absolute -top-1.5 -right-1.5 z-10 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center shadow-md animate-bounce" title="New message requires your response">
-          <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+          <span className="w-1.5 h-1.5 bg-surface-100 border-surface-200 rounded-full"></span>
         </div>
       )}
 
@@ -168,18 +185,18 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       {/* Card header */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex-1 min-w-0">
-          <div className="text-[9px] font-mono text-surface-400 mb-0.5 truncate">
+          <div className="text-[9px] font-mono text-text-secondary mb-0.5 truncate">
             {task.task_code || task.uid}
-            {isCritical && <span className="ml-2 bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 inline-block">Critical</span>}
-            {task.priority === "HIGH" && <span className="ml-2 bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 inline-block" title="High Priority">High Priority</span>}
-            {task.priority === "MEDIUM" && <span className="ml-2 bg-amber-100 text-amber-700 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-amber-200 inline-block" title="Medium Priority">Medium Priority</span>}
-            {task.priority === "LOW" && <span className="ml-2 bg-surface-100 text-surface-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-surface-200 inline-block" title="Low Priority">Low Priority</span>}
+            {isCritical && <span className="ml-2 bg-semantic-red/10 text-semantic-red text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-semantic-red/30 inline-block">Critical</span>}
+            {task.priority === "HIGH" && <span className="ml-2 bg-semantic-red/10 text-semantic-red text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-semantic-red/30 inline-block" title="High Priority">High Priority</span>}
+            {task.priority === "MEDIUM" && <span className="ml-2 bg-accent/10 text-accent text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-accent/30 inline-block" title="Medium Priority">Medium Priority</span>}
+            {task.priority === "LOW" && <span className="ml-2 bg-surface-100 text-text-secondary text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-surface-200 inline-block" title="Low Priority">Low Priority</span>}
           </div>
-          <h4 className="font-bold text-[11px] text-primary leading-tight line-clamp-2 group-hover:text-accent transition-colors">
+          <h4 className="font-bold text-[11px] text-foreground leading-tight line-clamp-2 group-hover:text-semantic-blue transition-colors">
             {task.title}
           </h4>
           {task.description && (
-            <p className="text-[9px] text-surface-500 mt-1.5 line-clamp-2 leading-snug">
+            <p className="text-[9px] text-text-secondary mt-1.5 line-clamp-2 leading-snug">
               {task.description}
             </p>
           )}
@@ -196,7 +213,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             className="w-2 h-2 rounded-full shrink-0"
             style={{ backgroundColor: task.trade!.color_hex }}
           />
-          <span className="text-[9px] font-bold text-surface-500 truncate">
+          <span className="text-[9px] font-bold text-surface-500 text-surface-400 truncate">
             {task.trade!.name}
           </span>
         </div>

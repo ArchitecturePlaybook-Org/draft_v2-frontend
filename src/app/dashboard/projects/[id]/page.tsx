@@ -1,226 +1,54 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Project, ProjectStatus, ProjectDetail, Task, ProjectAsset, TaskTemplate, SpatialZone, MilestonePhase } from "@/types/projects";
+import Link from "next/link";
+import { ProjectStatus } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { orgsApi } from "@/domains/orgs/api";
 import { usePermissions } from "@/hooks/use-permissions";
-import { TaskItem } from "@/components/projects/TaskItem";
-import { TaskExecutionModal } from "@/components/projects/TaskExecutionModal";
+import { TaskExecutionSidePanel } from "@/components/projects/TaskExecutionSidePanel";
 import { Spinner } from "@/components/ui/Spinner";
-import { SketchBoard } from "@/components/sketch/SketchBoard";
-import { RevisionHistoryModal } from "@/components/projects/RevisionHistoryModal";
-import { FloorPlanGridViewer } from "@/components/projects/FloorPlanGridViewer";
 import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
 import { ExpandedFeedView } from "@/components/matrix/ExpandedFeedView";
 import { SiteOpsTab } from "@/components/projects/SiteOpsTab";
-import ModelViewer from "@/components/ModelViewer";
-import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { ProjectHeroHeader } from "@/components/projects/ProjectHeroHeader";
 import { useProjectNavStore } from "@/store/project-nav-store";
 import { TaskAccessRequestsList } from "@/components/projects/TaskAccessRequestsList";
-
-type TabView = "kanban" | "gantt" | "data_hub" | "matrix" | "site_ops";
-type HubCategory = "sketch" | "2d_plan" | "3d_model" | "document";
-
-const GanttTaskBar = ({ task, totalDays, minDate, onTaskUpdate, onClick }: { task: Task, totalDays: number, minDate: Date, onTaskUpdate: (uid: string, start: string, end: string) => void, onClick: () => void }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  const hasDates = task.start_date && task.end_date;
-  const startMs = hasDates ? new Date(task.start_date!).getTime() : 0;
-  const endMs = hasDates ? new Date(task.end_date!).getTime() : 0;
-  
-  const [draftStart, setDraftStart] = useState(startMs);
-  const [draftEnd, setDraftEnd] = useState(endMs);
-  const [mode, setMode] = useState<"idle" | "move" | "resize">("idle");
-  const dragStartX = useRef(0);
-  const initialStart = useRef(0);
-  const initialEnd = useRef(0);
-
-  useEffect(() => {
-    if (mode === "idle" && hasDates) {
-      setDraftStart(new Date(task.start_date!).getTime());
-      setDraftEnd(new Date(task.end_date!).getTime());
-    }
-  }, [task.start_date, task.end_date, mode, hasDates]);
-
-  if (!hasDates) {
-    return (
-      <button 
-        onClick={onClick}
-        className="mx-auto text-[9px] font-bold text-accent uppercase tracking-widest bg-accent/5 px-4 py-2 rounded-full border border-accent/10 hover:bg-accent hover:text-white transition-all"
-      >
-        Initialize Timeline Protocol
-      </button>
-    );
-  }
-
-  const msPerPixel = containerRef.current 
-    ? (totalDays * 24 * 60 * 60 * 1000) / containerRef.current.offsetWidth 
-    : 0;
-
-  const handlePointerDown = (e: React.PointerEvent, dragMode: "move" | "resize") => {
-    e.stopPropagation();
-    setMode(dragMode);
-    dragStartX.current = e.clientX;
-    initialStart.current = draftStart;
-    initialEnd.current = draftEnd;
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (mode === "idle" || !msPerPixel) return;
-    const deltaMs = (e.clientX - dragStartX.current) * msPerPixel;
-    
-    const deltaDays = Math.round(deltaMs / (24 * 60 * 60 * 1000));
-    const snappedDeltaMs = deltaDays * 24 * 60 * 60 * 1000;
-
-    if (mode === "move") {
-      setDraftStart(initialStart.current + snappedDeltaMs);
-      setDraftEnd(initialEnd.current + snappedDeltaMs);
-    } else if (mode === "resize") {
-      const newEnd = initialEnd.current + snappedDeltaMs;
-      if (newEnd >= draftStart) {
-        setDraftEnd(newEnd);
-      }
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (mode === "idle") return;
-    e.currentTarget.releasePointerCapture(e.pointerId);
-    
-    if (draftStart !== startMs || draftEnd !== endMs) {
-      const format = (ms: number) => new Date(ms).toISOString().split('T')[0];
-      onTaskUpdate(task.uid, format(draftStart), format(draftEnd));
-    }
-    setMode("idle");
-  };
-
-  const taskDays = Math.max(1, Math.ceil((draftEnd - draftStart) / (1000 * 60 * 60 * 24)));
-  const offsetDays = Math.ceil((draftStart - minDate.getTime()) / (1000 * 60 * 60 * 24));
-  
-  const width = `${(taskDays / totalDays) * 100}%`;
-  const left = `${(offsetDays / totalDays) * 100}%`;
-
-  return (
-    <div 
-      ref={containerRef}
-      className="flex-1 relative h-12 bg-surface-50/50 rounded-2xl border border-dashed border-surface-100 flex items-center px-2"
-    >
-      <div 
-        onPointerDown={(e) => handlePointerDown(e, "move")}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        className={`absolute h-8 rounded-xl shadow-lg transition-colors cursor-grab active:cursor-grabbing flex items-center px-4 group/bar hover:scale-[1.02] ${
-          task.status === "DONE" ? "bg-emerald-500 shadow-emerald-200" : task.status === "WIP" ? "bg-accent shadow-accent/20" : "bg-primary shadow-primary/20"
-        }`}
-        style={{ width, left, touchAction: "none" }}
-      >
-        <div onClick={(e) => { e.stopPropagation(); onClick(); }} className="flex-1 truncate">
-          <span className="text-[10px] text-white font-extrabold uppercase tracking-widest">{task.status}</span>
-        </div>
-        
-        <div 
-          onPointerDown={(e) => handlePointerDown(e, "resize")}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          className="absolute right-0 top-0 bottom-0 w-4 cursor-col-resize hover:bg-black/10 rounded-r-xl flex items-center justify-center"
-        >
-          <div className="w-1 h-3 border-l-2 border-r-2 border-white/50" />
-        </div>
-      </div>
-    </div>
-  );
-};
+import { KanbanTab } from "@/components/projects/KanbanTab";
+import { GanttTab } from "@/components/projects/GanttTab";
+import { DataHubTab } from "@/components/projects/DataHubTab";
+import { useProjectStore } from "@/store/project-store";
+import { motion } from "framer-motion";
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab") as TabView;
+  const tabParam = searchParams.get("tab") as any;
   const taskParam = searchParams.get("task");
   
-  const [project, setProject] = useState<ProjectDetail | null>(null);
+  const { 
+    project, 
+    isLoading, 
+    activeTab, 
+    activeTask, 
+    setActiveTab, 
+    setActiveTask, 
+    fetchProject, 
+    fetchTemplates,
+    updateProjectStatus
+  } = useProjectStore();
+
   const { canManageProject, canEditProject } = usePermissions();
   const { setProjectContext, recordProjectAccess } = useProjectNavStore();
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabView>(tabParam || "kanban");
-  const [activeHubCategory, setActiveHubCategory] = useState<HubCategory>("sketch");
-  const [matrixView, setMatrixView] = useState<"grid" | "feed">("grid");
   
-  // Kanban filter and inline task
-  const [kanbanFilter, setKanbanFilter] = useState("");
-  const [inlineTaskCol, setInlineTaskCol] = useState<string | null>(null);
-  const [inlineTaskTitle, setInlineTaskTitle] = useState("");
-  const [isCreatingInline, setIsCreatingInline] = useState(false);
+  const [matrixView, setMatrixView] = useState<"grid" | "feed">("grid");
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [firmMembers, setFirmMembers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
-
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [isCreatingTask, setIsCreatingTask] = useState(false);
-  
-  const [taskTemplates, setTaskTemplates] = useState<any[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState("");
-  
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-  
-  // Bulk Operations State
-  const [selectedTaskUids, setSelectedTaskUids] = useState<string[]>([]);
-  const [isBulkOperationPending, setIsBulkOperationPending] = useState(false);
-
-  const handleBulkUpdate = async (updates: any) => {
-    if (selectedTaskUids.length === 0) return;
-    setIsBulkOperationPending(true);
-    try {
-      await projectsApi.bulkUpdateTasks(selectedTaskUids, updates);
-      setSelectedTaskUids([]);
-      fetchProject();
-    } catch (err: any) {
-      alert("Bulk update failed: " + err.message);
-    } finally {
-      setIsBulkOperationPending(false);
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedTaskUids.length === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedTaskUids.length} tasks?`)) return;
-    setIsBulkOperationPending(true);
-    try {
-      await projectsApi.bulkDeleteTasks(selectedTaskUids);
-      setSelectedTaskUids([]);
-      fetchProject();
-    } catch (err: any) {
-      alert("Bulk delete failed: " + err.message);
-    } finally {
-      setIsBulkOperationPending(false);
-    }
-  };
-
-  const [renamingAssetId, setRenamingAssetId] = useState<number | null>(null);
-  const [newAssetTitle, setNewAssetTitle] = useState("");
-  // Blueprint Stack state
-  const [historyAsset, setHistoryAsset] = useState<ProjectAsset | null>(null);
-  const [linkingAssetId, setLinkingAssetId] = useState<number | null>(null);
-  const linkDropdownRef = useRef<HTMLDivElement>(null);
-  // File upload
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState("");
-  const [projectIntId, setProjectIntId] = useState<number | null>(null);
-  const [surveyAsset, setSurveyAsset] = useState<ProjectAsset | null>(null);
-  const [viewerAsset, setViewerAsset] = useState<ProjectAsset | null>(null);
-  const [manageLinksAsset, setManageLinksAsset] = useState<ProjectAsset | null>(null);
-
-  const [zones, setZones] = useState<SpatialZone[]>([]);
-  const [phases, setPhases] = useState<MilestonePhase[]>([]);
-  const [selectedZoneId, setSelectedZoneId] = useState("");
-  const [selectedPhaseId, setSelectedPhaseId] = useState("");
 
   const [globalPunchList, setGlobalPunchList] = useState<any[]>([]);
   const [isLoadingPunchList, setIsLoadingPunchList] = useState(false);
@@ -238,151 +66,31 @@ export default function ProjectDetailPage() {
   const [portfolioCountry, setPortfolioCountry] = useState("");
   const [isPublishingPortfolio, setIsPublishingPortfolio] = useState(false);
 
-  const handleDeleteProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!project || deleteConfirmText !== project.title) return;
-    setIsDeleting(true);
-    try {
-      await projectsApi.deleteProject(project.uid);
-      router.push("/dashboard/projects");
-    } catch (err: any) {
-      alert(err.message || "Failed to delete project.");
-      setIsDeleting(false);
-    }
-  };
-
-  const handlePublishPortfolioClick = () => {
-    setShowPublishPortfolioModal(true);
-  };
-
-  const submitPublishPortfolio = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!project) return;
-    setIsPublishingPortfolio(true);
-    try {
-      const res = await projectsApi.publishPortfolio(project.uid, {
-        category: portfolioCategory,
-        city: portfolioCity,
-        country: portfolioCountry
-      });
-      alert("Project published to portfolio successfully!");
-      setShowPublishPortfolioModal(false);
-      router.push("/dashboard/profile");
-    } catch (err: any) {
-      alert(err.message || "Failed to publish portfolio.");
-    } finally {
-      setIsPublishingPortfolio(false);
-    }
-  };
-
-  const handleProjectStatusChange = async (uid: string, newStatus: ProjectStatus) => {
-    if (!project) return;
-    try {
-      // Optimistic update
-      setProject({ ...project, status: newStatus as any });
-      await projectsApi.updateProject(uid, { status: newStatus as any });
-    } catch (err: any) {
-      alert("Failed to update project status.");
-      fetchProject(); // revert
-    }
-  };
-
-  const handleCreateSH3DModel = async () => {
-    if (!project) return;
-    const name = prompt("Enter a name for the new 3D model:", "New Design");
-    if (!name) return;
-    
-    setIsUploading(true);
-    try {
-      await projectsApi.initSH3DProject(project.uid, name);
-      fetchProject();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to initialize model");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const fetchProject = async () => {
-    if (!id) {
-      setIsLoading(false);
-      return;
-    }
-    try {
-      const data = await projectsApi.getProjectDetails(id as string);
-      setProject(data);
-      setProjectContext(data.uid, data.title);
-      recordProjectAccess({ uid: data.uid, title: data.title, status: data.status });
-      setProjectIntId(data.id); // cache the integer PK for uploads
-      
-      try {
-        const matrixData = await projectsApi.getMatrix(data.uid);
-        setZones(matrixData.zones);
-        setPhases(matrixData.phases);
-      } catch (err) {
-        console.warn("Failed to fetch matrix data:", err);
-      }
-    } catch (err: any) {
-      if (err?.status !== 404) {
-        console.error("Failed to fetch project:", err);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOpenAsset = (asset: any) => {
-    if (asset.category === "sketch") {
-      const isEditable = asset.file.endsWith(".excalidraw") || asset.file.endsWith(".json");
-      
-      if (isEditable) {
-        // Open the dedicated sketching route in a new tab
-        window.open(`/dashboard/projects/${id}/sketch?assetUrl=${encodeURIComponent(asset.file)}`, "_blank");
-      } else {
-        // Legacy PNG sketch
-        window.open(asset.file, "_blank");
-      }
-    } else if (asset.category === "2d_plan") {
-      // Launch the interactive Site Survey Grid
-      setSurveyAsset(asset);
-    } else if (asset.category === "3d_model") {
-      setViewerAsset(asset);
-    } else if (asset.category === "sh3d") {
-      window.open(`/dashboard/projects/${id}/editor?assetId=${asset.canonical_uid}${asset.size === 0 ? '&isNew=true' : ''}`, "_blank");
-    } else {
-      // For general documents
-      const isImage = /\.(png|jpg|jpeg|gif)$/i.test(asset.file);
-      if (isImage) {
-        setLightboxImageUrl(asset.file);
-      } else {
-        window.open(asset.file, "_blank");
-      }
-    }
-  };
-
-  const fetchTemplates = async () => {
-    try {
-      const data = await projectsApi.getTaskTemplates();
-      setTaskTemplates(Array.isArray(data) ? data : data.results || []);
-    } catch (err) {
-      console.error("Failed to fetch templates:", err);
-    }
-  };
-
   useEffect(() => {
-    fetchProject();
+    fetchProject(id as string);
     fetchTemplates();
   }, [id]);
 
-  // Listen for SH3D model save events from the Editor
+  useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  useEffect(() => {
+    if (project) {
+      setProjectContext(project.uid, project.title);
+      recordProjectAccess({ uid: project.uid, title: project.title, status: project.status });
+    }
+  }, [project?.uid, project?.title, project?.status]);
+
   useEffect(() => {
     try {
       const bc = new BroadcastChannel('sh3d_updates');
       bc.onmessage = (event) => {
         if (event.data && event.data.type === 'SH3D_MODEL_SAVED' && event.data.projectUid === id) {
           console.log("SH3D model saved, refreshing project data to show new asset...");
-          fetchProject();
+          fetchProject(id as string);
         }
       };
       return () => bc.close();
@@ -424,7 +132,7 @@ export default function ProjectDetailPage() {
     try {
       await projectsApi.resolvePunchListItem(itemId);
       fetchGlobalPunchList();
-      fetchProject();
+      if (project) fetchProject(project.uid);
     } catch (err) {
       alert("Failed to resolve issue tracker item.");
     }
@@ -436,25 +144,48 @@ export default function ProjectDetailPage() {
     }
   }, [showAssignModal, project, firmMembers.length]);
 
-  if (isLoading) return <div className="py-32 flex justify-center"><Spinner size="lg" label="Retrieving architectural nodes..." /></div>;
-  if (!project) return (
-    <div className="text-center py-32 bg-white border border-surface-200 rounded-2xl shadow-sm mt-8">
-      <h2 className="text-xl font-bold text-primary mb-4 tracking-tight">Blueprint Not Found</h2>
-      <button onClick={() => router.back()} className="px-6 py-2 border-2 border-surface-200 text-surface-500 font-bold text-[10px] uppercase tracking-widest rounded-lg hover:border-accent hover:text-accent transition-all">Go Back</button>
-    </div>
-  );
+  const handleDeleteProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project || deleteConfirmText !== project.title) return;
+    setIsDeleting(true);
+    try {
+      await projectsApi.deleteProject(project.uid);
+      router.push("/dashboard/projects");
+    } catch (err: any) {
+      alert(err.message || "Failed to delete project.");
+      setIsDeleting(false);
+    }
+  };
 
-  const canManage = canManageProject(project);
+  const submitPublishPortfolio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project) return;
+    setIsPublishingPortfolio(true);
+    try {
+      await projectsApi.publishPortfolio(project.uid, {
+        category: portfolioCategory,
+        city: portfolioCity,
+        country: portfolioCountry
+      });
+      alert("Project published to portfolio successfully!");
+      setShowPublishPortfolioModal(false);
+      router.push("/dashboard/profile");
+    } catch (err: any) {
+      alert(err.message || "Failed to publish portfolio.");
+    } finally {
+      setIsPublishingPortfolio(false);
+    }
+  };
 
   const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser) return;
+    if (!selectedUser || !project) return;
     setIsAssigning(true);
     try {
       await projectsApi.addProjectMember(project.id, parseInt(selectedUser), "editor");
       setShowAssignModal(false);
       setSelectedUser("");
-      fetchProject();
+      fetchProject(project.uid);
     } catch (err: any) {
       alert(err.message || "Failed to assign personnel. Ensure they belong to the parent firm.");
     } finally {
@@ -462,737 +193,100 @@ export default function ProjectDetailPage() {
     }
   };
 
-  const handleCreateTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const title = selectedTemplate ? taskTemplates.find(t => t.id.toString() === selectedTemplate)?.name : newTaskTitle;
-    if (!title) return;
-    
-    setIsCreatingTask(true);
-    try {
-      await projectsApi.createTask({ 
-        project: project.id, 
-        title,
-        zone_id: selectedZoneId ? parseInt(selectedZoneId) : undefined,
-        phase_id: selectedPhaseId ? parseInt(selectedPhaseId) : undefined
-      });
-      setNewTaskTitle("");
-      setSelectedTemplate("");
-      setSelectedZoneId("");
-      setSelectedPhaseId("");
-      fetchProject();
-    } catch(err: any) {
-      alert(err.message || "Failed to queue execution phase");
-    } finally {
-      setIsCreatingTask(false);
-    }
-  };
+  if (isLoading) return <div className="py-32 flex justify-center"><Spinner size="lg" label="Retrieving architectural nodes..." /></div>;
+  if (!project) return (
+    <div className="text-center py-32 bg-surface-100 border-surface-200 border border-surface-200 rounded-2xl shadow-sm mt-8">
+      <h2 className="text-xl font-bold text-primary mb-4 tracking-tight">Blueprint Not Found</h2>
+      <button onClick={() => router.back()} className="px-6 py-2 border-2 border-surface-200 text-surface-500 text-surface-400 font-bold text-[10px] uppercase tracking-widest rounded-lg hover:border-accent hover:text-accent transition-all">Go Back</button>
+    </div>
+  );
 
-  const handleInlineCreateTask = async (e: React.FormEvent, status: string) => {
-    e.preventDefault();
-    if (!inlineTaskTitle.trim() || !project) return;
-    setIsCreatingInline(true);
-    try {
-      await projectsApi.createTask({
-        project: project.id,
-        title: inlineTaskTitle.trim(),
-        status: status
-      });
-      setInlineTaskTitle("");
-      setInlineTaskCol(null);
-      fetchProject();
-    } catch(err: any) {
-      alert(err.message || "Failed to add task");
-    } finally {
-      setIsCreatingInline(false);
-    }
-  };
-
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    e.dataTransfer.setData("taskId", taskId);
-  };
-
-  const handleDrop = async (e: React.DragEvent, newStatus: string) => {
-    e.preventDefault();
-    const taskId = e.dataTransfer.getData("taskId");
-    if (!taskId) return;
-    
-    setProject(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        tasks: prev.tasks.map(t => t.uid === taskId ? { ...t, status: newStatus as any } : t)
-      };
-    });
-
-    try {
-      await projectsApi.updateTask(taskId, { status: newStatus });
-    } catch (err) {
-      console.error(err);
-      fetchProject();
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDeleteAsset = async (assetId: number) => {
-    if (!confirm("Are you sure you want to decommission this architectural asset?")) return;
-    try {
-      // Optimistic UI update
-      if (project) {
-        setProject({
-          ...project,
-          assets: project.assets.filter(a => a.id !== assetId)
-        });
-      }
-      await projectsApi.deleteProjectAsset(assetId);
-      // We still fetch to ensure synchronization with any backend side-effects
-      fetchProject();
-    } catch (err) {
-      alert("Failed to delete asset.");
-      fetchProject(); // Rollback/Sync
-    }
-  };
-
-  const handleRenameAsset = async (assetId: number) => {
-    if (!newAssetTitle) return;
-    try {
-      await projectsApi.updateProjectAsset(assetId, { title: newAssetTitle });
-      setRenamingAssetId(null);
-      setNewAssetTitle("");
-      fetchProject();
-    } catch (err) {
-      alert("Failed to rename asset.");
-    }
-  };
-
-  // Professional Gantt Calculation
-  const renderGantt = () => {
-    if (!project.tasks || project.tasks.length === 0) return <div className="p-8 text-center text-surface-400">No tasks to display in Gantt chart.</div>;
-    
-    // 1. Determine Project Range
-    const tasksWithDates = project.tasks.filter(t => t.start_date && t.end_date);
-    let minDate: Date;
-    let maxDate: Date;
-
-    if (tasksWithDates.length > 0) {
-      minDate = new Date(Math.min(...tasksWithDates.map(t => new Date(t.start_date!).getTime())));
-      maxDate = new Date(Math.max(...tasksWithDates.map(t => new Date(t.end_date!).getTime())));
-      // Add padding
-      minDate.setDate(minDate.getDate() - 7);
-      maxDate.setDate(maxDate.getDate() + 7);
-    } else {
-      minDate = new Date();
-      maxDate = new Date();
-      maxDate.setDate(maxDate.getDate() + 30);
-    }
-
-    const totalDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
-    
-    const handleTaskUpdate = async (taskId: string, start: string, end: string) => {
-      // Optimistic update
-      setProject(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          tasks: prev.tasks.map(t => t.uid === taskId ? { ...t, start_date: start, end_date: end } : t)
-        };
-      });
-
-      try {
-        await projectsApi.updateTask(taskId, { start_date: start, end_date: end });
-      } catch (err) {
-        console.error(err);
-        fetchProject(); // revert on error
-      }
-    };
-
-    // Group tasks by Phase
-    const phasesMap = new Map<string, Task[]>();
-    project.tasks.forEach(task => {
-      const phaseName = task.phase_name || "Unphased";
-      if (!phasesMap.has(phaseName)) phasesMap.set(phaseName, []);
-      phasesMap.get(phaseName)!.push(task);
-    });
-    const groupedPhases = Array.from(phasesMap.entries());
-
-    return (
-      <div className="w-full overflow-x-auto bg-white p-10 rounded-[2.5rem] border border-surface-200 shadow-2xl shadow-primary/5 animate-in fade-in duration-700">
-        <div className="min-w-[1200px]">
-          {/* Timeline Header */}
-          <div className="flex border-b border-surface-100 pb-6 mb-8">
-            <div className="w-1/4 pr-10">
-              <h3 className="text-xl font-bold text-primary tracking-tight">Project Phases</h3>
-              <p className="text-[10px] font-bold text-surface-400 uppercase tracking-[0.2em] mt-1">Timeline Orchestration</p>
-            </div>
-            <div className="flex-1 relative h-10">
-              <div className="absolute inset-0 flex justify-between px-2">
-                {[0, 0.25, 0.5, 0.75, 1].map(p => {
-                  const d = new Date(minDate.getTime() + (maxDate.getTime() - minDate.getTime()) * p);
-                  return (
-                    <div key={p} className="flex flex-col items-center">
-                      <span className="text-[9px] font-extrabold text-surface-400 uppercase tracking-widest">{d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                      <div className="w-px h-2 bg-surface-200 mt-2" />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Task Rows Grouped by Phase */}
-          <div className="space-y-10">
-            {groupedPhases.map(([phaseName, phaseTasks]) => (
-              <div key={phaseName} className="space-y-4">
-                <h4 className="text-sm font-black uppercase tracking-widest text-surface-500 border-b border-surface-100 pb-2">{phaseName}</h4>
-                <div className="space-y-6">
-                  {phaseTasks.map((task) => (
-                    <div key={task.uid} className="flex items-center group">
-                      <div className="w-1/4 pr-10 py-2">
-                        <div className="flex items-baseline gap-2">
-                          <h4 className="text-sm font-bold text-primary truncate group-hover:text-accent transition-colors">{task.title}</h4>
-                          {task.zone_name && <span className="text-[10px] font-bold text-surface-400 uppercase truncate">({task.zone_name})</span>}
-                        </div>
-                        <p className="text-[9px] font-bold text-surface-400 uppercase tracking-tighter mt-0.5">
-                          {task.start_date && task.end_date ? `${task.start_date} → ${task.end_date}` : "Timeline Not Defined"}
-                        </p>
-                      </div>
-                      <GanttTaskBar 
-                        task={task} 
-                        totalDays={totalDays} 
-                        minDate={minDate} 
-                        onTaskUpdate={handleTaskUpdate} 
-                        onClick={() => setActiveTask(task)} 
-                      />
-                      <div className="ml-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => setActiveTask(task)}
-                          className="w-10 h-10 rounded-xl bg-surface-100 text-surface-500 hover:bg-primary hover:text-white transition-all flex items-center justify-center text-xs"
-                        >
-                          ⚙️
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const canManage = canManageProject(project);
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
-      {/* Cinematic Header */}
       <ProjectHeroHeader 
         project={project} 
-        onStatusChange={handleProjectStatusChange} 
+        onStatusChange={(uid, status) => updateProjectStatus(uid, status)} 
       />
 
-      {/* Pending Access Requests for Admins */}
       {canManage && (
         <div className="max-w-[1400px] mx-auto">
           <TaskAccessRequestsList projectId={project.uid} />
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-surface-200 pb-px">
+      <div className="flex gap-2 p-1.5 bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl w-fit shadow-inner mb-8 relative">
         {[
           { id: "kanban", label: "Kanban Board" },
           { id: "gantt", label: "Gantt Timeline" },
           { id: "data_hub", label: "Master Data Hub" },
           { id: "matrix", label: "Construction Matrix" },
           { id: "site_ops", label: "Site Operations" }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id as TabView);
-              router.push(`?tab=${tab.id}`, { scroll: false });
-            }}
-            className={`px-6 py-3 font-bold text-sm tracking-wide transition-colors border-b-2 ${
-              activeTab === tab.id ? "border-accent text-accent" : "border-transparent text-surface-400 hover:text-primary"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        ].map(tab => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id as any);
+                router.push(`?tab=${tab.id}`, { scroll: false });
+              }}
+              className={`relative px-6 py-2.5 font-black text-[10px] uppercase tracking-widest rounded-xl transition-colors z-10 ${
+                isActive ? "text-primary" : "text-surface-400 hover:text-primary hover:bg-white/5"
+              }`}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="active-tab"
+                  className="absolute inset-0 bg-white/20 dark:bg-white/10 backdrop-blur-md border border-white/30 dark:border-white/5 rounded-xl shadow-[0_0_15px_rgba(var(--color-accent),0.2)] -z-10"
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                />
+              )}
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Tab Content */}
       <div className="mt-6">
+        {activeTab === "kanban" && <KanbanTab />}
         
-        {/* DATA HUB VIEW */}
-        {activeTab === "data_hub" && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="col-span-1 space-y-2">
-              {[
-                { id: "sketch", label: "Creative Sketches", icon: "✏️" },
-                { id: "2d_plan", label: "2D Floor Plans", icon: "📐" },
-                { id: "3d_model", label: "3D Construction Models", icon: "🏛️" },
-                { id: "document", label: "Documents", icon: "📄" },
-              ].map(cat => (
-                <button 
-                  key={cat.id}
-                  onClick={() => setActiveHubCategory(cat.id as HubCategory)}
-                  className={`w-full text-left px-5 py-4 rounded-2xl font-extrabold text-[10px] uppercase tracking-widest transition-all ${
-                    activeHubCategory === cat.id 
-                    ? "bg-primary text-white shadow-xl shadow-primary/20 scale-[1.02] border-primary" 
-                    : "bg-white text-surface-500 hover:bg-surface-50 border border-surface-200"
-                  }`}
-                >
-                  <span className="mr-3 text-base">{cat.icon}</span> {cat.label}
-                </button>
-              ))}
-            </div>
-            <div className="col-span-1 md:col-span-3">
-              <div className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm min-h-[400px]">
-                <div className="flex justify-between items-center mb-6 border-b border-surface-100 pb-4">
-                  <h3 className="text-xl font-extrabold text-primary tracking-tight">
-                    {activeHubCategory.replace('_', ' ').toUpperCase()}
-                  </h3>
-                  <div className="flex gap-3">
-                    {activeHubCategory === "sketch" && (
-                      <button 
-                        onClick={() => window.open(`/dashboard/projects/${id}/sketch`, "_blank")}
-                        className="px-6 py-2 bg-accent text-white font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-primary transition-all shadow-lg shadow-accent/20"
-                      >
-                        New Design Sketch
-                      </button>
-                    )}
-                    {activeHubCategory === "3d_model" && (
-                      <button 
-                        onClick={handleCreateSH3DModel}
-                        className="px-4 py-2 bg-emerald-50 text-emerald-600 font-black text-[10px] uppercase tracking-widest rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-2"
-                      >
-                        <span>🏠</span> Create SH3D Model
-                      </button>
-                    )}
-                    {/* Hidden file input for 2D/3D/Document uploads */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      accept={activeHubCategory === "3d_model" ? ".obj,.glb" : "image/png,image/jpeg,image/jpg,image/gif,.pdf"}
-                      className="hidden"
-                      onChange={async (e) => {
-                        const files = Array.from(e.target.files || []);
-                        if (!files.length || !projectIntId) return;
-                        setIsUploading(true);
-                        setUploadProgress(`0 / ${files.length}`);
-                        let successCount = 0;
-                        try {
-                          for (let i = 0; i < files.length; i++) {
-                            const file = files[i];
-                            const title = file.name.replace(/\.[^/.]+$/, ""); // strip extension
-                            await projectsApi.uploadProjectAsset(projectIntId, activeHubCategory, file, title);
-                            successCount++;
-                            setUploadProgress(`${successCount} / ${files.length}`);
-                          }
-                          fetchProject();
-                        } catch (err: any) {
-                          alert(`Upload failed on file ${successCount + 1}: ${err.message}`);
-                        } finally {
-                          setIsUploading(false);
-                          setUploadProgress("");
-                          e.target.value = ""; // reset so same files can be re-selected
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="px-4 py-2 bg-surface-100 text-primary font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-surface-200 transition-colors disabled:opacity-50"
-                    >
-                      {isUploading ? `Uploading ${uploadProgress}...` : "Upload File"}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {project.assets?.filter(a => activeHubCategory === "3d_model" ? (a.category === "3d_model" || a.category === "sh3d") : a.category === activeHubCategory).length ? (
-                    project.assets.filter(a => activeHubCategory === "3d_model" ? (a.category === "3d_model" || a.category === "sh3d") : a.category === activeHubCategory).map(asset => (
-                      <div 
-                        key={asset.id} 
-                        className="p-4 border border-surface-200 rounded-xl hover:border-accent hover:shadow-md transition-all bg-white group relative"
-                      >
-                        {/* Version Badge — only for non-sketch assets */}
-                        {asset.category !== "sketch" && (
-                          <div className="absolute top-3 left-3 z-10">
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                              asset.is_latest 
-                                ? "bg-emerald-100 text-emerald-700" 
-                                : "bg-surface-100 text-surface-400"
-                            }`}>
-                              V{asset.version_number}
-                            </span>
-                          </div>
-                        )}
+        {activeTab === "gantt" && <GanttTab />}
 
-                        <div 
-                          onClick={() => handleOpenAsset(asset)}
-                          className={`h-32 rounded-lg mb-3 flex items-center justify-center overflow-hidden border cursor-pointer transition-colors ${['3d_model', 'sh3d'].includes(asset.category) ? 'border-transparent bg-opacity-50 ' + (asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-50' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-50' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-50' : 'bg-indigo-50') : 'bg-surface-50 border-surface-100'}`}
-                        >
-                          {['3d_model', 'sh3d'].includes(asset.category) ? (
-                            <div className="w-full h-full flex flex-col items-center justify-center transition-transform duration-500 group-hover:scale-105">
-                              <div className={`w-14 h-14 flex items-center justify-center rounded-2xl text-3xl mb-2 transition-transform duration-500 group-hover:-translate-y-1 shadow-inner ${asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 shadow-emerald-500/10' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-100 text-amber-600 border border-amber-200 shadow-amber-500/10' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-100 text-blue-600 border border-blue-200 shadow-blue-500/10' : 'bg-indigo-100 text-indigo-600 border border-indigo-200 shadow-indigo-500/10'}`}>
-                                🧊
-                              </div>
-                              <span className={`text-[9px] font-black tracking-widest ${asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'text-emerald-700' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'text-amber-700' : asset.file?.toLowerCase().endsWith('obj') ? 'text-blue-700' : 'text-indigo-700'}`}>
-                                {asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'SH3D PROJECT' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'GLB MODEL' : asset.file?.toLowerCase().endsWith('obj') ? 'OBJ MODEL' : '3D MODEL'}
-                              </span>
-                            </div>
-                          ) : asset.thumbnail ? (
-                            <img src={asset.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          ) : asset.file?.match(/\.(png|jpg|jpeg|gif)$/i) ? (
-                            <img src={asset.file} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
-                          ) : asset.category === "sketch" ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <span className="text-4xl">✏️</span>
-                              <span className="text-[8px] font-bold text-accent uppercase tracking-widest">Editable Design</span>
-                            </div>
-                          ) : (
-                            <span className="text-4xl opacity-20">{activeHubCategory === '2d_plan' ? '📐' : '📄'}</span>
-                          )}
-                        </div>
-                        
-                        {renamingAssetId === asset.id ? (
-                          <div className="flex gap-2 items-center">
-                            <input 
-                              type="text" 
-                              value={newAssetTitle}
-                              onChange={(e) => setNewAssetTitle(e.target.value)}
-                              autoFocus
-                              className="flex-1 bg-surface-50 border border-surface-200 rounded px-2 py-1 text-sm font-bold outline-none focus:border-accent"
-                            />
-                            <button onClick={() => handleRenameAsset(asset.id)} className="text-emerald-500 text-xs font-bold">Save</button>
-                            <button onClick={() => setRenamingAssetId(null)} className="text-surface-400 text-xs font-bold">✕</button>
-                          </div>
-                        ) : (
-                          <div>
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1 min-w-0" onClick={() => handleOpenAsset(asset)}>
-                                <p className="font-bold text-sm truncate text-primary cursor-pointer hover:text-accent transition-colors">{asset.title}</p>
-                                <p className="text-[10px] text-surface-400 font-bold uppercase tracking-widest mt-0.5">{(asset.size / 1024).toFixed(1)} KB</p>
-                              </div>
-                              
-                              <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {/* Revision History — only for non-sketch assets */}
-                                {asset.category !== "sketch" && (
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); setHistoryAsset(asset); }}
-                                    className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-100 text-xs"
-                                    title="Revision History"
-                                  >
-                                    🕐
-                                  </button>
-                                )}
-                                {/* Rename */}
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); setRenamingAssetId(asset.id); setNewAssetTitle(asset.title); }}
-                                  className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-100 text-xs grayscale hover:grayscale-0"
-                                  title="Rename"
-                                >
-                                  📝
-                                </button>
-                                {/* Delete */}
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); handleDeleteAsset(asset.id); }}
-                                  className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-red-50 text-xs grayscale hover:grayscale-0"
-                                  title="Delete"
-                                >
-                                  🗑️
-                                </button>
-                              </div>
-                            </div>
+        {activeTab === "data_hub" && <DataHubTab />}
 
-                            {/* SH3D Editor Action */}
-                            {asset.category === "sh3d" && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleOpenAsset(asset); }}
-                                className="mt-3 w-full text-[10px] font-bold bg-emerald-50 text-emerald-600 rounded-lg px-2 py-2 uppercase tracking-widest hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
-                              >
-                                <span>✏️</span> Open in Editor
-                              </button>
-                            )}
-
-                            {/* Task Link Button */}
-                            {(activeHubCategory === "2d_plan" || activeHubCategory === "3d_model") && (
-                              <div className="mt-2.5 pt-2.5 border-t border-surface-100 flex flex-col gap-2">
-
-                                {(() => {
-                                  const linkedTasksCount = project.tasks.filter(t => t.asset_links?.some(l => String(l.canonical_uid) === String(asset.canonical_uid))).length;
-                                  return (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setManageLinksAsset(asset); }}
-                                      className="w-full text-xs font-bold bg-surface-50 border border-surface-200 rounded-lg px-2 py-1.5 outline-none hover:border-accent text-primary transition-colors flex justify-between items-center cursor-pointer"
-                                    >
-                                      <span className="text-[9px] uppercase tracking-widest text-surface-500">Linked Tasks</span>
-                                      <span className={`px-2 py-0.5 rounded-full text-[9px] ${linkedTasksCount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-200 text-surface-500'}`}>
-                                        {linkedTasksCount}
-                                      </span>
-                                    </button>
-                                  );
-                                })()}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="col-span-full py-20 text-center flex flex-col items-center">
-                      <span className="text-4xl opacity-20 mb-3">📁</span>
-                      <p className="text-sm font-bold text-surface-400">No assets uploaded to this hub yet.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* KANBAN VIEW */}
-        {activeTab === "kanban" && (
-          <div className="space-y-6">
-            {canEditProject(project) && (
-              <form onSubmit={handleCreateTask} className="bg-white p-3 pr-4 rounded-2xl border border-surface-200 flex flex-wrap md:flex-nowrap gap-4 items-center shadow-sm">
-                <span className="text-lg pl-4 opacity-30 hidden md:block">📋</span>
-                
-                <select 
-                  value={selectedTemplate} 
-                  onChange={e => setSelectedTemplate(e.target.value)}
-                  className="h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none text-sm font-bold text-primary flex-1 min-w-[200px]"
-                >
-                  <option value="">-- Custom Phase --</option>
-                  {taskTemplates.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-
-                {!selectedTemplate && (
-                  <input 
-                    type="text" 
-                    value={newTaskTitle}
-                    onChange={e => setNewTaskTitle(e.target.value)}
-                    placeholder="Custom phase title..."
-                    className="flex-2 h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none font-medium text-sm text-primary min-w-[200px]"
-                  />
-                )}
-
-                <select 
-                  required
-                  value={selectedZoneId} 
-                  onChange={e => setSelectedZoneId(e.target.value)}
-                  className="h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none text-sm font-bold text-primary w-[140px]"
-                >
-                  <option value="" disabled>Zone...</option>
-                  {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
-                </select>
-
-                <select 
-                  required
-                  value={selectedPhaseId} 
-                  onChange={e => setSelectedPhaseId(e.target.value)}
-                  className="h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none text-sm font-bold text-primary w-[140px]"
-                >
-                  <option value="" disabled>Phase...</option>
-                  {phases.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                
-                <button 
-                  type="submit"
-                  disabled={isCreatingTask || (!selectedTemplate && !newTaskTitle) || !selectedZoneId || !selectedPhaseId}
-                  className="h-12 px-8 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-50 ml-auto"
-                >
-                  {isCreatingTask ? "Adding..." : "+ Add Task"}
-                </button>
-              </form>
-            )}
-
-            {selectedTaskUids.length > 0 && (
-              <div className="bg-surface-800 text-white p-4 rounded-2xl shadow-xl flex items-center justify-between animate-in slide-in-from-bottom-4 sticky top-4 z-40">
-                <div className="flex items-center gap-4">
-                  <span className="font-bold text-sm bg-surface-700 px-3 py-1 rounded-lg">{selectedTaskUids.length} selected</span>
-                  <button onClick={() => setSelectedTaskUids([])} className="text-xs text-surface-400 hover:text-white font-bold transition-colors">Clear Selection</button>
-                </div>
-                <div className="flex items-center gap-3">
-                  <select 
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        handleBulkUpdate({ status: e.target.value });
-                        e.target.value = "";
-                      }
-                    }}
-                    disabled={isBulkOperationPending}
-                    className="bg-surface-700 text-xs font-bold px-3 py-2.5 rounded-lg outline-none cursor-pointer border-r-8 border-transparent disabled:opacity-50"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Move to Status...</option>
-                    <option value="TODO">To Do</option>
-                    <option value="WIP">In Progress</option>
-                    <option value="QA">Inspection</option>
-                    <option value="DONE">Done</option>
-                  </select>
-                  
-                  <button 
-                    onClick={handleBulkDelete}
-                    disabled={isBulkOperationPending}
-                    className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
-                  >
-                    <span>🗑️</span> {isBulkOperationPending ? "Processing..." : "Delete Batch"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Kanban Filter */}
-            <div className="flex gap-4 items-center bg-white p-2 rounded-xl border border-surface-200">
-              <span className="text-surface-400 pl-2">🔍</span>
-              <input 
-                type="text" 
-                placeholder="Filter tasks by title or assignee..." 
-                value={kanbanFilter}
-                onChange={e => setKanbanFilter(e.target.value)}
-                className="flex-1 outline-none text-sm text-primary font-medium bg-transparent"
-              />
-              {kanbanFilter && (
-                <button onClick={() => setKanbanFilter("")} className="text-surface-400 hover:text-primary pr-2">✕</button>
-              )}
-            </div>
-
-            <div className="flex overflow-x-auto gap-6 pb-4">
-              {[
-                { id: "TODO", label: "To Do", color: "bg-surface-50 border-surface-200", dot: "bg-surface-400" },
-                { id: "WIP", label: "In Progress", color: "bg-blue-50 border-blue-200", dot: "bg-accent" },
-                { id: "QA", label: "Under Inspection", color: "bg-amber-50 border-amber-200", dot: "bg-amber-500" },
-                { id: "DONE", label: "Done", color: "bg-emerald-50 border-emerald-200", dot: "bg-emerald-500" },
-              ].map(col => (
-                <div 
-                  key={col.id} 
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, col.id)}
-                  className={`flex flex-col min-w-[300px] flex-1 p-4 rounded-2xl border min-h-[500px] ${col.color}`}
-                >
-                  <h4 className="flex items-center font-extrabold text-[11px] uppercase tracking-widest text-surface-600 mb-4 px-2">
-                    <input 
-                      type="checkbox"
-                      className="w-3.5 h-3.5 mr-3 flex-shrink-0 rounded border-surface-300 text-primary focus:ring-accent cursor-pointer"
-                      checked={project.tasks.filter(t => t.status === col.id).length > 0 && project.tasks.filter(t => t.status === col.id).every(t => selectedTaskUids.includes(t.uid))}
-                      onChange={(e) => {
-                        const colTasks = project.tasks.filter(t => t.status === col.id).map(t => t.uid);
-                        if (e.target.checked) {
-                          setSelectedTaskUids(prev => Array.from(new Set([...prev, ...colTasks])));
-                        } else {
-                          setSelectedTaskUids(prev => prev.filter(uid => !colTasks.includes(uid)));
-                        }
-                      }}
-                      title="Select all tasks in column"
-                    />
-                    <span className={`w-2 h-2 rounded-full mr-2 ${col.dot}`} />
-                    {col.label} 
-                    <span className="ml-auto bg-white border border-surface-200 text-surface-600 px-2 py-0.5 rounded-full shadow-sm">
-                      {project.tasks.filter(t => {
-                        if (!kanbanFilter) return t.status === col.id;
-                        const term = kanbanFilter.toLowerCase();
-                        return t.status === col.id && (t.title.toLowerCase().includes(term) || t.assigned_to?.name.toLowerCase().includes(term));
-                      }).length}
-                    </span>
-                  </h4>
-                  <div className="space-y-3 min-h-[500px] flex-1 pb-2 flex flex-col">
-                    {project.tasks.filter(t => {
-                        if (!kanbanFilter) return t.status === col.id;
-                        const term = kanbanFilter.toLowerCase();
-                        return t.status === col.id && (t.title.toLowerCase().includes(term) || t.assigned_to?.name.toLowerCase().includes(term));
-                      }).map(task => (
-                      <TaskItem 
-                        key={task.uid} 
-                        task={task} 
-                        onClick={() => setActiveTask(task)} 
-                        onDragStart={(e) => handleDragStart(e, task.uid)}
-                        isSelected={selectedTaskUids.includes(task.uid)}
-                        onSelectToggle={() => setSelectedTaskUids(prev => 
-                          prev.includes(task.uid) ? prev.filter(uid => uid !== task.uid) : [...prev, task.uid]
-                        )}
-                      />
-                    ))}
-
-                    <div className="mt-auto pt-4">
-                      {inlineTaskCol === col.id ? (
-                        <form onSubmit={(e) => handleInlineCreateTask(e, col.id)} className="flex flex-col gap-2">
-                          <input 
-                            type="text" 
-                            autoFocus
-                            value={inlineTaskTitle}
-                            onChange={e => setInlineTaskTitle(e.target.value)}
-                            placeholder="Task title..."
-                            className="w-full text-xs p-3 rounded-xl border border-primary/20 outline-none focus:border-accent shadow-sm"
-                          />
-                          <div className="flex gap-2">
-                            <button type="submit" disabled={isCreatingInline} className="flex-1 bg-primary text-white text-[10px] font-bold uppercase tracking-widest py-2 rounded-xl hover:bg-accent disabled:opacity-50">
-                              {isCreatingInline ? "..." : "Save"}
-                            </button>
-                            <button type="button" onClick={() => { setInlineTaskCol(null); setInlineTaskTitle(""); }} className="flex-1 bg-surface-100 text-surface-600 text-[10px] font-bold uppercase tracking-widest py-2 rounded-xl hover:bg-surface-200">
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <button 
-                          onClick={() => setInlineTaskCol(col.id)}
-                          className="w-full py-2.5 border-2 border-dashed border-surface-200 bg-white/50 text-surface-400 hover:border-accent hover:text-accent rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
-                        >
-                          <span>+</span> Add Task
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* MATRIX VIEW */}
         {activeTab === "matrix" && (
           <div className="w-full">
             <div className="flex gap-4 mb-6 bg-surface-50 p-2 rounded-xl border border-surface-200 w-fit">
               <button 
                 onClick={() => setMatrixView('grid')} 
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${matrixView === 'grid' ? 'bg-primary text-white shadow-md' : 'text-surface-500 hover:bg-surface-200'}`}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${matrixView === 'grid' ? 'bg-surface-200 text-primary shadow-md border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
               >
                 Master Gate Matrix
               </button>
               <button 
                 onClick={() => setMatrixView('feed')} 
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${matrixView === 'feed' ? 'bg-primary text-white shadow-md' : 'text-surface-500 hover:bg-surface-200'}`}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${matrixView === 'feed' ? 'bg-surface-200 text-primary shadow-md border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
               >
                 Expanded Milestone Feed
               </button>
             </div>
             {matrixView === 'grid' ? (
-              <MilestoneMatrixView projectUid={project.uid} onTaskChange={fetchProject} projectTasks={project.tasks} criticalPathUids={[]} />
+              <MilestoneMatrixView projectUid={project.uid} onTaskChange={() => fetchProject(project.uid)} projectTasks={project.tasks} criticalPathUids={[]} />
             ) : (
               <ExpandedFeedView projectUid={project.uid} />
             )}
           </div>
         )}
 
-        {/* GANTT VIEW */}
-        {activeTab === "gantt" && renderGantt()}
-
-        {/* SITE OPS VIEW (Merged HSE, Issues, Diary) */}
         {activeTab === "site_ops" && (
           <SiteOpsTab 
             projectUid={project.uid} 
             projectTasks={project.tasks}
-            fetchProject={fetchProject}
+            fetchProject={() => fetchProject(project.uid)}
             renderIssues={() => (
-              <div className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm animate-fade-in">
+              <div className="bg-surface-100 border-surface-200 p-8 rounded-2xl border border-surface-200 shadow-sm animate-fade-in">
                 <h3 className="text-xl font-extrabold text-primary mb-6 tracking-tight">Project Issue Tracker</h3>
                 
                 {isLoadingPunchList ? (
@@ -1205,33 +299,32 @@ export default function ProjectDetailPage() {
                 ) : (
                   <div className="space-y-4">
                     {globalPunchList.map(item => (
-                      <div key={item.id} className="p-4 border border-surface-200 rounded-xl flex items-start gap-4 hover:border-surface-300 transition-colors bg-surface-50/30">
+                      <div key={item.id} className="p-5 bg-surface-50/40 backdrop-blur-md border border-white/10 rounded-[1.5rem] flex items-start gap-5 hover:bg-white/5 hover:border-white/20 transition-all shadow-sm group">
                         <div className="shrink-0 pt-1">
-                          <span className={`w-3 h-3 rounded-full block ${item.is_resolved ? 'bg-emerald-500' : item.severity === 'HIGH' ? 'bg-red-500 animate-pulse' : item.severity === 'MEDIUM' ? 'bg-amber-500' : 'bg-blue-400'}`} />
+                          <span className={`w-4 h-4 rounded-full block shadow-inner ${item.is_resolved ? 'bg-emerald-500/20 border-2 border-emerald-500' : item.severity === 'HIGH' ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse' : item.severity === 'MEDIUM' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-blue-400 border border-blue-300'}`} />
                         </div>
                         <div className="flex-1">
                           <div className="flex justify-between items-start">
                             <div>
-                              <div className="flex gap-2 items-center mb-1">
-                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${item.is_resolved ? 'bg-surface-100 text-surface-500' : item.severity === 'HIGH' ? 'bg-red-100 text-red-600' : item.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                              <div className="flex gap-2 items-center mb-2">
+                                <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border ${item.is_resolved ? 'bg-surface-100 text-surface-400 border-surface-200' : item.severity === 'HIGH' ? 'bg-red-500/10 text-red-500 border-red-500/20' : item.severity === 'MEDIUM' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
                                   {item.severity}
                                 </span>
-                                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 border border-surface-200">
+                                <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-black/10 text-surface-400 border border-white/5 backdrop-blur-sm">
                                   {item.issue_type} | {item.root_cause}
                                 </span>
-                                <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">{new Date(item.created_at).toLocaleDateString()}</span>
+                                <span className="text-[9px] font-bold text-surface-500 uppercase tracking-widest ml-2">{new Date(item.created_at).toLocaleDateString()}</span>
                               </div>
-                              <h4 className="font-bold text-primary text-sm">{item.title}</h4>
-                              <p className="text-xs text-surface-500 mt-1">{item.description}</p>
+                              <h4 className="font-black text-primary text-lg tracking-tight group-hover:text-accent transition-colors">{item.title}</h4>
+                              <p className="text-xs text-surface-400 font-medium mt-1.5 leading-relaxed max-w-3xl">{item.description}</p>
                               
-                              {/* Attachments rendering */}
                               {item.attachments && item.attachments.length > 0 && (
-                                <div className="flex gap-2 mt-3">
+                                <div className="flex gap-3 mt-4">
                                   {item.attachments.map((att: any) => (
                                     <button 
                                       key={att.id} 
                                       onClick={() => setLightboxImageUrl(att.file)}
-                                      className="w-16 h-16 rounded-lg overflow-hidden border border-surface-200 block hover:opacity-80 transition-opacity cursor-pointer focus:outline-none"
+                                      className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 block hover:scale-105 hover:border-accent hover:shadow-[0_0_15px_rgba(var(--color-accent),0.3)] transition-all cursor-pointer focus:outline-none"
                                     >
                                       <img src={att.file} className="w-full h-full object-cover" />
                                     </button>
@@ -1243,20 +336,24 @@ export default function ProjectDetailPage() {
                             {!item.is_resolved && canManage && (
                               <button 
                                 onClick={() => handleResolveGlobalItem(item.id)}
-                                className="px-4 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-emerald-100 transition-colors shrink-0"
+                                className="px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-emerald-500 hover:text-white hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all shrink-0"
                               >
                                 Resolve
                               </button>
                             )}
                           </div>
                           
-                          <div className="mt-3 pt-3 border-t border-surface-100 flex items-center justify-between">
-                            <div className="text-[10px] font-bold text-surface-400 uppercase">
-                              Task: <span className="text-primary cursor-pointer hover:text-accent hover:underline" onClick={() => { setActiveTask(project?.tasks.find(t => t.uid === item.task_uid) || null) }}>{item.task_title || "Unknown Task"}</span>
+                          <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
+                            <div className="text-[9px] font-black text-surface-500 uppercase tracking-[0.2em]">
+                              Task: <span className="text-primary cursor-pointer hover:text-accent hover:underline bg-white/5 px-2 py-1 rounded-md" onClick={() => { setActiveTask(project?.tasks.find(t => t.uid === item.task_uid) || null) }}>{item.task_title || "Unknown Task"}</span>
                             </div>
                             {item.reported_by && (
-                              <div className="text-[10px] font-bold text-surface-400 flex items-center gap-1.5">
-                                Reported by <img src={item.reported_by.avatar || `https://ui-avatars.com/api/?name=${item.reported_by.first_name}+${item.reported_by.last_name}&background=f3f4f6&color=1e293b`} className="w-4 h-4 rounded-full" /> {item.reported_by.first_name} {item.reported_by.last_name}
+                              <div className="text-[9px] font-black text-surface-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                Reported by 
+                                <Link href={`/dashboard/team/${item.reported_by.id}`} className="flex items-center gap-2 hover:text-accent transition-colors">
+                                  <img src={item.reported_by.avatar || `https://ui-avatars.com/api/?name=${item.reported_by.first_name}+${item.reported_by.last_name}&background=f3f4f6&color=1e293b`} className="w-5 h-5 rounded-full border border-white/10" /> 
+                                  <span className="text-primary hover:underline">{item.reported_by.first_name} {item.reported_by.last_name}</span>
+                                </Link>
                               </div>
                             )}
                           </div>
@@ -1269,42 +366,41 @@ export default function ProjectDetailPage() {
             )}
           />
         )}
-
       </div>
 
-      {/* Assignment Modal */}
       {showAssignModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-surface-200">
-            <div className="p-8 border-b border-surface-100 bg-surface-50 flex justify-between items-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="bg-surface-50/40 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-white/20 relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
+            <div className="p-8 border-b border-white/10 flex justify-between items-center relative z-10">
               <div>
-                <h3 className="text-xl font-bold text-primary tracking-tight">Assign Internal Personnel</h3>
-                <p className="text-[10px] uppercase tracking-widest font-bold text-surface-400 mt-1">From {project.account.name}</p>
+                <h3 className="text-2xl font-black text-primary tracking-tight">Assign Internal Personnel</h3>
+                <p className="text-[10px] uppercase tracking-[0.2em] font-black text-accent mt-1">From {project.account.name}</p>
               </div>
-              <button onClick={() => setShowAssignModal(false)} className="text-surface-400 hover:text-red-500 transition-colors">✕</button>
+              <button onClick={() => setShowAssignModal(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-red-500/20 flex items-center justify-center text-surface-400 hover:text-red-500 transition-colors">✕</button>
             </div>
             
-            <form onSubmit={handleAssign} className="p-8 space-y-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Select Specialist</label>
+            <form onSubmit={handleAssign} className="p-8 space-y-8 relative z-10">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Select Specialist</label>
                 <select 
                   required
                   value={selectedUser}
                   onChange={e => setSelectedUser(e.target.value)}
-                  className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none"
+                  className="w-full h-14 bg-white/5 backdrop-blur-md border border-white/10 px-5 rounded-xl outline-none focus:border-accent focus:ring-1 focus:ring-accent font-black text-xs text-primary transition-colors appearance-none cursor-pointer hover:bg-white/10"
                 >
-                  <option value="" disabled>Choose firm member...</option>
+                  <option value="" disabled className="bg-surface-900">Choose firm member...</option>
                   {firmMembers
                     .filter(m => !project.memberships.some(pm => pm.user.id === m.user.id))
                     .map((member, index) => (
-                    <option key={member.id || `${member.user.id}-${index}`} value={member.user.id}>{member.user.name} ({member.role})</option>
+                    <option key={member.id || `${member.user.id}-${index}`} value={member.user.id} className="bg-surface-900">{member.user.name} ({member.role})</option>
                   ))}
                 </select>
               </div>
 
-              <div className="pt-6 flex justify-end gap-3 border-t border-surface-100">
-                <button type="button" onClick={() => setShowAssignModal(false)} className="px-6 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest text-surface-500 hover:bg-surface-100">Cancel</button>
-                <button type="submit" disabled={isAssigning || !selectedUser} className="px-6 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-primary text-white hover:bg-accent disabled:opacity-50">
+              <div className="pt-6 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowAssignModal(false)} className="px-6 h-12 rounded-xl font-black text-[10px] uppercase tracking-widest text-surface-400 hover:bg-white/10 transition-colors">Cancel</button>
+                <button type="submit" disabled={isAssigning || !selectedUser} className="px-8 h-12 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] bg-accent hover:bg-accent/90 text-background shadow-[0_0_15px_rgba(var(--color-accent),0.4)] disabled:opacity-50 transition-all hover:scale-105">
                   {isAssigning ? "Assigning..." : "Assign"}
                 </button>
               </div>
@@ -1313,9 +409,8 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* Task Execution Modal */}
       {activeTask && (
-        <TaskExecutionModal 
+        <TaskExecutionSidePanel 
           task={activeTask} 
           projectId={project.id}
           projectUid={project.uid}
@@ -1325,169 +420,46 @@ export default function ProjectDetailPage() {
           projectAssets={project.assets || []}
           onClose={() => setActiveTask(null)} 
           onTaskUpdated={() => {
-            fetchProject();
+            fetchProject(project.uid);
           }}
         />
       )}
-      {/* Blueprint Stack — Revision History Modal */}
-      {historyAsset && (
-        <RevisionHistoryModal
-          asset={historyAsset}
-          onClose={() => setHistoryAsset(null)}
-          onRevisionUploaded={() => { fetchProject(); setHistoryAsset(null); }}
-          onVersionPromoted={() => { fetchProject(); setHistoryAsset(null); }}
-        />
-      )}
-      {/* Site Survey Grid Viewer */}
-      {surveyAsset && (
-        <FloorPlanGridViewer
-          asset={surveyAsset}
-          onClose={() => setSurveyAsset(null)}
-          onRefresh={fetchProject}
-        />
-      )}
-      {/* 3D Model Viewer Modal */}
-      {viewerAsset && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white w-full max-w-6xl h-[80vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl relative">
-            <button 
-              onClick={() => setViewerAsset(null)}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/50 hover:bg-white rounded-full flex items-center justify-center text-lg shadow-sm transition-colors text-surface-900 font-bold"
-            >
-              ✕
-            </button>
-            <div className="flex-1 w-full h-full bg-slate-100">
-              <ModelViewer 
-                url={viewerAsset.file} 
-                format={viewerAsset.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'} 
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Image Lightbox */}
-      {lightboxImageUrl && (
-        <ImageLightbox 
-          imageUrl={lightboxImageUrl} 
-          onClose={() => setLightboxImageUrl(null)} 
-        />
-      )}
-
-      {/* Manage Links Modal */}
-      {manageLinksAsset && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-surface-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-surface-200 flex flex-col max-h-[80vh]">
-            <div className="p-6 border-b border-surface-100 bg-surface-50 flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-bold text-primary tracking-tight">Manage Task Links</h3>
-                <p className="text-[10px] uppercase tracking-widest font-bold text-surface-400 mt-1 truncate max-w-[250px]">{manageLinksAsset.title}</p>
-              </div>
-              <button onClick={() => setManageLinksAsset(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-200/50 text-surface-500 hover:bg-surface-200 hover:text-red-500 transition-colors text-lg">✕</button>
-            </div>
-            
-            <div className="p-2 overflow-y-auto flex-1">
-              {project.tasks.length === 0 ? (
-                <div className="p-10 flex flex-col items-center justify-center text-center">
-                   <span className="text-4xl mb-3 opacity-20">📋</span>
-                   <div className="text-surface-400 text-sm font-bold">No tasks in this project yet.</div>
-                </div>
-              ) : (
-                <div className="space-y-1 p-2">
-                  {project.tasks.map(task => {
-                    const link = task.asset_links?.find(l => String(l.canonical_uid) === String(manageLinksAsset.canonical_uid));
-                    const isLinked = !!link;
-
-                    const is3DModel = manageLinksAsset.category === '3d_model';
-                    const taskHas3DModelAlready = task.asset_links?.some(l => l.latest_asset?.category === '3d_model');
-                    const disabled = !isLinked && is3DModel && taskHas3DModelAlready;
-                    
-                    return (
-                      <label 
-                        key={task.uid} 
-                        className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'} ${isLinked ? 'border-accent bg-accent/5' : 'border-surface-200 hover:bg-surface-50'}`}
-                      >
-                        <input 
-                          type="checkbox" 
-                          className="w-4 h-4 rounded text-accent focus:ring-accent accent-accent cursor-pointer disabled:cursor-not-allowed"
-                          checked={isLinked}
-                          disabled={disabled}
-                          onChange={async (e) => {
-                            try {
-                              if (e.target.checked) {
-                                await projectsApi.linkAssetToTask(task.uid, manageLinksAsset.canonical_uid);
-                              } else {
-                                if (link) {
-                                  await projectsApi.unlinkAssetFromTask(link.id);
-                                }
-                              }
-                              fetchProject();
-                            } catch (err: any) {
-                              alert(err?.response?.data?.non_field_errors?.[0] || err.message || "Failed to update task link.");
-                            }
-                          }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-bold truncate ${isLinked ? 'text-accent' : 'text-primary'}`}>{task.title}</p>
-                          <p className="text-[9px] uppercase tracking-widest font-bold text-surface-400 truncate mt-0.5">
-                            <span className={task.status === "DONE" ? "text-emerald-500" : task.status === "WIP" ? "text-accent" : ""}>{task.status}</span>
-                            {task.zone_name ? ` • ${task.zone_name}` : ''}
-                            {disabled && <span className="ml-2 text-red-500">🚫 Already has 3D model</span>}
-                          </p>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-surface-100 bg-surface-50 flex justify-end">
-              <button 
-                onClick={() => setManageLinksAsset(null)} 
-                className="px-6 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-primary text-white hover:bg-accent transition-colors shadow-md hover:shadow-lg"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 bg-surface-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
-            <div className="p-8 border-b border-surface-100 bg-red-50/50">
-              <div className="w-12 h-12 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center text-xl mb-4">🗑️</div>
-              <h2 className="text-2xl font-extrabold text-red-600 tracking-tight">Delete Blueprint</h2>
-              <p className="text-sm text-red-400 mt-2">
-                This action cannot be undone. This will permanently delete the project <strong className="text-red-500">{project.title}</strong>, including all tasks, uploaded files, floor plans, and assets.
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-surface-50/40 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-red-500/20 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent pointer-events-none" />
+            <div className="p-10 pb-6 relative z-10 text-center">
+              <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 shadow-inner border border-red-500/20">🗑️</div>
+              <h2 className="text-3xl font-black text-red-500 tracking-tighter">Delete Blueprint</h2>
+              <p className="text-xs font-bold text-surface-400 mt-4 leading-relaxed">
+                This action cannot be undone. This will permanently delete the project <strong className="text-red-400">"{project.title}"</strong>, including all tasks, uploaded files, floor plans, and assets.
               </p>
             </div>
-            <form onSubmit={handleDeleteProject} className="p-8">
-              <div className="mb-6">
-                <label className="block text-xs font-bold text-surface-500 uppercase tracking-widest mb-2">
-                  Please type <span className="text-primary">{project.title}</span> to confirm.
+            <form onSubmit={handleDeleteProject} className="p-10 pt-4 relative z-10">
+              <div className="mb-8">
+                <label className="block text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-3 text-center">
+                  Type <span className="text-primary bg-white/10 px-2 py-0.5 rounded ml-1">{project.title}</span> to confirm
                 </label>
                 <input 
                   type="text" 
                   value={deleteConfirmText}
                   onChange={e => setDeleteConfirmText(e.target.value)}
-                  className="w-full bg-surface-50 border-2 border-surface-200 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-red-400 focus:bg-white transition-all"
-                  placeholder="Project Title"
+                  className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-5 text-sm font-black text-primary outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-center backdrop-blur-md"
+                  placeholder="Type project title"
                   required
                 />
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-surface-100">
-                <button type="button" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }} className="px-6 py-3 text-xs font-bold text-surface-500 uppercase tracking-widest hover:bg-surface-50 rounded-xl transition-colors">
-                  Cancel
-                </button>
+              <div className="flex flex-col gap-3">
                 <button 
                   type="submit" 
                   disabled={isDeleting || deleteConfirmText !== project.title}
-                  className="px-6 py-3 bg-red-500 text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-red-500/20"
+                  className="w-full h-14 bg-red-500 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:scale-[1.02]"
                 >
                   {isDeleting ? "Deleting..." : "Permanently Delete"}
+                </button>
+                <button type="button" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }} className="w-full h-12 text-[10px] font-black text-surface-400 uppercase tracking-widest hover:bg-white/5 rounded-xl transition-colors">
+                  Cancel
                 </button>
               </div>
             </form>
@@ -1496,54 +468,57 @@ export default function ProjectDetailPage() {
       )}
 
       {showPublishPortfolioModal && (
-        <div className="fixed inset-0 z-50 bg-surface-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
-            <div className="p-8 border-b border-surface-100 bg-surface-50/50">
-              <div className="w-12 h-12 bg-accent/10 text-accent rounded-2xl flex items-center justify-center text-xl mb-4">🚀</div>
-              <h2 className="text-2xl font-extrabold text-primary tracking-tight">Publish Portfolio</h2>
-              <p className="text-sm text-surface-500 mt-2">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-surface-50/40 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden flex flex-col border border-white/20 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
+            <div className="absolute top-0 right-0 w-full h-full arch-grid opacity-[0.05] pointer-events-none mix-blend-overlay" />
+
+            <div className="p-8 pb-4 relative z-10">
+              <div className="w-16 h-16 bg-accent/10 text-accent rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-[0_0_15px_rgba(var(--color-accent),0.2)] border border-accent/20">🚀</div>
+              <h2 className="text-3xl font-black text-primary tracking-tighter">Publish Portfolio</h2>
+              <p className="text-[10px] font-black text-surface-400 mt-3 uppercase tracking-widest leading-relaxed">
                 Add filter details so clients can discover this project easily.
               </p>
             </div>
-            <form onSubmit={submitPublishPortfolio} className="p-8 space-y-4">
+            <form onSubmit={submitPublishPortfolio} className="p-8 space-y-5 relative z-10">
               <div>
-                <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-widest mb-2">Category (Optional)</label>
+                <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Category</label>
                 <input
                   type="text"
                   value={portfolioCategory}
                   onChange={e => setPortfolioCategory(e.target.value)}
-                  className="w-full bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-accent focus:bg-white transition-all"
+                  className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-5 text-sm font-black text-primary outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all backdrop-blur-md"
                   placeholder="e.g. Residential, Commercial"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-widest mb-2">City (Optional)</label>
+                <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">City</label>
                 <input
                   type="text"
                   value={portfolioCity}
                   onChange={e => setPortfolioCity(e.target.value)}
-                  className="w-full bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-accent focus:bg-white transition-all"
+                  className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-5 text-sm font-black text-primary outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all backdrop-blur-md"
                   placeholder="e.g. New York"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-widest mb-2">Country (Optional)</label>
+                <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Country</label>
                 <input
                   type="text"
                   value={portfolioCountry}
                   onChange={e => setPortfolioCountry(e.target.value)}
-                  className="w-full bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-accent focus:bg-white transition-all"
+                  className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-5 text-sm font-black text-primary outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all backdrop-blur-md"
                   placeholder="e.g. USA"
                 />
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-surface-100">
-                <button type="button" onClick={() => setShowPublishPortfolioModal(false)} className="px-6 py-3 text-xs font-bold text-surface-500 uppercase tracking-widest hover:bg-surface-50 rounded-xl transition-colors">
+              <div className="flex justify-end gap-3 pt-6 mt-4">
+                <button type="button" onClick={() => setShowPublishPortfolioModal(false)} className="px-6 h-12 text-[10px] font-black text-surface-400 uppercase tracking-widest hover:bg-white/10 rounded-xl transition-colors">
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isPublishingPortfolio}
-                  className="px-6 py-3 bg-accent text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-accent/20"
+                  className="px-8 h-12 bg-accent hover:bg-accent/90 text-background text-[10px] font-black uppercase tracking-[0.3em] rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(var(--color-accent),0.4)] hover:scale-105"
                 >
                   {isPublishingPortfolio ? "Publishing..." : "Publish"}
                 </button>
@@ -1552,9 +527,6 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
-
-
-
     </div>
   );
 }

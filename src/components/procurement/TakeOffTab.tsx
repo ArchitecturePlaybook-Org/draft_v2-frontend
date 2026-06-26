@@ -224,11 +224,11 @@ const EditableRow = ({
   const isLineTrace = !!rowData.trace_data?.scaledLength;
   const hasTrace = isPolygonTrace || isLineTrace;
 
-  const inputClass = "w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white focus:ring-1 focus:ring-accent rounded text-sm font-bold outline-none transition-all";
+  const inputClass = "w-full h-8 px-2 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-surface-100 focus:ring-1 focus:ring-accent rounded text-sm font-bold outline-none transition-all";
   const disabledInputClass = "w-full h-8 px-2 bg-surface-100 border border-transparent rounded text-sm font-bold outline-none text-surface-400 cursor-not-allowed text-right";
 
   return (
-    <tr className={`border-b border-surface-200 transition-colors ${isGhost ? 'bg-surface-50' : (rowData.is_deduction ? 'bg-red-50/20' : 'bg-white hover:bg-surface-50')}`} onKeyDown={handleKeyDown}>
+    <tr className={`border-b border-surface-200 transition-colors ${isGhost ? 'bg-surface-50' : (rowData.is_deduction ? 'bg-red-50/20' : 'bg-surface-100 hover:bg-surface-50')}`} onKeyDown={handleKeyDown}>
       <td className="p-1 w-[12%]">
         <input 
           ref={firstInputRef}
@@ -252,7 +252,7 @@ const EditableRow = ({
         <select 
           value={rowData.is_deduction ? "deduct" : "add"}
           onChange={e => handleChange('is_deduction', e.target.value === "deduct")}
-          className={`w-full h-8 px-1 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-white rounded text-xs font-bold outline-none cursor-pointer ${rowData.is_deduction ? 'text-red-600' : 'text-emerald-600'}`}
+          className={`w-full h-8 px-1 bg-transparent border border-transparent hover:border-surface-300 focus:border-accent focus:bg-surface-100 rounded text-xs font-bold outline-none cursor-pointer ${rowData.is_deduction ? 'text-red-600' : 'text-emerald-600'}`}
         >
           <option value="add">[+] Add</option>
           <option value="deduct">[-] Deduct</option>
@@ -324,7 +324,7 @@ const EditableRow = ({
           {isGhost ? (
             <button 
               onClick={() => triggerSave(rowData)} 
-              className="px-2 h-7 rounded bg-primary text-white text-[10px] font-black uppercase tracking-wider hover:bg-primary/90 transition-colors"
+              className="px-2 h-7 rounded bg-accent text-background text-[10px] font-black uppercase tracking-wider hover:opacity-90/90 transition-colors"
             >
               Add
             </button>
@@ -460,7 +460,7 @@ const FloorPlanTakeOffSection = React.forwardRef<FloorPlanSectionRef, { plan: Pr
   }));
 
   return (
-    <div className="flex flex-col bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
+    <div className="flex flex-col bg-surface-100 rounded-3xl border border-surface-200 shadow-sm overflow-hidden">
       
       {/* Top Header */}
       <div className="px-6 py-4 border-b border-surface-200 flex items-center justify-between bg-surface-50">
@@ -635,7 +635,7 @@ export default function TakeOffTab({ projectUid, projectAssets, initialUnitSyste
       {/* Pending Modal */}
       {pendingTabIndex !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-surface-200">
+          <div className="bg-surface-100 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-surface-200">
              <div className="bg-amber-50 px-6 py-5 border-b border-amber-200/50">
                <h3 className="text-amber-700 font-black text-lg uppercase tracking-tight flex items-center gap-2">
                  <span>⚠️</span> Unsaved Changes
@@ -662,7 +662,7 @@ export default function TakeOffTab({ projectUid, projectAssets, initialUnitSyste
       )}
 
       {/* Unit System Toggle */}
-      <div className="flex items-center justify-between bg-white px-6 py-3 rounded-2xl border border-surface-200 shadow-sm">
+      <div className="flex items-center justify-between bg-surface-100 px-6 py-3 rounded-2xl border border-surface-200 shadow-sm">
         <div className="flex items-center gap-2">
            <span className="text-[10px] font-black uppercase tracking-widest text-surface-500">Measurement System</span>
            <span className="text-[10px] font-medium text-surface-400">— select the unit for dimensions (L, W, D)</span>
@@ -672,7 +672,7 @@ export default function TakeOffTab({ projectUid, projectAssets, initialUnitSyste
              onClick={() => handleUnitSystemChange("metric")}
              className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
                unitSystem === "metric"
-                 ? "bg-primary text-white shadow-sm"
+                 ? "bg-accent text-background shadow-sm"
                  : "text-surface-500 hover:text-primary"
              }`}
            >
@@ -682,7 +682,7 @@ export default function TakeOffTab({ projectUid, projectAssets, initialUnitSyste
              onClick={() => handleUnitSystemChange("imperial")}
              className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
                unitSystem === "imperial"
-                 ? "bg-accent text-white shadow-sm"
+                 ? "bg-accent text-background shadow-sm"
                  : "text-surface-500 hover:text-accent"
              }`}
            >
@@ -693,7 +693,7 @@ export default function TakeOffTab({ projectUid, projectAssets, initialUnitSyste
 
       {/* Floor Plan Carousel */}
       {floorPlans.length > 1 && (
-        <div className="flex flex-col bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden p-4">
+        <div className="flex flex-col bg-surface-100 rounded-2xl border border-surface-200 shadow-sm overflow-hidden p-4">
            <div className="text-[10px] font-black text-surface-500 uppercase tracking-widest mb-3 px-2">Select Floor Plan</div>
            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
               {floorPlans.map((plan, idx) => (

@@ -88,7 +88,7 @@ export function WebhooksView({ orgId }: { orgId: number }) {
 
     return (
         <div className="max-w-4xl space-y-10">
-            <section className="bg-white p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
+            <section className="bg-surface-100 border-surface-200 p-12 border border-surface-200 rounded-2xl shadow-sm space-y-12">
                 <div className="flex justify-between items-start">
                     <div className="space-y-2">
                         <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Outbound Event Bus</h3>
@@ -97,7 +97,7 @@ export function WebhooksView({ orgId }: { orgId: number }) {
                     <button 
                         onClick={() => setShowCreate(!showCreate)}
                         className={`px-8 h-12 font-bold uppercase text-[10px] tracking-[0.3em] transition-all shadow-xl ${
-                            showCreate ? "bg-surface-200 text-surface-600" : "bg-primary text-white hover:bg-accent shadow-primary/20"
+                            showCreate ? "bg-surface-200 text-surface-600 text-surface-300" : "bg-accent text-background hover:bg-accent shadow-primary/20"
                         }`}
                     >
                         {showCreate ? "Cancel" : "Add Webhook"}
@@ -107,24 +107,24 @@ export function WebhooksView({ orgId }: { orgId: number }) {
                 {showCreate && (
                     <form onSubmit={handleCreate} className="bg-surface-50 p-8 rounded-2xl border border-surface-200 space-y-8 animate-in slide-in-from-top-4 duration-300">
                         <div className="space-y-3">
-                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Payload URL</label>
+                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Payload URL</label>
                             <input 
                                 type="url" 
                                 required 
                                 value={url} 
                                 onChange={(e) => setUrl(e.target.value)}
-                                className="w-full h-12 bg-white border border-surface-200 px-5 rounded-xl outline-none focus:border-accent text-sm"
+                                className="w-full h-12 bg-surface-100 border-surface-200 border border-surface-200 px-5 rounded-xl outline-none focus:border-accent text-sm"
                                 placeholder="https://api.yourdomain.com/webhook"
                             />
                         </div>
 
                         <div className="space-y-4">
-                            <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Subscribed Events</label>
+                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Subscribed Events</label>
                             <div className="space-y-3">
                                 {availableEvents.map(evt => (
                                     <label key={evt.id} className="flex items-center gap-4 cursor-pointer group">
                                         <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                                            events.includes(evt.id) ? "bg-accent border-accent" : "bg-white border-surface-300 group-hover:border-accent"
+                                            events.includes(evt.id) ? "bg-accent border-accent" : "bg-surface-100 border-surface-200 border-surface-300 group-hover:border-accent"
                                         }`}>
                                             {events.includes(evt.id) && (
                                                 <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -143,7 +143,7 @@ export function WebhooksView({ orgId }: { orgId: number }) {
                             <button 
                                 type="submit"
                                 disabled={isSaving || events.length === 0} 
-                                className="px-10 h-12 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent disabled:opacity-50 transition-all"
+                                className="px-10 h-12 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent disabled:opacity-50 transition-all"
                             >
                                 {isSaving ? "Saving..." : "Create Webhook"}
                             </button>
@@ -154,11 +154,11 @@ export function WebhooksView({ orgId }: { orgId: number }) {
                 <div className="space-y-4">
                     {webhooks.length === 0 ? (
                         <div className="text-center py-10 bg-surface-50 rounded-2xl border border-surface-200 border-dashed">
-                            <p className="text-xs text-surface-500 font-bold uppercase tracking-widest">No webhooks configured.</p>
+                            <p className="text-xs text-surface-500 text-surface-400 font-bold uppercase tracking-widest">No webhooks configured.</p>
                         </div>
                     ) : (
                         webhooks.map(webhook => (
-                            <div key={webhook.id} className="bg-white border border-surface-200 p-6 rounded-2xl space-y-6">
+                            <div key={webhook.id} className="bg-surface-100 border-surface-200 border border-surface-200 p-6 rounded-2xl space-y-6">
                                 <div className="flex justify-between items-start">
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-3">
@@ -177,7 +177,7 @@ export function WebhooksView({ orgId }: { orgId: number }) {
                                 <div className="space-y-2">
                                     <label className="text-[9px] font-bold text-surface-400 uppercase tracking-[0.2em]">HMAC Secret (X-AP-Signature)</label>
                                     <div className="flex items-center gap-4 bg-surface-50 p-3 rounded-lg border border-surface-200">
-                                        <code className="text-xs font-mono text-surface-600 truncate flex-1">{webhook.secret}</code>
+                                        <code className="text-xs font-mono text-surface-600 text-surface-300 truncate flex-1">{webhook.secret}</code>
                                         <button 
                                             onClick={() => handleRegenerateSecret(webhook.id)}
                                             className="text-[9px] font-bold uppercase tracking-widest text-accent hover:text-primary transition-colors shrink-0"

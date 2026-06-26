@@ -54,7 +54,7 @@ function MagicLinkVerifyContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-50 font-sans selection:bg-accent/10 selection:text-accent p-6">
-      <div className="bg-white p-8 rounded-xl shadow-xl max-w-md w-full text-center space-y-6">
+      <div className="bg-surface-100 p-8 rounded-xl shadow-xl max-w-md w-full text-center space-y-6">
         {status === "loading" && (
           <div className="space-y-4">
             <div className="w-12 h-12 border-4 border-surface-200 border-t-accent rounded-full animate-spin mx-auto" />
@@ -80,7 +80,7 @@ function MagicLinkVerifyContent() {
             </div>
             <h2 className="text-xl font-bold text-primary tracking-tight">Verification Failed</h2>
             <p className="text-red-600 text-sm font-medium">{errorMessage}</p>
-            <Link href="/login" className="inline-block mt-4 w-full h-12 bg-primary text-white font-bold uppercase tracking-widest leading-12 rounded hover:bg-accent transition-colors flex items-center justify-center">
+            <Link href="/login" className="inline-block mt-4 w-full h-12 bg-accent text-background font-bold uppercase tracking-widest leading-12 rounded hover:bg-accent transition-colors flex items-center justify-center">
               Back to Login
             </Link>
           </div>

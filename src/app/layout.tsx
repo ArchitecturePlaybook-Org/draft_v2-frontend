@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/providers/auth-provider";
+import { QueryProvider } from "@/providers/QueryProvider";
 import Navbar from "@/components/shared/Navbar";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 
@@ -16,6 +17,21 @@ const geistMono = Geist_Mono({
 });
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173';
+
+const swRegistrationScript = `
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js').then(
+        function(registration) {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        },
+        function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        }
+      );
+    });
+  }
+`;
 
 export const metadata: Metadata = {
   title: {
@@ -58,13 +74,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: swRegistrationScript }} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <Navbar />
-          <CommandPalette />
-          <main>{children}</main>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <Navbar />
+            <CommandPalette />
+            <main>{children}</main>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

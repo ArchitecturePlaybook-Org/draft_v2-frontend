@@ -116,7 +116,7 @@ export const ChecklistTemplateManager = () => {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
       {/* Templates List Sidebar */}
       <div className="lg:col-span-1 space-y-8">
-        <section className="bg-white border border-surface-200 rounded-2xl overflow-hidden shadow-sm">
+        <section className="bg-surface-100 border-surface-200 border border-surface-200 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-6 border-b border-surface-100 flex justify-between items-center bg-surface-50/50">
             <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.3em]">Global Templates</h3>
             <span className="text-[10px] font-bold text-surface-400 uppercase">{templates.length} Active</span>
@@ -135,7 +135,7 @@ export const ChecklistTemplateManager = () => {
                   key={t.id} 
                   className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between group ${
                     selectedTemplate?.id === t.id 
-                    ? "bg-primary text-white border-primary shadow-lg scale-[1.02]" 
+                    ? "bg-accent text-background border-primary shadow-lg scale-[1.02]" 
                     : "bg-surface-50 text-primary border-surface-200 hover:border-accent/40"
                   }`}
                   onClick={() => handleSelectTemplate(t)}
@@ -152,8 +152,8 @@ export const ChecklistTemplateManager = () => {
                     onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(t.id); }}
                     className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
                       selectedTemplate?.id === t.id 
-                      ? "bg-white/10 hover:bg-red-500 hover:text-white" 
-                      : "bg-white text-surface-400 border border-surface-200 hover:bg-red-500 hover:border-red-500 hover:text-white"
+                      ? "bg-surface-100 border-surface-200/10 hover:bg-red-500 hover:text-white" 
+                      : "bg-surface-100 border-surface-200 text-surface-400 border border-surface-200 hover:bg-red-500 hover:border-red-500 hover:text-white"
                     }`}
                   >
                     ✕
@@ -164,18 +164,18 @@ export const ChecklistTemplateManager = () => {
           </div>
         </section>
 
-        <section className="bg-white p-6 border border-surface-200 rounded-2xl shadow-sm space-y-6">
+        <section className="bg-surface-100 border-surface-200 p-6 border border-surface-200 rounded-2xl shadow-sm space-y-6">
           <h3 className="text-[10px] font-bold text-primary uppercase tracking-[0.3em]">Establish New Template</h3>
           <form onSubmit={handleCreateTemplate} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Template Name</label>
+              <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Template Name</label>
               <input type="text" required value={newTemplateName} onChange={e => setNewTemplateName(e.target.value)} className="w-full h-11 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:border-accent text-sm font-bold" placeholder="e.g. Concrete Pour QA" />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Description</label>
+              <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Description</label>
               <input type="text" value={newTemplateDesc} onChange={e => setNewTemplateDesc(e.target.value)} className="w-full h-11 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:border-accent text-sm" placeholder="Optional context..." />
             </div>
-            <button type="submit" disabled={isSaving || !newTemplateName.trim()} className="w-full h-12 bg-primary text-white font-bold uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-accent disabled:opacity-50">
+            <button type="submit" disabled={isSaving || !newTemplateName.trim()} className="w-full h-12 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-accent disabled:opacity-50">
               Create Template
             </button>
           </form>
@@ -185,17 +185,17 @@ export const ChecklistTemplateManager = () => {
       {/* Template Editor */}
       <div className="lg:col-span-2">
         {selectedTemplate ? (
-          <div className="bg-white border border-surface-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-full min-h-[600px] animate-in slide-in-from-right-4 duration-500">
+          <div className="bg-surface-100 border-surface-200 border border-surface-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-full min-h-[600px] animate-in slide-in-from-right-4 duration-500">
             <div className="p-8 border-b border-surface-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-50 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 arch-grid opacity-20 pointer-events-none" />
               <div className="relative z-10">
                 <h2 className="text-2xl font-bold text-primary tracking-tight">{selectedTemplate.name}</h2>
-                <p className="text-xs text-surface-500 mt-1">{selectedTemplate.description || "Standard operating procedure template"}</p>
+                <p className="text-xs text-surface-500 text-surface-400 mt-1">{selectedTemplate.description || "Standard operating procedure template"}</p>
               </div>
               <button 
                 onClick={handleSaveItems} 
                 disabled={isSaving}
-                className="relative z-10 px-8 h-12 bg-accent text-white font-bold uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-primary shadow-lg shadow-accent/20 transition-all disabled:opacity-50 shrink-0"
+                className="relative z-10 px-8 h-12 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.2em] rounded-xl hover:opacity-90 shadow-lg shadow-accent/20 transition-all disabled:opacity-50 shrink-0"
               >
                 {isSaving ? "Saving..." : "Save Template Changes"}
               </button>
@@ -205,7 +205,7 @@ export const ChecklistTemplateManager = () => {
               <div className="space-y-4">
                 <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.3em] flex items-center gap-3">
                   Checkpoints 
-                  <span className="px-2 py-0.5 bg-surface-100 text-surface-500 rounded-md border border-surface-200">{workingItems.length}</span>
+                  <span className="px-2 py-0.5 bg-surface-100 text-surface-500 text-surface-400 rounded-md border border-surface-200">{workingItems.length}</span>
                 </h3>
                 
                 {workingItems.length === 0 ? (
@@ -216,7 +216,7 @@ export const ChecklistTemplateManager = () => {
                 ) : (
                   <div className="space-y-3">
                     {workingItems.map((item, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-white border border-surface-200 rounded-xl hover:border-accent/30 transition-colors group">
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-surface-100 border-surface-200 border border-surface-200 rounded-xl hover:border-accent/30 transition-colors group">
                         <div className="flex items-center gap-2 shrink-0">
                           <button onClick={() => moveItem(index, 'up')} disabled={index === 0} className="w-8 h-8 flex items-center justify-center bg-surface-50 rounded-lg border border-surface-200 text-surface-400 hover:text-primary hover:bg-surface-100 disabled:opacity-30">↑</button>
                           <button onClick={() => moveItem(index, 'down')} disabled={index === workingItems.length - 1} className="w-8 h-8 flex items-center justify-center bg-surface-50 rounded-lg border border-surface-200 text-surface-400 hover:text-primary hover:bg-surface-100 disabled:opacity-30">↓</button>
@@ -271,16 +271,16 @@ export const ChecklistTemplateManager = () => {
                   value={newItemTitle}
                   onChange={e => setNewItemTitle(e.target.value)}
                   placeholder="New checkpoint requirement..." 
-                  className="flex-1 h-12 bg-white border border-surface-200 rounded-xl px-5 outline-none focus:border-accent text-sm font-bold w-full"
+                  className="flex-1 h-12 bg-surface-100 border-surface-200 border border-surface-200 rounded-xl px-5 outline-none focus:border-accent text-sm font-bold w-full"
                 />
                 <label className="flex items-center gap-2 shrink-0 cursor-pointer">
                   <input type="checkbox" checked={newItemProof} onChange={e => setNewItemProof(e.target.checked)} className="w-5 h-5 rounded border-surface-300 text-accent focus:ring-accent" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-surface-500">Require Photo</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-surface-500 text-surface-400">Require Photo</span>
                 </label>
                 <button 
                   type="submit" 
                   disabled={!newItemTitle.trim()}
-                  className="w-full sm:w-auto px-8 h-12 bg-surface-800 text-white font-bold uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-primary disabled:opacity-40 transition-colors shrink-0"
+                  className="w-full sm:w-auto px-8 h-12 bg-surface-800 text-white font-bold uppercase text-[10px] tracking-[0.2em] rounded-xl hover:opacity-90 disabled:opacity-40 transition-colors shrink-0"
                 >
                   + Add Checkpoint
                 </button>
@@ -289,7 +289,7 @@ export const ChecklistTemplateManager = () => {
           </div>
         ) : (
           <div className="h-full min-h-[600px] border-2 border-dashed border-surface-200 rounded-2xl flex flex-col items-center justify-center text-center p-10 bg-surface-50">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm mb-6 opacity-50">
+            <div className="w-24 h-24 bg-surface-100 border-surface-200 rounded-full flex items-center justify-center shadow-sm mb-6 opacity-50">
               <span className="text-4xl">📋</span>
             </div>
             <h2 className="text-xl font-bold text-primary tracking-tight mb-2">Select a Template</h2>

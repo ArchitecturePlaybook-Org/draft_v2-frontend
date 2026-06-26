@@ -37,7 +37,7 @@ export function AuditLogsView({ orgId }: { orgId: number }) {
   }
 
   return (
-    <div className="bg-white p-10 border border-surface-200 rounded-2xl shadow-sm">
+    <div className="bg-surface-100 border-surface-200 p-10 border border-surface-200 rounded-2xl shadow-sm">
       <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em] mb-6">Activity Audit Logs</h3>
       {logs.length === 0 ? (
         <p className="text-surface-400 text-sm italic">No activity logs found for this organization.</p>
@@ -54,14 +54,14 @@ export function AuditLogsView({ orgId }: { orgId: number }) {
                     {new Date(log.timestamp).toLocaleString()}
                   </span>
                 </div>
-                <div className="text-sm text-surface-600 mb-2">
+                <div className="text-sm text-surface-600 text-surface-300 mb-2">
                   <span className="font-bold text-primary">
                     {log.user_details ? log.user_details.name : "System"}
                   </span>
                   {" "}on <span className="font-mono">{log.resource_type}</span> {log.resource_id ? `(${log.resource_id})` : ""}
                 </div>
                 {log.metadata && Object.keys(log.metadata).length > 0 && (
-                  <pre className="text-[10px] text-surface-500 bg-white p-3 border border-surface-100 rounded-lg overflow-x-auto">
+                  <pre className="text-[10px] text-surface-500 text-surface-400 bg-surface-100 border-surface-200 p-3 border border-surface-100 rounded-lg overflow-x-auto">
                     {JSON.stringify(log.metadata, null, 2)}
                   </pre>
                 )}

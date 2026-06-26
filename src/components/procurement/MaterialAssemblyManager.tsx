@@ -129,7 +129,7 @@ export function MaterialAssemblyManager() {
 
   return (
     <div className="space-y-10">
-      <div className="flex justify-between items-center bg-white p-8 border border-surface-200 rounded-2xl shadow-sm">
+      <div className="flex justify-between items-center bg-surface-100 p-8 border border-surface-200 rounded-2xl shadow-sm">
         <div className="space-y-2">
           <h2 className="text-xl font-bold text-primary tracking-tight uppercase">Material Composition & Recipes</h2>
           <p className="text-xs text-surface-500 max-w-xl">
@@ -138,7 +138,7 @@ export function MaterialAssemblyManager() {
         </div>
         <button 
           onClick={() => setIsCreating(!isCreating)}
-          className="px-6 py-3 bg-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md"
+          className="px-6 py-3 bg-accent text-background text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md"
         >
           {isCreating ? "Cancel" : "New Assembly"}
         </button>
@@ -161,7 +161,7 @@ export function MaterialAssemblyManager() {
               <input required type="text" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full h-11 px-4 border border-surface-200 rounded-lg text-sm" placeholder="sqm" />
             </div>
           </div>
-          <button type="submit" className="h-11 px-6 bg-accent text-white text-[10px] font-bold uppercase tracking-widest rounded-lg">Save Assembly</button>
+          <button type="submit" className="h-11 px-6 bg-accent text-background text-[10px] font-bold uppercase tracking-widest rounded-lg">Save Assembly</button>
         </form>
       )}
 
@@ -174,8 +174,8 @@ export function MaterialAssemblyManager() {
               onClick={() => setSelectedAssembly(assembly)}
               className={`p-5 border rounded-xl cursor-pointer transition-all ${
                 selectedAssembly?.id === assembly.id 
-                ? "bg-primary text-white border-primary shadow-lg scale-[1.02]" 
-                : "bg-white border-surface-200 hover:border-accent"
+                ? "bg-accent text-background border-primary shadow-lg scale-[1.02]" 
+                : "bg-surface-100 border-surface-200 hover:border-accent"
               }`}
             >
               <h4 className="font-bold text-sm">{assembly.item_code}</h4>
@@ -189,7 +189,7 @@ export function MaterialAssemblyManager() {
         </div>
 
         {selectedAssembly && (
-          <div className="lg:col-span-2 bg-white border border-surface-200 rounded-2xl p-8 space-y-8 shadow-sm">
+          <div className="lg:col-span-2 bg-surface-100 border border-surface-200 rounded-2xl p-8 space-y-8 shadow-sm">
             <div className="flex justify-between items-start">
               <div className="flex gap-6">
                 {selectedAssembly.image ? (
@@ -271,7 +271,7 @@ export function MaterialAssemblyManager() {
                 <input required type="number" step="0.01" placeholder="Default Unit Rate" value={compData.default_unit_rate} onChange={e => setCompData({...compData, default_unit_rate: e.target.value})} className="h-10 px-3 border border-surface-200 rounded text-xs" />
                 <input required type="number" step="0.01" placeholder="Waste %" value={compData.waste_percentage} onChange={e => setCompData({...compData, waste_percentage: e.target.value})} className="h-10 px-3 border border-surface-200 rounded text-xs" />
               </div>
-              <button type="submit" className="h-10 px-6 bg-primary text-white text-[10px] font-bold uppercase rounded hover:bg-accent transition-colors">Add Component</button>
+              <button type="submit" className="h-10 px-6 bg-accent text-background text-[10px] font-bold uppercase rounded hover:bg-accent transition-colors">Add Component</button>
             </form>
           </div>
         )}

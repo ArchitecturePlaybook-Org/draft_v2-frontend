@@ -28,19 +28,19 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ item }) => {
   };
 
   return (
-    <div className="group bg-white border border-surface-200 rounded-3xl overflow-hidden hover:shadow-2xl hover:shadow-primary/5 hover:border-accent/30 transition-all duration-500 flex flex-col">
+    <div className="group bg-surface-100 border border-surface-200 rounded-3xl overflow-hidden hover:shadow-[0_20px_40px_-15px_rgba(255,186,8,0.2)] hover:border-accent/40 transition-all duration-700 flex flex-col hover:-translate-y-1">
       <Link href={`/portfolio/${item.id}`} className="block aspect-[16/10] relative overflow-hidden">
         <img 
           src={item.image} 
           alt={item.title} 
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1500ms] ease-out" 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
         
         <button 
           onClick={handleToggleSave}
           disabled={isSaving}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white hover:text-red-500 transition-all shadow-sm z-10"
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-background/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white hover:bg-white/90 hover:text-red-500 hover:scale-110 transition-all shadow-sm z-10"
         >
           <svg className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -49,7 +49,7 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ item }) => {
         
         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
           <div className="space-y-1">
-            <span className="px-2 py-1 bg-accent text-white text-[8px] font-bold uppercase tracking-widest rounded shadow-sm">
+            <span className="inline-block px-2.5 py-1 bg-background/20 backdrop-blur-xl border border-white/20 text-white text-[8px] font-bold uppercase tracking-widest rounded-md shadow-sm mb-1">
               {item.user?.category || 'Professional'}
             </span>
             <h3 className="text-white font-bold text-sm leading-tight drop-shadow-md">{item.title}</h3>
@@ -85,7 +85,7 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ item }) => {
           <div className="flex gap-2 items-center">
             <button 
               onClick={() => setShowLeadModal(true)}
-              className="px-3 py-1.5 bg-accent text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-primary transition-all shadow-lg shadow-accent/20"
+              className="px-4 py-2 bg-gradient-to-r from-accent to-accent/90 text-background text-[10px] font-bold uppercase tracking-[0.15em] rounded-xl hover:shadow-[0_0_15px_rgba(255,186,8,0.4)] hover:-translate-y-0.5 transition-all"
             >
               Express Interest
             </button>

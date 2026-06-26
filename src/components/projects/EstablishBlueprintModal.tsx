@@ -96,12 +96,12 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/40 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-4xl rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/20 flex flex-col md:flex-row min-h-[600px]">
+      <div className="bg-surface-100 border-surface-200 w-full max-w-4xl rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/20 flex flex-col md:flex-row min-h-[600px]">
         {/* Left Side: Visual/Context */}
-        <div className="w-full md:w-1/3 bg-primary p-8 text-white flex flex-col justify-between relative overflow-hidden">
+        <div className="w-full md:w-1/3 bg-accent text-background flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-accent/20 rounded-full blur-3xl -mr-16 -mt-16" />
           <div className="relative z-10 space-y-6">
-            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-2xl">🏗️</div>
+            <div className="w-12 h-12 bg-surface-100 border-surface-200/10 rounded-2xl flex items-center justify-center text-2xl">🏗️</div>
             <div className="space-y-2">
               <h2 className="text-2xl font-bold leading-tight">Establish Blueprint</h2>
               <p className="text-white/60 text-xs uppercase tracking-widest font-bold">Project Initialization</p>
@@ -109,23 +109,23 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
           </div>
           
           <div className="relative z-10 space-y-4">
-            <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2">
+            <div className="p-4 bg-surface-100 border-surface-200/5 rounded-2xl border border-white/10 space-y-2">
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${step >= 1 ? 'bg-accent' : 'bg-white/20'}`} />
+                <div className={`w-2 h-2 rounded-full ${step >= 1 ? 'bg-accent' : 'bg-surface-100 border-surface-200/20'}`} />
                 <p className={`text-xs font-bold ${step >= 1 ? 'text-white' : 'text-white/40'}`}>1. Project Details</p>
               </div>
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${step >= 2 ? 'bg-accent' : 'bg-white/20'}`} />
+                <div className={`w-2 h-2 rounded-full ${step >= 2 ? 'bg-accent' : 'bg-surface-100 border-surface-200/20'}`} />
                 <p className={`text-xs font-bold ${step >= 2 ? 'text-white' : 'text-white/40'}`}>2. Client Contact</p>
               </div>
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${step >= 3 ? 'bg-accent' : 'bg-white/20'}`} />
+                <div className={`w-2 h-2 rounded-full ${step >= 3 ? 'bg-accent' : 'bg-surface-100 border-surface-200/20'}`} />
                 <p className={`text-xs font-bold ${step >= 3 ? 'text-white' : 'text-white/40'}`}>3. Review & Submit</p>
               </div>
             </div>
             <div className="flex gap-1">
               {[1, 2, 3].map(i => (
-                <div key={i} className={`h-1 flex-1 rounded-full ${step >= i ? 'bg-accent' : 'bg-white/20'}`} />
+                <div key={i} className={`h-1 flex-1 rounded-full ${step >= i ? 'bg-accent' : 'bg-surface-100 border-surface-200/20'}`} />
               ))}
             </div>
           </div>
@@ -145,7 +145,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                 <div className="space-y-2">
                   <h3 className="text-xl font-bold text-primary">Project Details</h3>
-                  <p className="text-sm text-surface-500">Define the core parameters of your new architectural project.</p>
+                  <p className="text-sm text-surface-500 text-surface-400">Define the core parameters of your new architectural project.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -205,7 +205,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                       </div>
                       <div className="flex w-full">
                         {projectCodeMode === 'manual' && (
-                          <div className="flex items-center justify-center bg-surface-100 border border-surface-200 border-r-0 rounded-l-xl px-3 text-xs font-bold text-surface-500">
+                          <div className="flex items-center justify-center bg-surface-100 border border-surface-200 border-r-0 rounded-l-xl px-3 text-xs font-bold text-surface-500 text-surface-400">
                             {manualPrefix}
                           </div>
                         )}
@@ -268,7 +268,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                 <div className="space-y-2">
                   <h3 className="text-xl font-bold text-primary">Client Contact</h3>
-                  <p className="text-sm text-surface-500">Who is the primary contact for this project?</p>
+                  <p className="text-sm text-surface-500 text-surface-400">Who is the primary contact for this project?</p>
                 </div>
 
                 <div className="space-y-4">
@@ -321,25 +321,25 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                 <div className="space-y-2">
                   <h3 className="text-xl font-bold text-primary">Review & Submit</h3>
-                  <p className="text-sm text-surface-500">Please review the details before establishing the blueprint.</p>
+                  <p className="text-sm text-surface-500 text-surface-400">Please review the details before establishing the blueprint.</p>
                 </div>
 
                 <div className="bg-surface-50 p-6 rounded-2xl border border-surface-200 space-y-6 text-sm">
                   <div>
                     <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-2 border-b border-surface-200 pb-1">Project</h4>
                     <div className="grid grid-cols-2 gap-y-2">
-                      <span className="text-surface-500">Title:</span> <span className="font-bold">{formData.title}</span>
-                      <span className="text-surface-500">Code:</span> <span className="font-bold">{projectCodeMode === 'auto' ? autoPrefix : `${manualPrefix}${formData.project_code}`}</span>
-                      <span className="text-surface-500">Kind:</span> <span className="font-bold">{formData.kind}</span>
-                      <span className="text-surface-500">Location:</span> <span className="font-bold">{formData.location || '-'}</span>
+                      <span className="text-surface-500 text-surface-400">Title:</span> <span className="font-bold">{formData.title}</span>
+                      <span className="text-surface-500 text-surface-400">Code:</span> <span className="font-bold">{projectCodeMode === 'auto' ? autoPrefix : `${manualPrefix}${formData.project_code}`}</span>
+                      <span className="text-surface-500 text-surface-400">Kind:</span> <span className="font-bold">{formData.kind}</span>
+                      <span className="text-surface-500 text-surface-400">Location:</span> <span className="font-bold">{formData.location || '-'}</span>
                     </div>
                   </div>
                   <div>
                     <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-2 border-b border-surface-200 pb-1">Client</h4>
                     <div className="grid grid-cols-2 gap-y-2">
-                      <span className="text-surface-500">Name:</span> <span className="font-bold">{formData.client_name || '-'}</span>
-                      <span className="text-surface-500">Phone:</span> <span className="font-bold">{formData.client_phone || '-'}</span>
-                      <span className="text-surface-500">Email:</span> <span className="font-bold">{formData.client_email || '-'}</span>
+                      <span className="text-surface-500 text-surface-400">Name:</span> <span className="font-bold">{formData.client_name || '-'}</span>
+                      <span className="text-surface-500 text-surface-400">Phone:</span> <span className="font-bold">{formData.client_phone || '-'}</span>
+                      <span className="text-surface-500 text-surface-400">Email:</span> <span className="font-bold">{formData.client_email || '-'}</span>
                     </div>
                   </div>
                 </div>
@@ -362,7 +362,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold text-primary">Blueprint Established</h3>
-                  <p className="text-sm text-surface-500 max-w-xs mx-auto">Your new project has been successfully initialized in the registry.</p>
+                  <p className="text-sm text-surface-500 text-surface-400 max-w-xs mx-auto">Your new project has been successfully initialized in the registry.</p>
                 </div>
                 <Button 
                   onClick={() => {

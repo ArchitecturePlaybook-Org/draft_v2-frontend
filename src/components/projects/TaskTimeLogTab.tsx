@@ -37,26 +37,19 @@ export function TaskTimeLogTab({ task, onUpdate }: TaskTimeLogTabProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!hours || isNaN(Number(hours)) || Number(hours) <= 0) {
-      toast.error("Please enter a valid number of hours");
-      return;
-    }
-
+  const handleQuickAdd = async (h: number) => {
     setIsSubmitting(true);
     try {
       await projectsApi.createTaskTimeLog(task.uid, {
-        date,
-        hours: Number(hours),
-        description,
-        billable,
+        date: format(new Date(), "yyyy-MM-dd"),
+        hours: h,
+        description: description.trim() || "Task execution",
+        billable: true,
       });
-      toast.success("Time log added");
-      setHours("");
+      toast.success(`Logged ${h} hours`);
       setDescription("");
       fetchLogs();
-      onUpdate(); // Trigger parent refresh to update total_hours_logged
+      onUpdate();
     } catch (err) {
       toast.error("Failed to add time log");
     } finally {
@@ -95,69 +88,34 @@ export function TaskTimeLogTab({ task, onUpdate }: TaskTimeLogTabProps) {
         </div>
       </div>
 
-      {/* Add Log Form */}
-      <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+      {/* Quick Add Log */}
+      <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
         <h4 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
           <Clock className="w-4 h-4 text-emerald-400" />
-          Log Time
+          Quick Log
         </h4>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Hours</label>
-              <input
-                type="number"
-                step="0.25"
-                min="0.25"
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-                placeholder="e.g. 2.5"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-            </div>
+        <div className="space-y-4">
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What did you work on? (Optional)"
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+          />
+          <div className="flex gap-3 flex-wrap">
+            {[1, 2, 4, 8].map(h => (
+              <button
+                key={h}
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => handleQuickAdd(h)}
+                className="flex-1 py-3 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 rounded-lg text-sm font-bold transition-colors border border-emerald-500/20 disabled:opacity-50"
+              >
+                +{h}h
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Description</label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What did you work on?"
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-emerald-500"
-              required
-            />
-          </div>
-          <div className="flex items-center justify-between pt-2">
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                type="checkbox"
-                checked={billable}
-                onChange={(e) => setBillable(e.target.checked)}
-                className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
-              />
-              Billable Time
-            </label>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              {isSubmitting ? "Saving..." : "Add Time Log"}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
 
       {/* History List */}

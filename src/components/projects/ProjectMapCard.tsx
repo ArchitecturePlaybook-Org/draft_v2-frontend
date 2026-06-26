@@ -70,9 +70,9 @@ export default function ProjectMapCard({ project, onLocationUpdated }: ProjectMa
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-surface-200 shadow-sm overflow-hidden flex flex-col h-[280px]">
+    <div className="bg-surface-100 border-surface-200 rounded-3xl border border-surface-200 shadow-sm overflow-hidden flex flex-col h-[280px]">
       <div className="p-4 border-b border-surface-100 flex justify-between items-center bg-surface-50">
-        <div className="flex items-center gap-2 text-surface-600">
+        <div className="flex items-center gap-2 text-surface-600 text-surface-300">
           <MapPin size={16} />
           <h3 className="font-bold text-sm">Project Location</h3>
         </div>
@@ -80,7 +80,7 @@ export default function ProjectMapCard({ project, onLocationUpdated }: ProjectMa
           <button 
             onClick={handleSetLocation} 
             disabled={loading}
-            className="text-[10px] uppercase tracking-widest font-bold bg-primary text-white px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-primary/90 disabled:opacity-50"
+            className="text-[10px] uppercase tracking-widest font-bold bg-accent text-background px-3 py-1 rounded-lg flex items-center gap-1 hover:opacity-90/90 disabled:opacity-50"
           >
             {loading ? <RefreshCw size={12} className="animate-spin" /> : "Set Coordinates"}
           </button>
@@ -110,7 +110,7 @@ export default function ProjectMapCard({ project, onLocationUpdated }: ProjectMa
             </div>
             
             {/* Attribution overlay */}
-            <div className="absolute bottom-1 right-2 text-[8px] text-surface-500 bg-white/70 px-1 rounded backdrop-blur-sm">
+            <div className="absolute bottom-1 right-2 text-[8px] text-surface-500 text-surface-400 bg-surface-100 border-surface-200/70 px-1 rounded backdrop-blur-sm">
               © OpenStreetMap contributors, CartoDB
             </div>
           </div>

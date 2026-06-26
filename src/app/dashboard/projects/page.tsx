@@ -9,6 +9,7 @@ import { EstablishBlueprintModal } from "@/components/projects/EstablishBlueprin
 import { Spinner } from "@/components/ui/Spinner";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 
 // ── Inner component that safely uses useSearchParams() ──────────────────────
 function SearchParamsReader({ onParams }: { onParams: (leadId: string | null, title: string | null, clientName: string | null) => void }) {
@@ -120,11 +121,12 @@ function ProjectsPageInner() {
         <SearchParamsReader onParams={handleSearchParams} />
       </Suspense>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-white p-10 border border-surface-200 rounded-2xl shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-full arch-grid opacity-[0.03] pointer-events-none" />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-surface-50/40 backdrop-blur-2xl p-10 border border-white/20 dark:border-white/5 rounded-[2rem] shadow-2xl shadow-primary/5 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-full arch-grid opacity-[0.05] pointer-events-none mix-blend-overlay" />
         <div className="relative z-10">
-          <h1 className="text-4xl font-extrabold text-primary mb-3 tracking-tight">Project Registry</h1>
-          <p className="text-sm text-surface-500 max-w-2xl leading-relaxed">
+          <h1 className="text-5xl font-black text-primary mb-3 tracking-tight drop-shadow-sm">Project Registry</h1>
+          <p className="text-sm text-surface-400 font-medium max-w-2xl leading-relaxed">
             {isAdmin 
               ? "System-wide overview of all active architectural projects, accounts, and cross-tenant collaborations across the platform." 
               : "Manage and oversee your active architectural designs, construction workflows, and collaborative project data mapped to your professional entities."}
@@ -133,13 +135,13 @@ function ProjectsPageInner() {
         <div className="flex items-center gap-4 relative z-10">
           <button 
             onClick={() => window.open("/api/proxy/projects/projects-export/", "_blank")}
-            className="h-12 px-6 border-2 border-surface-200 text-surface-600 font-bold text-xs uppercase tracking-widest rounded-xl hover:border-accent hover:text-accent transition-all flex items-center gap-2 bg-white"
+            className="h-12 px-6 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 text-primary font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-surface-200/50 transition-all flex items-center gap-2 shadow-lg"
           >
             <span>📊</span> Export Excel
           </button>
           <button 
             onClick={() => setShowCreateModal(true)}
-            className="h-12 px-6 bg-primary text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent transition-colors flex items-center gap-3 shadow-md hover:shadow-xl"
+            className="h-12 px-6 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(var(--color-accent),0.4)]"
           >
             <span className="text-lg leading-none mb-0.5">+</span> Establish Blueprint
           </button>
@@ -147,26 +149,27 @@ function ProjectsPageInner() {
       </div>
 
       {/* Filter and Sort Bar */}
-      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-surface-200 shadow-sm relative z-10">
-        <div className="flex-1 flex items-center gap-3 bg-surface-50 px-4 rounded-lg border border-surface-100">
-          <span className="text-surface-400">🔍</span>
+      <div className="flex flex-col md:flex-row gap-4 bg-surface-50/40 backdrop-blur-xl p-4 rounded-[1.5rem] border border-white/20 dark:border-white/5 shadow-xl shadow-primary/5 relative z-10">
+        <div className="flex-1 flex items-center gap-3 bg-surface-100/50 backdrop-blur-md px-5 rounded-xl border border-white/10 dark:border-white/5 focus-within:border-accent/50 focus-within:ring-4 focus-within:ring-accent/10 transition-all shadow-inner">
+          <span className="text-surface-400 drop-shadow-sm">🔍</span>
           <input 
             type="text"
             placeholder="Search projects by title or client..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="flex-1 h-10 bg-transparent outline-none text-sm font-medium text-primary"
+            className="flex-1 h-12 bg-transparent outline-none text-sm font-bold text-primary placeholder:text-surface-400/70 placeholder:font-medium"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="text-surface-400 hover:text-primary pr-2">✕</button>
+            <button onClick={() => setSearchQuery("")} className="text-surface-400 hover:text-primary pr-2 transition-colors">✕</button>
           )}
         </div>
         
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-4 w-full md:w-auto">
           <select 
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="flex-1 md:flex-none h-10 px-4 bg-surface-50 border border-surface-100 rounded-lg text-xs font-bold text-primary outline-none cursor-pointer"
+            className="flex-1 md:flex-none h-12 px-5 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl text-xs font-bold text-primary outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all cursor-pointer shadow-inner appearance-none"
+            style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
           >
             <option value="ALL">All Statuses</option>
             <option value="To Start">To Start</option>
@@ -177,7 +180,8 @@ function ProjectsPageInner() {
           <select 
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
-            className="flex-1 md:flex-none h-10 px-4 bg-surface-50 border border-surface-100 rounded-lg text-xs font-bold text-primary outline-none cursor-pointer"
+            className="flex-1 md:flex-none h-12 px-5 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl text-xs font-bold text-primary outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all cursor-pointer shadow-inner appearance-none pr-10"
+            style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
           >
             <option value="NEWEST">Newest First</option>
             <option value="OLDEST">Oldest First</option>
@@ -187,28 +191,46 @@ function ProjectsPageInner() {
       </div>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-32 bg-white border border-surface-200 rounded-2xl">
+        <div className="flex flex-col items-center justify-center py-32 bg-surface-100 border-surface-200 border border-surface-200 rounded-2xl">
           <Spinner size="lg" label="Retrieving architectural nodes..." />
         </div>
       ) : filteredProjects.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <motion.div 
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: { staggerChildren: 0.1 }
+            }
+          }}
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
+        >
           {filteredProjects.map((project) => (
-            <ProjectCard key={project.uid} project={project} onStatusChange={handleStatusChange} />
+            <motion.div key={project.uid} variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }} className="h-full">
+              <ProjectCard project={project} onStatusChange={handleStatusChange} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       ) : (
-        <div className="text-center py-32 bg-white border border-surface-200 rounded-2xl shadow-sm">
-          <div className="text-5xl mb-6 opacity-20">🏗️</div>
-          <h3 className="text-xl font-bold text-primary mb-2 tracking-tight">No Blueprints Established</h3>
-          <p className="text-sm text-surface-400 max-w-sm mx-auto mb-8 leading-relaxed">
-            You don&apos;t have any active projects yet. Map a new architectural project to one of your firm entities.
-          </p>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="h-10 px-6 border-2 border-surface-200 text-primary font-bold text-[10px] uppercase tracking-widest rounded-lg hover:border-accent hover:text-accent transition-all"
-          >
-            Start Your First Project
-          </button>
+        <div className="text-center py-32 bg-gradient-to-b from-surface-50/50 to-transparent backdrop-blur-xl border border-white/10 dark:border-white/5 rounded-[2rem] shadow-2xl relative overflow-hidden group">
+          <div className="absolute inset-0 bg-primary/5 arch-grid opacity-10 pointer-events-none mix-blend-overlay group-hover:opacity-20 transition-opacity duration-1000" />
+          <div className="relative z-10">
+            <div className="w-24 h-24 bg-surface-100/50 backdrop-blur-md rounded-[2rem] mx-auto flex items-center justify-center border border-white/10 shadow-2xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-700 mb-8">
+              <span className="text-5xl drop-shadow-[0_0_15px_rgba(var(--color-primary),0.2)]">🏗️</span>
+            </div>
+            <h3 className="text-2xl font-black text-primary mb-3 tracking-tight">No Blueprints Established</h3>
+            <p className="text-sm text-surface-400 font-medium max-w-sm mx-auto mb-10 leading-relaxed">
+              You don&apos;t have any active projects yet. Map a new architectural project to one of your firm entities.
+            </p>
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="h-12 px-8 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 text-primary font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent hover:text-background hover:scale-105 transition-all shadow-lg hover:shadow-[0_0_20px_rgba(var(--color-accent),0.4)]"
+            >
+              Start Your First Project
+            </button>
+          </div>
         </div>
       )}
 
@@ -225,34 +247,46 @@ function ProjectsPageInner() {
         <div className="mt-16">
           <h2 className="text-2xl font-extrabold text-primary mb-6 tracking-tight">Shared Tasks</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-            {sharedTasks.map((task) => (
-              <a href={`/share/task/${task.uid}`} key={task.uid} className="block group h-full">
-                <div className="bg-amber-50 p-8 rounded-2xl border border-amber-200 hover:border-accent/40 shadow-sm hover:shadow-2xl transition-all h-full flex flex-col relative">
-                  <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                    <div className="absolute top-0 right-0 w-32 h-full bg-amber-500/5 arch-grid opacity-10 group-hover:opacity-20 transition-opacity" />
-                  </div>
-                  
-                  <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-lg text-amber-900 tracking-tight group-hover:text-accent transition-colors">
-                        {task.title}
-                      </h3>
-                      <p className="text-[9px] uppercase tracking-widest font-bold text-amber-700">
-                        {typeof task.project === "object" ? task.project.title : `Project ${task.project}`}
-                      </p>
+            {sharedTasks.map((task, idx) => (
+              <motion.div 
+                key={task.uid} 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ delay: 0.1 * idx }}
+                whileHover={{ rotateY: 2, rotateX: -2, y: -5, z: 20 }}
+                style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+                className="h-full"
+              >
+                <a href={`/share/task/${task.uid}`} className="block group h-full">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 p-8 rounded-2xl border border-amber-200 dark:border-amber-800/30 hover:border-accent/40 shadow-sm hover:shadow-2xl transition-all h-full flex flex-col relative">
+                    <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+                      <div className="absolute top-0 right-0 w-[500px] h-full bg-amber-500/5 arch-grid opacity-10 group-hover:opacity-30 transition-opacity duration-1000 mix-blend-overlay" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                     </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className="px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest rounded-md bg-amber-500 text-white">
-                        Shared Task
-                      </span>
+                    
+                    <div className="flex justify-between items-start mb-6 relative z-10">
+                      <div className="space-y-1.5">
+                        <h3 className="font-bold text-xl text-amber-900 dark:text-amber-100 tracking-tight group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                          {task.title}
+                        </h3>
+                        <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-amber-700/80 dark:text-amber-400/80 flex items-center gap-2">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                          {typeof task.project === "object" ? task.project.title : `Project ${task.project}`}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] rounded-md bg-amber-500 text-white shadow-lg shadow-amber-500/20 backdrop-blur-md">
+                          Shared Task
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <p className="text-sm text-amber-800/70 line-clamp-2 leading-relaxed mb-8 flex-1 relative z-10">
-                    {task.description || "No description provided."}
-                  </p>
-                </div>
-              </a>
+                    <p className="text-sm text-amber-900/70 dark:text-amber-100/70 line-clamp-2 leading-relaxed mb-8 flex-1 relative z-10 font-medium">
+                      {task.description || "No description provided."}
+                    </p>
+                  </div>
+                </a>
+              </motion.div>
             ))}
           </div>
         </div>

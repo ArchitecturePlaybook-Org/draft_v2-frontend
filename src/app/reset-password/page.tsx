@@ -53,7 +53,7 @@ function ResetPasswordContent() {
   const isInvalidLink = !uid || !token;
 
   return (
-    <div className="min-h-screen flex bg-white font-sans selection:bg-accent/10 selection:text-accent">
+    <div className="min-h-screen flex bg-surface-100 font-sans selection:bg-accent/10 selection:text-accent">
       {/* Left Panel */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-surface-100 overflow-hidden items-center justify-center p-20 border-r border-surface-200">
         <div className="absolute inset-0 arch-grid opacity-20" />
@@ -107,7 +107,7 @@ function ResetPasswordContent() {
                   </div>
               </div>
               <div className="text-center pt-4">
-                  <Link href="/forgot-password" className="w-full flex justify-center h-14 bg-primary text-white font-bold uppercase tracking-widest transition-all hover:bg-accent rounded items-center">
+                  <Link href="/forgot-password" className="w-full flex justify-center h-14 bg-accent text-background font-bold uppercase tracking-widest transition-all hover:bg-accent rounded items-center">
                     Request a new link
                   </Link>
               </div>
@@ -124,7 +124,7 @@ function ResetPasswordContent() {
                   <p className="text-sm text-surface-600 px-4">{message}</p>
               </div>
               <div className="text-center pt-4">
-                  <Link href="/login" className="w-full flex justify-center h-14 bg-primary text-white font-bold uppercase tracking-[0.2em] transition-all hover:bg-accent rounded items-center gap-4">
+                  <Link href="/login" className="w-full flex justify-center h-14 bg-accent text-background font-bold uppercase tracking-[0.2em] transition-all hover:bg-accent rounded items-center gap-4">
                     Sign in <ArrowRightIcon />
                   </Link>
               </div>
@@ -184,7 +184,7 @@ function ResetPasswordContent() {
               <button
                 type="submit"
                 disabled={status === "loading"}
-                className="w-full h-14 bg-primary text-white font-bold uppercase tracking-[0.2em] transition-all hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed group flex items-center justify-center gap-4"
+                className="w-full h-14 bg-accent text-background font-bold uppercase tracking-[0.2em] transition-all hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed group flex items-center justify-center gap-4"
               >
                 {status === "loading" ? "Saving..." : (<>Reset Password <ArrowRightIcon /></>)}
               </button>

@@ -37,7 +37,7 @@ export default function POManager({ projectId }: { projectId: string }) {
   if (loading) return <div className="p-4">Loading purchase orders...</div>;
 
   return (
-    <div className="bg-white rounded-3xl border border-surface-200 shadow-sm p-6">
+    <div className="bg-surface-100 rounded-3xl border border-surface-200 shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-black text-primary uppercase tracking-tight">Purchase Orders</h2>
       </div>
@@ -70,7 +70,7 @@ export default function POManager({ projectId }: { projectId: string }) {
                 </td>
                 <td className="py-3 px-4 text-right">
                   {po.status === 'DRAFT' && (
-                    <button onClick={() => handleAction(po.id, "submit")} className="px-3 py-1 bg-accent text-white text-[10px] font-bold uppercase rounded hover:bg-accent/90">Submit</button>
+                    <button onClick={() => handleAction(po.id, "submit")} className="px-3 py-1 bg-accent text-background text-[10px] font-bold uppercase rounded hover:bg-accent/90">Submit</button>
                   )}
                   {po.status === 'PENDING_APPROVAL' && (
                     <div className="flex justify-end gap-2">

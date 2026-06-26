@@ -119,7 +119,7 @@ export default function BCFDashboard() {
             <Bug className="text-primary w-6 h-6" />
             BIM Issue Tracking (BCF)
           </h1>
-          <p className="text-sm text-surface-500">
+          <p className="text-sm text-surface-500 text-surface-400">
             Import, export, and manage BIM Collaboration Format (.bcfzip) clash reports and issues.
           </p>
         </div>
@@ -202,7 +202,7 @@ export default function BCFDashboard() {
                   {colTopics.length === 0 && (
                     <div className="flex-1 flex flex-col items-center justify-center py-10 opacity-40 text-center">
                       <div className="w-10 h-10 border-2 border-dashed border-surface-300 rounded-lg mb-2"></div>
-                      <span className="text-xs text-surface-500 font-medium">Drop issues here</span>
+                      <span className="text-xs text-surface-500 text-surface-400 font-medium">Drop issues here</span>
                     </div>
                   )}
                 </div>

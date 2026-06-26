@@ -64,12 +64,12 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
       <div className="p-4 border-b border-surface-200 bg-surface-50 shrink-0">
         <h3 className="text-sm font-bold text-primary flex items-center gap-2">
           <span>💬</span> Communications
         </h3>
-        <p className="text-[10px] text-surface-500 uppercase tracking-widest mt-1 font-bold">
+        <p className="text-[10px] text-surface-500 text-surface-400 uppercase tracking-widest mt-1 font-bold">
           Message the task owner
         </p>
       </div>
@@ -83,14 +83,14 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
           </div>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="bg-white p-3 rounded-xl border border-surface-200 shadow-sm">
+            <div key={comment.id} className="bg-surface-100 border-surface-200 p-3 rounded-xl border border-surface-200 shadow-sm">
               <div className="flex justify-between items-start mb-2">
                 <span className="text-xs font-bold text-primary">{comment.user?.name || comment.user?.email || "User"}</span>
                 <span className="text-[9px] font-medium text-surface-400">
                   {formatTimeAgo(comment.created_at)}
                 </span>
               </div>
-              <p className="text-sm text-surface-600 whitespace-pre-wrap">{comment.content}</p>
+              <p className="text-sm text-surface-600 text-surface-300 whitespace-pre-wrap">{comment.content}</p>
             </div>
           ))
         )}
@@ -98,7 +98,7 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t border-surface-200 bg-white shrink-0">
+      <div className="p-4 border-t border-surface-200 bg-surface-100 border-surface-200 shrink-0">
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           <textarea
             value={newComment}
@@ -117,7 +117,7 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
             <button
               type="submit"
               disabled={isSubmitting || !newComment.trim()}
-              className="h-9 px-5 bg-primary text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
+              className="h-9 px-5 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
             >
               {isSubmitting ? "Sending..." : "Send"}
             </button>

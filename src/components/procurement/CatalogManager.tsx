@@ -60,7 +60,7 @@ export default function CatalogManager() {
   if (loading) return <div className="p-4">Loading catalog...</div>;
 
   return (
-    <div className="bg-white rounded-3xl border border-surface-200 shadow-sm p-6">
+    <div className="bg-surface-100 rounded-3xl border border-surface-200 shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-black text-primary uppercase tracking-tight">Material Master Catalog</h2>
         <div className="flex items-center gap-3">
@@ -72,7 +72,7 @@ export default function CatalogManager() {
           </button>
           <button 
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-primary text-white text-xs font-bold uppercase rounded-lg hover:bg-primary/90"
+            className="px-4 py-2 bg-accent text-background text-xs font-bold uppercase rounded-lg hover:opacity-90/90"
           >
             {showForm ? "Cancel" : "Add Item"}
           </button>
@@ -107,7 +107,7 @@ export default function CatalogManager() {
             </select>
           </div>
           <div className="col-span-2 md:col-span-2 flex items-end">
-            <button type="submit" className="w-full h-10 bg-accent text-white font-black text-xs uppercase rounded-lg">Save Item</button>
+            <button type="submit" className="w-full h-10 bg-accent text-background font-black text-xs uppercase rounded-lg">Save Item</button>
           </div>
         </form>
       )}

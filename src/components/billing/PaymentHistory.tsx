@@ -20,65 +20,70 @@ export function PaymentHistory() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-4">
-        <div className="h-6 bg-surface-200 rounded w-1/4"></div>
-        <div className="h-32 bg-surface-100 rounded"></div>
+      <div className="animate-pulse space-y-4 p-4">
+        <div className="h-6 bg-white/5 rounded-full w-1/4 border border-white/10"></div>
+        <div className="h-32 bg-white/5 rounded-[1.5rem] border border-white/10"></div>
       </div>
     );
   }
 
   if (invoices.length === 0) {
     return (
-      <div className="text-center py-12 bg-surface-50 border border-surface-200 rounded-lg">
-        <FileText className="w-12 h-12 text-surface-400 mx-auto mb-3" />
-        <h3 className="text-lg font-medium text-surface-900">No payment history</h3>
-        <p className="text-surface-500 mt-1">You haven't been billed yet.</p>
+      <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[2rem] backdrop-blur-md relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full bg-surface-800/50 flex items-center justify-center mb-4 border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                <FileText className="w-8 h-8 text-surface-400" />
+            </div>
+            <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-2">No payment history</h3>
+            <p className="text-surface-400 text-xs font-bold uppercase tracking-widest">You haven't been billed yet.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-surface-200 rounded-lg overflow-hidden">
+    <div className="bg-white/5 border border-white/10 rounded-[2rem] overflow-hidden backdrop-blur-md shadow-xl">
       <table className="w-full text-left text-sm">
-        <thead className="bg-surface-50 border-b border-surface-200">
+        <thead className="bg-surface-900/50 border-b border-white/10">
           <tr>
-            <th className="px-6 py-3 font-medium text-surface-600">Date</th>
-            <th className="px-6 py-3 font-medium text-surface-600">Amount</th>
-            <th className="px-6 py-3 font-medium text-surface-600">Status</th>
-            <th className="px-6 py-3 font-medium text-surface-600 text-right">Receipt</th>
+            <th className="px-8 py-5 text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Date</th>
+            <th className="px-8 py-5 text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Amount</th>
+            <th className="px-8 py-5 text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Status</th>
+            <th className="px-8 py-5 text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] text-right">Receipt</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-surface-200">
+        <tbody className="divide-y divide-white/5">
           {invoices.map((inv) => (
-            <tr key={inv.id} className="hover:bg-surface-50 transition-colors">
-              <td className="px-6 py-4 text-surface-900 font-medium">
+            <tr key={inv.id} className="hover:bg-white/5 transition-colors group">
+              <td className="px-8 py-6 text-primary font-bold text-xs uppercase tracking-wider">
                 {new Date(inv.created_at).toLocaleDateString(undefined, {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
                 })}
               </td>
-              <td className="px-6 py-4 text-surface-900 font-medium">
+              <td className="px-8 py-6 text-primary font-black tracking-widest">
                 {formatCurrency(parseFloat(inv.amount_paid) > 0 ? inv.amount_paid : inv.amount_due, inv.currency)}
               </td>
-              <td className="px-6 py-4">
+              <td className="px-8 py-6">
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm
                   ${
                     inv.status === "paid"
-                      ? "bg-green-100 text-green-800"
+                      ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-500/20"
                       : inv.status === "open"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-surface-200 text-surface-800"
+                      ? "bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-500/20"
+                      : "bg-surface-500/10 text-surface-400 border-surface-500/20"
                   }`}
                 >
                   {inv.status}
                 </span>
               </td>
-              <td className="px-6 py-4 text-right space-x-4">
+              <td className="px-8 py-6 text-right space-x-4">
                 {inv.status === "paid" && (
                   inv.refund_status ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-yellow-100 text-yellow-800">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] bg-amber-500/10 text-amber-500 border border-amber-500/20">
                       Refund {inv.refund_status}
                     </span>
                   ) : (
@@ -95,7 +100,7 @@ export function PaymentHistory() {
                           });
                         }
                       }}
-                      className="text-xs font-medium text-surface-500 hover:text-primary-600 transition-colors"
+                      className="text-[10px] font-bold text-surface-500 uppercase tracking-widest hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
                     >
                       Request Refund
                     </button>
@@ -106,13 +111,13 @@ export function PaymentHistory() {
                     href={inv.pdf_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-primary-600 hover:text-primary-800 transition-colors"
+                    className="inline-flex items-center gap-2 text-[10px] font-black text-accent uppercase tracking-widest hover:text-primary transition-colors bg-accent/10 px-4 py-2 rounded-lg border border-accent/20 hover:bg-accent hover:text-background"
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-3 h-3" />
                     <span>Receipt</span>
                   </a>
                 ) : (
-                  <span className="text-surface-400 text-sm">No Receipt</span>
+                  <span className="text-surface-500 text-[10px] font-bold uppercase tracking-widest">No Receipt</span>
                 )}
               </td>
             </tr>

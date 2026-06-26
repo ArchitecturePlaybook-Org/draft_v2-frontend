@@ -3,6 +3,7 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import { usePermissions } from "@/hooks/use-permissions";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 export const Topbar: React.FC = () => {
   const pathname = usePathname();
@@ -44,7 +45,7 @@ export const Topbar: React.FC = () => {
           </div>
         )}
         <div className="flex gap-2">
-          {/* Action buttons could go here */}
+          <ThemeToggle />
         </div>
       </div>
     </header>

@@ -5,9 +5,11 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { SidebarShell } from "@/components/layout/dashboard/SidebarShell";
 import { TrialBanner } from "@/components/billing/TrialBanner";
-import { useProjectNavStore } from "@/store/project-nav-store";
-
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { AnalystBot } from "@/components/AnalystBot";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import { OfflineIndicator } from "@/components/shared/OfflineIndicator";
+import { useProjectNavStore } from "@/store/project-nav-store";
 
 export default function DashboardLayout({
   children,
@@ -42,8 +44,15 @@ export default function DashboardLayout({
         </main>
       </div>
       
+      {/* Floating Global Theme Toggle for Dashboard */}
+      <div className="fixed top-6 right-8 z-[1002]">
+        <ThemeToggle />
+      </div>
+
       {/* Global Analyst Assistant */}
       <AnalystBot />
+      <KeyboardShortcuts />
+      <OfflineIndicator />
     </div>
   );
 }

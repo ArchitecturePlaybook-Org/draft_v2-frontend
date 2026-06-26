@@ -79,7 +79,7 @@ function MagicLoginContent() {
       {status === "error" && (
         <button 
           onClick={() => router.push("/login")}
-          className="mt-8 px-6 py-3 bg-primary text-white text-[10px] font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-accent transition-all"
+          className="mt-8 px-6 py-3 bg-accent text-background text-[10px] font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-accent transition-all"
         >
           Return to Login
         </button>
@@ -91,7 +91,7 @@ function MagicLoginContent() {
 export default function MagicLoginVerifyPage() {
   return (
     <div className="min-h-screen bg-surface-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-3xl p-10 border border-surface-200 shadow-xl text-center space-y-6 relative overflow-hidden">
+      <div className="max-w-md w-full bg-surface-100 rounded-3xl p-10 border border-surface-200 shadow-xl text-center space-y-6 relative overflow-hidden">
         {/* Background Grid Pattern */}
         <div className="absolute inset-0 arch-grid opacity-5 pointer-events-none" />
         <Suspense fallback={<div className="p-4">Loading verification...</div>}>

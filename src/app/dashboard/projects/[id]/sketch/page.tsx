@@ -62,7 +62,7 @@ export default function DedicatedSketchPage() {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-white">
+      <div className="h-screen w-full flex items-center justify-center bg-surface-100 border-surface-200">
         <Spinner label="Opening Architectural Design Suite..." />
       </div>
     );

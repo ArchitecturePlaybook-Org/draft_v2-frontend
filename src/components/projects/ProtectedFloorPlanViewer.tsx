@@ -26,7 +26,7 @@ export function ProtectedFloorPlanViewer({ assetId, children }: ProtectedFloorPl
       <div className="absolute inset-0 z-20 pointer-events-none" />
 
       {/* The base floor plan image with watermarks from backend */}
-      <div className="relative inline-block bg-white shadow-2xl rounded-sm overflow-hidden border border-surface-200">
+      <div className="relative inline-block bg-surface-100 border-surface-200 shadow-2xl rounded-sm overflow-hidden border border-surface-200">
         <img
           src={secureUrl}
           alt="Architectural Floor Plan"

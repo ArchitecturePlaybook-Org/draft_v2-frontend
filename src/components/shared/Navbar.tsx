@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
+import { ThemeToggle } from "./ThemeToggle";
 
 const Navbar = () => {
   const { user, isAuthenticated } = useAuthStore();
@@ -37,8 +38,8 @@ const Navbar = () => {
     <header
       className={`fixed top-0 left-0 right-0 h-topbar z-50 transition-all duration-300 border-b flex items-center ${
         scrolled
-          ? "bg-white/95 backdrop-blur-md border-surface-200 shadow-sm"
-          : "bg-white/80 backdrop-blur-sm border-transparent"
+          ? "bg-background/95 backdrop-blur-md border-surface-200 shadow-sm"
+          : "bg-background/80 backdrop-blur-sm border-transparent"
       }`}
     >
       <div className="w-full max-w-[1400px] mx-auto px-6 flex items-center justify-between">
@@ -53,7 +54,7 @@ const Navbar = () => {
             <polygon points="50,0 0,200 100,200" fill="currentColor" />
             <polygon points="100,0 100,100 200,50" fill="currentColor" />
           </svg>
-          <span className="font-bold text-base whitespace-nowrap tracking-tight uppercase">
+          <span className="font-bold text-base whitespace-nowrap tracking-tight uppercase text-foreground">
             Architecture Playbook
           </span>
         </Link>
@@ -64,8 +65,8 @@ const Navbar = () => {
             <Link
               key={link.name}
               href={link.href}
-              className={`text-[13px] font-medium transition-colors hover:text-black ${
-                pathname === link.href ? "text-black" : "text-surface-600"
+              className={`text-[13px] font-medium transition-colors hover:text-foreground ${
+                pathname === link.href ? "text-foreground" : "text-text-secondary"
               }`}
             >
               {link.name}
@@ -74,26 +75,27 @@ const Navbar = () => {
         </nav>
 
         {/* Action Buttons */}
-        <div className="hidden lg:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-4">
+          <ThemeToggle />
           {isAuthenticated ? (
             <Link
               href="/dashboard"
-              className="bg-primary text-white text-[13px] font-semibold px-6 py-2.5 rounded-full hover:bg-accent transition-all shadow-lg shadow-primary/10 flex items-center gap-2"
+              className="bg-accent text-background text-[13px] font-semibold px-6 py-2.5 rounded-full hover:opacity-90 transition-all shadow-lg shadow-accent/20 flex items-center gap-2"
             >
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">👤</div>
+              <div className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-[10px]">👤</div>
               Dashboard
             </Link>
           ) : (
             <>
               <Link
                 href="/login"
-                className="text-[13px] font-semibold px-4 py-2 hover:bg-surface-100 rounded-md transition-colors"
+                className="text-[13px] font-semibold px-4 py-2 hover:bg-surface-100 text-foreground rounded-md transition-colors"
               >
                 Login
               </Link>
               <Link
                 href="/signup"
-                className="bg-primary text-white text-[13px] font-semibold px-4 py-2 rounded-md hover:bg-primary-hover transition-colors"
+                className="bg-foreground text-background text-[13px] font-semibold px-4 py-2 rounded-md hover:scale-105 transition-transform"
               >
                 Get Started
               </Link>
@@ -108,17 +110,17 @@ const Navbar = () => {
           aria-label="Toggle Menu"
         >
           <span
-            className={`w-[22px] h-[2px] bg-primary transition-transform ${
+            className={`w-[22px] h-[2px] bg-foreground transition-transform ${
               isMenuOpen ? "rotate-45 translate-y-[7px]" : ""
             }`}
           ></span>
           <span
-            className={`w-[22px] h-[2px] bg-primary transition-opacity ${
+            className={`w-[22px] h-[2px] bg-foreground transition-opacity ${
               isMenuOpen ? "opacity-0" : "opacity-100"
             }`}
           ></span>
           <span
-            className={`w-[22px] h-[2px] bg-primary transition-transform ${
+            className={`w-[22px] h-[2px] bg-foreground transition-transform ${
               isMenuOpen ? "-rotate-45 -translate-y-[7px]" : ""
             }`}
           ></span>
@@ -127,33 +129,33 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div
-        className={`fixed inset-0 bg-white z-[999] lg:hidden flex flex-col pt-topbar transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-0 bg-background z-[999] lg:hidden flex flex-col pt-topbar transition-transform duration-300 ease-in-out ${
           isMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex flex-col border-t border-surface-100">
+        <div className="flex flex-col border-t border-surface-200">
           {navLinks.map((link) => (
             <Link
               key={link.name}
               href={link.href}
               onClick={() => setIsMenuOpen(false)}
-              className="px-6 py-4 text-[15px] font-medium border-b border-surface-100 flex items-center justify-between group"
+              className="px-6 py-4 text-[15px] font-medium border-b border-surface-200 text-foreground flex items-center justify-between group hover:bg-surface-100"
             >
               {link.name}
-              <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+              <span className="opacity-0 group-hover:opacity-100 transition-opacity text-accent">→</span>
             </Link>
           ))}
           <Link
             href="/login"
             onClick={() => setIsMenuOpen(false)}
-            className="px-6 py-4 text-[15px] font-semibold border-b border-surface-100 bg-surface-100/50"
+            className="px-6 py-4 text-[15px] font-semibold border-b border-surface-200 bg-surface-100 text-foreground hover:bg-surface-200"
           >
             Login
           </Link>
           <Link
             href="/signup"
             onClick={() => setIsMenuOpen(false)}
-            className="px-6 py-5 text-[15px] font-bold text-white bg-primary"
+            className="px-6 py-5 text-[15px] font-bold text-background bg-foreground hover:bg-foreground/90"
           >
             Get Started
           </Link>

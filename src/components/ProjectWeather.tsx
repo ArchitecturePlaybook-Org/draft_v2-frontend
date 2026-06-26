@@ -112,7 +112,7 @@ export const ProjectWeather: React.FC<ProjectWeatherProps> = ({ latitude, longit
 
   if (isLoading) {
     return (
-      <div className="bg-white p-6 rounded-2xl border border-surface-200 shadow-sm flex flex-col items-center justify-center min-h-[200px]">
+      <div className="bg-surface-100 p-6 rounded-2xl border border-surface-200 shadow-sm flex flex-col items-center justify-center min-h-[200px]">
         <Spinner size="md" label="Fetching 15-day meteorological forecast..." />
       </div>
     );
@@ -120,7 +120,7 @@ export const ProjectWeather: React.FC<ProjectWeatherProps> = ({ latitude, longit
 
   if (error || data.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-2xl border border-surface-200 shadow-sm flex flex-col items-center justify-center min-h-[200px] text-center">
+      <div className="bg-surface-100 p-6 rounded-2xl border border-surface-200 shadow-sm flex flex-col items-center justify-center min-h-[200px] text-center">
         <span className="text-3xl mb-3 opacity-30">🌦️</span>
         <p className="text-sm font-bold text-surface-400">{error || "Failed to load weather data."}</p>
       </div>
@@ -128,7 +128,7 @@ export const ProjectWeather: React.FC<ProjectWeatherProps> = ({ latitude, longit
   }
 
   return (
-    <div className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm animate-fade-in">
+    <div className="bg-surface-100 p-8 rounded-2xl border border-surface-200 shadow-sm animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-surface-100 pb-4">
         <div>
           <h3 className="text-xl font-extrabold text-primary tracking-tight">15-Day Weather Forecast</h3>

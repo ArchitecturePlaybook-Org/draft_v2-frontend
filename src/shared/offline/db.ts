@@ -20,12 +20,14 @@ export interface ApiCacheEntry {
 export class OfflineDB extends Dexie {
   syncQueue!: Table<SyncTask, number>;
   apiCache!: Table<ApiCacheEntry, string>;
+  reactQueryState!: Table<{ key: string; state: any }, string>;
 
   constructor() {
     super('ArchitecturePlaybookOfflineDB');
     this.version(1).stores({
       syncQueue: '++id, status, createdAt',
-      apiCache: 'url, updatedAt'
+      apiCache: 'url, updatedAt',
+      reactQueryState: 'key'
     });
   }
 }
@@ -67,6 +69,25 @@ export async function flushSyncQueue() {
 
   // Optional: clear synced tasks
   await db.syncQueue.where('status').equals('SYNCED').delete();
+}
+
+export async function enqueueSyncTask(task: Omit<SyncTask, 'id' | 'createdAt' | 'retryCount' | 'status'>) {
+  await db.syncQueue.add({
+    ...task,
+    createdAt: Date.now(),
+    retryCount: 0,
+    status: 'PENDING'
+  });
+
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'SyncManager' in window) {
+    try {
+      const swRegistration = await navigator.serviceWorker.ready;
+      await (swRegistration as any).sync.register('sync-queue');
+      console.log('[Offline Sync] Background sync registered');
+    } catch (err) {
+      console.error('[Offline Sync] Background sync registration failed', err);
+    }
+  }
 }
 
 // Automatically flush queue when coming online
