@@ -13,6 +13,7 @@ import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { TaskHSETab } from "./TaskHSETab";
 import { TaskFieldDiaryTab } from "./TaskFieldDiaryTab";
 import Link from "next/link";
+import { useProjectNavStore } from "@/store/project-nav-store";
 
 interface TaskExecutionSidePanelProps {
   task: Task;
@@ -24,6 +25,12 @@ interface TaskExecutionSidePanelProps {
   taskTags: any[];
   onClose: () => void;
   onTaskUpdated: () => void;
+  /** When true: left-anchored split-pane mode (Matrix workspace) */
+  splitMode?: boolean;
+  /** Left anchor in px — equals navWidth (280 expanded / 80 collapsed) */
+  leftOffset?: number;
+  /** Width controlled externally by the split ratio. Replaces internal panelWidth. */
+  panelWidthOverride?: number;
 }
 
 type TaskTab = "execution" | "subtasks" | "boq" | "checklist" | "issues" | "drawing" | "time" | "dependencies" | "hse" | "diary" | "photos";
@@ -146,9 +153,18 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   criticalPathUids,
   taskTags,
   onClose,
-  onTaskUpdated
+  onTaskUpdated,
+  splitMode = false,
+  leftOffset = 0,
+  panelWidthOverride,
 }) => {
-  const [panelWidth, setPanelWidth] = useState(800);
+  const { isSidebarCollapsed } = useProjectNavStore();
+  const NAV_W = isSidebarCollapsed ? 80 : 280;
+  
+  const [manualWidth, setManualWidth] = useState<number | null>(null);
+  const defaultWidth = typeof window !== "undefined" ? window.innerWidth - NAV_W : 800;
+  const panelWidth = manualWidth ?? defaultWidth;
+
   const { isAdmin, hasGlobalPermission, canEditProject } = usePermissions();
   const [task, setTask] = useState<Task>(initialTask);
   const [activeTab, setActiveTab] = useState<TaskTab>("execution");
@@ -495,42 +511,57 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
   const linked2dPlanUids = new Set(linked2dPlanLinks.map(l => l.latest_asset?.canonical_uid));
 
+  // ── Split-pane vs standalone layout ─────────────────────────────────────
+  const effectiveWidth = splitMode && panelWidthOverride ? panelWidthOverride : panelWidth;
+  const slideX = splitMode ? "-100%" : "100%";
+  const panelStyle = splitMode
+    ? { left: leftOffset, width: effectiveWidth, transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)" }
+    : { width: panelWidth };
+  const panelClass = splitMode
+    ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200"
+    : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200";
+
   return (
     <>
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 z-40 bg-background/80 backdrop-blur-2xl"
-      />
-      <motion.div 
-        initial={{ x: "100%", opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        style={{ width: panelWidth }}
-        className="fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200"
-      >
-        {/* Resize Handle */}
-        <div 
-          className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-accent/50 z-50 transition-colors"
-          onPointerDown={(e) => {
-            e.preventDefault();
-            const startX = e.clientX;
-            const startWidth = panelWidth;
-            const handleMove = (moveEvent: PointerEvent) => {
-              const delta = startX - moveEvent.clientX;
-              setPanelWidth(Math.max(400, Math.min(window.innerWidth - 100, startWidth + delta)));
-            };
-            const handleUp = () => {
-              window.removeEventListener("pointermove", handleMove);
-              window.removeEventListener("pointerup", handleUp);
-            };
-            window.addEventListener("pointermove", handleMove);
-            window.addEventListener("pointerup", handleUp);
-          }}
+      {/* Backdrop — hidden in splitMode (parent's shared backdrop handles dismissal) */}
+      {!splitMode && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-2xl"
         />
+      )}
+      <motion.div 
+        initial={{ x: slideX, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: slideX, opacity: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        style={panelStyle}
+        className={panelClass}
+      >
+        {/* Resize Handle — hidden in splitMode (shared handle in MilestoneMatrixView takes over) */}
+        {!splitMode && (
+          <div 
+            className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-accent/50 z-50 transition-colors"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              const startX = e.clientX;
+              const startWidth = panelWidth;
+              const handleMove = (moveEvent: PointerEvent) => {
+                const delta = startX - moveEvent.clientX;
+                setManualWidth(Math.max(400, Math.min(window.innerWidth - NAV_W, startWidth + delta)));
+              };
+              const handleUp = () => {
+                window.removeEventListener("pointermove", handleMove);
+                window.removeEventListener("pointerup", handleUp);
+              };
+              window.addEventListener("pointermove", handleMove);
+              window.addEventListener("pointerup", handleUp);
+            }}
+          />
+        )}
         
         {/* Header */}
         <div className="sticky top-0 z-50 px-8 py-6 border-b border-surface-200 bg-surface-50/80 bg-background/80 backdrop-blur-2xl flex flex-col md:flex-row justify-between items-start md:items-center shrink-0 relative overflow-hidden gap-6 shadow-sm">

@@ -45,7 +45,7 @@ export default function DashboardLayout({
       </div>
       
       {/* Floating Global Theme Toggle for Dashboard */}
-      <div className="fixed top-6 right-8 z-[1002]">
+      <div className="fixed top-6 right-8 z-[39]">
         <ThemeToggle />
       </div>
 

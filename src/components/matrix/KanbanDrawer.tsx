@@ -1,12 +1,12 @@
 "use client";
 import React, { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import {
   MilestoneBlockExpanded, Task, TaskStatus,
   MilestonePhase, SpatialZone
 } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { TaskItem } from "../projects/TaskItem";
-import { TaskExecutionSidePanel } from "../projects/TaskExecutionSidePanel";
 import { toast } from "sonner";
 
 interface KanbanDrawerProps {
@@ -18,6 +18,10 @@ interface KanbanDrawerProps {
   onBlockUpdated: (updated: MilestoneBlockExpanded) => void;
   userRole?: "contractor" | "qa_inspector" | "admin";
   projectUid?: string;
+  /** Controlled panel width from parent split state */
+  width?: number;
+  /** Bubbles task click up to parent for split-pane rendering */
+  onTaskSelect?: (task: Task) => void;
 }
 
 const COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
@@ -54,11 +58,12 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   onBlockUpdated,
   userRole = "admin",
   projectUid,
+  width,
+  onTaskSelect,
 }) => {
   const [tasks, setTasks] = useState<Task[]>(block.tasks || []);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
@@ -201,7 +206,6 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     }
 
     onBlockUpdated(getUpdatedBlock(block, updatedTasks));
-    if (selectedTask?.uid === updated.uid) setSelectedTask(updated);
   };
 
   const handleTaskDeleted = (taskId: string) => {
@@ -214,7 +218,6 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     }
 
     onBlockUpdated(getUpdatedBlock(block, newTasks));
-    if (selectedTask?.uid === taskId) setSelectedTask(null);
   };
 
   const filteredTasks = tasks.filter(t => !priorityFilter || t.priority === priorityFilter);
@@ -222,17 +225,16 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
 
   return (
     <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 transition-opacity"
-        onClick={onClose}
-      />
 
       {/* Drawer Panel */}
-      <div className={`
-        fixed top-0 right-0 h-screen w-full max-w-4xl bg-background border-l border-surface-200 shadow-premium z-50 flex flex-col transform transition-transform duration-300 ease-out
-        ${isOpen ? "translate-x-0" : "translate-x-full"}
-      `}>
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        style={{ width: width ?? 896 }}
+        className="fixed top-0 right-0 h-screen bg-background border-l border-surface-200 shadow-premium z-[45] flex flex-col"
+      >
         {/* Drawer Header */}
         <div className="flex items-center justify-between px-7 py-5 border-b border-surface-100 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50 shrink-0">
           <div>
@@ -360,9 +362,9 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                   onDrop={e => handleDrop(e, col.id)}
                   className={`
                     flex flex-col flex-1 min-w-[180px] max-w-[260px]
-                    rounded-t-sm transition-all duration-150
+                    rounded-t-sm
                     ${isDragTarget
-                      ? "border-semantic-blue bg-surface-100/50 scale-[1.01]"
+                      ? "border-semantic-blue bg-surface-100/50"
                       : `${col.color} ${isLocked ? "opacity-60" : ""}`
                     }
                   `}
@@ -386,14 +388,13 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                         task={task}
                         isLocked={isLocked}
                         onDragStart={(e) => handleDragStart(e, task.uid)}
-                        onClick={() => setSelectedTask(task)}
+                        onClick={() => onTaskSelect?.(task)}
                       />
                     ))}
 
                     {colTasks.length === 0 && (
                       <div className={`
                         h-24 rounded-xl border-2 border-dashed flex items-center justify-center
-                        transition-all duration-150
                         ${isDragTarget
                           ? "border-accent bg-accent/10"
                           : "border-surface-200/60 border-surface-200/60"
@@ -424,26 +425,8 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             <span className="text-[9px] font-bold text-surface-400">{block.progress_percent}% complete</span>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {selectedTask && (
-        <TaskExecutionSidePanel
-          task={selectedTask}
-          projectId={0}
-          projectUid={projectUid || ""}
-          projectAssets={[]}
-          projectTasks={[]}
-          criticalPathUids={[]}
-          taskTags={[]}
-          onClose={() => setSelectedTask(null)}
-          onTaskUpdated={() => {
-            projectsApi.getTask(selectedTask.uid).then(updated => {
-              handleTaskUpdated(updated);
-              setSelectedTask(updated);
-            });
-          }}
-        />
-      )}
     </>
   );
 };

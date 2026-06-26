@@ -9,6 +9,9 @@ import { MatrixBlockCell } from "./MatrixBlockCell";
 import { KanbanDrawer } from "./KanbanDrawer";
 import { MatrixOnboardingWizard } from "./MatrixOnboardingWizard";
 import { toast } from "sonner";
+import { useProjectNavStore } from "@/store/project-nav-store";
+import { TaskExecutionSidePanel } from "@/components/projects/TaskExecutionSidePanel";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface MilestoneMatrixViewProps {
   projectUid: string;
@@ -43,6 +46,11 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   const [newZoneName, setNewZoneName] = useState("");
   const [showAddPhaseInput, setShowAddPhaseInput] = useState(false);
   const [newPhaseName, setNewPhaseName] = useState("");
+
+  // ── Split-pane state ──────────────────────────────────────────────────────────
+  const { isSidebarCollapsed } = useProjectNavStore();
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [splitRatio, setSplitRatio] = useState(0.5);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -187,6 +195,37 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   };
 
   // ── Empty State — no zones or phases yet ───────────────────────────────────
+  // ── Split-pane layout computation ─────────────────────────────────────────
+  const NAV_W = isSidebarCollapsed ? 80 : 280;
+  const totalWidth = typeof window !== "undefined" ? window.innerWidth - NAV_W : 1160;
+  const MIN_TASK_W = 420;
+  const MIN_KANBAN_W = 400;
+  const kanbanWidth = selectedTask
+    ? Math.max(MIN_KANBAN_W, totalWidth * (1 - splitRatio))
+    : totalWidth;
+  const taskPanelWidth = selectedTask
+    ? Math.max(MIN_TASK_W, totalWidth * splitRatio)
+    : 0;
+
+  const handleResizeDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startRatio = splitRatio;
+    const onMove = (ev: PointerEvent) => {
+      const delta = ev.clientX - startX;
+      const newTask = startRatio * totalWidth + delta;
+      const clamped = Math.max(MIN_TASK_W, Math.min(totalWidth - MIN_KANBAN_W, newTask));
+      setSplitRatio(clamped / totalWidth);
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
+  // ── Empty State — no zones or phases yet ──────────────────────────────────────
   if (!loading && payload && (payload.zones.length === 0 || payload.phases.length === 0)) {
     if (showWizard) {
       return (
@@ -453,19 +492,77 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         </div>
       </div>
 
-      {/* Kanban Drawer (slides in from right) */}
-      {selectedBlock && (
-        <KanbanDrawer
-          block={selectedBlock}
-          phase={phases.find(p => p.id === selectedBlock.phase_id)!}
-          zone={zones.find(z => z.id === selectedBlock.zone_id)!}
-          isOpen={drawerOpen}
-          onClose={() => { setDrawerOpen(false); setTimeout(() => setSelectedBlock(null), 300); }}
-          onBlockUpdated={handleBlockUpdated}
-          userRole={userRole}
-          projectUid={projectUid}
-        />
+      {/* ── Shared backdrop (covers main-area only, sidebar stays visible) ─── */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed top-0 bottom-0 z-40 bg-black/50 backdrop-blur-sm"
+            style={{ left: NAV_W, right: 0 }}
+            onClick={() => {
+              setSelectedTask(null);
+              setDrawerOpen(false);
+              setSelectedBlock(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Task detail panel — slides from LEFT of main-area ────────────── */}
+      <AnimatePresence>
+        {selectedTask && selectedBlock && (
+          <TaskExecutionSidePanel
+            key={selectedTask.uid}
+            task={selectedTask}
+            projectId={0}
+            projectUid={projectUid}
+            projectAssets={[]}
+            projectTasks={projectTasks}
+            criticalPathUids={criticalPathUids}
+            taskTags={[]}
+            splitMode
+            leftOffset={NAV_W}
+            panelWidthOverride={taskPanelWidth}
+            onClose={() => setSelectedTask(null)}
+            onTaskUpdated={() => {}}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Shared resize handle — between task panel and Kanban ────────── */}
+      {selectedTask && drawerOpen && (
+        <div
+          className="fixed top-0 bottom-0 w-2 z-[49] cursor-col-resize hover:bg-accent/60 transition-colors group"
+          style={{ left: NAV_W + taskPanelWidth }}
+          onPointerDown={handleResizeDrag}
+        >
+          <div className="absolute top-1/2 -translate-y-1/2 flex flex-col gap-1 pl-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="w-1 h-1 rounded-full bg-accent" />
+            <span className="w-1 h-1 rounded-full bg-accent" />
+            <span className="w-1 h-1 rounded-full bg-accent" />
+          </div>
+        </div>
       )}
+
+      {/* ── Kanban Drawer — slides from RIGHT, width = remaining main-area ── */}
+      <AnimatePresence>
+        {selectedBlock && drawerOpen && (
+          <KanbanDrawer
+            block={selectedBlock}
+            phase={phases.find(p => p.id === selectedBlock.phase_id)!}
+            zone={zones.find(z => z.id === selectedBlock.zone_id)!}
+            isOpen={drawerOpen}
+            width={kanbanWidth}
+            onClose={() => { setSelectedTask(null); setDrawerOpen(false); setSelectedBlock(null); }}
+            onBlockUpdated={handleBlockUpdated}
+            onTaskSelect={setSelectedTask}
+            userRole={userRole}
+            projectUid={projectUid}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };
