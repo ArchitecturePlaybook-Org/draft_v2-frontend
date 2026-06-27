@@ -19,7 +19,6 @@ export const CATEGORY_SCHEMAS: Record<string, FieldSchema[]> = {
     { key: "company_reg_number", label: "Company Registration", type: "text" },
     { key: "primary_trade", label: "Primary Trade", type: "select", options: ["General Construction", "MEP", "Structural", "Civil", "Finishing"] },
     { key: "insurance_limit", label: "Liability Insurance Limit", type: "text", placeholder: "e.g. $5M" },
-    { key: "safety_rating", label: "Safety Performance Rating", type: "select", options: ["A+", "A", "B", "C"] },
   ],
   supplier: [
     { key: "product_category", label: "Main Product Line", type: "select", options: ["Raw Materials", "Finishes", "Equipment", "Structural Components"] },

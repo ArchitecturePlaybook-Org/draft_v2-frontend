@@ -50,8 +50,7 @@ export default function ProjectDetailPage() {
   const [selectedUser, setSelectedUser] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
 
-  const [globalPunchList, setGlobalPunchList] = useState<any[]>([]);
-  const [isLoadingPunchList, setIsLoadingPunchList] = useState(false);
+
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
   // Project Deletion
@@ -109,34 +108,7 @@ export default function ProjectDetailPage() {
     }
   }, [project, taskParam, activeTask, router]);
 
-  useEffect(() => {
-    if (activeTab === "site_ops" && project) {
-      fetchGlobalPunchList();
-    }
-  }, [activeTab, project?.uid]);
 
-  const fetchGlobalPunchList = async () => {
-    if (!project) return;
-    setIsLoadingPunchList(true);
-    try {
-      const data = await projectsApi.getPunchListItems(project.uid);
-      setGlobalPunchList(data);
-    } catch (err) {
-      console.error("Failed to fetch project issue tracker", err);
-    } finally {
-      setIsLoadingPunchList(false);
-    }
-  };
-
-  const handleResolveGlobalItem = async (itemId: number) => {
-    try {
-      await projectsApi.resolvePunchListItem(itemId);
-      fetchGlobalPunchList();
-      if (project) fetchProject(project.uid);
-    } catch (err) {
-      alert("Failed to resolve issue tracker item.");
-    }
-  };
 
   useEffect(() => {
     if (showAssignModal && project && firmMembers.length === 0) {
@@ -273,7 +245,7 @@ export default function ProjectDetailPage() {
               </button>
             </div>
             {matrixView === 'grid' ? (
-              <MilestoneMatrixView projectUid={project.uid} onTaskChange={() => fetchProject(project.uid)} projectTasks={project.tasks} criticalPathUids={[]} />
+              <MilestoneMatrixView projectUid={project.uid} onTaskChange={() => fetchProject(project.uid)} projectTasks={project.tasks} />
             ) : (
               <ExpandedFeedView projectUid={project.uid} />
             )}
@@ -285,85 +257,6 @@ export default function ProjectDetailPage() {
             projectUid={project.uid} 
             projectTasks={project.tasks}
             fetchProject={() => fetchProject(project.uid)}
-            renderIssues={() => (
-              <div className="bg-surface-100 border-surface-200 p-8 rounded-2xl border border-surface-200 shadow-sm animate-fade-in">
-                <h3 className="text-xl font-extrabold text-primary mb-6 tracking-tight">Project Issue Tracker</h3>
-                
-                {isLoadingPunchList ? (
-                  <div className="py-20 flex justify-center"><Spinner size="lg" label="Loading issue tracker..." /></div>
-                ) : globalPunchList.length === 0 ? (
-                  <div className="py-20 text-center flex flex-col items-center">
-                    <span className="text-4xl opacity-20 mb-3">✅</span>
-                    <p className="text-sm font-bold text-surface-400">No issue tracker items reported for this project.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {globalPunchList.map(item => (
-                      <div key={item.id} className="p-5 bg-surface-50/40 backdrop-blur-md border border-white/10 rounded-[1.5rem] flex items-start gap-5 hover:bg-white/5 hover:border-white/20 transition-all shadow-sm group">
-                        <div className="shrink-0 pt-1">
-                          <span className={`w-4 h-4 rounded-full block shadow-inner ${item.is_resolved ? 'bg-emerald-500/20 border-2 border-emerald-500' : item.severity === 'HIGH' ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse' : item.severity === 'MEDIUM' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-blue-400 border border-blue-300'}`} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="flex gap-2 items-center mb-2">
-                                <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border ${item.is_resolved ? 'bg-surface-100 text-surface-400 border-surface-200' : item.severity === 'HIGH' ? 'bg-red-500/10 text-red-500 border-red-500/20' : item.severity === 'MEDIUM' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
-                                  {item.severity}
-                                </span>
-                                <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-black/10 text-surface-400 border border-white/5 backdrop-blur-sm">
-                                  {item.issue_type} | {item.root_cause}
-                                </span>
-                                <span className="text-[9px] font-bold text-surface-500 uppercase tracking-widest ml-2">{new Date(item.created_at).toLocaleDateString()}</span>
-                              </div>
-                              <h4 className="font-black text-primary text-lg tracking-tight group-hover:text-accent transition-colors">{item.title}</h4>
-                              <p className="text-xs text-surface-400 font-medium mt-1.5 leading-relaxed max-w-3xl">{item.description}</p>
-                              
-                              {item.attachments && item.attachments.length > 0 && (
-                                <div className="flex gap-3 mt-4">
-                                  {item.attachments.map((att: any) => (
-                                    <button 
-                                      key={att.id} 
-                                      onClick={() => setLightboxImageUrl(att.file)}
-                                      className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 block hover:scale-105 hover:border-accent hover:shadow-[0_0_15px_rgba(var(--color-accent),0.3)] transition-all cursor-pointer focus:outline-none"
-                                    >
-                                      <img src={att.file} className="w-full h-full object-cover" />
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {!item.is_resolved && canManage && (
-                              <button 
-                                onClick={() => handleResolveGlobalItem(item.id)}
-                                className="px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-emerald-500 hover:text-white hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all shrink-0"
-                              >
-                                Resolve
-                              </button>
-                            )}
-                          </div>
-                          
-                          <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
-                            <div className="text-[9px] font-black text-surface-500 uppercase tracking-[0.2em]">
-                              Task: <span className="text-primary cursor-pointer hover:text-accent hover:underline bg-white/5 px-2 py-1 rounded-md" onClick={() => { setActiveTask(project?.tasks.find(t => t.uid === item.task_uid) || null) }}>{item.task_title || "Unknown Task"}</span>
-                            </div>
-                            {item.reported_by && (
-                              <div className="text-[9px] font-black text-surface-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                                Reported by 
-                                <Link href={`/dashboard/team/${item.reported_by.id}`} className="flex items-center gap-2 hover:text-accent transition-colors">
-                                  <img src={item.reported_by.avatar || `https://ui-avatars.com/api/?name=${item.reported_by.first_name}+${item.reported_by.last_name}&background=f3f4f6&color=1e293b`} className="w-5 h-5 rounded-full border border-white/10" /> 
-                                  <span className="text-primary hover:underline">{item.reported_by.first_name} {item.reported_by.last_name}</span>
-                                </Link>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           />
         )}
       </div>
@@ -415,7 +308,6 @@ export default function ProjectDetailPage() {
           projectId={project.id}
           projectUid={project.uid}
           projectTasks={project.tasks}
-          criticalPathUids={[]}
           taskTags={[]}
           projectAssets={project.assets || []}
           onClose={() => setActiveTask(null)} 

@@ -87,7 +87,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       tags: [],
       asset_links: [],
       checklists: [],
-      depends_on: [],
       project: project.uid,
       cost: taskData.cost || "0.00",
       assigned_to: taskData.assigned_to || null,

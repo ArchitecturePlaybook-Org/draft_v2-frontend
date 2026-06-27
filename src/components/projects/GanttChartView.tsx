@@ -10,7 +10,6 @@ type GroupBy = "phase" | "zone" | "trade";
 
 interface GanttChartViewProps {
   tasks: Task[];
-  criticalPathUids: string[];
   onTaskClick: (task: Task) => void;
   onTasksChanged: () => void;
 }
@@ -32,7 +31,6 @@ interface GanttTaskBarProps {
   task: Task;
   totalDays: number;
   minDate: Date;
-  isCritical: boolean;
   onTaskUpdate: (uid: string, start: string, end: string) => void;
   onClick: () => void;
   barRef: (el: HTMLDivElement | null) => void;
@@ -42,7 +40,6 @@ const GanttTaskBar: React.FC<GanttTaskBarProps> = ({
   task,
   totalDays,
   minDate,
-  isCritical,
   onTaskUpdate,
   onClick,
   barRef,
@@ -135,9 +132,7 @@ const GanttTaskBar: React.FC<GanttTaskBarProps> = ({
   const left = `${(offsetDays / totalDays) * 100}%`;
 
   // Colors
-  const barColor = isCritical
-    ? "bg-red-500 shadow-red-300/40"
-    : task.status === "DONE"
+  const barColor = task.status === "DONE"
     ? "bg-emerald-500 shadow-emerald-200"
     : task.status === "WIP"
     ? "bg-accent shadow-accent/20"
@@ -156,9 +151,7 @@ const GanttTaskBar: React.FC<GanttTaskBarProps> = ({
         onPointerDown={(e) => handlePointerDown(e, "move")}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        className={`absolute h-8 rounded-xl shadow-lg transition-colors cursor-grab active:cursor-grabbing flex items-center px-4 group/bar hover:scale-y-110 ${barColor} ${
-          isCritical ? "ring-2 ring-red-300 ring-offset-1" : ""
-        }`}
+        className={`absolute h-8 rounded-xl shadow-lg transition-colors cursor-grab active:cursor-grabbing flex items-center px-4 group/bar hover:scale-y-110 ${barColor}`}
         style={{ width, left, touchAction: "none" }}
       >
         <div
@@ -168,9 +161,7 @@ const GanttTaskBar: React.FC<GanttTaskBarProps> = ({
           }}
           className="flex-1 truncate flex items-center gap-2"
         >
-          {isCritical && (
-            <span className="text-[8px] text-white/90 font-black">⚡</span>
-          )}
+
           <span className="text-[10px] text-white font-extrabold uppercase tracking-widest">
             {task.status}
           </span>
@@ -190,135 +181,10 @@ const GanttTaskBar: React.FC<GanttTaskBarProps> = ({
   );
 };
 
-// ─── SVG Dependency Arrows ────────────────────────────────────────────────────
-
-interface ArrowOverlayProps {
-  tasks: Task[];
-  barRefs: Map<string, HTMLDivElement | null>;
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  criticalPathUids: string[];
-}
-
-const ArrowOverlay: React.FC<ArrowOverlayProps> = ({
-  tasks,
-  barRefs,
-  containerRef,
-  criticalPathUids,
-}) => {
-  const [arrows, setArrows] = useState<
-    { x1: number; y1: number; x2: number; y2: number; isCritical: boolean }[]
-  >([]);
-
-  const calculateArrows = useCallback(() => {
-    if (!containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-
-    const newArrows: typeof arrows = [];
-
-    tasks.forEach((task) => {
-      const depIds = task.depends_on || [];
-      if (depIds.length === 0) return;
-
-      const targetBar = barRefs.get(task.uid);
-      if (!targetBar) return;
-      const targetRect = targetBar.getBoundingClientRect();
-
-      depIds.forEach((depId) => {
-        const depTask = tasks.find((t) => t.id === depId);
-        if (!depTask) return;
-        const sourceBar = barRefs.get(depTask.uid);
-        if (!sourceBar) return;
-        const sourceRect = sourceBar.getBoundingClientRect();
-
-        // right edge of source → left edge of target
-        const x1 = sourceRect.right - containerRect.left;
-        const y1 = sourceRect.top + sourceRect.height / 2 - containerRect.top;
-        const x2 = targetRect.left - containerRect.left;
-        const y2 = targetRect.top + targetRect.height / 2 - containerRect.top;
-
-        const isCritical =
-          criticalPathUids.includes(task.uid) &&
-          criticalPathUids.includes(depTask.uid);
-
-        newArrows.push({ x1, y1, x2, y2, isCritical });
-      });
-    });
-
-    setArrows(newArrows);
-  }, [tasks, barRefs, containerRef, criticalPathUids]);
-
-  useEffect(() => {
-    calculateArrows();
-    window.addEventListener("resize", calculateArrows);
-    return () => window.removeEventListener("resize", calculateArrows);
-  }, [calculateArrows]);
-
-  // Recalculate on any task date change
-  useEffect(() => {
-    const timer = setTimeout(calculateArrows, 50);
-    return () => clearTimeout(timer);
-  }, [tasks, calculateArrows]);
-
-  if (arrows.length === 0) return null;
-
-  return (
-    <svg
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ zIndex: 5 }}
-    >
-      <defs>
-        <marker
-          id="arrowhead"
-          markerWidth="8"
-          markerHeight="6"
-          refX="8"
-          refY="3"
-          orient="auto"
-        >
-          <polygon points="0 0, 8 3, 0 6" fill="#94a3b8" />
-        </marker>
-        <marker
-          id="arrowhead-critical"
-          markerWidth="8"
-          markerHeight="6"
-          refX="8"
-          refY="3"
-          orient="auto"
-        >
-          <polygon points="0 0, 8 3, 0 6" fill="#ef4444" />
-        </marker>
-      </defs>
-      {arrows.map((a, i) => {
-        // Orthogonal step path: go right, then down/up, then right
-        const midX = (a.x1 + a.x2) / 2;
-        const d = `M ${a.x1} ${a.y1} C ${midX} ${a.y1}, ${midX} ${a.y2}, ${a.x2} ${a.y2}`;
-
-        return (
-          <path
-            key={i}
-            d={d}
-            fill="none"
-            stroke={a.isCritical ? "#ef4444" : "#cbd5e1"}
-            strokeWidth={a.isCritical ? 2 : 1.5}
-            strokeDasharray={a.isCritical ? "none" : "6 3"}
-            markerEnd={
-              a.isCritical
-                ? "url(#arrowhead-critical)"
-                : "url(#arrowhead)"
-            }
-            opacity={0.7}
-          />
-        );
-      })}
-    </svg>
-  );
-};
-
 // ─── Main GanttChartView Component ────────────────────────────────────────────
 
 export const GanttChartView: React.FC<GanttChartViewProps> = ({
   tasks,
-  criticalPathUids,
   onTaskClick,
   onTasksChanged,
 }) => {
@@ -392,66 +258,7 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
     return Array.from(map.entries());
   }, [topLevelTasks, groupBy]);
 
-  // ── Auto-scheduling: cascade push dependents ────────────────────────────────
 
-  const cascadePush = useCallback(
-    async (
-      movedTaskUid: string,
-      newStart: string,
-      newEnd: string
-    ) => {
-      // Build a quick lookup
-      const uidToTask = new Map(topLevelTasks.map((t) => [t.uid, t]));
-      const movedTask = uidToTask.get(movedTaskUid);
-      if (!movedTask) return;
-
-      const movedEndMs = toMs(newEnd);
-
-      // Collect all tasks whose `depends_on` includes the moved task
-      const updates: { uid: string; start: string; end: string }[] = [];
-
-      const pushDependents = (parentId: number, parentEndMs: number) => {
-        topLevelTasks.forEach((t) => {
-          if (!t.depends_on?.includes(parentId)) return;
-          if (!t.start_date || !t.end_date) return;
-
-          const depStartMs = toMs(t.start_date);
-          const depEndMs = toMs(t.end_date);
-          const duration = depEndMs - depStartMs;
-
-          if (depStartMs < parentEndMs) {
-            // Push forward
-            const newDepStart = parentEndMs;
-            const newDepEnd = newDepStart + duration;
-            updates.push({
-              uid: t.uid,
-              start: formatDate(newDepStart),
-              end: formatDate(newDepEnd),
-            });
-            // Recursively push dependents of this task
-            pushDependents(t.id, newDepEnd);
-          }
-        });
-      };
-
-      pushDependents(movedTask.id, movedEndMs);
-
-      // Batch update all pushed tasks
-      const batchPromises = updates.map((u) =>
-        projectsApi.updateTask(u.uid, {
-          start_date: u.start,
-          end_date: u.end,
-        })
-      );
-
-      try {
-        await Promise.all(batchPromises);
-      } catch (err) {
-        console.error("Auto-schedule cascade error:", err);
-      }
-    },
-    [topLevelTasks]
-  );
 
   const handleTaskUpdate = useCallback(
     async (taskUid: string, start: string, end: string) => {
@@ -460,7 +267,6 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
           start_date: start,
           end_date: end,
         });
-        await cascadePush(taskUid, start, end);
         onTasksChanged();
         setRenderKey((k) => k + 1);
       } catch (err) {
@@ -468,7 +274,7 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
         onTasksChanged(); // revert
       }
     },
-    [cascadePush, onTasksChanged]
+    [onTasksChanged]
   );
 
   // ── Timeline header labels ──────────────────────────────────────────────────
@@ -621,15 +427,6 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
 
         {/* Task Rows — positioned container for SVG overlay */}
         <div className="relative">
-          {/* SVG arrow overlay */}
-          <ArrowOverlay
-            key={renderKey}
-            tasks={topLevelTasks}
-            barRefs={barRefsMap.current}
-            containerRef={ganttContainerRef}
-            criticalPathUids={criticalPathUids}
-          />
-
           {/* Grouped Sections */}
           <div className="space-y-8 relative" style={{ zIndex: 10 }}>
             {groupedTasks.map(([groupName, groupTasks]) => (
@@ -644,10 +441,9 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
                 </div>
                 <div className="space-y-4">
                   {groupTasks.map((task) => {
-                    const isCritical = criticalPathUids.includes(task.uid);
-                    return (
-                      <div
-                        key={task.uid}
+                      return (
+                        <div
+                          key={task.uid}
                         className="flex items-center group"
                       >
                         {/* Task Label */}
@@ -656,11 +452,7 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
                             <h4 className="text-sm font-bold text-primary truncate group-hover:text-accent transition-colors">
                               {task.title}
                             </h4>
-                            {isCritical && (
-                              <span className="bg-red-100 text-red-700 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-red-200 dark:border-red-800/30 shrink-0">
-                                ⚡ Critical
-                              </span>
-                            )}
+
                           </div>
                           <p className="text-[9px] font-bold text-surface-400 uppercase tracking-tighter mt-0.5">
                             {task.start_date && task.end_date
@@ -679,7 +471,6 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
                           task={task}
                           totalDays={totalDays}
                           minDate={minDate}
-                          isCritical={isCritical}
                           onTaskUpdate={handleTaskUpdate}
                           onClick={() => onTaskClick(task)}
                           barRef={setBarRef(task.uid)}

@@ -248,7 +248,7 @@ export const KanbanTab: React.FC = () => {
                 <div 
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`flex flex-col min-w-[280px] flex-1 px-3 min-h-[500px] transition-all border-t-[3px] rounded-xl bg-surface-100/40 backdrop-blur-md border border-surface-200 shadow-xl shadow-primary/5 ${col.color} ${snapshot.isDraggingOver ? 'bg-surface-200/60 ring-2 ring-accent/50 scale-[1.01]' : ''}`}
+                  className={`flex flex-col min-w-[280px] flex-1 px-3 min-h-[500px] transition-colors border-t-[3px] rounded-xl bg-surface-100 border border-surface-200 shadow-xl shadow-primary/5 ${col.color} ${snapshot.isDraggingOver ? 'bg-surface-200/90 ring-2 ring-accent/50' : ''}`}
                 >
                   <h4 className="flex items-center font-black text-[10px] uppercase tracking-[0.2em] text-text-secondary mb-4 px-1">
                     <input 

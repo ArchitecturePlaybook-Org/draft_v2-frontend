@@ -5,7 +5,7 @@ import { Copy, RefreshCw, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { projectsApi } from "@/domains/projects/api";
-import { TaskAccessRequestsList } from "./TaskAccessRequestsList";
+import { TaskAccessRequestsList, ActiveTaskCollaboratorsList } from "./TaskAccessRequestsList";
 
 export default function ProjectShareManager({ projectId }: { projectId: string }) {
   const [links, setLinks] = useState<any[]>([]);
@@ -147,6 +147,7 @@ export default function ProjectShareManager({ projectId }: { projectId: string }
       
       {/* Task Access Requests Section */}
       <TaskAccessRequestsList projectId={projectId} />
+      <ActiveTaskCollaboratorsList projectId={projectId} />
     </div>
   );
 }

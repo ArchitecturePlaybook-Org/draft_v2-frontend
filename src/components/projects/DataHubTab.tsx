@@ -57,7 +57,7 @@ export const DataHubTab: React.FC = () => {
     } else if (asset.category === "sh3d") {
       window.open(`/dashboard/projects/${project.uid}/editor?assetId=${asset.canonical_uid}${asset.size === 0 ? '&isNew=true' : ''}`, "_blank");
     } else {
-      const isImage = /\.(png|jpg|jpeg|gif)$/i.test(asset.file);
+      const isImage = /\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i.test(asset.file);
       if (isImage) {
         setLightboxImageUrl(asset.file);
       } else {
@@ -231,7 +231,7 @@ export const DataHubTab: React.FC = () => {
                         </div>
                       ) : asset.thumbnail ? (
                         <img src={asset.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      ) : asset.file?.match(/\.(png|jpg|jpeg|gif)$/i) ? (
+                      ) : asset.file?.match(/\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i) ? (
                         <img src={asset.file} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
                       ) : asset.category === "sketch" ? (
                         <div className="flex flex-col items-center gap-2">

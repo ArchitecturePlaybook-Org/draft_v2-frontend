@@ -19,7 +19,6 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   const [newMaterial, setNewMaterial] = useState({ description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good" });
   const [newEquipment, setNewEquipment] = useState({ equipment_id: "", hours_operated: "", hours_idle: "", status: "operational" });
   const [newDelay, setNewDelay] = useState({ delay_type: "weather", duration_hours: "", impacted_path: "" });
-  const [safety, setSafety] = useState(entry.safety_entry || { incident_reported: false, incident_description: "", inspections_conducted: "", visitors_on_site: "" });
 
   // Accordion state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -66,20 +65,6 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
       onUpdate();
     } catch (e) {
       toast.error("Failed to add entry");
-    }
-  };
-
-  const updateSafety = async () => {
-    if (isLocked) return;
-    try {
-      await fetchFromBff(`/api/v1/projects/field-diaries/entries/${entry.id}/safety/`, {
-        method: "POST",
-        body: JSON.stringify(safety)
-      });
-      toast.success("Safety updated");
-      onUpdate();
-    } catch (e) {
-      toast.error("Failed to update safety");
     }
   };
 
@@ -450,55 +435,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
           )}
         </div>
 
-        {/* 7. Safety */}
-        <div className="bg-surface-100 border-surface-200 border border-surface-200 rounded-xl overflow-hidden shadow-sm">
-          <div 
-            className="p-4 flex justify-between items-center cursor-pointer hover:bg-surface-50 select-none"
-            onClick={() => toggleSection('safety')}
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 text-yellow-700 rounded-lg">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-              </div>
-              <h3 className="font-bold text-lg text-surface-800">Safety & Compliance</h3>
-              {!expandedSections.safety && safety.incident_reported && (
-                <span className="text-xs font-bold text-white ml-4 bg-red-500 px-2 py-0.5 rounded-md">INCIDENT REPORTED</span>
-              )}
-            </div>
-            {expandedSections.safety ? <ChevronUp className="w-5 h-5 text-surface-400" /> : <ChevronDown className="w-5 h-5 text-surface-400" />}
-          </div>
-          
-          {expandedSections.safety && (
-            <div className="p-5 border-t border-surface-100 bg-surface-100 border-surface-200 space-y-5">
-              <div className="flex items-center gap-3 p-4 rounded-xl border border-surface-200 bg-surface-50">
-                <input type="checkbox" id="incident_reported" className="w-5 h-5 rounded text-red-600 focus:ring-red-500" disabled={isLocked} checked={safety.incident_reported} onChange={e => setSafety({...safety, incident_reported: e.target.checked})} />
-                <label htmlFor="incident_reported" className="text-sm font-bold text-surface-800 cursor-pointer select-none">Incident or Near Miss Reported</label>
-              </div>
-              
-              {safety.incident_reported && (
-                <div>
-                  <label className="block text-xs font-bold text-red-600 uppercase mb-2">Incident Description</label>
-                  <textarea disabled={isLocked} className="w-full p-3 rounded-xl border border-red-200 dark:border-red-800/30 bg-red-50 dark:bg-red-900/20 focus:bg-surface-100 border-surface-200 focus:ring-red-500 text-sm" rows={3} placeholder="Describe the incident..." value={safety.incident_description} onChange={e => setSafety({...safety, incident_description: e.target.value})}></textarea>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase mb-2">Inspections Conducted</label>
-                  <textarea disabled={isLocked} className="w-full p-3 rounded-xl border border-surface-200 text-sm focus:ring-primary" rows={2} placeholder="E.g., Scaffold inspection, trench safety..." value={safety.inspections_conducted} onChange={e => setSafety({...safety, inspections_conducted: e.target.value})}></textarea>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase mb-2">Visitors On Site</label>
-                  <textarea disabled={isLocked} className="w-full p-3 rounded-xl border border-surface-200 text-sm focus:ring-primary" rows={2} placeholder="E.g., Client rep, OSHA inspector..." value={safety.visitors_on_site} onChange={e => setSafety({...safety, visitors_on_site: e.target.value})}></textarea>
-                </div>
-              </div>
-              
-              {!isLocked && (
-                <Button onClick={updateSafety} variant="secondary">Save Safety Records</Button>
-              )}
-            </div>
-          )}
-        </div>
+
 
         {/* Footer padding */}
         <div className="h-8"></div>

@@ -51,7 +51,7 @@ export function useNotifications() {
         // Check environment / domain for WS URL
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         // Hardcode localhost:8000 for development, or proxy via Next.js if set up
-        const wsHost = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+        const wsHost = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000";
         const wsUrl = `${wsHost}/ws/notifications/?token=${token}`;
 
         const ws = new WebSocket(wsUrl);

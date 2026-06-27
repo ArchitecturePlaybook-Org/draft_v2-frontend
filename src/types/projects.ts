@@ -43,20 +43,21 @@ export interface Project {
 
 export type TaskStatus = "TODO" | "WIP" | "QA" | "DONE";
 
-export type AssetCategory = "sketch" | "2d_plan" | "3d_model" | "document" | "sh3d" | "site_photo";
+export type AssetCategory = "sketch" | "2d_plan" | "3d_model" | "document" | "sh3d";
+
 
 export interface SitePhoto {
   id: number;
   floor_plan: number;
-  image: string;
+  image: string; // URL
   caption: string;
   grid_col: number;
   grid_row: number;
-  latitude: number | null;
-  longitude: number | null;
-  gps_accuracy_m: number | null;
-  gps_source: "browser" | "exif" | "none";
-  captured_at: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  gps_accuracy_m?: number | null;
+  gps_source: 'browser' | 'exif' | 'none';
+  captured_at?: string | null;
   uploaded_by: User | null;
   created_at: string;
 }
@@ -76,12 +77,11 @@ export interface ProjectAsset {
   version_number: number;
   is_latest: boolean;
   revision_notes: string;
-  // Site Photos
-  site_photos_count: number;
-  site_photos: SitePhoto[];
+
   // Floor Plan Calibration
   scale_pixels_per_meter?: number;
   scale_calibrated_at?: string;
+  site_photos?: SitePhoto[];
   created_at: string;
   updated_at: string;
 }
@@ -135,32 +135,15 @@ export interface Task {
   zone_name?: string;
   phase_name?: string;
   checklists?: any[];
-  punch_list_items?: PunchListItem[];
-  material_allocations?: TaskMaterialAllocation[];
-  depends_on?: number[];
-  prerequisites_for?: number[];
   parent_task_id?: number | null;
   parent_task?: Task | null;
   subtasks?: Task[];
   priority?: "HIGH" | "MEDIUM" | "LOW";
   tags?: TaskTag[];
-  estimated_hours?: string | number;
-  total_hours_logged?: number;
+  external_collaborator_count?: number;
 }
 
-export interface TaskTimeLog {
-  id: number;
-  task: number;
-  task_uid: string;
-  user: number | null;
-  user_name: string;
-  date: string;
-  hours: string | number;
-  description: string;
-  billable: boolean;
-  created_at: string;
-  updated_at: string;
-}
+
 
 export interface TaskTag {
   id: number;
@@ -315,30 +298,7 @@ export interface ChecklistTemplate {
   created_at: string;
 }
 
-export interface PunchListItemAttachment {
-  id: number;
-  punch_list_item: number;
-  file: string;
-  attachment_type: 'OBSERVATION' | 'RESOLUTION';
-  uploaded_by: User | null;
-  created_at: string;
-}
 
-export interface PunchListItem {
-  id: number;
-  task: string;
-  task_uid?: string;
-  task_title?: string;
-  title: string;
-  description: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH';
-  issue_type: 'QUALITY' | 'SAFETY' | 'DESIGN' | 'PROCUREMENT' | 'OTHER';
-  root_cause: 'POOR_WORKMANSHIP' | 'WEATHER' | 'MATERIAL_DEFECT' | 'SCOPE_GAP' | 'OTHER';
-  is_resolved: boolean;
-  reported_by: any;
-  attachments?: PunchListItemAttachment[];
-  created_at: string;
-}
 
 export interface TaskComment {
   id: number;
@@ -348,163 +308,4 @@ export interface TaskComment {
   created_at: string;
 }
 
-export interface BOQSubItem {
-  id: number;
-  parent: number;
-  material_code: string;
-  description: string;
-  quantity: string | number;
-  unit_rate: string | number;
-  waste_percentage?: string | number;
-  created_at?: string;
-  updated_at?: string;
-}
 
-export interface MaterialAssemblyComponent {
-  id: number;
-  assembly: number;
-  material_code: string;
-  description: string;
-  quantity_per_unit: string | number;
-  unit: string;
-  default_unit_rate: string | number;
-  waste_percentage: string | number;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface MaterialAssembly {
-  id: number;
-  account: number;
-  item_code: string;
-  description: string;
-  unit: string;
-  image?: string | null;
-  components?: MaterialAssemblyComponent[];
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface BOQItem {
-  id: number;
-  project: string;
-  phase?: number | null;
-  material_code: string;
-  total_budgeted_qty: string | number;
-  unit_rate: string | number;
-  remaining_budget?: string | number;
-  remaining_phase_qty?: string | number;
-  sub_items?: BOQSubItem[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface MaterialConsumptionLog {
-  id: number;
-  consumed_qty: string | number;
-  total_cost: string | number;
-  receipt?: string | null;
-  logged_by?: User | null;
-  created_at: string;
-}
-
-export interface TaskMaterialAllocation {
-  id: number;
-  task: string;
-  task_title?: string;
-  task_uid?: string;
-  task_zone_name?: string;
-  boq_item: number;
-  boq_item_detail?: BOQItem;
-  allocated_qty: string | number;
-  actual_consumed_qty?: string | number | null;
-  is_logged?: boolean;
-  is_anomaly?: boolean;
-  suggested_consumption_range?: { min: number; max: number };
-  logs?: MaterialConsumptionLog[];
-  req_status: "DRAFT" | "REQUISITIONED" | "ORDERED" | "DELIVERED";
-  expected_on_site_by?: string | null;
-  notes?: string;
-  purchase_order_item?: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ProcurementAggregatorItem extends BOQItem {
-  project_name?: string;
-  draft_qty: string | number;
-  requisitioned_qty: string | number;
-  ordered_qty: string | number;
-  delivered_qty: string | number;
-  po_cost?: string | number;
-  allocations: TaskMaterialAllocation[];
-}
-
-export interface Vendor {
-  id: number;
-  account: number;
-  name: string;
-  contact_name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  rating?: number;
-  tax_id?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface MaterialCatalogItem {
-  id: number;
-  account: number;
-  preferred_vendor?: number | null;
-  vendor_name?: string;
-  item_code: string;
-  description?: string;
-  default_unit_rate: string | number;
-  unit: string;
-  is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface PurchaseOrderItem {
-  id: number;
-  po: number;
-  catalog_item?: number | null;
-  catalog_item_name?: string;
-  boq_item?: number | null;
-  boq_item_code?: string;
-  description: string;
-  quantity: string | number;
-  unit_price: string | number;
-  total_price: string | number;
-}
-
-export interface PurchaseOrder {
-  id: number;
-  project: string;
-  vendor: number;
-  vendor_name?: string;
-  po_number: string;
-  status: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "SENT" | "PARTIAL_RECEIPT" | "FULFILLED" | "CANCELLED";
-  total_amount: string | number;
-  issued_date?: string | null;
-  expected_delivery_date?: string | null;
-  created_by: number;
-  created_by_name?: string;
-  approved_by?: number | null;
-  approved_by_name?: string;
-  notes?: string;
-  items?: PurchaseOrderItem[];
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface ApprovalRule {
-  id: number;
-  account: number;
-  threshold_amount: string | number;
-  required_approver: number;
-  approver_name?: string;
-}

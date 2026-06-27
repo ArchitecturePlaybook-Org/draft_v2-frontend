@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { projectsApi } from "@/domains/projects/api";
-import { ProjectDetail, MatrixPayload, PunchListItem, ProcurementAggregatorItem, Task, ProjectAsset } from "@/types/projects";
+import { ProjectDetail, MatrixPayload, Task, ProjectAsset } from "@/types/projects";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 
@@ -13,8 +13,6 @@ interface ReportConfig {
   template: TemplateType;
   showExecutiveSummary: boolean;
   showMatrixProgress: boolean;
-  showProcurement: boolean;
-  showPunchList: boolean;
   showTaskDrilldown: boolean;
   showMediaGallery: boolean;
   selectedImageUrls: string[];
@@ -24,7 +22,7 @@ interface AssetGroup {
   assetId: number;
   assetTitle: string;
   floorPlanUrl: string | null;
-  sitePhotos: { url: string; title: string }[];
+  sitePhotos: { url: string; caption: string }[];
 }
 
 export default function ProjectSummaryReportPage() {
@@ -33,9 +31,8 @@ export default function ProjectSummaryReportPage() {
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [matrix, setMatrix] = useState<MatrixPayload | null>(null);
-  const [punchList, setPunchList] = useState<PunchListItem[]>([]);
-  const [procurement, setProcurement] = useState<ProcurementAggregatorItem[]>([]);
-  
+
+
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -44,8 +41,6 @@ export default function ProjectSummaryReportPage() {
     template: 'layout_a_masonry',
     showExecutiveSummary: true,
     showMatrixProgress: true,
-    showProcurement: true,
-    showPunchList: true,
     showTaskDrilldown: true,
     showMediaGallery: true,
     selectedImageUrls: [],
@@ -59,40 +54,28 @@ export default function ProjectSummaryReportPage() {
         const projData = await projectsApi.getProjectDetails(id as string);
         setProject(projData);
 
-        const [matrixData, punchListData, procData] = await Promise.all([
-          projectsApi.getMatrix(id as string).catch(() => null),
-          projectsApi.getPunchListItems(id as string).catch(() => []),
-          projectsApi.getProcurementAggregation(id as string).catch(() => [])
-        ]);
+        const matrixData = await projectsApi.getMatrix(id as string).catch(() => null);
 
         if (matrixData) setMatrix(matrixData);
-        setPunchList(punchListData);
-        setProcurement(procData);
 
         // Collect images grouped by asset (floor plan)
         const groups: AssetGroup[] = [];
         const allUrls: string[] = [];
 
         projData.assets.forEach(asset => {
-          const is2DPlan = asset.category === '2d_plan' && asset.file.match(/\.(png|jpg|jpeg|gif)$/i) !== null;
-          const hasPhotos = asset.site_photos && asset.site_photos.length > 0;
+          const is2DPlan = asset.category === '2d_plan' && asset.file.match(/\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i) !== null;
           
-          if (is2DPlan || hasPhotos) {
+          if (is2DPlan) {
             const group: AssetGroup = {
               assetId: asset.id,
               assetTitle: asset.title,
-              floorPlanUrl: is2DPlan ? asset.file : null,
-              sitePhotos: []
+              floorPlanUrl: asset.file,
+              sitePhotos: (asset.site_photos || []).map(sp => ({ url: sp.image, caption: sp.caption }))
             };
             
-            if (is2DPlan && asset.file) allUrls.push(asset.file);
-
-            if (hasPhotos && asset.site_photos) {
-              asset.site_photos.forEach(photo => {
-                group.sitePhotos.push({ url: photo.image, title: photo.caption || asset.title });
-                allUrls.push(photo.image);
-              });
-            }
+            if (asset.file) allUrls.push(asset.file);
+            group.sitePhotos.forEach(p => allUrls.push(p.url));
+            
             groups.push(group);
           }
         });
@@ -189,10 +172,7 @@ export default function ProjectSummaryReportPage() {
   const totalTasks = project.tasks.length;
   const completedTasks = project.tasks.filter(t => t.status === "DONE").length;
   const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
-  const totalBudget = procurement.reduce((sum, item) => sum + (parseFloat(item.total_budgeted_qty.toString()) * parseFloat(item.unit_rate.toString())), 0);
-  const totalConsumed = procurement.reduce((sum, item) => sum + (parseFloat(item.delivered_qty.toString()) * parseFloat(item.unit_rate.toString())), 0);
-  const unresolvedIssues = punchList.filter(p => !p.is_resolved).length;
-  const criticalIssues = punchList.filter(p => !p.is_resolved && p.severity === 'HIGH').length;
+
 
   // -- Group Tasks by Phase & Zone --
   const tasksByPhase: Record<string, Task[]> = {};
@@ -285,8 +265,7 @@ export default function ProjectSummaryReportPage() {
               {[
                 { key: 'showExecutiveSummary', label: 'Executive Summary' },
                 { key: 'showMatrixProgress', label: 'Matrix Progress' },
-                { key: 'showProcurement', label: 'Financials & BOQ' },
-                { key: 'showPunchList', label: 'Punch List Tracker' },
+
                 { key: 'showTaskDrilldown', label: 'Task Execution Details' },
                 { key: 'showMediaGallery', label: 'Media Gallery' }
               ].map(sec => (
@@ -332,21 +311,21 @@ export default function ProjectSummaryReportPage() {
                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-[8px] text-white p-0.5 text-center uppercase tracking-widest">Blueprint</div>
                            </div>
                          )}
-                         {group.sitePhotos.map((img, idx) => {
-                           const isSelected = config.selectedImageUrls.includes(img.url);
-                           return (
-                             <div 
-                               key={idx} 
-                               onClick={() => toggleImage(img.url)}
-                               className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${isSelected ? 'border-primary shadow-md' : 'border-transparent opacity-50 hover:opacity-80'}`}
-                             >
-                               <img src={img.url} alt="thumbnail" className="w-full h-full object-cover" crossOrigin="anonymous" />
-                               {isSelected && (
-                                 <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
-                               )}
-                             </div>
-                           );
-                         })}
+                         
+                         {group.sitePhotos.map((photo, i) => (
+                           <div 
+                             key={`photo-${i}`}
+                             onClick={() => toggleImage(photo.url)}
+                             className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${config.selectedImageUrls.includes(photo.url) ? 'border-primary shadow-md' : 'border-transparent opacity-50 hover:opacity-80'}`}
+                             title={photo.caption || "Site Photo"}
+                           >
+                             <img src={photo.url} alt="site" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                             {config.selectedImageUrls.includes(photo.url) && (
+                               <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
+                             )}
+                             <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-[8px] text-white p-0.5 text-center uppercase tracking-widest truncate">{photo.caption || "Photo"}</div>
+                           </div>
+                         ))}
                        </div>
                      </div>
                    );
@@ -414,18 +393,7 @@ export default function ProjectSummaryReportPage() {
                   </div>
                 </div>
 
-                <div className={`${theme.card} p-6`}>
-                  <p className={`${theme.heading3} mb-1 opacity-70`}>Open Issues</p>
-                  <div className="flex items-end gap-3">
-                    <span className="text-4xl font-black">{unresolvedIssues}</span>
-                    <span className="text-sm font-bold opacity-70 mb-1">Items</span>
-                  </div>
-                  {criticalIssues > 0 && (
-                    <p className="text-xs font-bold text-red-500 mt-3 bg-red-500/10 inline-block px-2 py-1 rounded">
-                      ⚠️ {criticalIssues} Critical
-                    </p>
-                  )}
-                </div>
+
               </div>
 
               <div className="absolute bottom-12 left-12 right-12 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 pt-4 opacity-50">
@@ -434,8 +402,7 @@ export default function ProjectSummaryReportPage() {
             </div>
           )}
 
-          {/* PAGE 2: MATRIX PROGRESS & PROCUREMENT */}
-          {(config.showMatrixProgress || config.showProcurement) && (
+          {config.showMatrixProgress && (
             <div className={`pdf-page w-full min-h-[297mm] p-12 pb-32 shadow-2xl relative ${theme.page} print:shadow-none`}>
               
               <h2 className={`${theme.heading2} mb-8`}>Logistics & Progress</h2>
@@ -464,70 +431,13 @@ export default function ProjectSummaryReportPage() {
                 </div>
               )}
 
-              {config.showProcurement && procurement.length > 0 && (
-                <div>
-                  <h3 className={`${theme.heading3} border-b border-current/20 pb-2 mb-4 opacity-70`}>Bill of Quantities (Top 15)</h3>
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b-2 border-current/20">
-                        <th className={`py-2 ${theme.heading3} opacity-70`}>Material Code</th>
-                        <th className={`py-2 ${theme.heading3} opacity-70`}>Budgeted</th>
-                        <th className={`py-2 ${theme.heading3} opacity-70`}>Delivered</th>
-                        <th className={`py-2 ${theme.heading3} opacity-70 text-right`}>Unit Rate</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-sm">
-                      {procurement.slice(0, 15).map(item => (
-                        <tr key={item.id} className="border-b border-current/10">
-                          <td className="py-3 font-bold">{item.material_code}</td>
-                          <td className="py-3 opacity-80">{item.total_budgeted_qty}</td>
-                          <td className="py-3 opacity-80">{item.delivered_qty}</td>
-                          <td className="py-3 text-right font-bold opacity-80">${item.unit_rate}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
               <div className="absolute bottom-12 left-12 right-12 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 pt-4 opacity-50">
-                Matrix & Procurement
+                Matrix
               </div>
             </div>
           )}
 
-          {/* PAGE 3: PUNCH LIST / ISSUES */}
-          {config.showPunchList && punchList.length > 0 && (
-            <div className={`pdf-page w-full min-h-[297mm] p-12 pb-32 shadow-2xl relative ${theme.page} print:shadow-none`}>
-              <h2 className={`${theme.heading2} mb-8`}>Quality & Safety Tracker</h2>
-              
-              <div className="space-y-6">
-                {punchList.map(issue => (
-                  <div key={issue.id} className={`${theme.card} p-5 ${issue.is_resolved ? 'opacity-70' : 'border-l-4 border-l-red-500'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="flex gap-2 items-center mb-2">
-                          <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${issue.is_resolved ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500 text-white'}`}>
-                            {issue.is_resolved ? 'Resolved' : issue.severity}
-                          </span>
-                          <span className="text-[10px] font-bold opacity-70">{issue.issue_type} • {issue.root_cause}</span>
-                        </div>
-                        <h4 className="text-base font-bold">{issue.title}</h4>
-                      </div>
-                      <div className="text-right text-[10px] font-bold opacity-50">
-                        Task: {issue.task_title || issue.task_uid}
-                      </div>
-                    </div>
-                    <p className="text-sm opacity-80">{issue.description}</p>
-                  </div>
-                ))}
-              </div>
 
-              <div className="absolute bottom-12 left-12 right-12 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 pt-4 opacity-50">
-                Punch List Log
-              </div>
-            </div>
-          )}
 
           {/* PAGE 4+: TASK DRILLDOWN */}
           {config.showTaskDrilldown && Object.entries(tasksByPhase).map(([phase, tasks], index) => (
@@ -578,14 +488,13 @@ export default function ProjectSummaryReportPage() {
           {/* PAGE 5+: MEDIA GALLERY (Grouped by Asset) */}
           {config.showMediaGallery && assetGroups.map(group => {
             const selectedFloorPlan = group.floorPlanUrl && config.selectedImageUrls.includes(group.floorPlanUrl) ? group.floorPlanUrl : null;
-            const selectedPhotos = group.sitePhotos.filter(p => config.selectedImageUrls.includes(p.url));
             
-            if (!selectedFloorPlan && selectedPhotos.length === 0) return null;
+            if (!selectedFloorPlan) return null;
 
             return (
               <div key={group.assetId} className={`pdf-page w-full min-h-[297mm] p-12 pb-32 shadow-2xl relative ${theme.page} print:shadow-none mb-12`}>
                 <h2 className={`${theme.heading2} mb-2`}>Visual Context: {group.assetTitle}</h2>
-                <p className={`${theme.heading3} mb-8 opacity-70`}>Floor Plan & Site Photos</p>
+                <p className={`${theme.heading3} mb-8 opacity-70`}>Floor Plan</p>
 
                 {/* Blueprint Render */}
                 {selectedFloorPlan && (
@@ -594,89 +503,7 @@ export default function ProjectSummaryReportPage() {
                   </div>
                 )}
 
-                {/* Site Photos Render */}
-                {selectedPhotos.length > 0 && (
-                  <div>
-                    {/* TEMPLATE A: MASONRY */}
-                    {config.template === 'layout_a_masonry' && (
-                      <div className="columns-2 gap-6 space-y-6">
-                        {selectedPhotos.map((img, idx) => (
-                          <div key={idx} className={`${theme.card} overflow-hidden break-inside-avoid p-3`}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={img.url} alt={img.title} className="w-full h-auto rounded-xl" crossOrigin="anonymous" />
-                            <p className="mt-3 text-[10px] font-bold uppercase tracking-widest opacity-60 text-center">{img.title}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
 
-                    {/* TEMPLATE B: MUSEUM SPOTLIGHT */}
-                    {config.template === 'layout_b_museum' && (
-                      <div className="space-y-12">
-                        {selectedPhotos.map((img, idx) => {
-                          const isFeatured = idx % 3 === 0; // Every 3rd image is featured full width
-                          if (isFeatured) {
-                            return (
-                              <div key={idx} className="break-inside-avoid mb-12">
-                                 <div className="w-full h-[400px] bg-stone-200 overflow-hidden shadow-md">
-                                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                                   <img src={img.url} alt={img.title} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                                 </div>
-                                 <p className="mt-4 text-xs font-bold text-stone-500 uppercase tracking-widest text-center border-b border-stone-200 pb-4 max-w-sm mx-auto">{img.title}</p>
-                              </div>
-                            );
-                          } else if (idx % 3 === 1) {
-                            // Pair with the next image to form a 2-col grid
-                            const nextImg = selectedPhotos[idx + 1];
-                            return (
-                              <div key={idx} className="grid grid-cols-2 gap-8 break-inside-avoid mb-12">
-                                <div>
-                                  <div className="aspect-[4/5] bg-stone-200 overflow-hidden shadow-sm">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={img.url} alt={img.title} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                                  </div>
-                                  <p className="mt-3 text-[10px] font-bold text-stone-500 uppercase tracking-widest text-center">{img.title}</p>
-                                </div>
-                                {nextImg && (
-                                  <div>
-                                    <div className="aspect-[4/5] bg-stone-200 overflow-hidden shadow-sm">
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img src={nextImg.url} alt={nextImg.title} className="w-full h-full object-cover" crossOrigin="anonymous" />
-                                    </div>
-                                    <p className="mt-3 text-[10px] font-bold text-stone-500 uppercase tracking-widest text-center">{nextImg.title}</p>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          }
-                          return null; 
-                        })}
-                      </div>
-                    )}
-
-                    {/* TEMPLATE C: CINEMATIC GLASSMORPHISM */}
-                    {config.template === 'layout_c_cinematic' && (
-                      <div className="grid grid-cols-2 gap-8">
-                        {selectedPhotos.map((img, idx) => (
-                          <div key={idx} className={`${theme.card} aspect-[4/3] relative overflow-hidden break-inside-avoid border-none group`}>
-                            {/* Blurred Backdrop */}
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={img.url} alt="backdrop" className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-110 saturate-200" crossOrigin="anonymous" />
-                            {/* Foreground Container */}
-                            <div className="absolute inset-0 p-4 pb-12 flex items-center justify-center">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={img.url} alt={img.title} className="max-w-full max-h-full object-contain rounded drop-shadow-2xl shadow-black/50" crossOrigin="anonymous" />
-                            </div>
-                            {/* Label Overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent">
-                               <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400 truncate">{img.title}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div className="absolute bottom-12 left-12 right-12 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 pt-4 opacity-50">
                   Media Gallery: {group.assetTitle}

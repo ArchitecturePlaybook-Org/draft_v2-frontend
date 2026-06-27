@@ -16,7 +16,6 @@ import { AnimatePresence, motion } from "framer-motion";
 interface MilestoneMatrixViewProps {
   projectUid: string;
   projectTasks: Task[];
-  criticalPathUids: string[];
   userRole?: "contractor" | "qa_inspector" | "admin";
   onMatrixLoaded?: (hasData: boolean) => void;
   onTaskChange?: () => void;
@@ -25,7 +24,6 @@ interface MilestoneMatrixViewProps {
 export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   projectUid,
   projectTasks,
-  criticalPathUids,
   userRole = "admin",
   onMatrixLoaded,
   onTaskChange,
@@ -73,7 +71,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     fetchMatrix();
     
     // Connect WebSocket for real-time updates
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000/ws";
     const ws = new WebSocket(`${wsUrl}/projects/${projectUid}/matrix/`);
 
     ws.onmessage = (event) => {
@@ -399,7 +397,6 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                       const block = getBlock(zone.id, phase.id);
                       const cellId = `${zone.id}-${phase.id}`;
                       const isLoading = loadingBlockId === block?.id || loadingCellId === cellId;
-                      const isCritical = block ? projectTasks.filter(t => t.block === block.id).some(t => criticalPathUids.includes(t.uid)) : false;
                       
                       return (
                         <td
@@ -415,7 +412,6 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                             <MatrixBlockCell
                               block={block}
                               zoneName={zone.name}
-                              isCritical={isCritical}
                               onClick={block ? () => handleCellClick(block, zone, phase) : () => handleEmptyCellClick(zone, phase)}
                             />
                           )}
@@ -520,7 +516,6 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
             projectUid={projectUid}
             projectAssets={[]}
             projectTasks={projectTasks}
-            criticalPathUids={criticalPathUids}
             taskTags={[]}
             splitMode
             leftOffset={NAV_W}

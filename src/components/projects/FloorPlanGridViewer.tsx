@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { ProjectAsset } from "@/types/projects";
+import { ProjectAsset, SitePhoto } from "@/types/projects";
 import { ProtectedFloorPlanViewer } from "./ProtectedFloorPlanViewer";
 import { CellPhotoDrawer } from "./CellPhotoDrawer";
 
@@ -14,7 +14,6 @@ interface FloorPlanGridViewerProps {
 }
 
 export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inline = false, onToggleFullScreen }: FloorPlanGridViewerProps) {
-  const [selectedCell, setSelectedCell] = useState<{ col: number; row: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [showInstructions, setShowInstructions] = useState(true);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -23,6 +22,8 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
 
   const rows = 8;
   const cols = 8;
+  
+  const [activeCell, setActiveCell] = useState<{c: number, r: number} | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -79,9 +80,6 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
     if (zoom + delta <= 1) setOffset({ x: 0, y: 0 });
   };
 
-  const getCellPhotos = (c: number, r: number) => {
-    return asset.site_photos?.filter(p => p.grid_col === c && p.grid_row === r) || [];
-  };
 
   return (
     <div className={inline ? "flex flex-col bg-surface-900 w-full h-full min-h-[500px] rounded-2xl overflow-hidden shadow-inner no-print border border-surface-200" : "fixed inset-0 z-50 bg-surface-900 flex flex-col no-print"}>
@@ -147,17 +145,22 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
                 {Array.from({ length: rows * cols }).map((_, i) => {
                   const r = Math.floor(i / cols);
                   const c = i % cols;
-                  const cellPhotos = getCellPhotos(c, r);
                   const colLetter = String.fromCharCode(65 + c);
+                  const cellPhotos = asset.site_photos?.filter(p => p.grid_col === c && p.grid_row === r) || [];
                   
                   return (
                     <div 
                       key={i}
-                      onClick={() => setSelectedCell({ col: c, row: r })}
+                      onClick={(e) => {
+                        // Only trigger if not dragging
+                        if (!isDragging) {
+                          e.stopPropagation();
+                          setActiveCell({ c, r });
+                        }
+                      }}
                       className={`
-                        relative border border-white/30 group cursor-pointer transition-all
-                        hover:bg-accent/10 hover:border-accent/40
-                        ${cellPhotos.length > 0 ? 'bg-accent/5' : ''}
+                        relative border border-white/30 group transition-all cursor-pointer
+                        ${activeCell?.c === c && activeCell?.r === r ? 'bg-primary/20 border-primary/50' : 'hover:bg-white/10 hover:border-white/50'}
                       `}
                     >
                       {/* Cell Label */}
@@ -202,28 +205,26 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
             <div className="w-64 animate-fade-in">
               <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Instructions</p>
               <ul className="space-y-2 text-[10px] font-bold text-surface-500 text-surface-400">
-                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Click any zone (A1–H8) to add site photos</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Click any zone (A1–H8) to view zone details</li>
                 <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Use ± or {inline ? "Ctrl + Scroll" : "Scroll"} to zoom for precision</li>
                 <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-accent rounded-full shrink-0" /> Drag to pan when zoomed in</li>
               </ul>
             </div>
           )}
         </div>
+
+        {/* Cell Photo Drawer */}
+        <CellPhotoDrawer
+          isOpen={activeCell !== null}
+          onClose={() => setActiveCell(null)}
+          asset={asset}
+          gridCol={activeCell?.c || 0}
+          gridRow={activeCell?.r || 0}
+          onPhotoAdded={onRefresh}
+          onPhotoDeleted={onRefresh}
+        />
       </div>
 
-      {/* Cell Detail Drawer */}
-      {selectedCell && (
-        <CellPhotoDrawer
-          asset={asset}
-          col={selectedCell.col}
-          row={selectedCell.row}
-          onClose={() => setSelectedCell(null)}
-          onPhotoUploaded={() => {
-            onRefresh();
-            // We don't close the drawer so they can see the gallery update
-          }}
-        />
-      )}
 
     </div>
   );

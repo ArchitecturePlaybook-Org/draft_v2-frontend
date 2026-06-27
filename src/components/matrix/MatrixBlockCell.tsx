@@ -5,7 +5,6 @@ import { MilestoneBlockCompact, BlockStatus } from "@/types/projects";
 interface MatrixBlockCellProps {
   block: MilestoneBlockCompact | null;
   zoneName: string;
-  isCritical?: boolean;
   onClick?: () => void;
 }
 
@@ -30,7 +29,7 @@ const STATUS_CONFIG: Record<BlockStatus, { bg: string; border: string; text: str
   },
 };
 
-export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneName, isCritical, onClick }) => {
+export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneName, onClick }) => {
   if (!block) {
     // Empty cell — no block exists for this zone/phase
     return (
@@ -54,7 +53,7 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneNam
       title={block.status === "LOCKED" ? "Locked — Click to plan tasks" : `${zoneName} — ${block.completed_tasks}/${block.total_tasks} tasks done`}
       className={`
         w-full h-[88px] border rounded-md p-3 text-left transition-all duration-200 relative overflow-hidden
-        ${isCritical ? 'bg-semantic-red/10 border-semantic-red/30 shadow-none text-semantic-red' : `${cfg.bg} ${cfg.border} ${cfg.text}`}
+        ${cfg.bg} ${cfg.border} ${cfg.text}
         hover:border-[#D4AF37] cursor-pointer
         ${block.status === "LOCKED" ? "opacity-75" : ""}
       `}
@@ -85,18 +84,7 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({ block, zoneNam
           <span className="w-2 h-2 bg-accent rounded-full animate-pulse mt-1" />
         )}
 
-        {/* Modern subtle CP Badge */}
-        {isCritical && (
-          <div 
-            className="flex items-center gap-1 bg-semantic-red/20 border border-semantic-red/30 text-semantic-red px-1.5 py-0.5 rounded-sm shadow-[0_0_8px_var(--semantic-red)]"
-            title="Critical Path"
-          >
-            <svg className="w-2.5 h-2.5 text-semantic-red animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span className="text-[7px] font-bold uppercase tracking-widest">CP</span>
-          </div>
-        )}
+
 
         <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md ${
           block.status === "DONE" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" :

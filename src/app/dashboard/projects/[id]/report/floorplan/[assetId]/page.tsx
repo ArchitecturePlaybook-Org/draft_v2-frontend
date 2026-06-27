@@ -135,7 +135,7 @@ export default function FloorPlanReportPage() {
           <div className="mb-10">
             <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4 border-b border-surface-100 pb-2">Floor Plan / Drawing</h3>
             <div className="bg-surface-50 border border-surface-200 rounded-2xl overflow-hidden flex items-center justify-center p-4">
-               {asset.file.match(/\.(png|jpg|jpeg|gif)$/i) ? (
+               {asset.file.match(/\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i) ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={asset.file} alt="Floor Plan" className="max-h-[400px] object-contain rounded-xl shadow-sm" crossOrigin="anonymous" />
                 ) : (
@@ -144,16 +144,29 @@ export default function FloorPlanReportPage() {
             </div>
           </div>
 
-          {/* Site Photos associated with Floor Plan directly */}
+          {/* Site Photos */}
           {asset.site_photos && asset.site_photos.length > 0 && (
-            <div className="mb-10">
-              <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4 border-b border-surface-100 pb-2">Site Photos</h3>
-              <div className="grid grid-cols-4 gap-4">
-                {asset.site_photos.map((photo, idx) => (
-                  <div key={idx} className="aspect-square bg-surface-100 rounded-lg overflow-hidden border border-surface-200">
-                    <img src={photo.image} alt="Site Photo" className="w-full h-full object-cover" crossOrigin="anonymous" />
-                  </div>
-                ))}
+            <div className="mb-10 break-inside-avoid">
+              <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4 border-b border-surface-100 pb-2">Site Photos ({asset.site_photos.length})</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {asset.site_photos.map((photo, i) => {
+                  const colLetter = String.fromCharCode(65 + photo.grid_col);
+                  const rowNum = photo.grid_row + 1;
+                  return (
+                    <div key={`photo-${i}`} className="bg-surface-50 border border-surface-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                      <div className="aspect-square relative bg-surface-200">
+                        <img src={photo.image} alt={photo.caption} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest shadow-sm">
+                          {colLetter}{rowNum}
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <p className="text-xs font-bold text-surface-800 mb-1">{photo.caption || "No caption"}</p>
+                        <p className="text-[9px] text-surface-500 uppercase tracking-widest">{new Date(photo.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -200,25 +213,7 @@ export default function FloorPlanReportPage() {
                       </div>
                     )}
 
-                    {/* Issues */}
-                    {task.punch_list_items && task.punch_list_items.length > 0 && (
-                      <div className="mb-4">
-                        <h5 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-2">Punch List / Issues</h5>
-                        <ul className="space-y-2">
-                          {task.punch_list_items.map((issue: any) => (
-                            <li key={issue.id} className="text-xs font-medium bg-surface-100 border-surface-200 p-2 border border-surface-200 rounded">
-                              <div className="flex gap-2 items-center mb-1">
-                                <span className={`text-[8px] font-black uppercase px-1.5 rounded ${issue.is_resolved ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                  {issue.is_resolved ? 'Resolved' : issue.severity}
-                                </span>
-                                <span className="font-bold text-primary">{issue.title}</span>
-                              </div>
-                              <span className="text-surface-500 text-surface-400">{issue.description}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+
                   </div>
                 ))}
               </div>

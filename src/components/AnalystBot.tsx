@@ -38,15 +38,13 @@ interface Message {
 
 const GLOBAL_CHIPS = [
   { id: "financial_health", label: "Financial Health Check", icon: <TrendingUp size={14} /> },
-  { id: "critical_alerts", label: "Critical Safety & Quality Alerts", icon: <AlertCircle size={14} /> },
+
   { id: "workload_blockers", label: "Workforce Blockers", icon: <Hammer size={14} /> },
 ];
 
 const PROJECT_CHIPS = [
-  { id: "budget_variance", label: "Procurement & Budget", icon: <TrendingUp size={14} /> },
   { id: "task_bottlenecks", label: "Task Bottlenecks", icon: <Hammer size={14} /> },
-  { id: "material_shortage", label: "Material Shortage Risk", icon: <AlertCircle size={14} /> },
-  { id: "open_issues", label: "Open BIM & Quality Issues", icon: <ClipboardCheck size={14} /> },
+
   { id: "site_activity", label: "Recent Site Activity", icon: <Sparkles size={14} /> },
 ];
 
@@ -70,8 +68,8 @@ export function AnalystBot() {
   
   if (isSidePanelOpen && activeTask) {
     chips = [
-      { id: "task_safety_checklist", label: `Safety Risks for ${activeTask.task_code || 'Task'}`, icon: <AlertCircle size={14} /> },
-      { id: "task_dependencies", label: "Analyze Dependencies", icon: <Hammer size={14} /> },
+
+
       ...chips
     ];
   }

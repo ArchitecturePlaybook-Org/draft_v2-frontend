@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import PortfolioDetailClient from './PortfolioDetailClient';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173';
 
 // Fetch portfolio item data server-side (no auth needed for public items)

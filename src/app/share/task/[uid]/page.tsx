@@ -8,8 +8,7 @@ import { toast } from "sonner";
 import { FloorPlanGridViewer } from "@/components/projects/FloorPlanGridViewer";
 import ModelViewer from "@/components/ModelViewer";
 import { format } from "date-fns";
-import { TaskMaterialTab } from "@/components/projects/TaskMaterialTab";
-import { TaskHSETab } from "@/components/projects/TaskHSETab";
+
 import { TaskFieldDiaryTab } from "@/components/projects/TaskFieldDiaryTab";
 
 export default function SharedTaskPage() {
@@ -27,7 +26,7 @@ export default function SharedTaskPage() {
   const [newComment, setNewComment] = useState("");
   const [newChecklist, setNewChecklist] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
-  const [newIssue, setNewIssue] = useState("");
+
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [updatingProgress, setUpdatingProgress] = useState(false);
   const [isLoggingTime, setIsLoggingTime] = useState(false);
@@ -150,33 +149,7 @@ export default function SharedTaskPage() {
     }
   };
 
-  const handleCreateIssue = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newIssue.trim()) return;
-    try {
-      await projectsApi.createPunchListItem({
-        task: uid,
-        title: newIssue.trim(),
-        severity: "MEDIUM",
-        issue_type: "QUALITY",
-        description: "Pending context",
-        root_cause: "OTHER",
-      });
-      setNewIssue("");
-      await loadFullTask();
-    } catch(err) {
-      toast.error("Failed to report issue");
-    }
-  };
 
-  const handleResolveIssue = async (issueId: number) => {
-    try {
-      await projectsApi.resolvePunchListItem(issueId);
-      await loadFullTask();
-    } catch (err) {
-      toast.error("Failed to resolve issue");
-    }
-  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !task?.project) return;
@@ -209,24 +182,6 @@ export default function SharedTaskPage() {
     }
   };
 
-  const handleQuickLogTime = async (hours: number) => {
-    try {
-      setIsLoggingTime(true);
-      await projectsApi.createTaskTimeLog(uid, {
-        date: format(new Date(), "yyyy-MM-dd"),
-        hours: hours,
-        description: "Quick log",
-        billable: true,
-      });
-      await loadFullTask();
-      toast.success(`Logged ${hours} hour${hours > 1 ? 's' : ''}`);
-    } catch (err) {
-      toast.error("Failed to log time");
-    } finally {
-      setIsLoggingTime(false);
-    }
-  };
-
 
   if (loading) {
     return (
@@ -253,13 +208,6 @@ export default function SharedTaskPage() {
       </div>
     );
   }
-
-  // Derived properties for Material Tab
-  const isMatrixTask = (task as any)?.is_matrix_task ?? false;
-  const estimatedCost = task ? parseFloat((task as any).estimated_cost?.toString() || "0") : 0;
-  const burnCost = task ? parseFloat((task as any).actual_cost?.toString() || "0") : 0;
-  const variance = estimatedCost - burnCost;
-  const isOverBudget = burnCost > estimatedCost;
 
 
   // Single Page Continuous Flow layout
@@ -341,10 +289,7 @@ export default function SharedTaskPage() {
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-surface-400 mb-1">Due Date</p>
                 <p className="font-bold text-primary">{task.due_date ? format(new Date(task.due_date), "dd MMM yyyy") : "-"}</p>
               </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-surface-400 mb-1">Estimated Hours</p>
-                <p className="font-bold text-primary">{task.estimated_hours || "-"}</p>
-              </div>
+
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-surface-400 mb-1">Est. Cost</p>
                 <p className="font-bold text-primary">${task.estimated_cost || "0.00"}</p>
@@ -387,7 +332,13 @@ export default function SharedTaskPage() {
                   if (asset.category === '3d_model' || asset.category === 'sh3d') {
                     return (
                       <div key={l.id} className="border border-surface-200 rounded-2xl overflow-hidden bg-slate-50 relative h-[500px]">
-                         <ModelViewer url={asset.file} format={asset.category === 'sh3d' ? 'sh3d' : 'glb'} />
+                         <ModelViewer 
+                            url={asset.file} 
+                            format={
+                              asset.category === 'sh3d' ? 'sh3d' : 
+                              asset.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'
+                            } 
+                         />
                       </div>
                     );
                   }
@@ -477,103 +428,13 @@ export default function SharedTaskPage() {
                   )}
                 </div>
               </div>
-
-              {/* Quick Time Log Card */}
-              <div className="bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl p-6 shadow-sm">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-surface-400 mb-4">Quick Time Log</h3>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {[1, 2, 4, 8].map(h => (
-                    <button 
-                      key={h}
-                      onClick={() => handleQuickLogTime(h)}
-                      disabled={isLoggingTime}
-                      className="flex-1 bg-surface-200 hover:bg-surface-300 text-surface-700 font-bold py-3 rounded-xl transition-colors disabled:opacity-50 text-sm border border-surface-300 shadow-sm"
-                    >
-                      +{h} hr{h > 1 ? 's' : ''}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-4 text-center bg-surface-50 p-2 rounded-xl border border-surface-200">
-                  <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">
-                    Total Logged: <span className="text-primary text-sm">{task.total_hours_logged || 0} hrs</span>
-                  </p>
-                </div>
-              </div>
             </div>
+
 
             {/* Section 3: Heavy Context (Right Column) */}
             <div className="lg:col-span-2 space-y-8">
-              
-              {/* Material Allocation Ledger (Fully Interactive) */}
-              <div className="bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl p-8 shadow-sm">
-                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-surface-400 mb-6">Material Allocations & Consumption Log</h3>
-                 <TaskMaterialTab 
-                    task={task}
-                    isMatrixTask={isMatrixTask}
-                    estimatedCost={estimatedCost}
-                    burnCost={burnCost}
-                    variance={variance}
-                    isOverBudget={isOverBudget}
-                    onRefreshTask={loadFullTask}
-                    isContractor={false}
-                    isAdmin={false}
-                 />
-              </div>
 
-              {/* Open Issues & Blockers */}
-              <div className="bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl p-8 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-surface-400">Issues & Blockers</h3>
-                </div>
-                
-                <div className="space-y-4 mb-6">
-                  {task.punch_list_items?.map((issue: any) => (
-                    <div key={issue.id} className="bg-surface-50/50 rounded-2xl p-5 border border-surface-200/50 flex gap-4 items-start">
-                      <div className="shrink-0 pt-1 cursor-pointer hover:scale-110 transition-transform" onClick={() => handleResolveIssue(issue.id)} title="Click to resolve">
-                        {issue.is_resolved ? (
-                          <span className="text-2xl drop-shadow-sm">✅</span>
-                        ) : issue.severity === "HIGH" ? (
-                          <span className="text-2xl animate-pulse drop-shadow-sm">🚨</span>
-                        ) : (
-                          <span className="text-2xl drop-shadow-sm">⚠️</span>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className={`font-bold ${issue.is_resolved ? "text-surface-400 line-through" : "text-primary"}`}>{issue.title}</h4>
-                          <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-md ${
-                            issue.is_resolved ? "bg-surface-200 text-surface-500" :
-                            issue.severity === "HIGH" ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"
-                          }`}>
-                            {issue.severity}
-                          </span>
-                        </div>
-                        <p className="text-sm font-medium text-surface-500">{issue.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {(!task.punch_list_items || task.punch_list_items.length === 0) && (
-                    <p className="text-center text-sm text-surface-400 py-4">No issues reported.</p>
-                  )}
-                </div>
 
-                <form onSubmit={handleCreateIssue} className="flex gap-3 items-center border-t border-surface-200/50 pt-6">
-                  <input 
-                    type="text" 
-                    value={newIssue}
-                    onChange={(e) => setNewIssue(e.target.value)}
-                    placeholder="Describe new issue or blocker..." 
-                    className="flex-1 bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
-                  />
-                  <button 
-                    type="submit" 
-                    disabled={!newIssue.trim()} 
-                    className="bg-red-500 text-white px-6 py-3 rounded-xl hover:bg-red-600 font-bold text-sm disabled:opacity-50 flex items-center gap-2"
-                  >
-                    🚨 Report Issue
-                  </button>
-                </form>
-              </div>
 
               {/* Site Photos */}
               <div className="bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl p-8 shadow-sm">
@@ -603,13 +464,6 @@ export default function SharedTaskPage() {
 
             {/* Section 4: Project Level Logs (Full Width) */}
             <div className="lg:col-span-3 space-y-8 mt-8">
-              {/* HSE Logs */}
-              <div className="bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl p-8 shadow-sm">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-surface-400 mb-6">Health & Safety (HSE)</h3>
-                <div className="pr-2">
-                   <TaskHSETab task={task} projectUid={task.project_uid || publicInfo.project_uid} />
-                </div>
-              </div>
 
               {/* Field Diary */}
               <div className="bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl p-8 shadow-sm">

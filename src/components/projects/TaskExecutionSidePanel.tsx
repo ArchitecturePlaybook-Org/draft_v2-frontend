@@ -5,12 +5,11 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 import { FloorPlanGridViewer } from "./FloorPlanGridViewer";
-import { TaskMaterialTab } from "./TaskMaterialTab";
+
 import { TaskCommunicationPanel } from "./TaskCommunicationPanel";
-import { TaskTimeLogTab } from "./TaskTimeLogTab";
 import ModelViewer from "@/components/ModelViewer";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
-import { TaskHSETab } from "./TaskHSETab";
+
 import { TaskFieldDiaryTab } from "./TaskFieldDiaryTab";
 import Link from "next/link";
 import { useProjectNavStore } from "@/store/project-nav-store";
@@ -21,7 +20,6 @@ interface TaskExecutionSidePanelProps {
   projectUid: string;
   projectAssets: ProjectAsset[];
   projectTasks: Task[];
-  criticalPathUids: string[];
   taskTags: any[];
   onClose: () => void;
   onTaskUpdated: () => void;
@@ -33,116 +31,8 @@ interface TaskExecutionSidePanelProps {
   panelWidthOverride?: number;
 }
 
-type TaskTab = "execution" | "subtasks" | "boq" | "checklist" | "issues" | "drawing" | "time" | "dependencies" | "hse" | "diary" | "photos";
+type TaskTab = "execution" | "subtasks" | "checklist" | "drawing" | "diary";
 
-
-const TaskPhotosTab: React.FC<{ task: Task; projectId: number; onRefresh: () => void }> = ({ task, projectId, onRefresh }) => {
-  const [isUploading, setIsUploading] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const photos = task.asset_links?.filter(l => l.latest_asset?.category === 'site_photo') || [];
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    setIsUploading(true);
-    try {
-      for (const file of files) {
-        const title = file.name.replace(/\.[^/.]+$/, "");
-        const assetRes = await projectsApi.uploadProjectAsset(projectId, 'site_photo', file, title);
-        await projectsApi.linkAssetToTask(task.uid, assetRes.canonical_uid);
-      }
-      toast.success("Photos uploaded and linked successfully.");
-      onRefresh();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to upload photo.");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const handleUnlink = async (linkId: number) => {
-    try {
-      await projectsApi.unlinkAssetFromTask(linkId);
-      onRefresh();
-      toast.success("Photo removed from task.");
-    } catch (err: any) {
-      toast.error("Failed to remove photo.");
-    }
-  };
-
-  return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      <div className="flex justify-between items-center bg-surface-100 border-surface-200 p-6 rounded-2xl border border-surface-200 shadow-sm">
-        <div>
-          <h3 className="text-xl font-bold text-primary">Site Photos</h3>
-          <p className="text-sm text-surface-500 text-surface-400 font-medium">Visual documentation of work progress.</p>
-        </div>
-        <div>
-          <input 
-            type="file" 
-            ref={fileInputRef}
-            onChange={handleUpload}
-            multiple
-            accept="image/*"
-            className="hidden"
-          />
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="h-11 px-6 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
-          >
-            {isUploading ? "Uploading..." : "Upload Photos"}
-          </button>
-        </div>
-      </div>
-
-      {photos.length === 0 ? (
-        <div className="text-center py-20 bg-surface-50 border border-dashed border-surface-200 rounded-3xl">
-          <span className="text-4xl mb-4 block">📸</span>
-          <h4 className="text-lg font-bold text-primary mb-1">No Photos Yet</h4>
-          <p className="text-sm text-surface-500 text-surface-400">Upload progress photos to document completion.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {photos.map(link => {
-            const asset = link.latest_asset;
-            if (!asset) return null;
-            return (
-              <div key={link.id} className="group relative bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
-                <div className="aspect-square bg-surface-100 relative">
-                  <img src={asset.file} alt={asset.title} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-primary/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
-                    <button 
-                      onClick={() => window.open(asset.file, '_blank')}
-                      className="w-10 h-10 rounded-full bg-surface-100 border-surface-200/20 hover:bg-surface-100 border-surface-200/40 text-white flex items-center justify-center transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    </button>
-                    <button 
-                      onClick={() => handleUnlink(link.id)}
-                      className="w-10 h-10 rounded-full bg-red-500/80 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h4 className="text-xs font-bold text-primary truncate">{asset.title}</h4>
-                  <p className="text-[9px] text-surface-400 font-bold uppercase mt-1">
-                    {new Date(asset.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
 
 export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({ 
   task: initialTask, 
@@ -150,7 +40,6 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   projectUid,
   projectAssets,
   projectTasks,
-  criticalPathUids,
   taskTags,
   onClose,
   onTaskUpdated,
@@ -174,12 +63,6 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   // Matrix specific state
   const [quantityDelta, setQuantityDelta] = useState("");
   const [newChecklistDesc, setNewChecklistDesc] = useState("");
-  const [newIssueTitle, setNewIssueTitle] = useState("");
-  const [newIssueDesc, setNewIssueDesc] = useState("");
-  const [newIssueSeverity, setNewIssueSeverity] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
-  const [newIssueType, setNewIssueType] = useState("QUALITY");
-  const [newRootCause, setNewRootCause] = useState("POOR_WORKMANSHIP");
-  const [showIssueForm, setShowIssueForm] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
 
   const [checklistProofModal, setChecklistProofModal] = useState<TaskChecklistItem | null>(null);
@@ -198,8 +81,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
   const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [selectedDependencyUids, setSelectedDependencyUids] = useState<string[]>([]);
-  const [isSavingDependencies, setIsSavingDependencies] = useState(false);
+
   
   const isMatrixTask = task.block !== null && task.block !== undefined;
   const isArchitect = true; // Temporary bypass since we don't have full ProjectDetail here
@@ -227,13 +109,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
         setChecklistTemplates(data);
       }).catch(err => console.error("Failed to fetch checklist templates", err));
     }
-    
-    // Initialize selected dependencies
-    if (task.depends_on && projectTasks) {
-      const uids = task.depends_on.map(id => projectTasks.find(t => t.id === id)?.uid).filter(Boolean) as string[];
-      setSelectedDependencyUids(uids);
-    }
-  }, [projectUid, task.block, isAdmin, isQA, task.depends_on, projectTasks]);
+  }, [projectUid, task.block, isAdmin, isQA, projectTasks]);
 
   const handleUpdateMatrixLocation = async (zId: string, pId: string) => {
     if (zId && pId) {
@@ -358,48 +234,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     }
   };
 
-  const handleCreateIssue = async () => {
-    if (!newIssueTitle.trim() || !newIssueDesc.trim()) {
-      toast.error("Title and description are required.");
-      return;
-    }
-    setIsUpdating(true);
-    try {
-      const files = photoRef.current?.files ? Array.from(photoRef.current.files) : [];
-      await projectsApi.createPunchListItem({
-        task: task.uid,
-        title: newIssueTitle.trim(),
-        description: newIssueDesc.trim(),
-        severity: newIssueSeverity,
-        issue_type: newIssueType,
-        root_cause: newRootCause,
-        attachments: files,
-      });
-      setNewIssueTitle("");
-      setNewIssueDesc("");
-      setNewIssueSeverity("MEDIUM");
-      setNewIssueType("QUALITY");
-      setNewRootCause("POOR_WORKMANSHIP");
-      if (photoRef.current) photoRef.current.value = "";
-      setShowIssueForm(false);
-      await refreshTask();
-      toast.success("Issue Tracker item raised successfully.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to raise Issue Tracker item.");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
-  const handleResolveIssue = async (issueId: number) => {
-    try {
-      await projectsApi.resolvePunchListItem(issueId);
-      await refreshTask();
-      toast.success("Issue Tracker item resolved.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to resolve item.");
-    }
-  };
 
   const handleCreateSubtask = async (title: string, description: string = "") => {
     setIsUpdating(true);
@@ -465,43 +300,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     }
   };
 
-  const handleSaveDependencies = async () => {
-    setIsSavingDependencies(true);
-    try {
-      await projectsApi.setTaskDependencies(task.uid, selectedDependencyUids);
-      await refreshTask();
-      toast.success("Dependencies saved successfully.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save dependencies (possible cycle).");
-    } finally {
-      setIsSavingDependencies(false);
-    }
-  };
-
   // Matrix variables
   const checklists = task.checklists || [];
-  const issues = task.punch_list_items || [];
   const uncheckedCount = checklists.filter((i: any) => !i.is_completed).length;
-  const openIssueCount = issues.filter((i: any) => !i.is_resolved).length;
-  // Diary-sourced counts for notification badges
-  const diarySourcedIssueCount = issues.filter((i: any) => !i.is_resolved && i.source_diary_entry != null).length;
-  const openSafetyCount = (task as any).diary_safety_entries?.filter((s: any) => s.incident_reported).length || 0;
-  
-  const estimatedCost = parseFloat(task.estimated_cost as any) || 0;
-  const burnCost = task.actual_burn_cost || 0;
-  const variance = task.cost_variance || 0;
-  const isOverBudget = variance < 0;
 
   const tabs: { id: TaskTab; label: string; hidden?: boolean }[] = [
     { id: "execution", label: isMatrixTask ? "Progress & Timeline" : "Execution Details" },
-    { id: "dependencies", label: "Dependencies" },
     { id: "subtasks", label: "Subtasks" },
-    { id: "time", label: "Time Tracking" },
     { id: "checklist", label: "Checklists & QA" },
-    { id: "issues", label: "Issue Tracker" },
-    { id: "hse", label: "Safety" },
     { id: "diary", label: "Field Diary" },
-    { id: "boq", label: "Materials & Requisition", hidden: isContractor },
     { id: "drawing", label: "Context & Models", hidden: !isMatrixTask },
   ];
 
@@ -588,15 +395,6 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                   🚨 Blocker
                 </span>
               )}
-              {task.estimated_hours ? (
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-200" title="Burn Rate (Hours Logged / Estimated)">
-                  ⏱️ {task.total_hours_logged || 0} / {task.estimated_hours}h
-                </span>
-              ) : task.total_hours_logged ? (
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-200" title="Time Logged">
-                  ⏱️ {task.total_hours_logged}h logged
-                </span>
-              ) : null}
               <span className="text-[10px] font-mono text-surface-400">ID: {task.task_code || task.uid}</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold text-primary tracking-tight truncate" title={task.title}>{task.title}</h2>
@@ -624,16 +422,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
             >
               🔗 Copy Link
             </button>
-            <button 
-                onClick={() => {
-                  const url = `${window.location.origin}/share/task/${task.uid}`;
-                  navigator.clipboard.writeText(url);
-                  toast.success("Share link copied to clipboard!");
-                }}
-                className="h-11 px-6 rounded-xl bg-surface-200 text-surface-600 text-surface-300 hover:bg-surface-300 font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap"
-              >
-                Share
-              </button>
+
             <button onClick={onClose} className="w-11 h-11 rounded-xl bg-surface-200 text-surface-600 text-surface-300 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm">
               ✕
             </button>
@@ -664,22 +453,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                   {tab.id === "checklist" && uncheckedCount > 0 && (
                     <span className={`w-4 h-4 text-[8px] font-black rounded-full flex items-center justify-center ${activeTab === tab.id ? 'bg-background/20 text-background' : 'bg-amber-400 text-white'}`}>{uncheckedCount}</span>
                   )}
-                  {tab.id === "issues" && openIssueCount > 0 && (
-                    <span className={`w-4 h-4 text-[8px] font-black rounded-full flex items-center justify-center ${
-                      activeTab === tab.id ? 'bg-background/20 text-background' : 
-                      task.has_active_blocker ? 'bg-red-500 animate-pulse text-white' : 'bg-amber-400 text-white'
-                    }`}>{openIssueCount}</span>
-                  )}
-                  {tab.id === "hse" && openSafetyCount > 0 && (
-                    <span className={`w-4 h-4 text-[8px] font-black rounded-full flex items-center justify-center ${
-                      activeTab === tab.id ? 'bg-background/20 text-background' : 'bg-orange-500 animate-pulse text-white'
-                    }`}>{openSafetyCount}</span>
-                  )}
-                  {tab.id === "diary" && diarySourcedIssueCount > 0 && (
-                    <span className={`w-4 h-4 text-[8px] font-black rounded-full flex items-center justify-center ${
-                      activeTab === tab.id ? 'bg-background/20 text-background' : 'bg-red-400 text-white'
-                    }`}>{diarySourcedIssueCount}</span>
-                  )}
+
                 </button>
               ))}
             </div>
@@ -999,173 +773,11 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 </div>
               )}
 
-              {/* ISSUES TAB */}
-              {activeTab === "issues" && (
-                <div className="max-w-4xl space-y-4">
-                  {issues.map((issue: any) => (
-                    <div
-                      key={issue.id}
-                      className={`bg-surface-100 border-surface-200 rounded-2xl border p-5 shadow-sm ${
-                        issue.severity === "HIGH" && !issue.is_resolved
-                          ? "border-red-300 bg-red-50 dark:bg-red-900/20/30"
-                          : "border-surface-200"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                              issue.severity === "HIGH" ? "bg-red-100 text-red-600" :
-                              issue.severity === "MEDIUM" ? "bg-amber-100 text-amber-700" :
-                              "bg-surface-100 text-surface-500 text-surface-400"
-                            }`}>
-                              {issue.severity === "HIGH" ? "🚨 Blocker" : issue.severity}
-                            </span>
-                            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-surface-100 text-surface-600 text-surface-300 border border-surface-200">
-                              {issue.issue_type} | {issue.root_cause}
-                            </span>
-                            {issue.is_resolved && (
-                              <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">✓ Resolved</span>
-                            )}
-                          </div>
-                          <h5 className="font-bold text-sm text-primary">{issue.title}</h5>
-                          <p className="text-xs text-surface-500 text-surface-400 mt-1 leading-relaxed">{issue.description}</p>
-                          {issue.attachments && issue.attachments.length > 0 && (
-                            <div className="flex gap-2 mt-3">
-                              {issue.attachments.map((att: any) => (
-                                <button 
-                                  key={att.id} 
-                                  onClick={() => setLightboxImageUrl(att.file)}
-                                  className="w-16 h-16 rounded-lg overflow-hidden border border-surface-200 block hover:opacity-80 transition-opacity cursor-pointer focus:outline-none"
-                                >
-                                  <img src={att.file} className="w-full h-full object-cover" />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        {!issue.is_resolved && isAdmin && (
-                          <button
-                            onClick={() => handleResolveIssue(issue.id)}
-                            className="shrink-0 h-8 px-3 bg-emerald-100 text-emerald-700 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-emerald-500 hover:text-white transition-all"
-                          >
-                            Resolve
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {issues.length === 0 && !showIssueForm && (
-                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-10 text-center shadow-sm">
-                      <p className="text-3xl mb-2">🟢</p>
-                      <p className="text-sm font-bold text-surface-400">No issue tracker items reported</p>
-                    </div>
-                  )}
-
-                  {showIssueForm ? (
-                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-5 space-y-4 shadow-sm">
-                      <h4 className="text-sm font-bold text-primary">Add Issue Tracker Item</h4>
-                      <input
-                        type="text"
-                        value={newIssueTitle}
-                        onChange={e => setNewIssueTitle(e.target.value)}
-                        placeholder="Observation title..."
-                        className="w-full h-11 bg-surface-50 border border-surface-200 rounded-xl px-4 outline-none focus:border-accent text-sm font-medium"
-                      />
-                      <textarea
-                        value={newIssueDesc}
-                        onChange={e => setNewIssueDesc(e.target.value)}
-                        placeholder="Describe the observation..."
-                        rows={3}
-                        className="w-full bg-surface-50 border border-surface-200 rounded-xl px-4 py-3 outline-none focus:border-accent text-sm font-medium resize-none"
-                      />
-                      <div className="grid grid-cols-3 gap-3 items-center">
-                        <select
-                          value={newIssueType}
-                          onChange={e => setNewIssueType(e.target.value)}
-                          className="h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-bold text-primary"
-                        >
-                          <option value="QUALITY">Quality</option>
-                          <option value="SAFETY">Safety</option>
-                          <option value="DESIGN">Design</option>
-                          <option value="PROCUREMENT">Procurement</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                        <select
-                          value={newRootCause}
-                          onChange={e => setNewRootCause(e.target.value)}
-                          className="h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-bold text-primary"
-                        >
-                          <option value="POOR_WORKMANSHIP">Poor Workmanship</option>
-                          <option value="WEATHER">Weather</option>
-                          <option value="MATERIAL_DEFECT">Material Defect</option>
-                          <option value="SCOPE_GAP">Scope Gap</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                        <select
-                          value={newIssueSeverity}
-                          onChange={e => setNewIssueSeverity(e.target.value as any)}
-                          className="h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-bold text-primary"
-                        >
-                          <option value="LOW">Low</option>
-                          <option value="MEDIUM">Medium</option>
-                          <option value="HIGH">High / Blocker</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest block mb-2">Photo Evidence</label>
-                        <input type="file" ref={photoRef} accept="image/*" multiple className="text-sm font-bold text-surface-500 text-surface-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-100 file:text-primary hover:file:bg-surface-200" />
-                      </div>
-                      <div className="flex gap-2 justify-end mt-4">
-                        <button onClick={() => setShowIssueForm(false)} className="h-9 px-4 text-surface-500 text-surface-400 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-100 transition-all">Cancel</button>
-                        <button
-                          onClick={handleCreateIssue}
-                          disabled={isUpdating}
-                          className="h-9 px-5 bg-red-500 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all disabled:opacity-40"
-                        >
-                          {isUpdating ? "Saving..." : "Add Item"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setShowIssueForm(true)}
-                      className="w-full py-3 border-2 border-dashed border-surface-300 rounded-xl text-surface-500 text-surface-400 font-bold text-xs uppercase tracking-widest hover:border-red-400 hover:text-red-500 transition-colors"
-                    >
-                      + Add Issue Tracker Item
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* HSE TAB */}
-              {activeTab === "hse" && (
-                <TaskHSETab task={task} projectUid={projectUid} />
-              )}
-
               {/* DIARY TAB */}
               {activeTab === "diary" && (
                 <TaskFieldDiaryTab task={task} projectUid={projectUid} />
               )}
 
-              {/* BOQ / MATERIALS TAB */}
-              {activeTab === "boq" && (
-                <div className="max-w-4xl space-y-4">
-                  <TaskMaterialTab 
-                    task={task}
-                    isMatrixTask={isMatrixTask}
-                    estimatedCost={estimatedCost}
-                    burnCost={burnCost}
-                    variance={variance}
-                    isOverBudget={isOverBudget}
-                    onRefreshTask={refreshTask}
-                    isContractor={isContractor}
-                    isAdmin={isAdmin}
-                    phaseId={selectedPhaseId ? parseInt(selectedPhaseId) : undefined}
-                  />
-                </div>
-              )}
 
               {/* SUBTASKS TAB */}
               {activeTab === "subtasks" && (
@@ -1271,18 +883,6 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                       </form>
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* TIME TAB */}
-              {activeTab === "time" && (
-                <div className="max-w-4xl space-y-4">
-                  <TaskTimeLogTab 
-                    task={task} 
-                    onUpdate={() => {
-                      refreshTask();
-                    }} 
-                  />
                 </div>
               )}
 
@@ -1412,70 +1012,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
               </div>
             )}
 
-            {/* DEPENDENCIES TAB */}
-            {activeTab === "dependencies" && (
-              <div className="max-w-4xl space-y-6">
-                <div className="bg-surface-100 border-surface-200 p-6 rounded-2xl border border-surface-200 shadow-sm">
-                  <h3 className="text-xl font-bold text-primary mb-2">Task Dependencies</h3>
-                  <p className="text-xs text-surface-500 text-surface-400 font-medium mb-6">
-                    Select tasks that must be completed before this task can begin. The backend will automatically detect and prevent cyclic dependencies.
-                  </p>
-                  
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest block mb-2">Predecessor Tasks</label>
-                    
-                    <div className="flex flex-col gap-2 max-h-96 overflow-y-auto border border-surface-200 rounded-xl p-2 bg-surface-50">
-                      {projectTasks.filter(t => t.uid !== task.uid).map(pt => (
-                        <label key={pt.uid} className="flex items-center gap-3 p-3 bg-surface-100 border-surface-200 border border-surface-100 rounded-lg cursor-pointer hover:border-accent transition-colors">
-                          <input 
-                            type="checkbox" 
-                            checked={selectedDependencyUids.includes(pt.uid)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedDependencyUids(prev => [...prev, pt.uid]);
-                              } else {
-                                setSelectedDependencyUids(prev => prev.filter(uid => uid !== pt.uid));
-                              }
-                            }}
-                            className="w-5 h-5 rounded border-surface-300 text-accent focus:ring-accent"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-primary truncate">{pt.title}</p>
-                            <p className="text-[10px] text-surface-400 font-mono mt-0.5">{pt.task_code || pt.uid.slice(0,8)}</p>
-                          </div>
-                          <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border ${
-                            pt.status === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30" :
-                            "bg-surface-100 text-surface-500 text-surface-400 border-surface-200"
-                          }`}>
-                            {pt.status}
-                          </span>
-                        </label>
-                      ))}
-                      {projectTasks.length <= 1 && (
-                        <div className="p-4 text-center text-surface-500 text-surface-400 text-xs font-medium">
-                          No other tasks available in this project to link.
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="pt-4 flex justify-end">
-                      <button
-                        onClick={handleSaveDependencies}
-                        disabled={isSavingDependencies}
-                        className="h-11 px-6 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-md disabled:opacity-50"
-                      >
-                        {isSavingDependencies ? "Saving..." : "Save Dependencies"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PHOTOS TAB */}
-            {activeTab === "photos" && (
-              <TaskPhotosTab task={task} projectId={projectId} onRefresh={refreshTask} />
-            )}
 
             </div>
           </div>

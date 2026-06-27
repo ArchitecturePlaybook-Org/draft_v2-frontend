@@ -1,4 +1,4 @@
-export const DJANGO_API_URL = process.env.DJANGO_API_URL || "http://localhost:8000";
+export const DJANGO_API_URL = process.env.DJANGO_API_URL || "http://127.0.0.1:8000";
 export const COOKIE_ACCESS_TOKEN = "access_token";
 export const COOKIE_REFRESH_TOKEN = "refresh_token";
 export const COOKIE_USER_ROLE = "user_role";

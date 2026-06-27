@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { User } from "@/types/auth";
 
-const DJANGO_API_URL = process.env.DJANGO_API_URL || "http://localhost:8000";
+const DJANGO_API_URL = process.env.DJANGO_API_URL || "http://127.0.0.1:8000";
 
 /**
  * Decode a JWT payload without verifying the signature.

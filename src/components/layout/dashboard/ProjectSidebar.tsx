@@ -33,7 +33,7 @@ export const ProjectSidebar: React.FC = () => {
   ];
 
   const toolsLinks = [
-    { label: "Procurement", href: `/dashboard/projects/${currentProjectUid}/procurement`, icon: "🛒" },
+
     { label: "Reports", href: `/dashboard/projects/${currentProjectUid}/report/project-summary`, icon: "📄", target: "_blank" },
   ];
 

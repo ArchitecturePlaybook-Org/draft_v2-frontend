@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import HSEScorecard from "@/components/HSEScorecard";
+
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,7 +20,7 @@ const MasterFieldDiary = dynamic(
   }
 );
 
-type SiteOpsSubTab = "diary" | "issues" | "labor" | "materials" | "hse";
+type SiteOpsSubTab = "diary" | "labor" | "materials";
 
 interface SiteOpsTabProps {
   projectUid: string;
@@ -31,160 +31,12 @@ interface SiteOpsTabProps {
 
 const SUBTABS: { id: SiteOpsSubTab; label: string; emoji: string }[] = [
   { id: "diary",     label: "Daily Log",           emoji: "📖" },
-  { id: "issues",    label: "Delays & Issues",      emoji: "⚠️" },
+
   { id: "labor",     label: "Labor & Equipment",    emoji: "👷" },
   { id: "materials", label: "Material Deliveries",  emoji: "📦" },
-  { id: "hse",       label: "HSE & Safety",         emoji: "🛡️" },
 ];
 
-// ── Delays & Issues Panel ─────────────────────────────────────────────────────
-const SiteOpsIssuesPanel: React.FC<{ projectUid: string; projectTasks: any[]; onRefresh: () => void }> = ({
-  projectUid, projectTasks, onRefresh,
-}) => {
-  const [issues, setIssues] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [resolvingId, setResolvingId] = useState<number | null>(null);
 
-  const loadIssues = async () => {
-    setLoading(true);
-    try {
-      // Fetch all diary-sourced punch list items across tasks in this project
-      const data = await projectsApi.getPunchListItems(projectUid);
-      const diarySourced = (Array.isArray(data) ? data : []).filter(
-        (item: any) => item.source_diary_entry != null
-      );
-      setIssues(diarySourced);
-    } catch (err) {
-      console.error("Failed to load site ops issues:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { loadIssues(); }, [projectUid]);
-
-  const handleResolve = async (id: number) => {
-    setResolvingId(id);
-    try {
-      await projectsApi.resolvePunchListItem(id);
-      toast.success("Issue resolved — Field Diary status updated automatically.");
-      await loadIssues();
-      onRefresh();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to resolve issue.");
-    } finally {
-      setResolvingId(null);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  const openIssues = issues.filter((i) => !i.is_resolved);
-  const resolvedIssues = issues.filter((i) => i.is_resolved);
-
-  return (
-    <div className="space-y-6">
-      {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
-          <p className="text-2xl font-black text-red-600">{openIssues.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-red-400 mt-1">Open Issues</p>
-        </div>
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
-          <p className="text-2xl font-black text-emerald-600">{resolvedIssues.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mt-1">Resolved</p>
-        </div>
-        <div className="bg-surface-100 border border-surface-200 rounded-2xl p-4 text-center">
-          <p className="text-2xl font-black text-primary">{issues.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400 mt-1">Total</p>
-        </div>
-      </div>
-
-      {/* Open Issues */}
-      {openIssues.length === 0 && (
-        <div className="text-center py-16 bg-surface-50 rounded-2xl border-2 border-dashed border-surface-200">
-          <span className="text-5xl block mb-4">✅</span>
-          <p className="text-lg font-bold text-primary mb-1">No Open Issues</p>
-          <p className="text-sm text-surface-400">All diary-sourced issues have been resolved.</p>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {openIssues.map((issue) => (
-          <div key={issue.id} className="bg-surface-50 border border-surface-200 rounded-2xl p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
-            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse mt-1.5 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div>
-                  <h4 className="font-bold text-primary text-sm">{issue.title}</h4>
-                  {issue.task_title && (
-                    <p className="text-[10px] text-surface-400 font-bold uppercase tracking-widest mt-0.5">
-                      Task: {issue.task_title}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {issue.occurrence_count > 1 && (
-                    <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-lg bg-amber-100 text-amber-700 border border-amber-200">
-                      ×{issue.occurrence_count} occurrences
-                    </span>
-                  )}
-                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-lg bg-red-100 text-red-600 border border-red-200">
-                    ● Active
-                  </span>
-                </div>
-              </div>
-              {issue.source_diary_entry_date && (
-                <p className="text-[10px] text-surface-400 mt-1">
-                  📅 Source: Diary {issue.source_diary_entry_date}
-                </p>
-              )}
-              {issue.description && (
-                <p className="text-xs text-surface-500 mt-2 line-clamp-2">{issue.description}</p>
-              )}
-            </div>
-            <button
-              onClick={() => handleResolve(issue.id)}
-              disabled={resolvingId === issue.id}
-              className="h-9 px-4 shrink-0 bg-emerald-500 text-white font-bold text-[9px] uppercase tracking-widest rounded-xl hover:bg-emerald-600 transition-all disabled:opacity-40"
-            >
-              {resolvingId === issue.id ? "Resolving..." : "Resolve"}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Resolved Issues (collapsed) */}
-      {resolvedIssues.length > 0 && (
-        <details className="group">
-          <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-widest text-surface-400 hover:text-primary transition-colors py-2 flex items-center gap-2">
-            <span>✅ {resolvedIssues.length} Resolved Issues</span>
-          </summary>
-          <div className="mt-3 space-y-2">
-            {resolvedIssues.map((issue) => (
-              <div key={issue.id} className="bg-surface-50 border border-surface-200 rounded-xl p-4 flex items-center gap-3 opacity-60">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-primary line-through">{issue.title}</p>
-                  {issue.task_title && <p className="text-[10px] text-surface-400 font-bold">{issue.task_title}</p>}
-                </div>
-                <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200">
-                  ✓ Resolved
-                </span>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
-    </div>
-  );
-};
 
 // ── Labor & Equipment Panel ───────────────────────────────────────────────────
 const SiteOpsLaborPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => {
@@ -389,14 +241,6 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
               <MasterFieldDiary projectId={projectUid} />
             )}
 
-            {activeSubTab === "issues" && (
-              <SiteOpsIssuesPanel
-                projectUid={projectUid}
-                projectTasks={projectTasks}
-                onRefresh={fetchProject}
-              />
-            )}
-
             {activeSubTab === "labor" && (
               <SiteOpsLaborPanel projectUid={projectUid} />
             )}
@@ -405,9 +249,7 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
               <SiteOpsMaterialsPanel projectUid={projectUid} />
             )}
 
-            {activeSubTab === "hse" && (
-              <HSEScorecard projectId={projectUid} />
-            )}
+
           </motion.div>
         </AnimatePresence>
       </div>

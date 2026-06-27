@@ -101,3 +101,78 @@ export function TaskAccessRequestsList({ projectId }: { projectId: string }) {
     </div>
   );
 }
+
+export function ActiveTaskCollaboratorsList({ projectId }: { projectId: string }) {
+  const [collaborators, setCollaborators] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCollaborators();
+  }, [projectId]);
+
+  const loadCollaborators = async () => {
+    setLoading(true);
+    try {
+      const data = await projectsApi.getProjectTaskCollaborators(projectId);
+      setCollaborators(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRevoke = async (taskUid: string, userId: number) => {
+    if (!confirm("Are you sure you want to revoke this user's access to the task?")) return;
+    try {
+      await projectsApi.removeTaskCollaborator(taskUid, userId);
+      toast.success("Access revoked.");
+      // Instantly remove from UI
+      setCollaborators(prev => prev.filter(c => !(c.task_uid === taskUid && c.user_id === userId)));
+    } catch (err) {
+      toast.error("Failed to revoke access.");
+    }
+  };
+
+  if (loading) {
+    return <div className="text-sm text-neutral-500 py-4">Loading active collaborators...</div>;
+  }
+
+  if (collaborators.length === 0) {
+    return null; // Don't show if empty
+  }
+
+  return (
+    <div className="bg-surface-100 border-surface-200 rounded-lg border border-indigo-200 dark:border-indigo-800/30 p-6 shadow-sm mt-6">
+      <h3 className="text-lg font-semibold text-indigo-800 mb-2 flex items-center gap-2">
+        Active Task Collaborators
+      </h3>
+      <p className="text-sm text-neutral-500 mb-6">
+        The following external users have been granted access to specific tasks.
+      </p>
+
+      <div className="space-y-3">
+        {collaborators.map(collab => (
+          <div key={collab.id} className="flex items-center justify-between p-4 rounded-md border border-indigo-100 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-sm">
+            <div className="flex-1 min-w-0 pr-4">
+              <div className="text-sm font-bold text-neutral-800 mb-1">
+                {collab.user_name} <span className="font-normal text-neutral-500">has access to</span> {collab.task_title}
+              </div>
+              <div className="text-xs text-neutral-500">
+                Joined {format(new Date(collab.joined_at), "MMM d, yyyy")} • Email: {collab.user_email}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button 
+                onClick={() => handleRevoke(collab.task_uid, collab.user_id)}
+                className="flex items-center gap-1 h-8 px-3 bg-red-50 text-red-600 font-bold text-[10px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm border border-red-200 hover:border-red-500"
+              >
+                <X className="w-3 h-3" /> Revoke
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

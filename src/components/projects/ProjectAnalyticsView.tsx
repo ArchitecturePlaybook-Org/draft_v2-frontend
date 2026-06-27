@@ -84,24 +84,7 @@ export function ProjectAnalyticsView({ projectUid }: ProjectAnalyticsViewProps) 
         </div>
       </div>
 
-      {/* Issue Tracker Overview */}
-      <div className="bg-surface-100 border-surface-200 p-6 rounded-2xl border border-surface-200 shadow-sm flex flex-col justify-center min-h-[200px]">
-        <div className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-4 text-center">Issue Tracker</div>
-        <div className="flex justify-around items-end h-24">
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-3xl font-extrabold text-surface-800">{data.issues.total}</div>
-            <div className="text-[9px] font-bold text-surface-400 uppercase">Total</div>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-3xl font-extrabold text-emerald-500">{data.issues.resolved}</div>
-            <div className="text-[9px] font-bold text-surface-400 uppercase">Resolved</div>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-3xl font-extrabold text-red-500">{data.issues.open}</div>
-            <div className="text-[9px] font-bold text-surface-400 uppercase">Open</div>
-          </div>
-        </div>
-      </div>
+
         </div>
       </div>
   );

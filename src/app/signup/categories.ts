@@ -45,7 +45,7 @@ export const CATEGORY_DATA: CategoryNode = {
     "Systems & Equipment": [
       "Fixed Systems: HVAC/Elevators",
       "Plant Hire: Cranes/Excavators",
-      "Tooling: Power Tools/Safety Gear"
+      "Tooling: Power Tools"
     ],
     "Construction Materials": [
       "Raw Materials: Concrete/Steel/Sand",

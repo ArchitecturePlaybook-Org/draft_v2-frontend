@@ -55,7 +55,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({ onSave, onClose, initi
     ]).then(([Y, { WebsocketProvider }]) => {
       if (!active) return;
       const doc = new Y.Doc();
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000/ws";
       const provider = new WebsocketProvider(wsUrl, `sketch-${sketchId}`, doc);
       const yElements = doc.getMap('elements');
       

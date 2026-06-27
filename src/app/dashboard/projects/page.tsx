@@ -75,8 +75,28 @@ function ProjectsPageInner() {
 
       // Fetch all tasks and filter out the ones belonging to external projects
       const allTasks = await projectsApi.getTasks();
-      const projIds = new Set(projs.map(p => p.id));
-      const shared = allTasks.filter(t => typeof t.project === "object" && t.project !== null ? !projIds.has((t.project as any).id) : !projIds.has(t.project as any));
+      const projIds = new Set(projs.map(p => String(p.id)));
+      const projUids = new Set(projs.map(p => p.uid));
+      
+      const shared = allTasks.filter(t => {
+        // 1. Check explicit project_uid if backend provided it
+        if (t.project_uid && projUids.has(t.project_uid)) return false;
+        
+        // 2. Check if project is a nested object
+        if (typeof t.project === "object" && t.project !== null) {
+          if ((t.project as any).id && projIds.has(String((t.project as any).id))) return false;
+          if ((t.project as any).uid && projUids.has((t.project as any).uid)) return false;
+        } 
+        // 3. Check if project is a flat scalar (ID or UID)
+        else if (t.project) {
+          const val = String(t.project);
+          if (projIds.has(val)) return false;
+          if (projUids.has(val)) return false;
+        }
+        
+        // If no match found, it belongs to an external/shared project
+        return true;
+      });
       setSharedTasks(shared);
     } catch (err) {
       console.error("Failed to fetch projects/tasks:", err);
