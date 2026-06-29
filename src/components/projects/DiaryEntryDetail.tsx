@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { fetchFromBff } from "@/shared/api/fetchFromBff";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Plus, Sun, Cloud, CloudRain, Wind, AlertTriangle, Hammer, Package, Truck, Activity } from "lucide-react";
+import { projectsApi } from "@/domains/projects/api";
+import { ChevronDown, ChevronUp, Plus, Sun, Cloud, CloudRain, Wind, AlertTriangle, Hammer, Package, Truck, Activity, Trash, Camera, Paperclip, File } from "lucide-react";
 
 interface DiaryEntryDetailProps {
   entry: any;
@@ -24,6 +25,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     metadata: true,
     progress: true,
+    attachments: false,
   });
 
   const toggleSection = (id: string) => {
@@ -65,6 +67,39 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
       onUpdate();
     } catch (e) {
       toast.error("Failed to add entry");
+    }
+  };
+
+  const handleDelete = async (subModel: string, id: number) => {
+    if (isLocked) return;
+    if (!confirm("Are you sure you want to delete this entry?")) return;
+    try {
+      await projectsApi.deleteDiarySubEntry(subModel, id);
+      toast.success("Deleted successfully");
+      onUpdate();
+    } catch (e) {
+      toast.error("Failed to delete entry");
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isLocked) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const loadId = toast.loading("Uploading attachment...");
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    try {
+      await fetchFromBff(`/api/v1/projects/field-diaries/entries/${entry.id}/attachments/`, {
+        method: "POST",
+        body: formData
+      });
+      toast.success("Attachment uploaded", { id: loadId });
+      onUpdate();
+    } catch (err) {
+      toast.error("Failed to upload attachment", { id: loadId });
     }
   };
 
@@ -203,7 +238,14 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                 <div className="space-y-3">
                   {entry.activities?.map((act: any) => (
                     <div key={act.id} className="p-4 border border-surface-200 rounded-xl bg-surface-50">
-                      <p className="text-xs font-bold text-indigo-600 uppercase mb-1">{act.task_name || "General Work"}</p>
+                      <p className="text-xs font-bold text-indigo-600 uppercase mb-1 flex justify-between items-center">
+                        <span>{act.task_name || "General Work"}</span>
+                        {!isLocked && (
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete("activities", act.id); }} className="text-surface-400 hover:text-red-500">
+                            <Trash className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </p>
                       <p className="text-sm font-medium text-surface-800">{act.description}</p>
                       {(act.progress_percent || act.hours) && (
                         <div className="mt-3 text-xs text-surface-500 text-surface-400 font-bold flex gap-4">
@@ -246,9 +288,16 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                       <p className="font-bold text-surface-800">{l.crew_name} <span className="text-surface-400 font-normal">({l.trade_type})</span></p>
                       <p className="text-xs font-bold text-surface-500 text-surface-400 uppercase mt-1">Zone: {l.zone || 'N/A'}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-orange-600 text-lg">{l.headcount} <span className="text-sm font-normal text-surface-500 text-surface-400">workers</span></p>
-                      <p className="text-xs font-bold text-surface-500 text-surface-400 uppercase">{l.total_hours} hrs</p>
+                    <div className="text-right flex items-center gap-3">
+                      <div>
+                        <p className="font-bold text-orange-600 text-lg">{l.headcount} <span className="text-sm font-normal text-surface-500 text-surface-400">workers</span></p>
+                        <p className="text-xs font-bold text-surface-500 text-surface-400 uppercase">{l.total_hours} hrs</p>
+                      </div>
+                      {!isLocked && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete("labor", l.id); }} className="p-2 bg-surface-100 hover:bg-red-50 text-surface-400 hover:text-red-500 rounded-lg ml-2">
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -298,9 +347,16 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                       <p className="font-bold text-surface-800">{m.description}</p>
                       <p className="text-xs font-medium text-surface-500 text-surface-400 mt-1">Supplier: {m.supplier} • Ticket: {m.ticket_number}</p>
                     </div>
-                    <div className="text-right flex flex-col items-end">
-                      <p className="font-bold text-emerald-600 text-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{m.quantity} <span className="text-sm font-normal text-emerald-700">{m.unit}</span></p>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full mt-2 ${m.status === 'good' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.status}</span>
+                    <div className="text-right flex items-start gap-3">
+                      <div className="flex flex-col items-end">
+                        <p className="font-bold text-emerald-600 text-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{m.quantity} <span className="text-sm font-normal text-emerald-700">{m.unit}</span></p>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full mt-2 ${m.status === 'good' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.status}</span>
+                      </div>
+                      {!isLocked && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete("materials", m.id); }} className="p-2 bg-surface-100 hover:bg-red-50 text-surface-400 hover:text-red-500 rounded-lg">
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -355,8 +411,13 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                       <p className="font-bold text-surface-800">{eq.equipment_id}</p>
                       <p className="text-xs font-medium text-surface-500 text-surface-400 mt-1 uppercase tracking-wider">{eq.hours_operated}h operated • {eq.hours_idle}h idle</p>
                     </div>
-                    <div>
+                    <div className="flex items-center gap-3">
                       <span className={`text-[10px] px-3 py-1 rounded-full uppercase font-bold tracking-wider ${eq.status === 'operational' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{eq.status}</span>
+                      {!isLocked && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete("equipment", eq.id); }} className="p-2 bg-surface-100 hover:bg-red-50 text-surface-400 hover:text-red-500 rounded-lg">
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -407,7 +468,14 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                   <div key={d.id} className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-xl">
                     <div className="flex justify-between items-center mb-2">
                       <p className="font-bold text-red-800 text-sm uppercase tracking-widest flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {d.delay_type}</p>
-                      <span className="text-xs font-bold bg-surface-100 border-surface-200 text-red-700 px-2 py-1 rounded-md border border-red-200 dark:border-red-800/30">{d.duration_hours} hrs</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold bg-surface-100 border-surface-200 text-red-700 px-2 py-1 rounded-md border border-red-200 dark:border-red-800/30">{d.duration_hours} hrs</span>
+                        {!isLocked && (
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete("delays", d.id); }} className="p-1 bg-surface-100 hover:bg-red-50 text-surface-400 hover:text-red-500 rounded border border-red-200">
+                            <Trash className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className="text-sm text-red-900 font-medium bg-surface-100 border-surface-200/50 p-2 rounded-lg border border-red-100">Impact: {d.impacted_path}</p>
                   </div>
@@ -435,7 +503,64 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
           )}
         </div>
 
-
+        {/* 7. Attachments */}
+        <div className="bg-surface-100 border-surface-200 border border-surface-200 rounded-xl overflow-hidden shadow-sm">
+          <div 
+            className="p-4 flex justify-between items-center cursor-pointer hover:bg-surface-50 select-none"
+            onClick={() => toggleSection('attachments')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Camera className="w-5 h-5" /></div>
+              <h3 className="font-bold text-lg text-surface-800">Photos & Attachments</h3>
+              {!expandedSections.attachments && entry.attachments?.length > 0 && (
+                <span className="text-sm font-bold text-purple-600 ml-4 bg-purple-50 px-2 py-0.5 rounded-md">
+                  {entry.attachments.length} files
+                </span>
+              )}
+            </div>
+            {expandedSections.attachments ? <ChevronUp className="w-5 h-5 text-surface-400" /> : <ChevronDown className="w-5 h-5 text-surface-400" />}
+          </div>
+          
+          {expandedSections.attachments && (
+            <div className="p-5 border-t border-surface-100 bg-surface-100 border-surface-200 space-y-4">
+              {entry.attachments?.length === 0 ? (
+                <div className="text-center p-6 text-surface-400 text-sm font-medium border-2 border-dashed rounded-xl">No attachments for this day.</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {entry.attachments?.map((att: any) => (
+                    <div key={att.id} className="relative group rounded-xl overflow-hidden border border-surface-200 aspect-square bg-surface-50">
+                      {att.file.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                        <img src={att.file} alt="attachment" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-surface-400">
+                          <File className="w-8 h-8 mb-2" />
+                          <span className="text-xs font-medium truncate w-full px-2 text-center">{att.file.split('/').pop()}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {!isLocked && (
+                <div className="mt-4">
+                  <input
+                    type="file"
+                    id={`file-upload-${entry.id}`}
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <label 
+                    htmlFor={`file-upload-${entry.id}`}
+                    className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-surface-200 rounded-xl bg-surface-50 hover:bg-surface-100 text-surface-600 font-bold cursor-pointer transition-colors"
+                  >
+                    <Paperclip className="w-4 h-4" /> Add Attachment
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Footer padding */}
         <div className="h-8"></div>

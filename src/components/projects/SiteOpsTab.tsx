@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 
+import { AlertTriangle, Camera, File } from "lucide-react";
+
 const MasterFieldDiary = dynamic(
   () => import("@/components/projects/MasterFieldDiary").then((mod) => mod.MasterFieldDiary),
   {
@@ -20,7 +22,7 @@ const MasterFieldDiary = dynamic(
   }
 );
 
-type SiteOpsSubTab = "diary" | "labor" | "materials";
+type SiteOpsSubTab = "diary" | "labor" | "materials" | "delays" | "gallery";
 
 interface SiteOpsTabProps {
   projectUid: string;
@@ -31,9 +33,10 @@ interface SiteOpsTabProps {
 
 const SUBTABS: { id: SiteOpsSubTab; label: string; emoji: string }[] = [
   { id: "diary",     label: "Daily Log",           emoji: "📖" },
-
   { id: "labor",     label: "Labor & Equipment",    emoji: "👷" },
   { id: "materials", label: "Material Deliveries",  emoji: "📦" },
+  { id: "delays",    label: "Delays & Issues",      emoji: "🚧" },
+  { id: "gallery",   label: "Site Gallery",         emoji: "📸" },
 ];
 
 
@@ -175,6 +178,128 @@ const SiteOpsMaterialsPanel: React.FC<{ projectUid: string }> = ({ projectUid })
   );
 };
 
+// ── Delays & Issues Panel ─────────────────────────────────────────────────────
+const SiteOpsDelaysPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => {
+  const [entries, setEntries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await projectsApi.getDiaryEntries(projectUid);
+        setEntries(Array.isArray(data) ? data : data.results || []);
+      } catch (err) {
+        console.error("Failed to load diary entries:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [projectUid]);
+
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" /></div>;
+
+  const delays = entries.flatMap((e) =>
+    (e.delay_entries || []).map((d: any) => ({ ...d, entry_date: e.entry_date }))
+  );
+
+  if (delays.length === 0) {
+    return (
+      <div className="text-center py-16 bg-surface-50 rounded-2xl border-2 border-dashed border-surface-200">
+        <span className="text-5xl block mb-4">🚧</span>
+        <p className="text-lg font-bold text-primary mb-1">No Delays Logged</p>
+        <p className="text-sm text-surface-400">Project is running smoothly! Delays and issues will appear here when logged.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {delays.map((d, i) => (
+        <div key={i} className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-2xl p-5">
+          <div className="flex justify-between items-center mb-3">
+            <p className="font-bold text-red-800 text-sm uppercase tracking-widest flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" /> {d.delay_type}
+            </p>
+            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-red-700">
+              <span>📅 {d.entry_date}</span>
+              <span className="bg-white/50 dark:bg-black/20 px-3 py-1 rounded-lg border border-red-200 dark:border-red-800/30">
+                {d.duration_hours} HRS
+              </span>
+            </div>
+          </div>
+          <div className="bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-red-100 dark:border-red-800/20">
+            <p className="text-sm text-red-900 font-medium"><span className="font-bold uppercase text-[10px] tracking-widest block mb-1 opacity-70">Impact / Description</span>{d.impacted_path || "No details provided."}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Site Gallery Panel ────────────────────────────────────────────────────────
+const SiteOpsGalleryPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => {
+  const [entries, setEntries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await projectsApi.getDiaryEntries(projectUid);
+        setEntries(Array.isArray(data) ? data : data.results || []);
+      } catch (err) {
+        console.error("Failed to load diary entries:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [projectUid]);
+
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" /></div>;
+
+  const attachments = entries.flatMap((e) =>
+    (e.attachments || []).map((att: any) => ({ ...att, entry_date: e.entry_date }))
+  );
+
+  if (attachments.length === 0) {
+    return (
+      <div className="text-center py-16 bg-surface-50 rounded-2xl border-2 border-dashed border-surface-200">
+        <span className="text-5xl block mb-4">📸</span>
+        <p className="text-lg font-bold text-primary mb-1">No Site Photos</p>
+        <p className="text-sm text-surface-400">Photos and documents attached to daily logs will appear here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {attachments.map((att, i) => {
+        const isImage = att.file.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+        return (
+          <div key={i} className="group relative rounded-2xl overflow-hidden border border-surface-200 bg-surface-50 aspect-square flex flex-col cursor-pointer">
+            {isImage ? (
+              <img src={att.file} alt={att.caption || "Site photo"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-surface-400 bg-surface-100 group-hover:bg-surface-200 transition-colors">
+                <File className="w-12 h-12 mb-3 text-surface-300" />
+                <span className="text-xs font-bold uppercase tracking-widest truncate w-full px-4 text-center">{att.file.split('/').pop()}</span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+              {att.caption && <p className="text-white text-sm font-medium mb-1 line-clamp-2">{att.caption}</p>}
+              <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest flex items-center justify-between w-full">
+                <span>{att.entry_date}</span>
+                <a href={att.file} target="_blank" rel="noreferrer" className="bg-white/20 hover:bg-white/40 px-2 py-1 rounded backdrop-blur-md transition-colors">Open</a>
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 // ── Main SiteOpsTab ───────────────────────────────────────────────────────────
 export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks, fetchProject, renderIssues }) => {
   const router = useRouter();
@@ -247,6 +372,14 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
 
             {activeSubTab === "materials" && (
               <SiteOpsMaterialsPanel projectUid={projectUid} />
+            )}
+
+            {activeSubTab === "delays" && (
+              <SiteOpsDelaysPanel projectUid={projectUid} />
+            )}
+
+            {activeSubTab === "gallery" && (
+              <SiteOpsGalleryPanel projectUid={projectUid} />
             )}
 
 

@@ -289,6 +289,11 @@ export const projectsApi = {
     return Array.isArray(res) ? res : (res as any).results || [];
   },
 
+  deleteDiarySubEntry: async (subModel: string, id: number) => {
+    // subModel should be 'labor', 'delays', 'activities', 'materials', or 'equipment'
+    return fetchFromBff<void>(`/api/v1/projects/field-diaries/${subModel}/${id}/`, { method: "DELETE" });
+  },
+
 
 
   // ── Task Comments ────────────────────────────────────────────────────────
@@ -591,6 +596,43 @@ export const projectsApi = {
   // ── Matrix View 1 (Compact grid payload) ─────────────────────────────────
   getMatrix: async (projectUid: string): Promise<MatrixPayload> => {
     return fetchFromBff<MatrixPayload>(`/api/v1/projects/projects/${projectUid}/matrix/`, { method: "GET" });
+  },
+
+  // ── Master Catalog (Global Template Dropdown) ───────────────────────────
+  getMasterCatalog: async () => {
+    const res = await fetchFromBff<any>("/api/v1/projects/master-catalog/", { method: "GET" });
+    return unpackArray<any>(res);
+  },
+
+  downloadMasterCatalogTemplate: () => {
+    window.open("/api/v1/projects/master-catalog/export_template/", "_blank");
+  },
+
+  importMasterCatalog: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetchFromBff<any>("/api/v1/projects/master-catalog/import_excel/", {
+      method: "POST",
+      body: formData
+    });
+  },
+
+  createMasterCatalogItem: async (data: any) => {
+    return fetchFromBff<any>("/api/v1/projects/master-catalog/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+  
+  updateMasterCatalogItem: async (id: number, data: any) => {
+    return fetchFromBff<any>(`/api/v1/projects/master-catalog/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteMasterCatalogItem: async (id: number) => {
+    return fetchFromBff<void>(`/api/v1/projects/master-catalog/${id}/`, { method: "DELETE" });
   },
 
   // ── Matrix View 2 (Expanded feed, paginated by phase) ────────────────────

@@ -38,7 +38,7 @@ export default function DashboardLayout({
 
         {/* Main Execution Area */}
         <main className="main-area">
-          <div className="page-content">
+          <div className={pathname.includes('/estimation') ? "h-full w-full" : "page-content"}>
             {children}
           </div>
         </main>

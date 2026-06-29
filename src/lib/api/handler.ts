@@ -91,7 +91,7 @@ export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
     return response;
   } catch (err: any) {
     // Sanitize error logging to avoid leaking request objects or tokens
-    console.error(`Proxy Error [${req.method} ${req.url.split('?')[0]}]:`, err?.message || "Unknown error");
+    console.error(`Proxy Error [${req.method} ${req.url.split('?')[0]}]:`, err?.message || "Unknown error", err?.cause || err);
     const errorResponse = handleProxyError(err);
     // Unconditionally clear cookies if this was a clear-auth route (e.g. logout) that threw an error
     if (req.url.includes("/logout") || req.url.includes("/decommission")) {

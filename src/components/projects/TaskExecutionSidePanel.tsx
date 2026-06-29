@@ -61,7 +61,6 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const [currentStatus, setCurrentStatus] = useState(task.status);
   
   // Matrix specific state
-  const [quantityDelta, setQuantityDelta] = useState("");
   const [newChecklistDesc, setNewChecklistDesc] = useState("");
   const photoRef = useRef<HTMLInputElement>(null);
 
@@ -142,30 +141,6 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
       console.error(err);
       setCurrentStatus(previousStatus);
       toast.error("Protocol failed: Could not synchronize status.");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  // Matrix functions
-  const handleLogProgress = async () => {
-    const delta = parseFloat(quantityDelta);
-    if (isNaN(delta) || delta <= 0) {
-      toast.error("Enter a valid positive quantity.");
-      return;
-    }
-    setIsUpdating(true);
-    try {
-      // Assuming a patch endpoint for progress
-      const updated = await projectsApi.updateTask(task.uid, { 
-        quantity_completed: (task.quantity_completed || 0) + delta 
-      });
-      setTask(updated);
-      onTaskUpdated();
-      setQuantityDelta("");
-      toast.success(`+${delta} ${task.quantity_unit} logged successfully.`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to log progress.");
     } finally {
       setIsUpdating(false);
     }
@@ -305,7 +280,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const uncheckedCount = checklists.filter((i: any) => !i.is_completed).length;
 
   const tabs: { id: TaskTab; label: string; hidden?: boolean }[] = [
-    { id: "execution", label: isMatrixTask ? "Progress & Timeline" : "Execution Details" },
+    { id: "execution", label: isMatrixTask ? "Timeline & Directives" : "Execution Details" },
     { id: "subtasks", label: "Subtasks" },
     { id: "checklist", label: "Checklists & QA" },
     { id: "diary", label: "Field Diary" },
@@ -466,66 +441,6 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 <div className="flex flex-col lg:flex-row gap-8 max-w-[1400px] h-[calc(100vh-280px)]">
                   {/* Main Execution Content */}
                   <div className="flex-1 space-y-8 overflow-y-auto pr-2 pb-8 max-w-4xl">
-                    {/* If Matrix, show quantity progress */}
-                  {isMatrixTask && (
-                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-6 flex items-center gap-6 shadow-sm">
-                      <div className="relative w-20 h-20 shrink-0">
-                        <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                          <circle cx="40" cy="40" r="32" fill="none" stroke="#e2e8f0" strokeWidth="8"/>
-                          <circle
-                            cx="40" cy="40" r="32" fill="none"
-                            stroke={(task.progress_percent || 0) >= 100 ? "#10b981" : "#2563eb"}
-                            strokeWidth="8"
-                            strokeDasharray={`${2 * Math.PI * 32}`}
-                            strokeDashoffset={`${2 * Math.PI * 32 * (1 - (task.progress_percent || 0) / 100)}`}
-                            strokeLinecap="round"
-                            className="transition-all duration-700"
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-sm font-black text-primary tabular-nums">{task.progress_percent || 0}%</span>
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-1">Quantity Progress</p>
-                        <p className="text-2xl font-black text-primary tabular-nums">
-                          {task.quantity_completed || 0}
-                          <span className="text-sm font-bold text-surface-400 ml-1">/ {task.quantity_target ?? "—"} {task.quantity_unit}</span>
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* If Matrix & Admin/Contractor, show progress logger */}
-                  {isMatrixTask && (isContractor || isAdmin) && (
-                    <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-5 shadow-sm">
-                      <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-3">Log Field Progress</h4>
-                      <div className="flex gap-3">
-                        <div className="flex-1 relative">
-                          <input
-                            type="number"
-                            min="0.01"
-                            step="0.1"
-                            value={quantityDelta}
-                            onChange={e => setQuantityDelta(e.target.value)}
-                            placeholder={`Quantity completed today...`}
-                            className="w-full h-12 bg-surface-50 border border-surface-200 rounded-xl px-4 outline-none focus:border-accent font-bold text-primary text-sm transition-colors"
-                          />
-                          {task.quantity_unit && (
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-surface-400 uppercase">{task.quantity_unit}</span>
-                          )}
-                        </div>
-                        <button
-                          onClick={handleLogProgress}
-                          disabled={isUpdating || !quantityDelta}
-                          className="h-12 px-6 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all disabled:opacity-40 shrink-0"
-                        >
-                          {isUpdating ? "Saving..." : "Log"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Matrix Location */}
                   <div>
                     <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Matrix Location</h3>

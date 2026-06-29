@@ -60,8 +60,18 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
         setEntries(prev => [res, ...prev]);
         toast.dismiss(loadId);
       } catch (err) {
-        toast.error("Failed to create new diary entry.");
-        return;
+        toast.dismiss(loadId);
+        // It might have been created offline or concurrently by someone else, refetch to check
+        try {
+          const refetchRes = await fetchFromBff<any[]>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectId}`);
+          const data = Array.isArray(refetchRes) ? refetchRes : (refetchRes as any).results || [];
+          setEntries(data);
+          entry = data.find((e: any) => e.entry_date === dateStr);
+          if (!entry) throw new Error("Entry not found after refetch");
+        } catch (e2) {
+          toast.error("Failed to create or fetch diary entry.");
+          return;
+        }
       }
     }
     

@@ -29,6 +29,7 @@ export const Sidebar: React.FC = () => {
 
   const orgLinks = [
     { label: "Team & Members", href: "/dashboard/organization", icon: "👥" },
+    { label: "Master Catalog", href: "/dashboard/catalog", icon: "📚" },
   ];
 
   const settingsLinks = [
