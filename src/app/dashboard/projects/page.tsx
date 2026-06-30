@@ -132,12 +132,6 @@ function ProjectsPageInner() {
         </div>
         <div className="flex items-center gap-4 relative z-10">
           <button 
-            onClick={() => window.open("/api/proxy/projects/projects-export/", "_blank")}
-            className="h-12 px-6 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 text-primary font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-surface-200/50 transition-all flex items-center gap-2 shadow-lg"
-          >
-            <span>📊</span> Export Excel
-          </button>
-          <button 
             onClick={() => setShowCreateModal(true)}
             className="h-12 px-6 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(var(--color-accent),0.4)]"
           >

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { projectsApi } from "@/domains/projects/api";
 import { eventsApi, Event } from "@/domains/events/api";
 import { leadsApi, Lead } from "@/domains/leads/api";
-import { Project } from "@/types/projects";
+import { Project, Task } from "@/types/projects";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { calculateProfileCompleteness } from "@/lib/utils/profile";
@@ -48,22 +48,26 @@ export default function DashboardPage() {
   const { user, isLoading: isUserLoading } = useAuthStore();
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [events, setEvents] = useState<Event[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [rollupRes, eventsRes, leadsRes] = await Promise.all([
+        const [rollupRes, eventsRes, leadsRes, tasksRes] = await Promise.all([
           fetchFromBff<any>("/api/v1/core/dashboard-rollup/", { method: "GET" }),
           eventsApi.listEvents(),
           leadsApi.listLeads(),
+          projectsApi.getTasks(),
         ]);
         
         setDashboardStats(rollupRes);
         const eventsList = Array.isArray(eventsRes) ? eventsRes : (eventsRes as any).results;
+        const tasksList = Array.isArray(tasksRes) ? tasksRes : (tasksRes as any).results;
         
         setEvents(eventsList || []);
+        setTasks(tasksList || []);
         setLeads(leadsRes || []);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -93,7 +97,48 @@ export default function DashboardPage() {
 
   const activeProjectsCount = dashboardStats?.project_counts?.active || 0;
   const recentProjects = dashboardStats?.recent_projects || [];
-  const upcomingEvents = events.slice(0, 5); // Show first 5
+  
+  // Combine Events and Tasks for the unified schedule
+  const unifiedSchedule = (() => {
+    const items: Array<{
+      id: string;
+      type: "event" | "task";
+      title: string;
+      date: Date;
+      rawDate: string;
+    }> = [];
+    
+    events.forEach(e => {
+      if (e.event_date) {
+        items.push({
+          id: `e-${e.id}`,
+          type: "event",
+          title: e.title,
+          date: new Date(e.event_date),
+          rawDate: e.event_date
+        });
+      }
+    });
+    
+    tasks.forEach(t => {
+      const targetDate = t.due_date || t.end_date;
+      if (targetDate) {
+        const d = new Date(targetDate);
+        // Only include tasks that are not done and are upcoming or today
+        if (t.status !== 'DONE' && d >= new Date(new Date().setHours(0,0,0,0))) {
+          items.push({
+            id: `t-${t.id}`,
+            type: "task",
+            title: t.title,
+            date: d,
+            rawDate: targetDate
+          });
+        }
+      }
+    });
+    
+    return items.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 5);
+  })();
   const integrity = calculateProfileCompleteness(user);
 
   const overdueTasks = dashboardStats?.task_counts?.overdue || 0;
@@ -101,12 +146,12 @@ export default function DashboardPage() {
   
   // Calculate next event time
   let nextEventStr = null;
-  if (events.length > 0) {
-    const nextEventDate = new Date(events[0].event_date);
-    const diffHours = Math.round((nextEventDate.getTime() - Date.now()) / (1000 * 60 * 60));
+  if (unifiedSchedule.length > 0) {
+    const nextItem = unifiedSchedule[0];
+    const diffHours = Math.round((nextItem.date.getTime() - Date.now()) / (1000 * 60 * 60));
     if (diffHours > 0 && diffHours < 48) {
-      nextEventStr = `Next event in ${diffHours}h`;
-    } else if (diffHours <= 0) {
+      nextEventStr = `Next ${nextItem.type} in ${diffHours}h`;
+    } else if (diffHours <= 0 && diffHours > -24) {
       nextEventStr = `Happening now`;
     }
   }
@@ -274,13 +319,8 @@ export default function DashboardPage() {
             <h2 className="text-2xl font-black text-primary tracking-tight">Active Projects</h2>
           </div>
           <div className="flex gap-3">
-            <Link href="/dashboard/projects" className="hidden sm:block">
-              <Button variant="outline" className="text-xs font-bold uppercase tracking-widest bg-background/50 backdrop-blur-md">View Registry</Button>
-            </Link>
             <Link href="/dashboard/projects">
-              <Button variant="primary" className="text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center gap-2">
-                <Plus size={14} /> New Project
-              </Button>
+              <Button variant="outline" className="text-xs font-bold uppercase tracking-widest bg-background/50 backdrop-blur-md hover:bg-primary hover:text-background transition-colors">View Registry</Button>
             </Link>
           </div>
         </div>
@@ -507,22 +547,27 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {events.length > 0 ? (
-              upcomingEvents.map((event, idx) => (
-                <motion.div key={event.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 * idx }}>
+            {unifiedSchedule.length > 0 ? (
+              unifiedSchedule.map((item, idx) => (
+                <motion.div key={item.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 * idx }}>
                   <Card className="p-4 flex items-center gap-4 hover:border-primary/30 hover:shadow-md transition-all duration-300 bg-surface-50/60 backdrop-blur-sm group cursor-default">
-                    <div className="w-14 h-14 rounded-xl bg-background flex flex-col items-center justify-center border border-surface-200 shrink-0 shadow-sm group-hover:border-primary/20 group-hover:bg-primary/5 transition-colors">
-                      <span className="text-[9px] uppercase font-black text-error">
-                        {new Date(event.event_date).toLocaleString('default', { month: 'short' })}
+                    <div className={`w-14 h-14 rounded-xl bg-background flex flex-col items-center justify-center border border-surface-200 shrink-0 shadow-sm transition-colors ${
+                      item.type === 'task' ? 'group-hover:border-success/20 group-hover:bg-success/5' : 'group-hover:border-primary/20 group-hover:bg-primary/5'
+                    }`}>
+                      <span className={`text-[9px] uppercase font-black ${item.type === 'task' ? 'text-success' : 'text-error'}`}>
+                        {item.date.toLocaleString('default', { month: 'short' })}
                       </span>
                       <span className="text-xl font-black text-primary leading-none mt-0.5">
-                        {new Date(event.event_date).getDate()}
+                        {item.date.getDate()}
                       </span>
                     </div>
                     <div className="flex-1 flex flex-col min-w-0 justify-center">
-                      <span className="font-bold text-sm text-primary truncate group-hover:text-accent transition-colors">{event.title}</span>
+                      <div className="flex items-center gap-1.5">
+                        {item.type === 'task' && <CheckCircle2 size={12} className="text-success shrink-0" />}
+                        <span className="font-bold text-sm text-primary truncate group-hover:text-accent transition-colors">{item.title}</span>
+                      </div>
                       <span className="text-[10px] font-bold uppercase tracking-widest text-surface-400 mt-1 flex items-center gap-1.5">
-                        <Clock size={10} /> {new Date(event.event_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <Clock size={10} /> {item.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </Card>

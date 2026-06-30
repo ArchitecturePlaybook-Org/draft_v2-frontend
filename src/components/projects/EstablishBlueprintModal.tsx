@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { projectsApi } from '@/domains/projects/api';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Building2, CheckCircle2, User, X } from 'lucide-react';
 
 interface EstablishBlueprintModalProps {
   isOpen: boolean;
@@ -9,6 +11,31 @@ interface EstablishBlueprintModalProps {
   orgs: any[];
   initialData?: { title: string; description: string };
 }
+
+const stepVariants = {
+  hidden: { x: 20, opacity: 0 },
+  visible: {
+    x: 0,
+    opacity: 1,
+    transition: { 
+      type: "spring", 
+      stiffness: 300, 
+      damping: 30, 
+      staggerChildren: 0.1, 
+      delayChildren: 0.1 
+    }
+  },
+  exit: {
+    x: -20,
+    opacity: 0,
+    transition: { ease: "easeInOut", duration: 0.2 }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = ({
   isOpen,
@@ -45,6 +72,10 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
   });
 
   if (!isOpen) return null;
+
+  const handleSetStep = (newStep: number) => {
+    setStep(newStep);
+  };
 
   const selectedOrg = orgs.find(o => o.id === parseInt(formData.account_id));
   const orgPart = selectedOrg ? selectedOrg.name.substring(0, 3).toUpperCase().padEnd(3, 'X') : 'ORG';
@@ -83,7 +114,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
           client_email: formData.client_email,
         });
       }
-      setStep(4); // Success step
+      handleSetStep(4); // Success step
     } catch (err: any) {
       const msg = err.message || "System failure. Please ensure you are logged in.";
       alert(`Submission failed: ${msg}`);
@@ -95,290 +126,396 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
   const isStep1Valid = formData.title.trim() !== '' && formData.account_id !== '';
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/40 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-surface-100 border-surface-200 w-full max-w-4xl rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/20 flex flex-col md:flex-row min-h-[600px]">
-        {/* Left Side: Visual/Context */}
-        <div className="w-full md:w-1/3 bg-accent text-background flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-accent/20 rounded-full blur-3xl -mr-16 -mt-16" />
-          <div className="relative z-10 space-y-6">
-            <div className="w-12 h-12 bg-surface-100 border-surface-200/10 rounded-2xl flex items-center justify-center text-2xl">🏗️</div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold leading-tight">Establish Blueprint</h2>
-              <p className="text-white/60 text-xs uppercase tracking-widest font-bold">Project Initialization</p>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Heavy Blur Backdrop */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+        onClick={onClose}
+      />
+      
+      {/* Glowing Ambient Orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center">
+        <motion.div 
+          animate={{ rotate: 360, scale: [1, 1.2, 1] }} 
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="w-[600px] h-[600px] bg-accent/20 rounded-full blur-[100px] mix-blend-screen absolute -translate-x-1/2 translate-y-1/4" 
+        />
+        <motion.div 
+          animate={{ rotate: -360, scale: [1, 1.5, 1] }} 
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="w-[500px] h-[500px] bg-primary/30 rounded-full blur-[100px] mix-blend-screen absolute translate-x-1/3 -translate-y-1/3" 
+        />
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="bg-background/90 backdrop-blur-2xl border border-surface-200 dark:border-white/10 w-full max-w-5xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col md:flex-row h-[95vh] md:h-[75vh] md:max-h-[750px] md:min-h-[600px] relative z-10"
+      >
+        {/* Left Side: Solid Gold Section */}
+        <div className="w-full md:w-2/5 bg-accent text-white flex flex-col justify-between relative overflow-hidden p-8 border-r border-white/10 z-20 shrink-0">
+          <div className="absolute -left-10 -bottom-10 text-[200px] font-black text-black/5 leading-none pointer-events-none select-none">
+            0{Math.min(step, 3)}
+          </div>
+
+          <div className="relative z-10 space-y-8">
+            <div className="w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center text-3xl shadow-inner group-hover:rotate-6 transition-transform duration-500">
+              🏗️
+            </div>
+            <div className="space-y-3">
+              <h2 className="text-3xl font-black leading-tight text-white tracking-tight">Establish<br/><span className="text-white">Blueprint</span></h2>
+              <p className="text-white/70 text-xs uppercase tracking-widest font-bold">Project Initialization</p>
             </div>
           </div>
           
-          <div className="relative z-10 space-y-4">
-            <div className="p-4 bg-surface-100 border-surface-200/5 rounded-2xl border border-white/10 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${step >= 1 ? 'bg-accent' : 'bg-surface-100 border-surface-200/20'}`} />
-                <p className={`text-xs font-bold ${step >= 1 ? 'text-white' : 'text-white/40'}`}>1. Project Details</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${step >= 2 ? 'bg-accent' : 'bg-surface-100 border-surface-200/20'}`} />
-                <p className={`text-xs font-bold ${step >= 2 ? 'text-white' : 'text-white/40'}`}>2. Client Contact</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${step >= 3 ? 'bg-accent' : 'bg-surface-100 border-surface-200/20'}`} />
-                <p className={`text-xs font-bold ${step >= 3 ? 'text-white' : 'text-white/40'}`}>3. Review & Submit</p>
-              </div>
-            </div>
-            <div className="flex gap-1">
-              {[1, 2, 3].map(i => (
-                <div key={i} className={`h-1 flex-1 rounded-full ${step >= i ? 'bg-accent' : 'bg-surface-100 border-surface-200/20'}`} />
+          <div className="relative z-10 space-y-6 mt-12">
+            <div className="space-y-5">
+              {[
+                { num: 1, label: "Project Details" },
+                { num: 2, label: "Client Contact" },
+                { num: 3, label: "Review & Submit" }
+              ].map((item) => (
+                <div key={item.num} className="flex items-center gap-4 group">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all duration-500 relative ${
+                    step === item.num ? 'bg-white text-accent shadow-[0_0_20px_rgba(255,255,255,0.5)] scale-110' : 
+                    step > item.num ? 'bg-white/20 text-white' : 'bg-white/10 text-white/50 border border-white/20'
+                  }`}>
+                    {step > item.num ? <CheckCircle2 size={14} className="text-white" /> : item.num}
+                    {step === item.num && (
+                      <motion.div
+                        layoutId="activeStepRing"
+                        className="absolute inset-0 rounded-full border-2 border-white"
+                        initial={false}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        style={{ padding: '4px', margin: '-4px' }}
+                      />
+                    )}
+                  </div>
+                  <p className={`text-sm font-bold tracking-wide transition-colors duration-300 ${
+                    step === item.num ? 'text-white' : step > item.num ? 'text-white/90' : 'text-white/60'
+                  }`}>
+                    {item.label}
+                  </p>
+                </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Right Side: Form */}
-        <div className="flex-1 p-10 flex flex-col relative overflow-y-auto max-h-[90vh]">
-          <button 
-            onClick={onClose}
-            className="absolute top-6 right-6 w-8 h-8 rounded-full bg-surface-50 flex items-center justify-center text-surface-400 hover:text-primary transition-all hover:rotate-90 z-10"
-          >
-            ✕
-          </button>
+        {/* Right Side: Form with Framer Motion AnimatePresence */}
+        <div className="flex-1 p-6 md:p-10 flex flex-col relative overflow-hidden bg-surface-50/50">
+          {step !== 4 && (
+            <button 
+              onClick={onClose}
+              className="absolute top-6 right-6 w-8 h-8 rounded-full bg-surface-100/80 border border-surface-200 flex items-center justify-center text-surface-400 hover:text-primary transition-all z-50 shadow-sm"
+            >
+              <X size={14} />
+            </button>
+          )}
 
-          <div className="flex-1 flex flex-col justify-center">
-            {step === 1 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-primary">Project Details</h3>
-                  <p className="text-sm text-surface-500 text-surface-400">Define the core parameters of your new architectural project.</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Project Title *</label>
+          <div className="flex-1 relative flex flex-col overflow-y-auto no-scrollbar pt-6 pb-6">
+            <AnimatePresence mode="wait">
+              {step === 1 && (
+                <motion.div 
+                  key="step1"
+                  variants={stepVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="space-y-4 h-full flex flex-col"
+                >
+                  <motion.div variants={itemVariants} className="space-y-1">
+                    <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Project Title</label>
                     <input 
                       type="text" 
+                      placeholder="E.g. Nexus Tower Renovation"
+                      className="w-full h-11 bg-surface-100/50 dark:bg-surface-900/50 border border-surface-200 dark:border-white/10 rounded-xl px-4 text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all shadow-inner"
                       value={formData.title}
-                      onChange={e => setFormData({...formData, title: e.target.value})}
-                      className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-medium text-sm" 
-                      placeholder="e.g. Neo-Gothic Skyscraper Extension"
+                      onChange={(e) => setFormData({...formData, title: e.target.value})}
                     />
-                  </div>
+                  </motion.div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Map to Professional Entity *</label>
+                  <motion.div variants={itemVariants} className="space-y-1">
+                    <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Entity / Organization</label>
                     <select 
+                      className="w-full h-11 bg-surface-100/50 dark:bg-surface-900/50 border border-surface-200 dark:border-white/10 rounded-xl px-4 text-surface-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all shadow-inner appearance-none cursor-pointer"
                       value={formData.account_id}
-                      onChange={e => setFormData({...formData, account_id: e.target.value})}
-                      className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary appearance-none"
+                      onChange={(e) => setFormData({...formData, account_id: e.target.value})}
                     >
                       <option value="" disabled>Select Firm / Tenant...</option>
                       {orgs.map(org => (
                         <option key={org.id} value={org.id}>{org.name} ({org.account_type})</option>
                       ))}
                     </select>
-                  </div>
-
-                  {templates.length > 0 && (
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Start from Template (Optional)</label>
-                      <select 
-                        value={selectedTemplateId}
-                        onChange={e => setSelectedTemplateId(e.target.value)}
-                        className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-medium text-sm appearance-none"
-                      >
-                        <option value="">Blank Project</option>
-                        {templates.map(tmpl => (
-                          <option key={tmpl.uid} value={tmpl.uid}>{tmpl.title} ({tmpl.template_scope})</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  </motion.div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Project Code</label>
-                      <div className="flex items-center gap-2 mb-2">
-                        <label className="text-xs flex items-center gap-1 cursor-pointer">
-                          <input type="radio" checked={projectCodeMode === 'auto'} onChange={() => setProjectCodeMode('auto')} />
-                          Auto-generated
-                        </label>
-                        <label className="text-xs flex items-center gap-1 cursor-pointer">
-                          <input type="radio" checked={projectCodeMode === 'manual'} onChange={() => setProjectCodeMode('manual')} />
-                          Manual Entry
-                        </label>
+                    <motion.div variants={itemVariants} className="space-y-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Project Code</label>
+                        <div className="flex items-center bg-surface-200/50 dark:bg-surface-800 rounded-full p-0.5">
+                          <button 
+                            onClick={() => setProjectCodeMode('auto')}
+                            className={`px-3 py-1 text-[10px] uppercase font-black rounded-full transition-all ${projectCodeMode === 'auto' ? 'bg-surface-900 text-white shadow-sm' : 'text-surface-500 hover:text-surface-700'}`}
+                          >Auto</button>
+                          <button 
+                            onClick={() => setProjectCodeMode('manual')}
+                            className={`px-3 py-1 text-[10px] uppercase font-black rounded-full transition-all ${projectCodeMode === 'manual' ? 'bg-surface-900 text-white shadow-sm' : 'text-surface-500 hover:text-surface-700'}`}
+                          >Manual</button>
+                        </div>
                       </div>
-                      <div className="flex w-full">
-                        {projectCodeMode === 'manual' && (
-                          <div className="flex items-center justify-center bg-surface-100 border border-surface-200 border-r-0 rounded-l-xl px-3 text-xs font-bold text-surface-500 text-surface-400">
-                            {manualPrefix}
-                          </div>
-                        )}
-                        <input 
-                          type="text" 
-                          disabled={projectCodeMode === 'auto'}
-                          value={projectCodeMode === 'auto' ? '' : formData.project_code}
-                          onChange={e => setFormData({...formData, project_code: e.target.value.toUpperCase()})}
-                          className={`w-full h-12 bg-surface-50 border border-surface-200 px-4 ${projectCodeMode === 'manual' ? 'rounded-r-xl' : 'rounded-xl'} outline-none focus:border-accent font-medium text-sm disabled:opacity-50`} 
-                          placeholder={projectCodeMode === 'auto' ? autoPrefix : "CLIENT-001"}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Kind of Project</label>
+                      {projectCodeMode === 'auto' ? (
+                        <div className="w-full h-11 bg-surface-100/30 dark:bg-surface-900/30 border border-surface-200 dark:border-white/5 rounded-xl px-4 flex items-center text-surface-500 dark:text-white/50 font-mono text-sm">{autoPrefix}</div>
+                      ) : (
+                        <div className="relative flex items-center">
+                          <span className="absolute left-4 text-surface-400 font-mono text-sm">{manualPrefix}</span>
+                          <input 
+                            type="text" 
+                            className="w-full h-11 bg-surface-100/50 dark:bg-surface-900/50 border border-surface-200 dark:border-white/10 rounded-xl pl-[100px] pr-4 text-surface-900 dark:text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all shadow-inner"
+                            value={formData.project_code}
+                            onChange={(e) => setFormData({...formData, project_code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')})}
+                            placeholder="CODE"
+                          />
+                        </div>
+                      )}
+                    </motion.div>
+
+                    <motion.div variants={itemVariants} className="space-y-1">
+                      <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Asset Kind</label>
                       <select 
+                        className="w-full h-11 bg-surface-100/50 dark:bg-surface-900/50 border border-surface-200 dark:border-white/10 rounded-xl px-4 text-surface-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all shadow-inner appearance-none cursor-pointer"
                         value={formData.kind}
-                        onChange={e => setFormData({...formData, kind: e.target.value})}
-                        className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-medium text-sm appearance-none"
+                        onChange={(e) => setFormData({...formData, kind: e.target.value})}
                       >
                         <option>Residential</option>
                         <option>Commercial</option>
                         <option>Renovation</option>
-                        <option>Master Planning</option>
                       </select>
-                    </div>
+                    </motion.div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Location of the Project</label>
+                  <motion.div variants={itemVariants} className="space-y-1">
+                    <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Site Location</label>
                     <input 
                       type="text" 
+                      placeholder="City, Region, or Coordinates"
+                      className="w-full h-11 bg-surface-100/50 dark:bg-surface-900/50 border border-surface-200 dark:border-white/10 rounded-xl px-4 text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all shadow-inner"
                       value={formData.location}
-                      onChange={e => setFormData({...formData, location: e.target.value})}
-                      className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-medium text-sm" 
-                      placeholder="e.g. 123 Architecture Ave, New York"
+                      onChange={(e) => setFormData({...formData, location: e.target.value})}
                     />
-                  </div>
+                  </motion.div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Description</label>
+                  <motion.div variants={itemVariants} className="space-y-1">
+                    <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Scope & Description</label>
                     <textarea 
+                      placeholder="Briefly describe the architectural objective..."
+                      className="w-full h-20 bg-surface-100/50 dark:bg-surface-900/50 border border-surface-200 dark:border-white/10 rounded-xl p-4 text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all shadow-inner resize-none"
                       value={formData.description}
-                      onChange={e => setFormData({...formData, description: e.target.value})}
-                      className="w-full h-24 bg-surface-50 border border-surface-200 p-4 rounded-xl outline-none focus:border-accent font-medium text-sm resize-none" 
-                      placeholder="Detailed context regarding the project..."
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
                     />
-                  </div>
-                </div>
+                  </motion.div>
 
-                <div className="pt-4 flex justify-end">
-                  <Button onClick={() => setStep(2)} disabled={!isStep1Valid} className="h-12 px-8 uppercase tracking-[0.2em] font-bold text-xs">
-                    Continue
-                  </Button>
-                </div>
-              </div>
-            )}
+                  <motion.div variants={itemVariants} className="pt-2">
+                    <Button onClick={() => handleSetStep(2)} disabled={!isStep1Valid} className="w-full h-12 uppercase tracking-[0.2em] font-bold text-xs bg-accent hover:bg-accent/90 text-white rounded-xl shadow-lg">
+                      Continue
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              )}
 
-            {step === 2 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-primary">Client Contact</h3>
-                  <p className="text-sm text-surface-500 text-surface-400">Who is the primary contact for this project?</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Client Name</label>
+              {step === 2 && (
+                <motion.div 
+                  key="step2"
+                  variants={stepVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="space-y-4 h-full flex flex-col"
+                >
+                  <motion.div variants={itemVariants} className="space-y-1">
+                    <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Client / Owner Name</label>
                     <input 
                       type="text" 
+                      placeholder="Name of the primary stakeholder"
+                      className="w-full h-11 bg-surface-100/50 dark:bg-surface-900/50 border border-surface-200 dark:border-white/10 rounded-xl px-4 text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all shadow-inner"
                       value={formData.client_name}
-                      onChange={e => setFormData({...formData, client_name: e.target.value})}
-                      className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-medium text-sm" 
-                      placeholder="Enter client or company name"
+                      onChange={(e) => setFormData({...formData, client_name: e.target.value})}
                     />
-                  </div>
+                  </motion.div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Client Phone Number</label>
+                  <motion.div variants={itemVariants} className="space-y-1">
+                    <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Contact Phone</label>
                     <input 
-                      type="tel" 
-                      value={formData.client_phone}
-                      onChange={e => setFormData({...formData, client_phone: e.target.value})}
-                      className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-medium text-sm" 
+                      type="text" 
                       placeholder="+1 (555) 000-0000"
+                      className="w-full h-11 bg-surface-100/50 dark:bg-surface-900/50 border border-surface-200 dark:border-white/10 rounded-xl px-4 text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all shadow-inner"
+                      value={formData.client_phone}
+                      onChange={(e) => setFormData({...formData, client_phone: e.target.value})}
                     />
-                  </div>
+                  </motion.div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Client Email</label>
+                  <motion.div variants={itemVariants} className="space-y-1">
+                    <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Email Address</label>
                     <input 
                       type="email" 
+                      placeholder="contact@client.com"
+                      className="w-full h-11 bg-surface-100/50 dark:bg-surface-900/50 border border-surface-200 dark:border-white/10 rounded-xl px-4 text-surface-900 dark:text-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all shadow-inner"
                       value={formData.client_email}
-                      onChange={e => setFormData({...formData, client_email: e.target.value})}
-                      className="w-full h-12 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-medium text-sm" 
-                      placeholder="client@example.com"
+                      onChange={(e) => setFormData({...formData, client_email: e.target.value})}
                     />
-                  </div>
-                </div>
+                  </motion.div>
 
-                <div className="pt-8 flex gap-4">
-                  <Button variant="outline" onClick={() => setStep(1)} className="h-12 px-8 font-bold text-[10px] uppercase tracking-widest">
-                    Back
-                  </Button>
-                  <Button onClick={() => setStep(3)} className="flex-1 h-12 uppercase tracking-[0.2em] font-bold text-xs">
-                    Review Details
-                  </Button>
-                </div>
-              </div>
-            )}
+                  <motion.div variants={itemVariants} className="pt-4 flex gap-4 mt-auto">
+                    <Button variant="outline" onClick={() => handleSetStep(1)} className="h-12 px-8 font-bold text-[10px] uppercase tracking-widest rounded-xl">
+                      Back
+                    </Button>
+                    <Button onClick={() => handleSetStep(3)} className="flex-1 h-12 uppercase tracking-[0.2em] font-bold text-xs shadow-xl shadow-accent/20 hover:shadow-accent/40 rounded-xl bg-accent hover:bg-accent/90 text-white">
+                      Review Details
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              )}
 
-            {step === 3 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-primary">Review & Submit</h3>
-                  <p className="text-sm text-surface-500 text-surface-400">Please review the details before establishing the blueprint.</p>
-                </div>
-
-                <div className="bg-surface-50 p-6 rounded-2xl border border-surface-200 space-y-6 text-sm">
-                  <div>
-                    <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-2 border-b border-surface-200 pb-1">Project</h4>
-                    <div className="grid grid-cols-2 gap-y-2">
-                      <span className="text-surface-500 text-surface-400">Title:</span> <span className="font-bold">{formData.title}</span>
-                      <span className="text-surface-500 text-surface-400">Code:</span> <span className="font-bold">{projectCodeMode === 'auto' ? autoPrefix : `${manualPrefix}${formData.project_code}`}</span>
-                      <span className="text-surface-500 text-surface-400">Kind:</span> <span className="font-bold">{formData.kind}</span>
-                      <span className="text-surface-500 text-surface-400">Location:</span> <span className="font-bold">{formData.location || '-'}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-2 border-b border-surface-200 pb-1">Client</h4>
-                    <div className="grid grid-cols-2 gap-y-2">
-                      <span className="text-surface-500 text-surface-400">Name:</span> <span className="font-bold">{formData.client_name || '-'}</span>
-                      <span className="text-surface-500 text-surface-400">Phone:</span> <span className="font-bold">{formData.client_phone || '-'}</span>
-                      <span className="text-surface-500 text-surface-400">Email:</span> <span className="font-bold">{formData.client_email || '-'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 flex gap-4">
-                  <Button variant="outline" onClick={() => setStep(2)} className="h-12 px-8 font-bold text-[10px] uppercase tracking-widest">
-                    Back
-                  </Button>
-                  <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 h-12 uppercase tracking-[0.2em] font-bold text-xs bg-accent hover:bg-accent/90 text-white border-none">
-                    {isSubmitting ? "Initializing..." : "Confirm & Create Project"}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {step === 4 && (
-              <div className="text-center space-y-6 animate-in zoom-in-95 duration-500 py-10">
-                <div className="w-20 h-20 bg-green-500 text-white rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-2xl shadow-green-500/20">
-                  ✓
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-bold text-primary">Blueprint Established</h3>
-                  <p className="text-sm text-surface-500 text-surface-400 max-w-xs mx-auto">Your new project has been successfully initialized in the registry.</p>
-                </div>
-                <Button 
-                  onClick={() => {
-                    onClose();
-                    onSuccess();
-                  }} 
-                  variant="outline" 
-                  className="h-12 px-10 uppercase tracking-widest font-bold text-[10px]"
+              {step === 3 && (
+                <motion.div 
+                  key="step3"
+                  variants={stepVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="space-y-4 h-full flex flex-col"
                 >
-                  Return to Registry
-                </Button>
-              </div>
-            )}
+                  <motion.div variants={itemVariants} className="space-y-2 text-center pb-2">
+                    <h3 className="text-2xl font-black text-primary tracking-tight">Review & Submit</h3>
+                    <p className="text-sm font-medium text-surface-500">Please review the details before establishing the blueprint.</p>
+                  </motion.div>
+
+                  <motion.div variants={itemVariants} className="bg-surface-100/80 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-sm space-y-6 text-sm">
+                    <div className="relative">
+                      <h4 className="text-[10px] font-black text-accent uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Building2 size={12} /> Project Core Parameters
+                      </h4>
+                      <div className="grid grid-cols-2 gap-y-3 text-sm bg-background/50 p-4 rounded-xl border border-surface-200">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Title</span>
+                          <span className="font-bold text-primary">{formData.title}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Code</span>
+                          <span className="font-bold text-primary font-mono bg-surface-200/50 px-2 py-0.5 rounded-md w-fit">{projectCodeMode === 'auto' ? autoPrefix : `${manualPrefix}${formData.project_code}`}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Kind</span>
+                          <span className="font-bold text-primary">{formData.kind}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Location</span>
+                          <span className="font-bold text-primary">{formData.location || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <h4 className="text-[10px] font-black text-info uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <User size={12} /> Client Identity
+                      </h4>
+                      <div className="grid grid-cols-2 gap-y-3 text-sm bg-background/50 p-4 rounded-xl border border-surface-200">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Name</span>
+                          <span className="font-bold text-primary">{formData.client_name || '-'}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Contact</span>
+                          <span className="font-bold text-primary">{formData.client_phone || '-'}</span>
+                        </div>
+                        <div className="flex flex-col gap-1 col-span-2">
+                          <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Email</span>
+                          <span className="font-bold text-primary">{formData.client_email || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  <motion.div variants={itemVariants} className="pt-4 flex gap-4 mt-auto">
+                    <Button variant="outline" onClick={() => handleSetStep(2)} className="h-12 px-8 font-bold text-[10px] uppercase tracking-widest rounded-xl">
+                      Back
+                    </Button>
+                    <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 h-12 uppercase tracking-[0.2em] font-bold text-xs bg-accent hover:bg-accent/90 text-white border-none shadow-xl shadow-accent/20 rounded-xl relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                      <span className="relative">{isSubmitting ? "Initializing..." : "Confirm & Create Project"}</span>
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              )}
+
+              {step === 4 && (
+                <motion.div 
+                  key="step4"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="text-center space-y-8 flex flex-col items-center justify-center h-full py-10"
+                >
+                  <motion.div 
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                    className="w-32 h-32 bg-success text-white rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-success/40 relative"
+                  >
+                    <motion.div 
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }} 
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="absolute inset-0 bg-success rounded-[2.5rem] blur-xl -z-10"
+                    />
+                    <CheckCircle2 size={64} strokeWidth={3} />
+                  </motion.div>
+                  
+                  <div className="space-y-3">
+                    <motion.h3 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-success to-primary tracking-tight"
+                    >
+                      Blueprint Established
+                    </motion.h3>
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                      className="text-sm font-bold text-surface-500 max-w-sm mx-auto"
+                    >
+                      Your new architectural project has been successfully initialized in the registry and is ready for execution.
+                    </motion.p>
+                  </div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8 }}
+                  >
+                    <Button 
+                      onClick={() => {
+                        onClose();
+                        onSuccess();
+                      }} 
+                      variant="primary" 
+                      className="h-14 px-12 uppercase tracking-[0.2em] font-bold text-xs shadow-xl shadow-primary/20 rounded-2xl"
+                    >
+                      Return to Registry
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
