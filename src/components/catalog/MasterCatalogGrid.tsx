@@ -6,7 +6,7 @@ import {
   createColumnHelper,
 } from '@tanstack/react-table';
 import { MasterCatalogItem } from '@/store/estimation-store';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { projectsApi } from '@/domains/projects/api';
 
 const columnHelper = createColumnHelper<MasterCatalogItem>();
@@ -14,9 +14,10 @@ const columnHelper = createColumnHelper<MasterCatalogItem>();
 interface Props {
   items: MasterCatalogItem[];
   onRefresh: () => void;
+  onEdit: (item: MasterCatalogItem) => void;
 }
 
-export const MasterCatalogGrid: React.FC<Props> = ({ items, onRefresh }) => {
+export const MasterCatalogGrid: React.FC<Props> = ({ items, onRefresh, onEdit }) => {
   const columns = React.useMemo(() => [
     columnHelper.accessor('color', {
       header: '',
@@ -59,25 +60,33 @@ export const MasterCatalogGrid: React.FC<Props> = ({ items, onRefresh }) => {
     columnHelper.display({
       id: 'actions',
       cell: (info) => (
-        <button
-          onClick={async () => {
-            if (confirm("Are you sure you want to delete this template?")) {
-              try {
-                await projectsApi.deleteMasterCatalogItem(Number(info.row.original.id));
-                onRefresh();
-              } catch (e) {
-                alert("Failed to delete item.");
+        <div className="flex items-center gap-1 justify-end">
+          <button
+            onClick={() => onEdit(info.row.original)}
+            className="p-2 text-surface-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            onClick={async () => {
+              if (confirm("Are you sure you want to delete this template?")) {
+                try {
+                  await projectsApi.deleteMasterCatalogItem(Number(info.row.original.id));
+                  onRefresh();
+                } catch (e) {
+                  alert("Failed to delete item.");
+                }
               }
-            }
-          }}
-          className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-        >
-          <Trash2 size={16} />
-        </button>
+            }}
+            className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       ),
-      size: 60,
+      size: 80,
     })
-  ], [onRefresh]);
+  ], [onRefresh, onEdit]);
 
   const table = useReactTable({
     data: items,

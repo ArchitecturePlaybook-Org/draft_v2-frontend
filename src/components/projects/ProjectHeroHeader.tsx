@@ -10,6 +10,10 @@ import { ProjectProgressBar } from "@/components/projects/ProjectProgressBar";
 interface ProjectHeroHeaderProps {
   project: Project;
   onStatusChange?: (uid: string, newStatus: ProjectStatus) => void;
+  onAssignPersonnel?: () => void;
+  onCloneProject?: () => void;
+  onOpenSettings?: () => void;
+  onDeleteProject?: () => void;
 }
 
 // Simple internal WeatherStrip component
@@ -53,7 +57,14 @@ const WeatherStrip: React.FC<{ lat?: number; lng?: number; location?: string }> 
   );
 };
 
-export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({ project, onStatusChange }) => {
+export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({ 
+  project, 
+  onStatusChange,
+  onAssignPersonnel,
+  onCloneProject,
+  onOpenSettings,
+  onDeleteProject
+}) => {
   const [bgClass, setBgClass] = useState("from-primary/5 to-accent/5");
   
   // Decide background gradient based on weather cache (if lat/long exists)
@@ -81,24 +92,27 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({ project, o
     : null;
 
   return (
-    <header className="relative rounded-[1.5rem] overflow-hidden mb-6 shadow-2xl shadow-primary/10 border-2 border-accent dark:border dark:border-white/5 group bg-white dark:bg-transparent">
-      {/* Background Gradient */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${bgClass} opacity-5 dark:opacity-100 transition-all duration-1000`} />
-      
-      {/* Arch Grid Pattern Overlay */}
-      <div className="absolute inset-0 arch-grid opacity-[0.05] mix-blend-overlay pointer-events-none" />
-      
-      {/* Map Decorative Layer */}
-      {staticMapUrl && (
-        <img 
-          src={staticMapUrl} 
-          alt=""
-          className="absolute right-0 top-0 h-full w-[60%] object-cover opacity-10 blur-[2px] mask-gradient-left pointer-events-none mix-blend-luminosity group-hover:scale-105 transition-transform duration-[20s]" 
-        />
-      )}
+    <header className="relative rounded-[1.5rem] mb-6 shadow-2xl shadow-primary/10 border-2 border-accent dark:border dark:border-white/5 group bg-white dark:bg-transparent">
+      {/* Background Decorator Wrapper */}
+      <div className="absolute inset-0 rounded-[calc(1.5rem-2px)] overflow-hidden pointer-events-none">
+        {/* Background Gradient */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${bgClass} opacity-5 dark:opacity-100 transition-all duration-1000`} />
+        
+        {/* Arch Grid Pattern Overlay */}
+        <div className="absolute inset-0 arch-grid opacity-[0.05] mix-blend-overlay pointer-events-none" />
+        
+        {/* Map Decorative Layer */}
+        {staticMapUrl && (
+          <img 
+            src={staticMapUrl} 
+            alt=""
+            className="absolute right-0 top-0 h-full w-[60%] object-cover opacity-10 blur-[2px] mask-gradient-left pointer-events-none mix-blend-luminosity group-hover:scale-105 transition-transform duration-[20s]" 
+          />
+        )}
 
-      {/* Adaptive Glass overlay: transparent in light mode (since bg is white), Dark in dark mode */}
-      <div className="absolute inset-0 bg-transparent dark:bg-black/50 backdrop-blur-xl transition-colors duration-1000" />
+        {/* Adaptive Glass overlay: transparent in light mode (since bg is white), Dark in dark mode */}
+        <div className="absolute inset-0 bg-transparent dark:bg-black/50 backdrop-blur-xl transition-colors duration-1000" />
+      </div>
 
       {/* Content Container */}
       <div className="relative z-10 p-5 md:p-6 flex flex-col h-full min-h-[160px]">
@@ -133,7 +147,11 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({ project, o
               onChange={onStatusChange} 
             />
             <ProjectActionsMenu 
-              project={project as any} 
+              project={project} 
+              onAssignPersonnel={onAssignPersonnel} 
+              onCloneProject={onCloneProject} 
+              onOpenSettings={onOpenSettings}
+              onDeleteProject={onDeleteProject}
             />
           </div>
         </div>

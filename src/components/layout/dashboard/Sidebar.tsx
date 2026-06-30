@@ -24,7 +24,6 @@ export const Sidebar: React.FC = () => {
 
   const opsLinks = [
     { label: "Calendar", href: "/dashboard/calendar", icon: "📅" },
-    { label: "Templates", href: "/dashboard/templates", icon: "📋" },
   ];
 
   const orgLinks = [
@@ -100,26 +99,6 @@ export const Sidebar: React.FC = () => {
             {workspaceLinks.map((link) => (
               <React.Fragment key={link.href}>
                 <SidebarLink {...link} active={pathname === link.href} isCollapsed={isSidebarCollapsed} />
-                {/* Inject recent projects under the Projects link */}
-                {link.href === "/dashboard/projects" && recentProjects.length > 0 && !isSidebarCollapsed && (
-                  <div className="ml-8 mt-0.5 flex flex-col gap-0.5 border-l-2 border-surface-200 pl-3 mb-1">
-                    {recentProjects.map(p => {
-                      const isActive = pathname === `/dashboard/projects/${p.uid}`;
-                      return (
-                        <button 
-                          key={p.uid} 
-                          onClick={() => {
-                            setProjectContext(p.uid);
-                            router.push(`/dashboard/projects/${p.uid}`);
-                          }}
-                          className={`text-left text-xs truncate py-1.5 transition-colors ${isActive ? 'text-primary font-semibold' : 'text-surface-500 hover:text-primary'}`}
-                        >
-                          {p.title}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </React.Fragment>
             ))}
           </div>

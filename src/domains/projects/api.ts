@@ -115,7 +115,7 @@ export const projectsApi = {
   },
 
   // ── Tasks ─────────────────────────────────────────────────────────────────
-  getTasks: async (filters?: { project?: number | string; block?: number | string; status?: string; priority?: string; search?: string; assignee?: number | string; tags?: string; include_subtasks?: boolean }) => {
+  getTasks: async (filters?: { project?: number | string; block?: number | string; status?: string; priority?: string; search?: string; assignee?: number | string; tags?: string; include_subtasks?: boolean; is_shared?: boolean }) => {
     const params = new URLSearchParams();
     if (filters) {
       if (filters.project) params.append("project", filters.project.toString());
@@ -126,6 +126,7 @@ export const projectsApi = {
       if (filters.assignee) params.append("assignee", filters.assignee.toString());
       if (filters.tags) params.append("tags", filters.tags);
       if (filters.include_subtasks) params.append("include_subtasks", "true");
+      if (filters.is_shared) params.append("is_shared", "true");
     }
     const queryString = params.toString();
     const url = `/api/v1/projects/tasks/${queryString ? `?${queryString}` : ""}`;

@@ -64,8 +64,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       } catch (err) {
         console.warn("Failed to fetch matrix data:", err);
       }
-    } catch (err) {
-      console.error("Failed to fetch project details", err);
+    } catch (err: any) {
+      if (err?.status === 404) {
+        console.warn(`Project ${id} not found.`);
+        set({ project: null });
+      } else {
+        console.error("Failed to fetch project details", err);
+      }
     } finally {
       set({ isLoading: false });
     }

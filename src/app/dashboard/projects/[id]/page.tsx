@@ -13,6 +13,10 @@ import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
 import { ExpandedFeedView } from "@/components/matrix/ExpandedFeedView";
 import { SiteOpsTab } from "@/components/projects/SiteOpsTab";
 import { ProjectHeroHeader } from "@/components/projects/ProjectHeroHeader";
+import { AssignPersonnelModal } from "@/components/projects/AssignPersonnelModal";
+import { CloneProjectModal } from "@/components/projects/CloneProjectModal";
+import { ProjectSettingsModal } from "@/components/projects/ProjectSettingsModal";
+import { DeleteProjectModal } from "@/components/projects/DeleteProjectModal";
 import { useProjectNavStore } from "@/store/project-nav-store";
 import { TaskAccessRequestsList } from "@/components/projects/TaskAccessRequestsList";
 import { KanbanTab } from "@/components/projects/KanbanTab";
@@ -46,6 +50,8 @@ export default function ProjectDetailPage() {
   const [matrixView, setMatrixView] = useState<"grid" | "feed">("grid");
 
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [firmMembers, setFirmMembers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
@@ -180,6 +186,10 @@ export default function ProjectDetailPage() {
       <ProjectHeroHeader 
         project={project} 
         onStatusChange={(uid, status) => updateProjectStatus(uid, status)} 
+        onAssignPersonnel={() => setShowAssignModal(true)}
+        onCloneProject={() => setShowCloneModal(true)}
+        onOpenSettings={() => setShowSettingsModal(true)}
+        onDeleteProject={() => setShowDeleteModal(true)}
       />
 
       {canManage && (
@@ -418,6 +428,39 @@ export default function ProjectDetailPage() {
             </form>
           </div>
         </div>
+      )}
+      {/* Assign Personnel Modal */}
+      {project && (
+        <AssignPersonnelModal
+          isOpen={showAssignModal}
+          onClose={() => setShowAssignModal(false)}
+          project={project}
+        />
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <ProjectSettingsModal 
+          project={project}
+          onClose={() => setShowSettingsModal(false)}
+        />
+      )}
+
+      {/* Delete Modal */}
+      {showDeleteModal && (
+        <DeleteProjectModal 
+          project={project}
+          onClose={() => setShowDeleteModal(false)}
+        />
+      )}
+
+      {/* Clone Project Modal */}
+      {project && (
+        <CloneProjectModal
+          isOpen={showCloneModal}
+          onClose={() => setShowCloneModal(false)}
+          project={project}
+        />
       )}
     </div>
   );

@@ -4,14 +4,18 @@ import React, { useState, useEffect } from 'react';
 import { projectsApi } from '@/domains/projects/api';
 import { Spinner } from '@/components/ui/Spinner';
 import { MasterCatalogItem } from '@/store/estimation-store';
-import { Download, Upload, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Download, Upload, Plus } from 'lucide-react';
 import { MasterCatalogGrid } from '@/components/catalog/MasterCatalogGrid';
+import { MasterCatalogItemModal } from '@/components/catalog/MasterCatalogItemModal';
 
 export default function MasterCatalogPage() {
   const [items, setItems] = useState<MasterCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<MasterCatalogItem | null>(null);
 
   const fetchCatalog = async () => {
     try {
@@ -50,6 +54,25 @@ export default function MasterCatalogPage() {
     }
   };
 
+  const handleOpenAdd = () => {
+    setEditingItem(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (item: MasterCatalogItem) => {
+    setEditingItem(item);
+    setIsModalOpen(true);
+  };
+
+  const handleModalSubmit = async (data: any) => {
+    if (editingItem) {
+      await projectsApi.updateMasterCatalogItem(Number(editingItem.id), data);
+    } else {
+      await projectsApi.createMasterCatalogItem(data);
+    }
+    await fetchCatalog();
+  };
+
   if (loading) return <div className="flex items-center justify-center h-full"><Spinner size="lg" /></div>;
 
   return (
@@ -69,9 +92,9 @@ export default function MasterCatalogPage() {
             Template
           </button>
           
-          <label className="flex items-center gap-2 px-4 py-2 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent/90 transition-colors cursor-pointer shadow-lg shadow-accent/20">
+          <label className="flex items-center gap-2 px-4 py-2 bg-surface-50 border border-surface-200 text-surface-600 font-bold text-xs uppercase tracking-widest rounded-xl hover:text-accent hover:border-accent transition-colors cursor-pointer">
             {importing ? <Spinner size="sm" /> : <Upload size={16} />}
-            <span>{importing ? 'Importing...' : 'Import Excel'}</span>
+            <span>{importing ? 'Importing...' : 'Import'}</span>
             <input 
               type="file" 
               accept=".xlsx,.xls" 
@@ -80,14 +103,29 @@ export default function MasterCatalogPage() {
               disabled={importing}
             />
           </label>
+          
+          <button 
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent/90 transition-colors shadow-lg shadow-accent/20"
+          >
+            <Plus size={16} />
+            Add Material
+          </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-hidden p-8">
         <div className="bg-background rounded-2xl border border-surface-200 shadow-sm h-full flex flex-col overflow-hidden">
-           <MasterCatalogGrid items={items} onRefresh={fetchCatalog} />
+           <MasterCatalogGrid items={items} onRefresh={fetchCatalog} onEdit={handleOpenEdit} />
         </div>
       </div>
+      
+      <MasterCatalogItemModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleModalSubmit}
+        initialData={editingItem}
+      />
     </div>
   );
 }

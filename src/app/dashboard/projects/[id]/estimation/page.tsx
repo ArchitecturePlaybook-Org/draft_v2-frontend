@@ -255,14 +255,10 @@ export default function EstimationPage() {
               }}
             />
             
-            <div className="h-16 px-5 flex justify-between items-center border-b border-surface-200/50 bg-surface-50/50 shrink-0">
+            <div className="h-16 px-5 flex items-center border-b border-surface-200/50 bg-surface-50/50 shrink-0">
               <button onClick={() => setRightPanelOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-200 text-surface-400 hover:text-accent transition-all group">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-0.5 transition-transform"><path d="M9 18l6-6-6-6"/></svg>
               </button>
-              <div className="flex items-center gap-2">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Estimation Sheet</h2>
-                <span className="text-lg">📊</span>
-              </div>
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-gradient-to-b from-transparent to-surface-50/30">
