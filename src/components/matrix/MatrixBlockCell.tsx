@@ -107,6 +107,8 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({
     setUnlockLoading(true);
     try {
       await onUnlock(block.id); // no reason
+    } catch (err) {
+      // Error is already toasted by parent, just swallow to prevent unhandled rejection
     } finally {
       setUnlockLoading(false);
     }
@@ -126,6 +128,9 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({
     try {
       await onLock(block.id);
       setShowLockConfirm(false);
+    } catch (err) {
+      // Error is already toasted by parent, close dialog and swallow
+      setShowLockConfirm(false); 
     } finally {
       setActionLoading(false);
     }
