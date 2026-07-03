@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
 import { billingApi, Subscription, Plan, PlanUsage } from "@/domains/billing/api";
 import { PaymentHistory } from "@/components/billing/PaymentHistory";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -87,6 +88,7 @@ function FeatureRow({ label, starter, professional, enterprise }: {
 }
 
 export default function SubscriptionPage() {
+  const router = useRouter();
   const [sub, setSub] = useState<Subscription | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [usage, setUsage] = useState<PlanUsage | null>(null);
@@ -465,24 +467,37 @@ export default function SubscriptionPage() {
                         <ArrowRight className="w-3.5 h-3.5" />
                       </a>
                     ) : (
-                      <button
-                        onClick={() => handleUpgrade(plan)}
-                        disabled={isUpgrading === plan.code}
-                        className={`h-11 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all disabled:opacity-60 ${
-                          isPro
-                            ? "bg-accent hover:bg-accent/90 text-background shadow-[0_0_15px_rgba(var(--color-accent),0.3)]"
-                            : "bg-white/10 hover:bg-white/20 text-primary border border-white/10"
-                        }`}
-                      >
-                        {isUpgrading === plan.code ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Zap className="w-3.5 h-3.5" />
-                            Upgrade to {plan.name}
-                          </>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => handleUpgrade(plan)}
+                          disabled={isUpgrading === plan.code}
+                          className={`w-full h-11 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all disabled:opacity-60 ${
+                            isPro
+                              ? "bg-accent hover:bg-accent/90 text-background shadow-[0_0_15px_rgba(var(--color-accent),0.3)]"
+                              : "bg-white/10 hover:bg-white/20 text-primary border border-white/10"
+                          }`}
+                        >
+                          {isUpgrading === plan.code ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Zap className="w-3.5 h-3.5" />
+                              {parseFloat(price) === 0 ? `Upgrade to ${plan.name}` : 'Pay with Card / Wallet'}
+                            </>
+                          )}
+                        </button>
+                        
+                        {parseFloat(price) > 0 && (
+                          <button
+                            onClick={() => {
+                              router.push(`/billing/upi?plan=${plan.code}&billing_cycle=${billingCycle}`);
+                            }}
+                            className="w-full h-11 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest bg-[#5f259f] hover:bg-[#4b1d7d] text-white border border-[#5f259f]/50 rounded-2xl transition-all shadow-lg shadow-[#5f259f]/20"
+                          >
+                            <span className="text-sm leading-none">⚡</span> Pay with UPI
+                          </button>
                         )}
-                      </button>
+                      </div>
                     )}
                   </motion.div>
                 );

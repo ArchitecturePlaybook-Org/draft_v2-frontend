@@ -81,6 +81,16 @@ function unpackArray<T>(res: any): T[] {
   return [];
 }
 
+export interface UpiOrder {
+  order_id: string;
+  key_id: string;
+  amount: number;
+  currency: string;
+  qr_id: string;
+  qr_image_url: string;
+  upi_string: string;
+}
+
 export const billingApi = {
   /** Fetch all active subscription plans */
   getPlans: async (): Promise<Plan[]> => {
@@ -151,4 +161,43 @@ export const billingApi = {
       body: JSON.stringify({ reason }),
     });
   },
+
+  // ── UPI Methods ────────────────────────────────────────────────────────────
+
+  createUpiOrder: async (
+    accountId: number,
+    planCode: string,
+    billingCycle: "monthly" | "yearly" = "monthly"
+  ): Promise<UpiOrder> => {
+    return fetchFromBff("/api/v1/billing/upi/create-order/", {
+      method: "POST",
+      body: JSON.stringify({
+        account_id: accountId,
+        plan_code: planCode,
+        billing_cycle: billingCycle,
+      }),
+    });
+  },
+
+  triggerUpiCollect: async (
+    orderId: string,
+    vpa: string,
+    amount: number
+  ): Promise<{ status: string; payment?: any }> => {
+    return fetchFromBff("/api/v1/billing/upi/collect/", {
+      method: "POST",
+      body: JSON.stringify({
+        order_id: orderId,
+        vpa,
+        amount,
+      }),
+    });
+  },
+
+  getUpiPaymentStatus: async (orderId: string): Promise<{ status: "pending" | "paid" | "failed" }> => {
+    return fetchFromBff(`/api/v1/billing/upi/status/${orderId}/`, {
+      method: "GET",
+    });
+  },
 };
+
