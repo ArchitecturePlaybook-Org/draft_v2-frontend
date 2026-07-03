@@ -18,7 +18,7 @@ const stepVariants = {
     x: 0,
     opacity: 1,
     transition: { 
-      type: "spring", 
+      type: "spring" as const, 
       stiffness: 300, 
       damping: 30, 
       staggerChildren: 0.1, 
@@ -28,13 +28,13 @@ const stepVariants = {
   exit: {
     x: -20,
     opacity: 0,
-    transition: { ease: "easeInOut", duration: 0.2 }
+    transition: { ease: "easeInOut" as const, duration: 0.2 }
   }
 };
 
 const itemVariants = {
   hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
 };
 
 export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = ({
@@ -47,15 +47,35 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   
   const [projectCodeMode, setProjectCodeMode] = useState<'auto' | 'manual'>('auto');
 
   React.useEffect(() => {
     if (isOpen) {
-      projectsApi.getTemplates().then(data => {
-        setTemplates(Array.isArray(data) ? data : (data as any).results || []);
-      }).catch(console.error);
+      setTemplatesLoading(true);
+      // Fetch both user's own templates and saved ones
+      Promise.allSettled([
+        projectsApi.getTemplateLibrary({ tab: 'mine', sort: '-created_at' }),
+        projectsApi.getTemplateLibrary({ tab: 'saved', sort: '-created_at' }),
+      ]).then(([mine, saved]) => {
+        const mineList = mine.status === 'fulfilled'
+          ? (Array.isArray(mine.value) ? mine.value : (mine.value as any)?.results ?? [])
+          : [];
+        const savedList = saved.status === 'fulfilled'
+          ? (Array.isArray(saved.value) ? saved.value : (saved.value as any)?.results ?? [])
+          : [];
+        // Deduplicate by uid
+        const seen = new Set<string>();
+        const all = [...mineList, ...savedList].filter(t => {
+          if (seen.has(t.uid)) return false;
+          seen.add(t.uid);
+          return true;
+        });
+        setTemplates(all);
+      }).catch(console.error).finally(() => setTemplatesLoading(false));
     }
   }, [isOpen]);
 
@@ -89,12 +109,12 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
     try {
       const finalProjectCode = projectCodeMode === 'manual' ? `${manualPrefix}${formData.project_code}` : undefined;
       
-      if (selectedTemplateId) {
-        const cloned = await projectsApi.cloneProject(selectedTemplateId, parseInt(formData.account_id));
-        await projectsApi.updateProject(cloned.uid, {
+      if (selectedTemplate) {
+        // Use the new template API: creates project from template via deep clone
+        await projectsApi.createProjectFromTemplate(selectedTemplate.uid, {
           title: formData.title,
+          account_id: parseInt(formData.account_id),
           description: formData.description,
-          project_code: finalProjectCode,
           kind: formData.kind,
           location: formData.location,
           client_name: formData.client_name,
@@ -318,6 +338,95 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                       value={formData.description}
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
                     />
+                  </motion.div>
+
+                  {/* Template Picker */}
+                  <motion.div variants={itemVariants} className="space-y-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-surface-400 uppercase tracking-wider ml-1">Start from Template</label>
+                      {selectedTemplate && (
+                        <button
+                          onClick={() => setSelectedTemplate(null)}
+                          className="text-[10px] font-bold text-red-500 hover:underline"
+                        >
+                          ✕ Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {selectedTemplate ? (
+                      <div className="w-full flex items-center gap-3 bg-accent/10 border border-accent/30 rounded-xl px-4 py-3">
+                        <span className="text-base">📋</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-foreground truncate">{selectedTemplate.title}</p>
+                          <p className="text-[10px] text-surface-400 font-bold">{selectedTemplate.template_category} · {selectedTemplate.task_count} tasks</p>
+                        </div>
+                        <button
+                          onClick={() => setShowTemplateSelector(!showTemplateSelector)}
+                          className="text-[11px] font-black text-accent hover:underline"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowTemplateSelector(!showTemplateSelector)}
+                        className="w-full flex items-center gap-3 bg-surface-100/50 border border-dashed border-surface-300 rounded-xl px-4 py-3 hover:border-accent/40 hover:bg-accent/5 transition-all group"
+                      >
+                        <span className="text-base opacity-50 group-hover:opacity-100">📋</span>
+                        <span className="text-sm text-surface-400 font-medium group-hover:text-foreground">
+                          {templatesLoading ? 'Loading templates...' : templates.length > 0 ? 'Apply a template (optional)' : 'No templates in your library'}
+                        </span>
+                        {templates.length > 0 && (
+                          <span className="ml-auto text-[11px] font-bold text-accent">Browse →</span>
+                        )}
+                      </button>
+                    )}
+
+                    {/* Inline Template Selector */}
+                    <AnimatePresence>
+                      {showTemplateSelector && templates.length > 0 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mt-2 max-h-56 overflow-y-auto space-y-2 pr-1">
+                            {templates.map(t => (
+                              <button
+                                key={t.uid}
+                                onClick={() => { setSelectedTemplate(t); setShowTemplateSelector(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
+                                  selectedTemplate?.uid === t.uid
+                                    ? 'border-accent bg-accent/10'
+                                    : 'border-surface-200 hover:border-accent/30 hover:bg-surface-50'
+                                }`}
+                              >
+                                <div className="w-10 h-10 rounded-lg bg-surface-200/50 border border-surface-200 flex items-center justify-center shrink-0 text-lg">
+                                  📋
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-black text-foreground truncate">{t.title}</p>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    {t.template_category && (
+                                      <span className="text-[10px] font-bold text-primary">{t.template_category}</span>
+                                    )}
+                                    <span className="text-[10px] text-surface-400">📌 {t.task_count} tasks</span>
+                                    {t.avg_rating > 0 && (
+                                      <span className="text-[10px] text-surface-400">⭐ {t.avg_rating.toFixed(1)}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                {selectedTemplate?.uid === t.uid && (
+                                  <span className="text-accent font-black text-lg shrink-0">✓</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
 
                   <motion.div variants={itemVariants} className="pt-2">

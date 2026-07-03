@@ -7,9 +7,11 @@ import { motion } from "framer-motion";
 interface ProjectCardProps {
   project: Project;
   onStatusChange?: (uid: string, newStatus: ProjectStatus) => void;
+  onSaveAsTemplate?: (projectUid: string, projectTitle: string) => void;
 }
 
-export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChange }) => {
+export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChange, onSaveAsTemplate }) => {
+  const [menuOpen, setMenuOpen] = React.useState(false);
   return (
     <Link href={`/dashboard/projects/${project.uid}`} className="block group h-full">
       <motion.div 
@@ -45,6 +47,35 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChang
               <span className="px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest rounded-md bg-accent/10 text-accent border border-accent/20">
                 {project.kind}
               </span>
+            )}
+            {/* 3-dot menu */}
+            {onSaveAsTemplate && (
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(prev => !prev); }}
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-surface-400 hover:text-foreground hover:bg-surface-200 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  ⋯
+                </button>
+                {menuOpen && (
+                  <div
+                    className="absolute right-0 top-7 z-50 min-w-[170px] bg-surface-50 border border-surface-200 rounded-xl shadow-xl py-1"
+                    onMouseLeave={() => setMenuOpen(false)}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMenuOpen(false);
+                        onSaveAsTemplate(project.uid, project.title);
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-bold text-foreground hover:bg-surface-100 transition-colors flex items-center gap-2"
+                    >
+                      <span>📋</span> Save as Template
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

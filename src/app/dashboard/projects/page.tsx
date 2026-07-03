@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { Project } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { orgsApi } from "@/domains/orgs/api";
@@ -8,8 +8,9 @@ import { ProjectCard } from "@/components/projects/ProjectCard";
 import { EstablishBlueprintModal } from "@/components/projects/EstablishBlueprintModal";
 import { Spinner } from "@/components/ui/Spinner";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { useSearchParams, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 // ── Inner component that safely uses useSearchParams() ──────────────────────
 function SearchParamsReader({ onParams }: { onParams: (leadId: string | null, title: string | null, clientName: string | null) => void }) {
@@ -38,6 +39,12 @@ function ProjectsPageInner() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("NEWEST");
+
+  // Save-as-template panel state
+  const [templatePanel, setTemplatePanel] = useState<{ open: boolean; projectUid: string; projectTitle: string } | null>(null);
+  const [templateMeta, setTemplateMeta] = useState({ category: '', difficulty: '', visibility: 'PRIVATE' });
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const router = useRouter();
 
   const handleSearchParams = (leadId: string | null, leadTitle: string | null, clientName: string | null) => {
     if (leadId) {
@@ -201,7 +208,14 @@ function ProjectsPageInner() {
         >
           {filteredProjects.map((project) => (
             <motion.div key={project.uid} variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }} className="h-full">
-              <ProjectCard project={project} onStatusChange={handleStatusChange} />
+              <ProjectCard
+                project={project}
+                onStatusChange={handleStatusChange}
+                onSaveAsTemplate={(uid, title) => {
+                  setTemplatePanel({ open: true, projectUid: uid, projectTitle: title });
+                  setTemplateMeta({ category: '', difficulty: '', visibility: 'PRIVATE' });
+                }}
+              />
             </motion.div>
           ))}
         </motion.div>
@@ -233,6 +247,123 @@ function ProjectsPageInner() {
         orgs={orgs}
         initialData={initialData}
       />
+
+      {/* ── Save as Template Slide Panel ── */}
+      <AnimatePresence>
+        {templatePanel?.open && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm"
+              onClick={() => setTemplatePanel(null)}
+            />
+            {/* Panel */}
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed right-0 top-0 h-full w-full max-w-md z-[100] bg-surface-50 border-l border-surface-200 shadow-2xl flex flex-col"
+            >
+              <div className="p-6 border-b border-surface-200 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-black text-foreground">Save as Template</h2>
+                  <p className="text-xs text-surface-400 font-medium mt-0.5 truncate max-w-[260px]">{templatePanel.projectTitle}</p>
+                </div>
+                <button onClick={() => setTemplatePanel(null)} className="w-8 h-8 rounded-xl flex items-center justify-center text-surface-400 hover:bg-surface-200 transition-colors">×</button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                <div className="bg-accent/8 border border-accent/20 rounded-2xl p-4 text-sm text-surface-600 font-medium">
+                  📋 A <strong>non-destructive clone</strong> of this project’s structure will be saved as a template. The original project and its data remain unchanged.
+                </div>
+
+                <div>
+                  <label className="text-xs font-black uppercase tracking-widest text-surface-400 mb-1.5 block">Category</label>
+                  <select
+                    value={templateMeta.category}
+                    onChange={e => setTemplateMeta(p => ({ ...p, category: e.target.value }))}
+                    className="w-full h-11 bg-surface-100 border border-surface-200 rounded-xl px-4 text-sm font-medium text-foreground focus:outline-none focus:border-accent"
+                  >
+                    <option value="">Select category...</option>
+                    {["Residential","Commercial","Industrial","Renovation","Infrastructure","Mixed-Use"].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black uppercase tracking-widest text-surface-400 mb-1.5 block">Difficulty</label>
+                  <select
+                    value={templateMeta.difficulty}
+                    onChange={e => setTemplateMeta(p => ({ ...p, difficulty: e.target.value }))}
+                    className="w-full h-11 bg-surface-100 border border-surface-200 rounded-xl px-4 text-sm font-medium text-foreground focus:outline-none focus:border-accent"
+                  >
+                    <option value="">Select difficulty...</option>
+                    <option value="BEGINNER">Beginner</option>
+                    <option value="INTERMEDIATE">Intermediate</option>
+                    <option value="EXPERT">Expert</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black uppercase tracking-widest text-surface-400 mb-1.5 block">Visibility</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { v: 'PRIVATE',  l: '🔒 Private',    d: 'Only you' },
+                      { v: 'ORG',      l: '🏢 Org',         d: 'Your team' },
+                      { v: 'UNLISTED', l: '🔗 Unlisted',  d: 'Link only' },
+                      { v: 'PUBLIC',   l: '🌐 Public',     d: 'Marketplace' },
+                    ].map(({ v, l, d }) => (
+                      <button
+                        key={v}
+                        onClick={() => setTemplateMeta(p => ({ ...p, visibility: v }))}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          templateMeta.visibility === v ? 'border-accent bg-accent/10' : 'border-surface-200 hover:border-surface-300'
+                        }`}
+                      >
+                        <div className="text-xs font-black text-foreground">{l}</div>
+                        <div className="text-[10px] text-surface-400">{d}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-surface-200">
+                <button
+                  disabled={savingTemplate}
+                  onClick={async () => {
+                    setSavingTemplate(true);
+                    try {
+                      const result = await projectsApi.saveProjectAsTemplate(templatePanel.projectUid, {
+                        category: templateMeta.category,
+                        visibility: templateMeta.visibility,
+                        difficulty: templateMeta.difficulty,
+                      });
+                      setTemplatePanel(null);
+                      toast.success(
+                        <div className="flex items-center gap-3">
+                          <span>📋 Template saved as <strong>{result.title}</strong>!</span>
+                          <button onClick={() => router.push(`/dashboard/templates/${result.uid}`)} className="font-bold text-accent underline">
+                            View →
+                          </button>
+                        </div>
+                      );
+                    } catch {
+                      toast.error('Failed to save as template.');
+                    } finally {
+                      setSavingTemplate(false);
+                    }
+                  }}
+                  className="w-full h-12 bg-gradient-to-r from-accent to-accent/90 text-background rounded-xl font-black text-sm hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(255,186,8,0.4)] transition-all disabled:opacity-50"
+                >
+                  {savingTemplate ? 'Saving...' : '📋 Save as Template'}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Shared Tasks Section */}
       {sharedTasks.length > 0 && (

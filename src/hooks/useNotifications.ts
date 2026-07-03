@@ -26,7 +26,7 @@ export function useNotifications() {
     // Fetch initial notifications via REST API
     const fetchInitialNotifications = async () => {
       try {
-        const res = await fetch("/api/proxy/communications/notifications/");
+        const res = await fetch("/api/v1/communications/notifications/");
         if (res.ok) {
           const data = await res.json();
           // Adjust according to paginated response if applicable
@@ -85,7 +85,7 @@ export function useNotifications() {
 
   const markAsRead = async (id: number) => {
     try {
-      await fetch(`/api/proxy/communications/notifications/${id}/mark-read/`, { method: "POST" });
+      await fetch(`/api/v1/communications/notifications/${id}/mark-read/`, { method: "POST" });
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
@@ -97,7 +97,7 @@ export function useNotifications() {
 
   const markAllAsRead = async () => {
     try {
-      await fetch(`/api/proxy/communications/notifications/mark-all-read/`, { method: "POST" });
+      await fetch(`/api/v1/communications/notifications/mark-all-read/`, { method: "POST" });
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (err) {

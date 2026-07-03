@@ -583,7 +583,7 @@ export const projectsApi = {
     return fetchFromBff<any[]>("/api/v1/projects/vendor-invoices/");
   },
   exportVendorInvoice: (invoiceId: number) => {
-    window.open(`/api/proxy/projects/vendor-invoices/${invoiceId}/export-pdf/`, "_blank");
+    window.open(`/api/v1/projects/vendor-invoices/${invoiceId}/export-pdf/`, "_blank");
   },
 
   getSecureAssetUrl: (assetId: number) => {
@@ -807,4 +807,112 @@ export const projectsApi = {
       body: data ? JSON.stringify(data) : undefined
     });
   },
+
+  // ── Template System ──────────────────────────────────────────────────────────
+
+  /** Save an active project as a new template (non-destructive clone). */
+  saveProjectAsTemplate: async (projectUid: string, metadata: {
+    category?: string; tags?: string[]; building_type?: string;
+    country?: string; difficulty?: string; license?: string;
+    visibility?: string; est_duration_days?: number;
+    est_cost_min?: number; est_cost_max?: number; thumbnail?: string;
+  }) => {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/save-as-template/`, {
+      method: "POST",
+      body: JSON.stringify(metadata),
+    });
+  },
+
+  /** Get the user's template library. Supports ?tab=mine|saved|org&search=&category=&sort=&favorites_only= */
+  getTemplateLibrary: async (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return fetchFromBff<any>(`/api/v1/projects/templates/${qs}`, { method: "GET" });
+  },
+
+  /** Get full detail for a single template (includes task tree). */
+  getTemplateDetail: async (uid: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/templates/${uid}/`, { method: "GET" });
+  },
+
+  /** Update template metadata (category, tags, visibility, etc.). */
+  updateTemplate: async (uid: string, data: Record<string, any>) => {
+    return fetchFromBff<any>(`/api/v1/projects/templates/${uid}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** Publish a template and set its visibility. */
+  publishTemplate: async (uid: string, visibility: "PUBLIC" | "ORG" | "UNLISTED" = "PUBLIC") => {
+    return fetchFromBff<any>(`/api/v1/projects/templates/${uid}/publish/`, {
+      method: "PATCH",
+      body: JSON.stringify({ visibility }),
+    });
+  },
+
+  /** Archive a template (hides from library and marketplace, does not delete). */
+  archiveTemplate: async (uid: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/templates/${uid}/archive/`, { method: "PATCH" });
+  },
+
+  /** Generate (or rotate) a shareable link token for a template. */
+  generateTemplateShareLink: async (uid: string) => {
+    return fetchFromBff<{ share_token: string; share_url: string }>(
+      `/api/v1/projects/templates/${uid}/generate-share-link/`,
+      { method: "POST" }
+    );
+  },
+
+  /** Toggle favorite status for a template. */
+  toggleTemplateFavorite: async (uid: string) => {
+    return fetchFromBff<{ is_favorite: boolean }>(
+      `/api/v1/projects/templates/${uid}/favorite/`,
+      { method: "POST" }
+    );
+  },
+
+  /** Submit or update a rating (1–5) on a published template. */
+  rateTemplate: async (uid: string, score: number, review?: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/templates/${uid}/rate/`, {
+      method: "POST",
+      body: JSON.stringify({ score, review }),
+    });
+  },
+
+  /** Get paginated ratings list for a template. */
+  getTemplateRatings: async (uid: string, page = 1) => {
+    return fetchFromBff<any>(`/api/v1/projects/templates/${uid}/ratings/?page=${page}`, { method: "GET" });
+  },
+
+  /** Create a new active project from a template. */
+  createProjectFromTemplate: async (templateUid: string, data: {
+    title: string; account_id: number;
+    description?: string; kind?: string; location?: string;
+    client_name?: string; client_phone?: string; client_email?: string;
+  }) => {
+    return fetchFromBff<{ uid: string; title: string }>(
+      `/api/v1/projects/templates/${templateUid}/create-project/`,
+      { method: "POST", body: JSON.stringify(data) }
+    );
+  },
+
+  /** Browse the public template marketplace. */
+  getMarketplaceTemplates: async (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return fetchFromBff<any>(`/api/v1/projects/marketplace/templates/${qs}`, { method: "GET" });
+  },
+
+  /** Fetch a public template by its share token (no auth required). */
+  getPublicTemplate: async (shareToken: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/public/templates/${shareToken}/`, { method: "GET" });
+  },
+
+  /** Save a public template (by share token) to the user's library. */
+  savePublicTemplateToLibrary: async (shareToken: string) => {
+    return fetchFromBff<{ saved: boolean; template_uid: string; template_title: string }>(
+      `/api/v1/projects/public/templates/${shareToken}/save/`,
+      { method: "POST" }
+    );
+  },
 };
+

@@ -19,6 +19,8 @@ export const Sidebar: React.FC = () => {
   const workspaceLinks = [
     { label: "Dashboard", href: "/dashboard", icon: "📊" },
     { label: "Projects", href: "/dashboard/projects", icon: "🏗️" },
+    { label: "Templates", href: "/dashboard/templates", icon: "📋" },
+    { label: "Marketplace", href: "/dashboard/marketplace/templates", icon: "🛒" },
     { label: "Business Leads", href: "/dashboard/leads", icon: "💼" },
   ];
 
