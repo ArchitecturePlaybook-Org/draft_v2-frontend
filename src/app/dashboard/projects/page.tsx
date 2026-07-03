@@ -11,6 +11,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { UpgradeModal } from "@/components/billing/UpgradeModal";
 
 // ── Inner component that safely uses useSearchParams() ──────────────────────
 function SearchParamsReader({ onParams }: { onParams: (leadId: string | null, title: string | null, clientName: string | null) => void }) {
@@ -45,6 +47,8 @@ function ProjectsPageInner() {
   const [templateMeta, setTemplateMeta] = useState({ category: '', difficulty: '', visibility: 'PRIVATE' });
   const [savingTemplate, setSavingTemplate] = useState(false);
   const router = useRouter();
+  const planLimits = usePlanLimits();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleSearchParams = (leadId: string | null, leadTitle: string | null, clientName: string | null) => {
     if (leadId) {
@@ -138,8 +142,14 @@ function ProjectsPageInner() {
           </p>
         </div>
         <div className="flex items-center gap-4 relative z-10">
-          <button 
-            onClick={() => setShowCreateModal(true)}
+          <button
+            onClick={() => {
+              if (!planLimits.isLoading && !planLimits.canCreateProject) {
+                setShowUpgradeModal(true);
+              } else {
+                setShowCreateModal(true);
+              }
+            }}
             className="h-12 px-6 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(var(--color-accent),0.4)]"
           >
             <span className="text-lg leading-none mb-0.5">+</span> Establish Blueprint
@@ -414,6 +424,14 @@ function ProjectsPageInner() {
           </div>
         </div>
       )}
+
+      {/* Plan limit gate: shown when user tries to create beyond their project cap */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        limitType="project"
+        currentPlan={planLimits.subscription?.plan?.name}
+      />
     </div>
   );
 }
