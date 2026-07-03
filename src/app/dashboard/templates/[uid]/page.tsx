@@ -30,7 +30,7 @@ interface Template {
   share_token_expires_at: string | null;
   is_in_library: boolean; is_favorite: boolean; use_count: number;
   user_rating: number | null; created_at: string;
-  tasks: TaskNode[];
+  tasks?: TaskNode[];
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
@@ -142,7 +142,12 @@ export default function TemplateDetailPage() {
   const load = useCallback(async () => {
     try {
       const data = await projectsApi.getTemplateDetail(uid);
-      setTemplate(data);
+      // Normalize arrays that the API may omit
+      setTemplate({
+        ...data,
+        tasks: Array.isArray(data.tasks) ? data.tasks : [],
+        template_tags: Array.isArray(data.template_tags) ? data.template_tags : [],
+      });
       setEditData({
         title: data.title,
         description: data.description,
@@ -640,11 +645,11 @@ export default function TemplateDetailPage() {
               <h2 className="text-xs font-black uppercase tracking-widest text-surface-400 mb-5">
                 Project Structure — {template.task_count} Root Tasks
               </h2>
-              {template.tasks.length === 0 ? (
+              {(template.tasks ?? []).length === 0 ? (
                 <p className="text-sm text-surface-400 text-center py-10">No tasks defined yet.</p>
               ) : (
                 <div className="space-y-1">
-                  {template.tasks.map(task => <TaskTreeNode key={task.uid} task={task} depth={0} />)}
+                  {(template.tasks ?? []).map(task => <TaskTreeNode key={task.uid} task={task} depth={0} />)}
                 </div>
               )}
             </div>

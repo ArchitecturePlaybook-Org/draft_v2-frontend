@@ -907,6 +907,11 @@ export const projectsApi = {
     return fetchFromBff<any>(`/api/v1/projects/public/templates/${shareToken}/`, { method: "GET" });
   },
 
+  /** Fetch a public template's matrix data by its share token (no auth required). */
+  getPublicTemplateMatrix: async (shareToken: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/public/templates/${shareToken}/matrix/`, { method: "GET" });
+  },
+
   /** Save a public template (by share token) to the user's library. */
   savePublicTemplateToLibrary: async (shareToken: string) => {
     return fetchFromBff<{ saved: boolean; template_uid: string; template_title: string }>(

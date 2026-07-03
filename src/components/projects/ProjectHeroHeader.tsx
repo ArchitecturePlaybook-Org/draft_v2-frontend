@@ -14,6 +14,7 @@ interface ProjectHeroHeaderProps {
   onCloneProject?: () => void;
   onOpenSettings?: () => void;
   onDeleteProject?: () => void;
+  readOnly?: boolean;
 }
 
 // Simple internal WeatherStrip component
@@ -63,7 +64,8 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({
   onAssignPersonnel,
   onCloneProject,
   onOpenSettings,
-  onDeleteProject
+  onDeleteProject,
+  readOnly = false
 }) => {
   const [bgClass, setBgClass] = useState("from-primary/5 to-accent/5");
   
@@ -141,18 +143,26 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({
           </div>
           
           <div className="flex items-center gap-3 shrink-0">
-            <ProjectStatusDropdown 
-              uid={project.uid} 
-              status={project.status as ProjectStatus} 
-              onChange={onStatusChange} 
-            />
-            <ProjectActionsMenu 
-              project={project} 
-              onAssignPersonnel={onAssignPersonnel} 
-              onCloneProject={onCloneProject} 
-              onOpenSettings={onOpenSettings}
-              onDeleteProject={onDeleteProject}
-            />
+            {readOnly ? (
+              <div className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-white/10 text-primary dark:text-white border border-surface-200 dark:border-white/20">
+                {project.status || "TEMPLATE"}
+              </div>
+            ) : (
+              <>
+                <ProjectStatusDropdown 
+                  uid={project.uid} 
+                  status={project.status as ProjectStatus} 
+                  onChange={onStatusChange} 
+                />
+                <ProjectActionsMenu 
+                  project={project} 
+                  onAssignPersonnel={onAssignPersonnel} 
+                  onCloneProject={onCloneProject} 
+                  onOpenSettings={onOpenSettings}
+                  onDeleteProject={onDeleteProject}
+                />
+              </>
+            )}
           </div>
         </div>
 

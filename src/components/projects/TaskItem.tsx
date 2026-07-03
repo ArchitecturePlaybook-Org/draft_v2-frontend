@@ -8,6 +8,7 @@ import { Users, X } from "lucide-react";
 interface TaskItemProps {
   task: Task;
   isLocked?: boolean;
+  readOnly?: boolean;
 
   onClick?: () => void;
   onDragStart?: (e: React.DragEvent) => void;
@@ -141,6 +142,7 @@ const STATUS_LABELS: Record<string, string> = {
 export const TaskItem: React.FC<TaskItemProps> = ({
   task,
   isLocked = false,
+  readOnly = false,
   onClick,
   onDragStart,
   isSelected = false,
@@ -171,7 +173,9 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         relative group bg-surface-100 border rounded-md p-3.5 transition-[box-shadow,border-color,background-color,opacity] duration-300
         ${isLocked
           ? "opacity-60 cursor-not-allowed border-surface-200"
-          : "cursor-pointer hover:border-semantic-blue"
+          : readOnly
+            ? "cursor-default border-surface-200"
+            : "cursor-pointer hover:border-semantic-blue"
         }
         ${task.has_active_blocker ? "border-semantic-red bg-semantic-red/10" : "border-surface-200"}
         ${isDragging ? 'shadow-2xl opacity-95 z-50 border-semantic-blue' : ''}

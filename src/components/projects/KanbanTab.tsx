@@ -5,9 +5,10 @@ import { projectsApi } from "@/domains/projects/api";
 import { usePermissions } from "@/hooks/use-permissions";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
-export const KanbanTab: React.FC = () => {
+export const KanbanTab: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }) => {
   const { project, zones, phases, taskTemplates, setActiveTask, fetchProject, addTaskOptimistically, updateTaskStatus } = useProjectStore();
   const { canEditProject } = usePermissions();
+  const canEdit = !readOnly && canEditProject;
 
   const [kanbanFilter, setKanbanFilter] = useState("");
   const [inlineTaskCol, setInlineTaskCol] = useState<string | null>(null);
@@ -114,6 +115,7 @@ export const KanbanTab: React.FC = () => {
   };
 
   const handleDragEnd = async (result: DropResult) => {
+    if (readOnly) return;
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId) return;
@@ -130,7 +132,7 @@ export const KanbanTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {canEditProject(project) && (
+      {canEdit && (
         <form onSubmit={handleCreateTask} className="bg-surface-100 border-surface-200 p-3 pr-4 rounded-2xl border border-surface-200 flex flex-wrap md:flex-nowrap gap-4 items-center shadow-sm">
           <span className="text-lg pl-4 opacity-30 hidden md:block">📋</span>
           
@@ -185,7 +187,7 @@ export const KanbanTab: React.FC = () => {
         </form>
       )}
 
-      {selectedTaskUids.length > 0 && (
+      {selectedTaskUids.length > 0 && !readOnly && (
         <div className="bg-surface-800 text-white p-4 rounded-2xl shadow-xl flex items-center justify-between animate-in slide-in-from-bottom-4 sticky top-4 z-40">
           <div className="flex items-center gap-4">
             <span className="font-bold text-sm bg-surface-700 px-3 py-1 rounded-lg">{selectedTaskUids.length} selected</span>
@@ -243,7 +245,7 @@ export const KanbanTab: React.FC = () => {
             { id: "QA", label: "Under Inspection", color: "border-t-accent", dot: "bg-accent" },
             { id: "DONE", label: "Done", color: "border-t-semantic-green", dot: "bg-semantic-green" },
           ].map(col => (
-            <Droppable key={col.id} droppableId={col.id}>
+            <Droppable key={col.id} droppableId={col.id} isDropDisabled={readOnly}>
               {(provided, snapshot) => (
                 <div 
                   ref={provided.innerRef}
@@ -251,19 +253,21 @@ export const KanbanTab: React.FC = () => {
                   className={`flex flex-col min-w-[280px] flex-1 px-3 min-h-[500px] transition-colors border-t-[3px] rounded-xl bg-surface-100 border border-surface-200 shadow-xl shadow-primary/5 ${col.color} ${snapshot.isDraggingOver ? 'bg-surface-200/90 ring-2 ring-accent/50' : ''}`}
                 >
                   <h4 className="flex items-center font-black text-[10px] uppercase tracking-[0.2em] text-text-secondary mb-4 px-1">
-                    <input 
-                      type="checkbox"
-                      className="w-3.5 h-3.5 mr-3 flex-shrink-0 rounded border-surface-300 text-primary focus:ring-accent cursor-pointer"
-                      checked={project.tasks.filter(t => t.status === col.id).length > 0 && project.tasks.filter(t => t.status === col.id).every(t => selectedTaskUids.includes(t.uid))}
-                      onChange={(e) => {
-                        const colTasks = project.tasks.filter(t => t.status === col.id).map(t => t.uid);
-                        if (e.target.checked) {
-                          setSelectedTaskUids(prev => Array.from(new Set([...prev, ...colTasks])));
-                        } else {
-                          setSelectedTaskUids(prev => prev.filter(uid => !colTasks.includes(uid)));
-                        }
-                      }}
-                    />
+                    {!readOnly && (
+                      <input 
+                        type="checkbox"
+                        className="w-3.5 h-3.5 mr-3 flex-shrink-0 rounded border-surface-300 text-primary focus:ring-accent cursor-pointer"
+                        checked={project.tasks.filter(t => t.status === col.id).length > 0 && project.tasks.filter(t => t.status === col.id).every(t => selectedTaskUids.includes(t.uid))}
+                        onChange={(e) => {
+                          const colTasks = project.tasks.filter(t => t.status === col.id).map(t => t.uid);
+                          if (e.target.checked) {
+                            setSelectedTaskUids(prev => Array.from(new Set([...prev, ...colTasks])));
+                          } else {
+                            setSelectedTaskUids(prev => prev.filter(uid => !colTasks.includes(uid)));
+                          }
+                        }}
+                      />
+                    )}
                     <span className={`w-2 h-2 rounded-full mr-2 ${col.dot}`} />
                     {col.label} 
                     <span className="ml-auto bg-background/50 backdrop-blur border border-surface-200 text-primary font-bold px-2.5 py-0.5 rounded-full shadow-inner">
@@ -284,9 +288,10 @@ export const KanbanTab: React.FC = () => {
                         {(provided, snapshot) => (
                           <TaskItem 
                             task={task} 
-                            onClick={() => setActiveTask(task)} 
+                            readOnly={readOnly}
+                            onClick={() => !readOnly && setActiveTask(task)} 
                             isSelected={selectedTaskUids.includes(task.uid)}
-                            onSelectToggle={() => toggleTaskSelection(task.uid)}
+                            onSelectToggle={() => !readOnly && toggleTaskSelection(task.uid)}
                             innerRef={provided.innerRef}
                             draggableProps={provided.draggableProps}
                             dragHandleProps={provided.dragHandleProps}

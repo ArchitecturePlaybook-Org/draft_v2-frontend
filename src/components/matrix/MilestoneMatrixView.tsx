@@ -19,6 +19,8 @@ interface MilestoneMatrixViewProps {
   userRole?: "contractor" | "qa_inspector" | "admin";
   onMatrixLoaded?: (hasData: boolean) => void;
   onTaskChange?: () => void;
+  readOnly?: boolean;
+  initialPayload?: MatrixPayload;
 }
 
 export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
@@ -27,6 +29,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   userRole = "admin",
   onMatrixLoaded,
   onTaskChange,
+  readOnly = false,
+  initialPayload,
 }) => {
   const [payload, setPayload] = useState<MatrixPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,6 +57,14 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const fetchMatrix = useCallback(async () => {
+    if (initialPayload) {
+      setPayload(initialPayload);
+      if (onMatrixLoaded) {
+        onMatrixLoaded(initialPayload.zones.length > 0 && initialPayload.phases.length > 0);
+      }
+      setLoading(false);
+      return;
+    }
     try {
       const data = await projectsApi.getMatrix(projectUid);
       setPayload(data);
@@ -70,6 +82,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   useEffect(() => {
     fetchMatrix();
     
+    if (readOnly || initialPayload) return; // No live updates for static public views
+
     // Connect WebSocket for real-time updates
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000/ws";
     const ws = new WebSocket(`${wsUrl}/projects/${projectUid}/matrix/`);
@@ -94,6 +108,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     payload?.blocks.find(b => b.zone_id === zoneId && b.phase_id === phaseId) ?? null;
 
   const handleCellClick = async (block: MilestoneBlockCompact, zone: SpatialZone, phase: MilestonePhase) => {
+    if (readOnly) return;
     setLoadingBlockId(block.id);
     try {
       // Fetch full task details for the expanded block
@@ -114,6 +129,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   };
 
   const handleEmptyCellClick = async (zone: SpatialZone, phase: MilestonePhase) => {
+    if (readOnly) return;
     const cellId = `${zone.id}-${phase.id}`;
     setLoadingCellId(cellId);
     try {
@@ -247,7 +263,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
             Use the Onboarding Wizard to define the spatial zones and milestone phases for this project.
           </p>
         </div>
-        {userRole === "admin" && (
+        {!readOnly && userRole === "admin" && (
           <button 
             onClick={() => setShowWizard(true)}
             className="mt-2 relative group overflow-hidden h-11 px-8 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_30px_-10px_var(--accent)] z-10"
@@ -321,7 +337,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                 ))}
                 
                 {/* Add Zone Button Column */}
-                {userRole === "admin" && (
+                {!readOnly && userRole === "admin" && (
                   <th
                     style={{ width: ZONE_COL_W, minWidth: ZONE_COL_W, height: 52 }}
                     className="border-b border-surface-200 px-2 text-center align-middle bg-surface-100/90 backdrop-blur-md"
@@ -420,7 +436,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                     })}
                     
                     {/* Empty cell under Add Zone Button */}
-                    {userRole === "admin" && (
+                    {!readOnly && userRole === "admin" && (
                       <td className="border-b border-surface-100 border-surface-200/50 bg-surface-50/30 dark:bg-surface-800/30" />
                     )}
                   </tr>
@@ -428,7 +444,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
               })}
 
               {/* Add Phase Row */}
-              {userRole === "admin" && (
+              {!readOnly && userRole === "admin" && (
                 <tr>
                   <td className="border-r border-surface-200 p-4 sticky left-0 z-10 bg-surface-100/90 backdrop-blur-md shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)]">
                     {showAddPhaseInput ? (
