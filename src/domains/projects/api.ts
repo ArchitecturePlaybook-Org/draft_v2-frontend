@@ -780,12 +780,9 @@ export const projectsApi = {
     );
   },
 
-  // ── Block unlock (admin override) ─────────────────────────────────────────
-  unlockBlock: async (blockId: number) => {
-    return fetchFromBff<any>(`/api/v1/projects/blocks/${blockId}/unlock/`, { method: "POST" });
-  },
 
   // ── Share Links ───────────────────────────────────────────────────────────
+
   getShareLinks: async (projectId: string) => {
     return fetchFromBff<any[]>(`/api/v1/projects/projects/${projectId}/share/`, { method: "GET" });
   },
@@ -897,7 +894,7 @@ export const projectsApi = {
   },
 
   /** Browse the public template marketplace. */
-  getMarketplaceTemplates: async (params?: Record<string, string>) => {
+  getTemplatesHubTemplates: async (params?: Record<string, string>) => {
     const qs = params ? "?" + new URLSearchParams(params).toString() : "";
     return fetchFromBff<any>(`/api/v1/projects/marketplace/templates/${qs}`, { method: "GET" });
   },
@@ -919,5 +916,25 @@ export const projectsApi = {
       { method: "POST" }
     );
   },
+
+  // ── Matrix Block: Manual Unlock / Lock ─────────────────────────────────────
+
+  /** Manually unlock a LOCKED block (manager only). */
+  unlockBlock: async (blockId: number, reason?: string) => {
+    return fetchFromBff<import("@/types/projects").MilestoneBlockCompact>(
+      `/api/v1/projects/blocks/${blockId}/unlock/`,
+      { method: "POST", body: JSON.stringify({ reason: reason ?? "" }) }
+    );
+  },
+
+  /** Re-lock an ACTIVE block (manager only, only when all tasks are TODO). */
+  lockBlock: async (blockId: number) => {
+    return fetchFromBff<import("@/types/projects").MilestoneBlockCompact>(
+      `/api/v1/projects/blocks/${blockId}/lock/`,
+      { method: "POST" }
+    );
+  },
 };
+
+
 

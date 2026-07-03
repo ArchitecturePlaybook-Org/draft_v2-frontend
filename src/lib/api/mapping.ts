@@ -136,6 +136,54 @@ export const API_ROUTES: ApiRouteConfig[] = [
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     auth: true,
   },
+  // Templates Hub (public browsing — no auth required)
+  {
+    prefix: "v1/marketplace/templates",
+    target: "/api/v1/projects/marketplace/templates/",
+    methods: ["GET"],
+    auth: false,
+  },
+  {
+    prefix: "v1/public/templates",
+    target: "/api/v1/projects/public/templates/",
+    methods: ["GET", "POST"],
+    auth: false,
+  },
+  // Authenticated template management
+  {
+    prefix: "v1/templates",
+    target: "/api/v1/projects/templates/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  // Showroom (public browse + order placement — no auth)
+  {
+    prefix: "v1/showroom/products",
+    target: "/api/v1/showroom/products/",
+    methods: ["GET", "POST"],
+    auth: false,
+  },
+  // Showroom authenticated (buyer orders + vendor dashboard)
+  {
+    prefix: "v1/showroom",
+    target: "/api/v1/showroom/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  // Social feed (public)
+  {
+    prefix: "v1/social/feed",
+    target: "/api/v1/social/feed/",
+    methods: ["GET"],
+    auth: false,
+  },
+  // Social (authenticated — save, saved posts)
+  {
+    prefix: "v1/social",
+    target: "/api/v1/social/",
+    methods: ["GET", "POST", "DELETE"],
+    auth: true,
+  },
   {
     prefix: "v1/events",
     target: "/api/v1/events/",

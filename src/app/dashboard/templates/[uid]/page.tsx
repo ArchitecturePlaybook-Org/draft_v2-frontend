@@ -115,7 +115,7 @@ const VISIBILITIES = [
   { value: "PRIVATE",  label: "🔒 Private",         desc: "Only you can see it" },
   { value: "ORG",      label: "🏢 Organization",    desc: "Your team members" },
   { value: "UNLISTED", label: "🔗 Unlisted",        desc: "Anyone with the link" },
-  { value: "PUBLIC",   label: "🌐 Public",          desc: "Listed in Marketplace" },
+  { value: "PUBLIC",   label: "🌐 Public",          desc: "Listed in Templates Hub" },
 ];
 
 export default function TemplateDetailPage() {

@@ -70,17 +70,17 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ item }) => {
         </p>
         
         <div className="pt-4 border-t border-surface-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+          <Link href={`/profile/${item.user?.uid}`} className="flex items-center gap-3 group/author">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary group-hover/author:bg-accent/20 transition-colors">
               {item.user?.name.charAt(0)}
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-primary truncate max-w-[100px]">{item.user?.name}</span>
+              <span className="text-[10px] font-bold text-primary truncate max-w-[100px] group-hover/author:text-accent transition-colors">{item.user?.name}</span>
               <span className="text-[9px] text-surface-400 uppercase tracking-tighter">
                 {item.user?.city ? `${item.user.city}, ${item.user.country}` : 'Global'}
               </span>
             </div>
-          </div>
+          </Link>
           
           <div className="flex gap-2 items-center">
             <button 

@@ -167,7 +167,7 @@ export default function MarketplacePage() {
       if (difficulty !== "All") params.difficulty = difficulty;
       params.page = String(reset ? 1 : page + 1);
 
-      const res = await projectsApi.getMarketplaceTemplates(params);
+      const res = await projectsApi.getTemplatesHubTemplates(params);
       const list = Array.isArray(res) ? res : res?.results ?? [];
       const next = !Array.isArray(res) && !!res?.next;
       if (reset) setTemplates(list);

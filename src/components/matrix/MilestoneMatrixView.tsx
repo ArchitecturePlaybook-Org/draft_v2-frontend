@@ -160,6 +160,38 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     }
   };
 
+  // ── Manual block unlock / lock ─────────────────────────────────────────────
+  const handleUnlockBlock = async (blockId: number, reason?: string) => {
+    try {
+      const updatedBlock = await projectsApi.unlockBlock(blockId, reason);
+      toast.success("Block unlocked");
+      fetchMatrix();
+      // Update selectedBlock so KanbanDrawer recomputes isLocked immediately
+      if (selectedBlock?.id === blockId) {
+        setSelectedBlock(prev => prev ? { ...prev, ...updatedBlock, status: "ACTIVE" as const } : prev);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.detail || "Could not unlock block.");
+      throw err;
+    }
+  };
+
+  const handleLockBlock = async (blockId: number) => {
+    try {
+      const updatedBlock = await projectsApi.lockBlock(blockId);
+      toast.success("Block re-locked");
+      fetchMatrix();
+      // Update selectedBlock so KanbanDrawer recomputes isLocked immediately
+      if (selectedBlock?.id === blockId) {
+        setSelectedBlock(prev => prev ? { ...prev, ...updatedBlock, status: "LOCKED" as const } : prev);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.detail || "Could not lock block.");
+      throw err;
+    }
+  };
+
+
   const submitAddZone = async () => {
     if (!payload) return;
     const projectId = payload.project_id || payload.zones[0]?.project || payload.phases[0]?.project || payload.blocks[0]?.project_id;
@@ -428,7 +460,10 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                             <MatrixBlockCell
                               block={block}
                               zoneName={zone.name}
+                              isManager={userRole === "admin"}
                               onClick={block ? () => handleCellClick(block, zone, phase) : () => handleEmptyCellClick(zone, phase)}
+                              onUnlock={handleUnlockBlock}
+                              onLock={handleLockBlock}
                             />
                           )}
                         </td>

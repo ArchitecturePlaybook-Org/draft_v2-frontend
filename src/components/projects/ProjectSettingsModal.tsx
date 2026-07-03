@@ -22,7 +22,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const fetchProjectDetails = useProjectStore((state) => state.fetchProjectDetails);
+  const fetchProjectDetails = useProjectStore((state) => state.fetchProject);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

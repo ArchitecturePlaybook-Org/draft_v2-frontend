@@ -40,6 +40,7 @@ export interface PortfolioItem {
   };
   contributors?: {
     id: number;
+    uid?: string;
     name: string;
     avatar: string | null;
     role?: string;

@@ -22,6 +22,10 @@
   --surface-100: #202630;
   --surface-200: #202630;
   --surface-300: #2c3545;
+  --surface-card: #1A1F2B;
+  --surface-400: #5a7390;
+  --surface-500: #7b93af;
+  --surface-600: #A0B4CC;
   
   --gray-100: #161B23;
   --gray-200: #202630;
@@ -61,6 +65,10 @@
   --surface-100: #F3F4F6;
   --surface-200: #E5E7EB;
   --surface-300: #D1D5DB;
+  --surface-card: #FFFFFF;
+  --surface-400: #9CA3AF;
+  --surface-500: #6B7280;
+  --surface-600: #4B5563;
   
   --gray-100: #F9FAFB;
   --gray-200: #F3F4F6;
@@ -92,6 +100,10 @@
   --surface-100: #1A365D;
   --surface-200: #234E8A;
   --surface-300: #2C66B8;
+  --surface-card: #112240;
+  --surface-400: #6b78a0;
+  --surface-500: #8892B0;
+  --surface-600: #A8B2D1;
   
   --gray-100: #112240;
   --gray-200: #1A365D;
@@ -140,6 +152,10 @@
   --color-surface-100: var(--surface-100);
   --color-surface-200: var(--surface-200);
   --color-surface-300: var(--surface-300);
+  --color-surface-card: var(--surface-card);
+  --color-surface-400: var(--surface-400);
+  --color-surface-500: var(--surface-500);
+  --color-surface-600: var(--surface-600);
   
   --color-semantic-blue: var(--semantic-blue);
   --color-semantic-green: var(--semantic-green);
@@ -223,7 +239,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--surface-300);
   position: sticky;
@@ -296,7 +312,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 1.25rem;
   border: 1px solid var(--surface-200);
   min-height: 220px;
-  background: white;
+  background: var(--surface-card);
   transition: all 0.3s ease;
 }
 
@@ -397,7 +413,7 @@ select:focus {
 }
 
 ::placeholder {
-  color: rgba(160, 180, 204, 0.5);
+  color: var(--surface-500);
 }
 
 /* Fix dark mode scrollbar overrides that were missed */

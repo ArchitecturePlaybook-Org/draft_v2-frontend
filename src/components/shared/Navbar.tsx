@@ -29,8 +29,8 @@ const Navbar = () => {
   const navLinks = [
     { name: "Portfolio", href: "/portfolio" },
     { name: "Showroom", href: "/showroom" },
-    { name: "Forum", href: "/forum" },
-    { name: "Marketplace", href: "/marketplace" },
+    { name: "Social", href: "/social" },
+    { name: "Templates Hub", href: "/marketplace" },
     { name: "Jobs", href: "/jobs" },
   ];
 

@@ -222,7 +222,12 @@ export interface MilestoneBlockCompact {
   total_tasks: number;
   completed_tasks: number;
   notes?: string;
+  // Manual unlock audit trail
+  unlocked_by_name?: string | null;
+  unlocked_at?: string | null;
+  unlock_reason?: string | null;
 }
+
 
 export interface MilestoneBlockExpanded extends MilestoneBlockCompact {
   zone_name: string;

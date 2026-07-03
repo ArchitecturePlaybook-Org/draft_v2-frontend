@@ -1,4 +1,4 @@
-export type TakeoffType = 'length' | 'area' | 'count';
+export type TakeoffType = 'length' | 'area' | 'count' | 'line' | 'polygon' | 'point' | 'calibrate';
 
 export interface Point {
   x: number;

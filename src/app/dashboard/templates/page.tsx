@@ -281,7 +281,7 @@ export default function TemplatesLibraryPage() {
 
   const TABS: { key: TemplateTab; label: string; emoji: string }[] = [
     { key: "mine", label: "My Templates", emoji: "📋" },
-    { key: "saved", label: "Saved from Marketplace", emoji: "⭐" },
+    { key: "saved", label: "Saved from Templates Hub", emoji: "⭐" },
     { key: "org", label: "Organization", emoji: "🏢" },
   ];
 
@@ -301,7 +301,7 @@ export default function TemplatesLibraryPage() {
               href="/marketplace?tab=templates"
               className="flex items-center gap-2 px-4 py-2.5 border border-surface-200 rounded-xl text-[13px] font-bold text-surface-600 hover:bg-surface-100 hover:text-foreground transition-colors"
             >
-              🌐 Browse Marketplace
+              🌐 Browse Templates Hub
             </Link>
             <Link
               href="/dashboard/projects"
@@ -416,7 +416,7 @@ export default function TemplatesLibraryPage() {
                 href="/marketplace?tab=templates"
                 className="px-6 py-3 bg-primary text-background rounded-xl text-sm font-black hover:-translate-y-0.5 hover:shadow-lg transition-all"
               >
-                Browse Marketplace →
+                Browse Templates Hub →
               </Link>
             )}
           </div>

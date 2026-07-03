@@ -213,7 +213,9 @@ export default function PortfolioDetailClient() {
                 <div className="text-[10px] font-black text-accent uppercase tracking-[0.2em] mb-4">
                   Professional Profile
                 </div>
-                <h3 className="text-3xl font-black text-primary tracking-tight">{item.user.name}</h3>
+                <Link href={`/profile/${item.user.uid}`} className="block group">
+                  <h3 className="text-3xl font-black text-primary tracking-tight group-hover:text-accent transition-colors">{item.user.name}</h3>
+                </Link>
                 <div className="flex gap-2 items-center text-surface-500 text-sm font-medium">
                   <svg className="w-4 h-4 text-accent/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -242,19 +244,19 @@ export default function PortfolioDetailClient() {
                   </div>
                   <div className="space-y-3">
                     {item.contributors.map(c => (
-                      <div key={c.id} className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-surface-100 overflow-hidden flex items-center justify-center shrink-0">
+                      <Link key={c.id} href={`/profile/${c.uid || c.id}`} className="flex items-center gap-3 group/contributor">
+                        <div className="w-8 h-8 rounded-full bg-surface-100 overflow-hidden flex items-center justify-center shrink-0 group-hover/contributor:bg-accent/20 transition-colors">
                           {c.avatar ? (
                             <img src={c.avatar} alt={c.name} className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-xs font-bold text-surface-400">{c.name.charAt(0)}</span>
+                            <span className="text-xs font-bold text-surface-400 group-hover/contributor:text-accent transition-colors">{c.name.charAt(0)}</span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-primary truncate">{c.name}</p>
+                          <p className="text-sm font-bold text-primary truncate group-hover/contributor:text-accent transition-colors">{c.name}</p>
                           {c.role && <p className="text-[10px] font-bold text-surface-400 uppercase truncate">{c.role}</p>}
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>

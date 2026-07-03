@@ -430,6 +430,12 @@ export default function ProfilePage() {
               <div className="absolute inset-0 bg-white/20 w-[200%] animate-[shimmer_2s_infinite] -skew-x-12" />
             </div>
           </div>
+          <div className="pt-2">
+            <Link href={`/profile/${user.uid}`} className="w-full py-2 bg-surface-200/50 hover:bg-surface-200 border border-surface-300/50 rounded-xl flex items-center justify-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest transition-all">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+              View Public Profile
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -500,6 +506,92 @@ export default function ProfilePage() {
                                 />
                             ) : (
                                 <p className="font-bold text-primary text-sm tracking-tight bg-surface-50/30 p-4 rounded-xl border border-surface-200/30">{phone || "No contact line defined"}</p>
+                            )}
+                        </div>
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2">Years of Experience</label>
+                            {isEditing ? (
+                                <input 
+                                    type="number" 
+                                    value={Number(metadata.years_of_experience || 0)}
+                                    onChange={(e) => updateMetadataField("years_of_experience", parseInt(e.target.value) || 0)}
+                                    className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all text-sm shadow-inner"
+                                    placeholder="e.g. 10"
+                                />
+                            ) : (
+                                <p className="font-bold text-primary text-sm tracking-tight bg-surface-50/30 p-4 rounded-xl border border-surface-200/30">{metadata.years_of_experience ? `${metadata.years_of_experience} Years` : "Unspecified"}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2">Design Philosophy</label>
+                        {isEditing ? (
+                            <textarea 
+                                value={String(metadata.design_philosophy || "")}
+                                onChange={(e) => updateMetadataField("design_philosophy", e.target.value)}
+                                className="w-full h-24 p-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-2xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all text-sm leading-relaxed shadow-inner"
+                                placeholder="Describe your architectural approach and vision..."
+                            />
+                        ) : (
+                            <p className="text-primary leading-relaxed text-sm bg-surface-50/30 backdrop-blur-sm p-6 rounded-2xl border border-dashed border-surface-200/50">{String(metadata.design_philosophy || "No philosophy specified.")}</p>
+                        )}
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2">Services Offered (Comma Separated)</label>
+                        {isEditing ? (
+                            <input 
+                                type="text" 
+                                value={Array.isArray(metadata.services_offered) ? metadata.services_offered.join(", ") : ""}
+                                onChange={(e) => updateMetadataField("services_offered", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                                className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all text-sm shadow-inner"
+                                placeholder="Master Planning, Interior Design, 3D Rendering..."
+                            />
+                        ) : (
+                            <p className="font-bold text-primary text-sm tracking-tight bg-surface-50/30 p-4 rounded-xl border border-surface-200/30">
+                              {Array.isArray(metadata.services_offered) && metadata.services_offered.length > 0 
+                                ? metadata.services_offered.join(" • ") 
+                                : "Unspecified"}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2">Licenses & Certifications</label>
+                            {isEditing ? (
+                                <input 
+                                    type="text" 
+                                    value={Array.isArray(metadata.licenses_and_certifications) ? metadata.licenses_and_certifications.join(", ") : ""}
+                                    onChange={(e) => updateMetadataField("licenses_and_certifications", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                                    className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all text-sm shadow-inner"
+                                    placeholder="AIA, LEED AP, NCARB..."
+                                />
+                            ) : (
+                                <p className="font-bold text-primary text-sm tracking-tight bg-surface-50/30 p-4 rounded-xl border border-surface-200/30">
+                                  {Array.isArray(metadata.licenses_and_certifications) && metadata.licenses_and_certifications.length > 0 
+                                    ? metadata.licenses_and_certifications.join(", ") 
+                                    : "None specified"}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest ml-2">Awards & Recognition</label>
+                            {isEditing ? (
+                                <input 
+                                    type="text" 
+                                    value={Array.isArray(metadata.awards) ? metadata.awards.join(", ") : ""}
+                                    onChange={(e) => updateMetadataField("awards", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                                    className="w-full h-14 px-5 bg-surface-50/50 backdrop-blur-sm border border-surface-200/80 rounded-xl outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all text-sm shadow-inner"
+                                    placeholder="AIA Design Award 2024, ArchDaily Feature..."
+                                />
+                            ) : (
+                                <p className="font-bold text-primary text-sm tracking-tight bg-surface-50/30 p-4 rounded-xl border border-surface-200/30">
+                                  {Array.isArray(metadata.awards) && metadata.awards.length > 0 
+                                    ? metadata.awards.join(", ") 
+                                    : "None specified"}
+                                </p>
                             )}
                         </div>
                     </div>
