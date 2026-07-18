@@ -15,6 +15,37 @@ export interface ApiError extends Error {
   data?: unknown;
 }
 
+async function serializeRequestBody(body: unknown): Promise<unknown> {
+  if (typeof window !== "undefined" && body instanceof FormData) {
+    const entries: Array<{
+      key: string;
+      value: string | { _isFile: boolean; name: string; type: string; data: string };
+    }> = [];
+    for (const [key, value] of Array.from(body.entries())) {
+      if (value instanceof File) {
+        const fileData = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(value);
+        });
+        entries.push({
+          key,
+          value: {
+            _isFile: true,
+            name: value.name,
+            type: value.type,
+            data: fileData,
+          },
+        });
+      } else {
+        entries.push({ key, value: String(value) });
+      }
+    }
+    return { _isFormData: true, entries };
+  }
+  return body;
+}
+
 export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Promise<T> {
   const isServer = typeof window === "undefined";
   const baseURL = isServer ? (process.env.NEXTAUTH_URL || "http://localhost:3000") : "";
@@ -39,10 +70,11 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
   if (!isServer && !window.navigator.onLine) {
     if (method !== 'GET') {
       // Queue mutation
+      const serializedBody = await serializeRequestBody(finalOptions.body);
       await db.syncQueue.add({
         url: fullUrl,
         method: method,
-        body: finalOptions.body,
+        body: serializedBody,
         headers: finalOptions.headers,
         createdAt: Date.now(),
         retryCount: 0,
@@ -69,10 +101,11 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
   } catch (err) {
     if (!isServer && method !== 'GET') {
       // If network fails unexpectedly while supposedly online, queue it
+      const serializedBody = await serializeRequestBody(finalOptions.body);
       await db.syncQueue.add({
         url: fullUrl,
         method: method,
-        body: finalOptions.body,
+        body: serializedBody,
         headers: finalOptions.headers,
         createdAt: Date.now(),
         retryCount: 0,

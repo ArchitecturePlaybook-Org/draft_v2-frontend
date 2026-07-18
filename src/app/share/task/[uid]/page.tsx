@@ -6,8 +6,17 @@ import { projectsApi } from "@/domains/projects/api";
 import { Task, TaskComment } from "@/types/projects";
 import { toast } from "sonner";
 import { FloorPlanGridViewer } from "@/components/projects/FloorPlanGridViewer";
-import ModelViewer from "@/components/ModelViewer";
 import { format } from "date-fns";
+import dynamic from "next/dynamic";
+
+const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 w-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded text-sm text-gray-500">
+      Loading 3D Viewer...
+    </div>
+  )
+});
 
 import { TaskFieldDiaryTab } from "@/components/projects/TaskFieldDiaryTab";
 

@@ -50,7 +50,7 @@ const SiteOpsLaborPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => 
     const load = async () => {
       try {
         const data = await projectsApi.getDiaryEntries(projectUid);
-        setEntries(Array.isArray(data) ? data : data.results || []);
+        setEntries(data);
       } catch (err) {
         console.error("Failed to load diary entries:", err);
       } finally {
@@ -125,7 +125,7 @@ const SiteOpsMaterialsPanel: React.FC<{ projectUid: string }> = ({ projectUid })
     const load = async () => {
       try {
         const data = await projectsApi.getDiaryEntries(projectUid);
-        setEntries(Array.isArray(data) ? data : data.results || []);
+        setEntries(data);
       } catch (err) {
         console.error("Failed to load diary entries:", err);
       } finally {
@@ -187,7 +187,7 @@ const SiteOpsDelaysPanel: React.FC<{ projectUid: string }> = ({ projectUid }) =>
     const load = async () => {
       try {
         const data = await projectsApi.getDiaryEntries(projectUid);
-        setEntries(Array.isArray(data) ? data : data.results || []);
+        setEntries(data);
       } catch (err) {
         console.error("Failed to load diary entries:", err);
       } finally {
@@ -246,7 +246,7 @@ const SiteOpsGalleryPanel: React.FC<{ projectUid: string }> = ({ projectUid }) =
     const load = async () => {
       try {
         const data = await projectsApi.getDiaryEntries(projectUid);
-        setEntries(Array.isArray(data) ? data : data.results || []);
+        setEntries(data);
       } catch (err) {
         console.error("Failed to load diary entries:", err);
       } finally {

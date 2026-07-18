@@ -8,7 +8,7 @@ interface EstablishBlueprintModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  orgs: any[];
+  orgs: { id: number; name: string; account_type?: string }[];
   initialData?: { title: string; description: string };
 }
 
@@ -78,7 +78,6 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
       }).catch(console.error).finally(() => setTemplatesLoading(false));
     }
   }, [isOpen]);
-
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     account_id: '',
@@ -135,8 +134,9 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
         });
       }
       handleSetStep(4); // Success step
-    } catch (err: any) {
-      const msg = err.message || "System failure. Please ensure you are logged in.";
+    } catch (err) {
+      const error = err as { message?: string };
+      const msg = error.message || "System failure. Please ensure you are logged in.";
       alert(`Submission failed: ${msg}`);
     } finally {
       setIsSubmitting(false);

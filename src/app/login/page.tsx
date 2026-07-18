@@ -108,7 +108,7 @@ function LoginContent() {
       try {
         const result = await login(email, password, rememberMe);
         if (result.requires_2fa) {
-          setPreAuthToken(result.pre_auth_token);
+          setPreAuthToken(result.pre_auth_token || "");
           setStep("2fa");
         } else {
           if (result.user?.profile?.is_onboarding_complete === false) {

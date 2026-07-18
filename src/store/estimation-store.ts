@@ -84,13 +84,13 @@ export const useEstimationStore = create<EstimationState>((set, get) => ({
         // If points were updated, recalculate gross_qty
         if (updates.points) {
           let newGross = 0;
-          if (updated.type === 'line') {
+          if (updated.type === 'length') {
             for(let i = 1; i < updated.points.length; i++) {
               const dx2 = updated.points[i].x - updated.points[i-1].x;
               const dy2 = updated.points[i].y - updated.points[i-1].y;
               newGross += Math.sqrt(dx2*dx2 + dy2*dy2) * state.pixelToMeterScale;
             }
-          } else if (updated.type === 'polygon') {
+          } else if (updated.type === 'area') {
             let area = 0;
             for (let i = 0; i < updated.points.length; i++) {
               const j = (i + 1) % updated.points.length;

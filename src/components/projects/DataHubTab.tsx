@@ -2,7 +2,11 @@ import React, { useState, useRef } from "react";
 import { ProjectAsset } from "@/types/projects";
 import { useProjectStore } from "@/store/project-store";
 import { projectsApi } from "@/domains/projects/api";
-import ModelViewer from "@/components/ModelViewer";
+import dynamic from "next/dynamic";
+const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center text-surface-500 animate-pulse">Loading 3D Engine...</div>
+});
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { RevisionHistoryModal } from "./RevisionHistoryModal";
 import { FloorPlanGridViewer } from "./FloorPlanGridViewer";

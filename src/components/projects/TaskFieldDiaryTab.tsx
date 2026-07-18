@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Task } from "@/types/projects";
-import { fetchFromBff } from "@/shared/api/fetchFromBff";
 import { toast } from "sonner";
 import { DiaryEntryDetail } from "./DiaryEntryDetail";
+import { projectsApi } from "@/domains/projects/api";
 import { Button } from "@/components/ui/Button";
 import { CheckCircle2, Clock } from "lucide-react";
 
@@ -26,42 +26,37 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
     try {
       const todayStr = new Date().toISOString().split("T")[0];
       
-      const res = await fetchFromBff<any[]>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectUid}`);
-      const data = Array.isArray(res) ? res : (res as any).results || [];
-      const entry = data.find((e: any) => e.entry_date === todayStr);
+      const res = await projectsApi.getDiaryEntries(projectUid);
+      const entry = res.find((e: any) => e.entry_date === todayStr);
       
       if (entry) {
-        const fullEntry = await fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/${entry.id}/`);
+        const fullEntry = await projectsApi.getDiaryEntryDetail(entry.id);
         setTodayEntry(fullEntry);
         setLoading(false);
         return;
       }
 
-      const projRes = await fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/`);
+      const projRes = await projectsApi.getProjectDetails(projectUid);
       if (!projRes || !projRes.id) throw new Error("Could not find project ID");
 
-      const createRes = await fetchFromBff<any>('/api/v1/projects/field-diaries/entries/', {
-        method: 'POST',
-        body: JSON.stringify({
-          project: projRes.id,
-          entry_date: todayStr,
-          weather: "",
-          site_conditions: ""
-        })
-      });
+      const createRes = await projectsApi.createDiaryEntry({
+        project: projRes.id,
+        entry_date: todayStr,
+        weather_am: "",
+        weather_pm: ""
+      } as any);
       
-      const fullEntry = await fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/${createRes.id}/`);
+      const fullEntry = await projectsApi.getDiaryEntryDetail(createRes.id);
       setTodayEntry(fullEntry);
     } catch (err: any) {
       console.warn("Failed to load or create today's entry:", err);
       if (err.status === 400 || err.message?.includes("must make a unique set")) {
          try {
            const todayStr = new Date().toISOString().split("T")[0];
-           const res = await fetchFromBff<any[]>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectUid}`);
-           const data = Array.isArray(res) ? res : (res as any).results || [];
-           const entry = data.find((e: any) => e.entry_date === todayStr);
+           const res = await projectsApi.getDiaryEntries(projectUid);
+           const entry = res.find((e: any) => e.entry_date === todayStr);
            if (entry) {
-             const fullEntry = await fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/${entry.id}/`);
+             const fullEntry = await projectsApi.getDiaryEntryDetail(entry.id);
              setTodayEntry(fullEntry);
              setLoading(false);
              return;
@@ -91,15 +86,12 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
     
     setIsSubmittingQuickLog(true);
     try {
-      await fetchFromBff(`/api/v1/projects/field-diaries/entries/${todayEntry.id}/activity/`, {
-        method: "POST",
-        body: JSON.stringify({
-          task_uid: task.uid,
-          activity_type: "work",
-          description: quickLogNote || `Worked on ${task.title}`,
-          hours: quickLogHours || null,
-          progress_percent: quickLogProgress || null,
-        })
+      await projectsApi.createDiarySubEntry(todayEntry.id, "activity", {
+        task_uid: task.uid,
+        activity_type: "work",
+        description: quickLogNote || `Worked on ${task.title}`,
+        hours: quickLogHours || null,
+        progress_percent: quickLogProgress || null,
       });
       toast.success("Progress logged successfully!");
       setQuickLogHours("");

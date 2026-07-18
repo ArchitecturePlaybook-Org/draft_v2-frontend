@@ -26,7 +26,7 @@ export function SpeckleViewer({
     if (!containerRef.current) return;
 
     // Mock initialization for 10X plan
-    let mockViewer = {
+    const mockViewer = {
       loadObject: async (url: string) => {
         return new Promise((resolve) => setTimeout(resolve, 1000));
       },

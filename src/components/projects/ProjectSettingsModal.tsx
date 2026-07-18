@@ -22,7 +22,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const fetchProjectDetails = useProjectStore((state) => state.fetchProject);
+  const fetchProject = useProjectStore((state) => state.fetchProject);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -34,11 +34,12 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
     setError("");
     try {
       await projectsApi.updateProject(project.uid, formData);
-      await fetchProjectDetails(project.uid);
+      await fetchProject(project.uid);
       onClose();
-    } catch (err: any) {
-      console.error("Failed to update project settings", err);
-      setError(err.message || "Failed to update project. Please try again.");
+    } catch (err) {
+      const error = err as { message?: string };
+      console.error("Failed to update project settings", error);
+      setError(error.message || "Failed to update project. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

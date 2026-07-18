@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { fetchFromBff } from "@/shared/api/fetchFromBff";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { projectsApi } from "@/domains/projects/api";
@@ -35,10 +34,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   const handleMetadataUpdate = async (field: string, value: any) => {
     if (isLocked) return;
     try {
-      await fetchFromBff(`/api/v1/projects/field-diaries/entries/${entry.id}/`, {
-        method: "PATCH",
-        body: JSON.stringify({ [field]: value })
-      });
+      await projectsApi.updateDiaryEntry(entry.id, { [field]: value });
       onUpdate();
     } catch (e) {
       toast.error("Failed to update");
@@ -47,7 +43,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
 
   const handleSign = async () => {
     try {
-      await fetchFromBff(`/api/v1/projects/field-diaries/entries/${entry.id}/sign/`, { method: "POST" });
+      await projectsApi.signDiaryEntry(entry.id);
       toast.success("Diary Locked");
       onUpdate();
     } catch (e) {
@@ -58,10 +54,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   const addSubEntry = async (type: string, payload: any, resetFn: () => void) => {
     if (isLocked) return;
     try {
-      await fetchFromBff(`/api/v1/projects/field-diaries/entries/${entry.id}/${type}/`, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
+      await projectsApi.createDiarySubEntry(entry.id, type, payload);
       toast.success("Added successfully");
       resetFn();
       onUpdate();
@@ -88,14 +81,8 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
     if (!file) return;
 
     const loadId = toast.loading("Uploading attachment...");
-    const formData = new FormData();
-    formData.append("file", file);
-    
     try {
-      await fetchFromBff(`/api/v1/projects/field-diaries/entries/${entry.id}/attachments/`, {
-        method: "POST",
-        body: formData
-      });
+      await projectsApi.uploadDiaryAttachment(entry.id, file);
       toast.success("Attachment uploaded", { id: loadId });
       onUpdate();
     } catch (err) {

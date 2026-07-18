@@ -4,11 +4,11 @@ import { handleProxyError } from "./errors";
 import { resolveRoute } from "./resolver";
 import { validateMethod } from "./validator";
 import { buildBackendRequest } from "./request";
-import { attachAuth } from "./auth";
+import { attachAuth, isTokenExpired } from "./auth";
 import { refreshIfNeeded } from "./refresh";
 import { normalizeResponse } from "./response";
 import { setAuthCookies, clearAuthCookies } from "./cookies";
-import { COOKIE_REFRESH_TOKEN } from "./constants";
+import { COOKIE_REFRESH_TOKEN, COOKIE_ACCESS_TOKEN, DJANGO_API_URL } from "./constants";
 
 export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
   try {
@@ -35,15 +35,56 @@ export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
       } catch {}
     }
     
-    // 4. Attach base authorization
-    attachAuth(req, route, requestInit.headers as Headers);
+    // 4. Pre-emptive Token Refresh (reduces roundtrips from 3 to 2)
+    let preNewTokens: Record<string, string> | undefined = undefined;
+    let preRefreshFailed = false;
+
+    if (route.config.auth) {
+      const accessToken = req.cookies.get(COOKIE_ACCESS_TOKEN)?.value;
+      const refreshToken = req.cookies.get(COOKIE_REFRESH_TOKEN)?.value;
+      
+      if ((!accessToken || isTokenExpired(accessToken)) && refreshToken) {
+        try {
+          const refreshRes = await fetch(`${DJANGO_API_URL}/api/v1/users/auth/token/refresh/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh: refreshToken }),
+            cache: "no-store",
+          });
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            if (data?.access) {
+              preNewTokens = data;
+              requestInit.headers = new Headers(requestInit.headers);
+              (requestInit.headers as Headers).set("Authorization", `Bearer ${data.access}`);
+            }
+          } else {
+            preRefreshFailed = true;
+          }
+        } catch {
+          preRefreshFailed = true;
+        }
+      }
+    }
+
+    if (preRefreshFailed) {
+      const response = NextResponse.json({ detail: "Session expired" }, { status: 401 });
+      clearAuthCookies(response);
+      return response;
+    }
+
+    if (!preNewTokens) {
+      attachAuth(req, route, requestInit.headers as Headers);
+    }
 
     // 5. Forward request helper
     const doFetch = (hdrs: Headers) => fetch(route.targetUrl, { ...requestInit, headers: hdrs });
-    let backendRes = await doFetch(requestInit.headers as Headers);
+    const backendRes = await doFetch(requestInit.headers as Headers);
 
     // 6. Automatic Token Refresh
-    const { res: finalRes, newTokens, refreshFailed } = await refreshIfNeeded(req, backendRes, doFetch);
+    const { res: finalRes, newTokens: lazyNewTokens, refreshFailed: lazyRefreshFailed } = await refreshIfNeeded(req, backendRes, doFetch);
+    const newTokens = preNewTokens || lazyNewTokens;
+    const refreshFailed = preRefreshFailed || lazyRefreshFailed;
     
     // 7. Handle Response based on Content-Type
     const contentType = finalRes.headers.get("content-type") || "";

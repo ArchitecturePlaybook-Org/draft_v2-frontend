@@ -105,17 +105,17 @@ export async function detectWallsFromCanvas(canvasElement: HTMLCanvasElement): P
   const cv = (window as any).cv;
   if (!cv) throw new Error("OpenCV is not loaded yet.");
 
-  let src = cv.imread(canvasElement);
-  let dst = new cv.Mat();
-  let edges = new cv.Mat();
-  let lines = new cv.Mat();
+  const src = cv.imread(canvasElement);
+  const dst = new cv.Mat();
+  const edges = new cv.Mat();
+  const lines = new cv.Mat();
 
   try {
     cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY, 0);
     cv.threshold(dst, dst, 200, 255, cv.THRESH_BINARY_INV);
 
     // Use a larger 5x5 kernel to completely erase thin dimension lines and text noise
-    let M = cv.Mat.ones(5, 5, cv.CV_8U);
+    const M = cv.Mat.ones(5, 5, cv.CV_8U);
     cv.morphologyEx(dst, dst, cv.MORPH_OPEN, M);
     M.delete();
 
@@ -126,10 +126,10 @@ export async function detectWallsFromCanvas(canvasElement: HTMLCanvasElement): P
 
     const walls: DetectedWall[] = [];
     for (let i = 0; i < lines.rows; i++) {
-      let x1 = lines.data32S[i * 4];
-      let y1 = lines.data32S[i * 4 + 1];
-      let x2 = lines.data32S[i * 4 + 2];
-      let y2 = lines.data32S[i * 4 + 3];
+      const x1 = lines.data32S[i * 4];
+      const y1 = lines.data32S[i * 4 + 1];
+      const x2 = lines.data32S[i * 4 + 2];
+      const y2 = lines.data32S[i * 4 + 3];
       const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
       walls.push({
         id: `wall_${i}_${Date.now()}`,
@@ -143,25 +143,25 @@ export async function detectWallsFromCanvas(canvasElement: HTMLCanvasElement): P
     const mergedWalls = mergeLines(walls, 25, 0.15);
     
     // Extract structural thickness by firing a perpendicular ray across the binary mask
-    for (let w of mergedWalls) {
-       let dx = w.end.x - w.start.x;
-       let dy = w.end.y - w.start.y;
-       let len = w.lengthPixels;
+    for (const w of mergedWalls) {
+       const dx = w.end.x - w.start.x;
+       const dy = w.end.y - w.start.y;
+       const len = w.lengthPixels;
        if (len === 0) {
           w.thicknessPixels = 0;
           continue;
        }
        
-       let nx = -dy / len;
-       let ny = dx / len;
+       const nx = -dy / len;
+       const ny = dx / len;
        
-       let cx = (w.start.x + w.end.x) / 2;
-       let cy = (w.start.y + w.end.y) / 2;
+       const cx = (w.start.x + w.end.x) / 2;
+       const cy = (w.start.y + w.end.y) / 2;
        
        let t1 = 0;
        while (true) {
-          let px = Math.round(cx + nx * t1);
-          let py = Math.round(cy + ny * t1);
+          const px = Math.round(cx + nx * t1);
+          const py = Math.round(cy + ny * t1);
           if (px < 0 || px >= dst.cols || py < 0 || py >= dst.rows) break;
           if (dst.ucharPtr(py, px)[0] === 0) break; // Reached black background
           t1++;
@@ -170,8 +170,8 @@ export async function detectWallsFromCanvas(canvasElement: HTMLCanvasElement): P
        
        let t2 = 0;
        while (true) {
-          let px = Math.round(cx - nx * t2);
-          let py = Math.round(cy - ny * t2);
+          const px = Math.round(cx - nx * t2);
+          const py = Math.round(cy - ny * t2);
           if (px < 0 || px >= dst.cols || py < 0 || py >= dst.rows) break;
           if (dst.ucharPtr(py, px)[0] === 0) break; // Reached black background
           t2++;
@@ -204,7 +204,7 @@ export function detectRoomsFromWalls(walls: DetectedWall[], width: number, heigh
   const cv = (window as any).cv;
   if (!cv) throw new Error("OpenCV is not loaded yet.");
 
-  let mat = cv.Mat.zeros(height, width, cv.CV_8UC1);
+  const mat = cv.Mat.zeros(height, width, cv.CV_8UC1);
   
   // Draw walls as thick white lines to ensure they connect at corners
   for (const w of walls) {
@@ -212,7 +212,7 @@ export function detectRoomsFromWalls(walls: DetectedWall[], width: number, heigh
   }
 
   // Heavily dilate to close gaps like small doors
-  let M = cv.Mat.ones(15, 15, cv.CV_8U);
+  const M = cv.Mat.ones(15, 15, cv.CV_8U);
   cv.dilate(mat, mat, M);
   M.delete();
 
@@ -221,29 +221,29 @@ export function detectRoomsFromWalls(walls: DetectedWall[], width: number, heigh
   // findContours will find the white wall network as top-level contours,
   // and the empty enclosed rooms as internal hole contours!
 
-  let contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
   cv.findContours(mat, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
 
   const rooms: DetectedRoom[] = [];
   
   for (let i = 0; i < contours.size(); ++i) {
     // hierarchy data is [next, previous, first_child, parent]
-    let parentIdx = hierarchy.data32S[i * 4 + 3];
+    const parentIdx = hierarchy.data32S[i * 4 + 3];
     
     // If parentIdx !== -1, this contour is a hole inside a white object.
     // In our case, a hole inside the white wall network IS a room!
     if (parentIdx !== -1) {
-      let cnt = contours.get(i);
-      let area = cv.contourArea(cnt);
+      const cnt = contours.get(i);
+      const area = cv.contourArea(cnt);
       
       // Filter out tiny noise holes
       if (area > 5000 && area < (width * height * 0.9)) {
-         let poly = new cv.Mat();
+         const poly = new cv.Mat();
          // Simplify the polygon
          cv.approxPolyDP(cnt, poly, 10, true);
          
-         let points: Point[] = [];
+         const points: Point[] = [];
          for (let j = 0; j < poly.rows; j++) {
            points.push({
              x: poly.data32S[j * 2],
@@ -251,9 +251,9 @@ export function detectRoomsFromWalls(walls: DetectedWall[], width: number, heigh
            });
          }
 
-         let moments = cv.moments(cnt);
-         let cx = moments.m10 / (moments.m00 || 1);
-         let cy = moments.m01 / (moments.m00 || 1);
+         const moments = cv.moments(cnt);
+         const cx = moments.m10 / (moments.m00 || 1);
+         const cy = moments.m01 / (moments.m00 || 1);
 
          rooms.push({
            id: `room_${i}_${Date.now()}`,

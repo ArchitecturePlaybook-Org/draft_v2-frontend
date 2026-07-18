@@ -241,7 +241,7 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: space-between;
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--surface-300);
+  border-bottom: 1px solid var(--glass-border);
   position: sticky;
   top: 0;
   z-index: 40;
@@ -310,9 +310,9 @@ h1, h2, h3, h4, h5, h6 {
   position: relative;
   overflow: hidden;
   border-radius: 1.25rem;
-  border: 1px solid var(--surface-200);
+  border: 1px solid var(--glass-border);
   min-height: 220px;
-  background: var(--surface-card);
+  background: var(--glass-bg);
   transition: all 0.3s ease;
 }
 
@@ -388,28 +388,30 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--surface-300);
 }
 
-/* --- Global Inputs & Empty States --- */
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="password"],
-input[type="search"],
-textarea,
-select {
-  background-color: var(--surface-100);
-  border: 1px solid var(--surface-200);
-  border-radius: 4px;
-  outline: none;
-  color: var(--foreground);
-  box-shadow: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
+/* --- Global Inputs & Empty States (Wrapped in base layer to prevent utility conflicts) --- */
+@layer base {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    background-color: var(--surface-100);
+    border: 1px solid var(--surface-200);
+    border-radius: 4px;
+    outline: none;
+    color: var(--foreground);
+    box-shadow: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
 
-input:focus,
-textarea:focus,
-select:focus {
-  border-color: #D4AF37;
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.2);
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #D4AF37;
+    box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.2);
+  }
 }
 
 ::placeholder {

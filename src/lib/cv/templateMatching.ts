@@ -25,18 +25,18 @@ export async function findSymbols(
 
   if (width <= 0 || height <= 0) return [];
 
-  let src = cv.imread(imageSource);
+  const src = cv.imread(imageSource);
   let template = new cv.Mat();
-  let result = new cv.Mat();
+  const result = new cv.Mat();
 
   try {
     // Crop the template from the source
-    let rect = new cv.Rect(x, y, width, height);
+    const rect = new cv.Rect(x, y, width, height);
     template = src.roi(rect);
 
     // Convert to grayscale for better matching
-    let srcGray = new cv.Mat();
-    let templateGray = new cv.Mat();
+    const srcGray = new cv.Mat();
+    const templateGray = new cv.Mat();
     cv.cvtColor(src, srcGray, cv.COLOR_RGBA2GRAY, 0);
     cv.cvtColor(template, templateGray, cv.COLOR_RGBA2GRAY, 0);
 
@@ -50,7 +50,7 @@ export async function findSymbols(
 
     for (let i = 0; i < result.rows; i++) {
       for (let j = 0; j < result.cols; j++) {
-        let confidence = resultData[i * cols + j];
+        const confidence = resultData[i * cols + j];
         if (confidence >= threshold) {
           matches.push({
             x: j,

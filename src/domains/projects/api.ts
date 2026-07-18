@@ -5,6 +5,8 @@ import {
   WorkPackageTemplate, SpatialZone, MilestonePhase, AIZoneResult,
   TaskComment, ChecklistTemplate, SitePhoto
 } from "@/types/projects";
+import { DiaryEntry } from "@/types/diary";
+import { NCR } from "@/types/quality";
 
 export interface PaginatedResponse<T> {
   count: number;
@@ -20,8 +22,9 @@ function unpackArray<T>(res: any): T[] {
 }
 
 export const projectsApi = {
-  getProjects: async () => {
-    return fetchFromBff<PaginatedResponse<Project> | Project[]>("/api/v1/projects/projects/", { method: "GET" });
+  getProjects: async (): Promise<Project[]> => {
+    const res = await fetchFromBff<PaginatedResponse<Project> | Project[]>("/api/v1/projects/projects/", { method: "GET" });
+    return unpackArray<Project>(res);
   },
 
   getProjectDetails: async (id: string | number) => {
@@ -285,14 +288,76 @@ export const projectsApi = {
 
 
   // ── Field Diary ───────────────────────────────────────────────────────────
-  getDiaryEntries: async (projectUid: string) => {
-    const res = await fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectUid}`, { method: "GET" });
-    return Array.isArray(res) ? res : (res as any).results || [];
+  getDiaryEntries: async (projectUid: string): Promise<DiaryEntry[]> => {
+    const res = await fetchFromBff<DiaryEntry[] | PaginatedResponse<DiaryEntry>>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectUid}`, { method: "GET" });
+    return unpackArray<DiaryEntry>(res);
   },
 
-  deleteDiarySubEntry: async (subModel: string, id: number) => {
+  getDiaryEntryDetail: async (id: number): Promise<DiaryEntry> => {
+    return fetchFromBff<DiaryEntry>(`/api/v1/projects/field-diaries/entries/${id}/`, { method: "GET" });
+  },
+
+  createDiaryEntry: async (data: Partial<DiaryEntry>): Promise<DiaryEntry> => {
+    return fetchFromBff<DiaryEntry>("/api/v1/projects/field-diaries/entries/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateDiaryEntry: async (id: number, data: Partial<DiaryEntry>): Promise<DiaryEntry> => {
+    return fetchFromBff<DiaryEntry>(`/api/v1/projects/field-diaries/entries/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  signDiaryEntry: async (id: number): Promise<DiaryEntry> => {
+    return fetchFromBff<DiaryEntry>(`/api/v1/projects/field-diaries/entries/${id}/sign/`, {
+      method: "POST"
+    });
+  },
+
+  createDiarySubEntry: async (diaryId: number, subModel: string, data: any): Promise<any> => {
+    return fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/${diaryId}/${subModel}/`, {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteDiarySubEntry: async (subModel: string, id: number): Promise<void> => {
     // subModel should be 'labor', 'delays', 'activities', 'materials', or 'equipment'
     return fetchFromBff<void>(`/api/v1/projects/field-diaries/${subModel}/${id}/`, { method: "DELETE" });
+  },
+
+  uploadDiaryAttachment: async (diaryId: number, file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/${diaryId}/attachments/`, {
+      method: "POST",
+      body: formData
+    });
+  },
+
+
+
+  // ── Non-Conformance Reports (NCR) ───────────────────────────────────────
+  getNcrs: async (projectUid: string): Promise<NCR[]> => {
+    const res = await fetchFromBff<NCR[] | PaginatedResponse<NCR>>(`/api/v1/projects/ncrs/?project_uid=${projectUid}`, { method: "GET" });
+    return unpackArray<NCR>(res);
+  },
+
+  createNcr: async (data: { project: number; title: string; description: string; severity: string }): Promise<NCR> => {
+    return fetchFromBff<NCR>("/api/v1/projects/ncrs/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateNcrStatus: async (ncrId: number, status: string): Promise<NCR> => {
+    return fetchFromBff<NCR>(`/api/v1/projects/ncrs/${ncrId}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    });
   },
 
 

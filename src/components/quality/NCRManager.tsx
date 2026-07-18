@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { NCR } from "@/types/quality";
-import { fetchFromBff } from "@/shared/api/fetchFromBff";
 import { Badge } from "@/components/ui/Badge";
 import { toast } from "sonner";
+import { projectsApi } from "@/domains/projects/api";
 
 interface NCRManagerProps {
   projectUid: string;
@@ -27,8 +27,8 @@ export default function NCRManager({ projectUid }: NCRManagerProps) {
 
   const fetchNcrs = async () => {
     try {
-      const data = await fetchFromBff<NCR[]>(`/api/v1/projects/ncrs/?project_uid=${projectUid}`, { method: "GET" });
-      setNcrs(Array.isArray(data) ? data : (data as any).results || []);
+      const data = await projectsApi.getNcrs(projectUid);
+      setNcrs(data);
     } catch (error) {
       toast.error("Failed to fetch NCRs");
     } finally {
@@ -39,16 +39,14 @@ export default function NCRManager({ projectUid }: NCRManagerProps) {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const projRes = await fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/`, { method: "GET" });
+      const projRes = await projectsApi.getProjectDetails(projectUid);
+      if (!projRes || !projRes.id) throw new Error("Could not find project ID");
       
-      await fetchFromBff(`/api/v1/projects/ncrs/`, {
-        method: "POST",
-        body: JSON.stringify({
-          project: projRes.id,
-          title,
-          description,
-          severity,
-        })
+      await projectsApi.createNcr({
+        project: projRes.id,
+        title,
+        description,
+        severity,
       });
       toast.success("NCR created successfully");
       setIsModalOpen(false);
@@ -63,10 +61,7 @@ export default function NCRManager({ projectUid }: NCRManagerProps) {
 
   const handleUpdateStatus = async (ncrId: number, status: NCR["status"]) => {
     try {
-      await fetchFromBff(`/api/v1/projects/ncrs/${ncrId}/`, { 
-        method: "PATCH",
-        body: JSON.stringify({ status })
-      });
+      await projectsApi.updateNcrStatus(ncrId, status);
       toast.success("Status updated");
       if (selectedNcr) {
         setSelectedNcr({ ...selectedNcr, status });

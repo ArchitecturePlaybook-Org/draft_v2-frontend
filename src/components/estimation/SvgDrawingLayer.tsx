@@ -115,7 +115,7 @@ export const SvgDrawingLayer = ({ width = 1000, height = 1000 }: { width?: numbe
       id: crypto.randomUUID(),
       item_code: `ITEM-${items.length + 1}`,
       description: `New ${activeTool} takeoff`,
-      type: activeTool,
+      type: activeTool === 'polygon' ? 'area' : 'length',
       points: currentPoints,
       color: '#D4AF37',
       unit: activeTool === 'polygon' ? 'sqft' : 'ft',
@@ -146,13 +146,13 @@ export const SvgDrawingLayer = ({ width = 1000, height = 1000 }: { width?: numbe
     // Retroactively update all existing takeoffs
     items.forEach(item => {
       let newGross = 0;
-      if (item.type === 'line') {
+      if (item.type === 'length') {
         for(let i = 1; i < item.points.length; i++) {
           const dx2 = item.points[i].x - item.points[i-1].x;
           const dy2 = item.points[i].y - item.points[i-1].y;
           newGross += Math.sqrt(dx2*dx2 + dy2*dy2) * newScale;
         }
-      } else if (item.type === 'polygon') {
+      } else if (item.type === 'area') {
         let area = 0;
         for (let i = 0; i < item.points.length; i++) {
           const j = (i + 1) % item.points.length;
@@ -205,22 +205,22 @@ export const SvgDrawingLayer = ({ width = 1000, height = 1000 }: { width?: numbe
           onMouseLeave={() => setHover(null)}
           style={{ opacity: hoveredItemId === item.id || selectedItemId === item.id ? 1 : 0.7 }}
         >
-          {item.type === 'point' && item.points[0] && (
+          {item.type === 'count' && item.points[0] && (
             <circle cx={item.points[0].x} cy={item.points[0].y} r={6} fill={item.color} 
               stroke={selectedItemId === item.id ? '#fff' : 'transparent'} strokeWidth={2} />
           )}
 
           {/* Invisible thick path for reliable hovering/clicking */}
-          {item.type !== 'point' && (
+          {item.type !== 'count' && (
             <path 
-              d={drawPath(item.points, item.type === 'polygon')} 
-              fill={item.type === 'polygon' ? "transparent" : "none"} 
+              d={drawPath(item.points, item.type === 'area')} 
+              fill={item.type === 'area' ? "transparent" : "none"} 
               stroke="transparent" 
               strokeWidth={20} 
             />
           )}
 
-          {item.type === 'line' && (
+          {item.type === 'length' && (
             <path 
               d={drawPath(item.points, false)} 
               fill="none" 
@@ -229,7 +229,7 @@ export const SvgDrawingLayer = ({ width = 1000, height = 1000 }: { width?: numbe
               className="pointer-events-none"
             />
           )}
-          {item.type === 'polygon' && (
+          {item.type === 'area' && (
             <path 
               d={drawPath(item.points, true)} 
               fill={item.color} fillOpacity={0.2}
