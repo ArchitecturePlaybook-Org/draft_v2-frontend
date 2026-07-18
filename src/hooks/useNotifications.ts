@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { getWebSocketUrl } from "@/lib/api/constants";
 
 export interface NotificationPayload {
   id: number;
@@ -48,11 +49,7 @@ export function useNotifications() {
         if (!tokenRes.ok) return;
         const { token } = await tokenRes.json();
 
-        // Check environment / domain for WS URL
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        // Hardcode localhost:8000 for development, or proxy via Next.js if set up
-        const wsHost = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000";
-        const wsUrl = `${wsHost}/ws/notifications/?token=${token}`;
+        const wsUrl = getWebSocketUrl(`/ws/notifications/?token=${token}`);
 
         const ws = new WebSocket(wsUrl);
 

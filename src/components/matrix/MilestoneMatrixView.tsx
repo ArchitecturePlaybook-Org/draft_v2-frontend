@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useProjectNavStore } from "@/store/project-nav-store";
 import { TaskExecutionSidePanel } from "@/components/projects/TaskExecutionSidePanel";
 import { AnimatePresence, motion } from "framer-motion";
+import { getWebSocketUrl } from "@/lib/api/constants";
 
 interface MilestoneMatrixViewProps {
   projectUid: string;
@@ -85,8 +86,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     if (readOnly || initialPayload) return; // No live updates for static public views
 
     // Connect WebSocket for real-time updates
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000/ws";
-    const ws = new WebSocket(`${wsUrl}/projects/${projectUid}/matrix/`);
+    const wsUrl = getWebSocketUrl(`/ws/projects/${projectUid}/matrix/`);
+    const ws = new WebSocket(wsUrl);
 
     ws.onmessage = (event) => {
       try {

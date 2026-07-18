@@ -8,6 +8,7 @@ import {
 import { projectsApi } from "@/domains/projects/api";
 import { TaskItem } from "../projects/TaskItem";
 import { toast } from "sonner";
+import { getWebSocketUrl } from "@/lib/api/constants";
 
 interface KanbanDrawerProps {
   block: MilestoneBlockExpanded;
@@ -82,7 +83,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     ]).then(([Y, { WebsocketProvider }]) => {
       if (!active) return;
       const doc = new Y.Doc();
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000/ws";
+      const wsUrl = getWebSocketUrl("/ws");
       const provider = new WebsocketProvider(wsUrl, `kanban-block-${block.id}`, doc);
       const yTasks = doc.getMap('tasks');
       
