@@ -39,6 +39,8 @@ export default function SharedTaskPage() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [updatingProgress, setUpdatingProgress] = useState(false);
   const [isLoggingTime, setIsLoggingTime] = useState(false);
+  const [isAddingChecklist, setIsAddingChecklist] = useState(false);
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [fullScreenDrawingId, setFullScreenDrawingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -123,13 +125,17 @@ export default function SharedTaskPage() {
 
   const handleCreateChecklist = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newChecklist.trim()) return;
+    if (!newChecklist.trim() || isAddingChecklist) return;
+    setIsAddingChecklist(true);
     try {
       await projectsApi.createChecklistItem(uid, newChecklist.trim());
       setNewChecklist("");
       await loadFullTask();
+      toast.success("Checklist item added.");
     } catch (err) {
       toast.error("Failed to add checklist item");
+    } finally {
+      setIsAddingChecklist(false);
     }
   };
 
@@ -144,7 +150,8 @@ export default function SharedTaskPage() {
   
   const handleCreateSubtask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSubtask.trim()) return;
+    if (!newSubtask.trim() || isAddingSubtask) return;
+    setIsAddingSubtask(true);
     try {
       await projectsApi.createTask({
         title: newSubtask.trim(),
@@ -153,8 +160,11 @@ export default function SharedTaskPage() {
       });
       setNewSubtask("");
       await loadFullTask();
+      toast.success("Subtask created.");
     } catch (err) {
       toast.error("Failed to add subtask");
+    } finally {
+      setIsAddingSubtask(false);
     }
   };
 
