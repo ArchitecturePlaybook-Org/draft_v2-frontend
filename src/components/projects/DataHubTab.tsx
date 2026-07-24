@@ -46,6 +46,12 @@ export const DataHubTab: React.FC = () => {
     }
   };
 
+  const isImageUrl = (url?: string | null) => {
+    if (!url) return false;
+    const cleanUrl = url.split("?")[0].toLowerCase();
+    return /\.(png|jpg|jpeg|gif|webp|svg|bmp|tiff|avif)$/i.test(cleanUrl);
+  };
+
   const handleOpenAsset = (asset: any) => {
     if (asset.category === "sketch") {
       const isEditable = asset.file.endsWith(".excalidraw") || asset.file.endsWith(".json");
@@ -61,8 +67,7 @@ export const DataHubTab: React.FC = () => {
     } else if (asset.category === "sh3d") {
       window.open(`/dashboard/projects/${project.uid}/editor?assetId=${asset.canonical_uid}${asset.size === 0 ? '&isNew=true' : ''}`, "_blank");
     } else {
-      const isImage = /\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i.test(asset.file);
-      if (isImage) {
+      if (isImageUrl(asset.file)) {
         setLightboxImageUrl(asset.file);
       } else {
         window.open(asset.file, "_blank");
@@ -158,7 +163,15 @@ export const DataHubTab: React.FC = () => {
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept={activeHubCategory === "3d_model" ? ".obj,.glb" : "image/png,image/jpeg,image/jpg,image/gif,.pdf"}
+                  accept={
+                    activeHubCategory === "3d_model" 
+                      ? ".obj,.stl,.fbx,.gltf,.glb" 
+                      : activeHubCategory === "2d_plan" 
+                      ? "image/png,image/jpeg,image/jpg,image/webp,.pdf" 
+                      : activeHubCategory === "document" 
+                      ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" 
+                      : "image/png,image/jpeg,image/jpg,image/webp,image/gif,.excalidraw,.json"
+                  }
                   className="hidden"
                   onChange={async (e) => {
                     const files = Array.from(e.target.files || []);
@@ -235,7 +248,7 @@ export const DataHubTab: React.FC = () => {
                         </div>
                       ) : asset.thumbnail ? (
                         <img src={asset.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      ) : asset.file?.match(/\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i) ? (
+                      ) : isImageUrl(asset.file) ? (
                         <img src={asset.file} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
                       ) : asset.category === "sketch" ? (
                         <div className="flex flex-col items-center gap-2">
