@@ -56,7 +56,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
     try {
       const data = await projectsApi.getProjectDetails(id);
-      set({ project: data });
+      
+      const currentActiveTask = get().activeTask;
+      let updatedActiveTask = currentActiveTask;
+      if (currentActiveTask && data?.tasks) {
+        const found = data.tasks.find((t: Task) => t.uid === currentActiveTask.uid || t.id === currentActiveTask.id);
+        if (found) {
+          updatedActiveTask = found;
+        }
+      }
+
+      set({ project: data, activeTask: updatedActiveTask });
       
       try {
         const matrixData = await projectsApi.getMatrix(data.uid);
