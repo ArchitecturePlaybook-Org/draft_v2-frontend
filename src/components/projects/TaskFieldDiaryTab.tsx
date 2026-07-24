@@ -79,27 +79,60 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
 
   const handleQuickLog = async () => {
     if (!todayEntry) return;
-    if (!quickLogHours && !quickLogProgress && !quickLogNote) {
-      toast.error("Please enter at least some progress, hours, or notes.");
+
+    if (!quickLogHours || quickLogHours.trim() === "") {
+      toast.error("Hours Worked is mandatory.");
+      return;
+    }
+
+    if (!quickLogProgress || quickLogProgress.trim() === "") {
+      toast.error("Progress percentage is mandatory.");
+      return;
+    }
+
+    const progressNum = parseFloat(quickLogProgress);
+    if (isNaN(progressNum) || progressNum < 0 || progressNum > 100) {
+      toast.error("Progress percentage must be between 0% and 100%.");
+      return;
+    }
+
+    const hoursNum = parseFloat(quickLogHours);
+    if (isNaN(hoursNum) || hoursNum < 0 || hoursNum > 24) {
+      toast.error("Hours worked must be between 0 and 24 hours.");
       return;
     }
     
     setIsSubmittingQuickLog(true);
     try {
-      await projectsApi.createDiarySubEntry(todayEntry.id, "activity", {
+      const createdActivity = await projectsApi.createDiarySubEntry(todayEntry.id, "activity", {
         task_uid: task.uid,
         activity_type: "work",
         description: quickLogNote || `Worked on ${task.title}`,
-        hours: quickLogHours || null,
-        progress_percent: quickLogProgress || null,
+        hours: quickLogHours,
+        progress_percent: quickLogProgress,
       });
+
+      // Instantly update local state with the returned response item
+      if (createdActivity && (createdActivity.id || createdActivity.task_uid)) {
+        setTodayEntry((prev: any) => {
+          if (!prev) return prev;
+          const existing = prev.activities || [];
+          return {
+            ...prev,
+            activities: [createdActivity, ...existing.filter((a: any) => a.id !== createdActivity.id)]
+          };
+        });
+      }
+
       toast.success("Progress logged successfully!");
       setQuickLogHours("");
       setQuickLogProgress("");
       setQuickLogNote("");
-      handleUpdate();
-    } catch (e) {
-      toast.error("Failed to log progress.");
+      
+      // Sync with server
+      await fetchOrCreateTodayEntry();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to log progress.");
     } finally {
       setIsSubmittingQuickLog(false);
     }
@@ -139,26 +172,71 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
          
          {!isLocked ? (
            <div className="flex flex-col md:flex-row gap-3 items-end">
-             <div className="flex-1 w-full relative">
-               <label className="block text-xs font-bold text-indigo-700 uppercase mb-1 flex items-center gap-1"><Clock className="w-3 h-3" /> Hours Worked</label>
-               <input 
-                 type="number" 
-                 placeholder="e.g. 4" 
-                 value={quickLogHours}
-                 onChange={e => setQuickLogHours(e.target.value)}
-                 className="w-full h-10 px-3 rounded-lg border border-indigo-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
-               />
-             </div>
-             <div className="flex-1 w-full relative">
-               <label className="block text-xs font-bold text-indigo-700 uppercase mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Progress (%)</label>
-               <input 
-                 type="number" 
-                 placeholder="e.g. 25" 
-                 value={quickLogProgress}
-                 onChange={e => setQuickLogProgress(e.target.value)}
-                 className="w-full h-10 px-3 rounded-lg border border-indigo-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
-               />
-             </div>
+              <div className="flex-1 w-full relative">
+                <label className="block text-xs font-bold text-indigo-700 uppercase mb-1 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Hours Worked <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="number" 
+                  min="0"
+                  max="24"
+                  step="0.5"
+                  required
+                  placeholder="e.g. 4" 
+                  value={quickLogHours}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      setQuickLogHours("");
+                      return;
+                    }
+                    const num = parseFloat(val);
+                    if (!isNaN(num)) {
+                      if (num > 24) {
+                        setQuickLogHours("24");
+                        toast.error("Hours worked cannot exceed 24 hours per day.");
+                      } else if (num < 0) {
+                        setQuickLogHours("0");
+                      } else {
+                        setQuickLogHours(val);
+                      }
+                    }
+                  }}
+                  className="w-full h-10 px-3 rounded-lg border border-indigo-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
+                />
+              </div>
+              <div className="flex-1 w-full relative">
+                <label className="block text-xs font-bold text-indigo-700 uppercase mb-1 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Progress (%) <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="number" 
+                  min="0"
+                  max="100"
+                  required
+                  placeholder="e.g. 25" 
+                  value={quickLogProgress}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      setQuickLogProgress("");
+                      return;
+                    }
+                    const num = parseFloat(val);
+                    if (!isNaN(num)) {
+                      if (num > 100) {
+                        setQuickLogProgress("100");
+                        toast.error("Progress percentage cannot exceed 100%.");
+                      } else if (num < 0) {
+                        setQuickLogProgress("0");
+                      } else {
+                        setQuickLogProgress(val);
+                      }
+                    }
+                  }}
+                  className="w-full h-10 px-3 rounded-lg border border-indigo-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
+                />
+              </div>
              <div className="flex-[2] w-full">
                <label className="block text-xs font-bold text-indigo-700 uppercase mb-1">Notes (Optional)</label>
                <input 
@@ -171,8 +249,8 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
              </div>
              <Button 
                onClick={handleQuickLog} 
-               disabled={isSubmittingQuickLog}
-               className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap"
+               disabled={isSubmittingQuickLog || !quickLogHours || !quickLogProgress}
+               className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap disabled:opacity-50"
              >
                {isSubmittingQuickLog ? "Logging..." : "Log Progress"}
              </Button>
