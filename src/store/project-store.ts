@@ -110,7 +110,20 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       ...taskData
     };
 
-    set({ project: { ...project, tasks: [...project.tasks, newTask] } });
+    const updatedTasks = [...project.tasks, newTask];
+    const doneCount = updatedTasks.filter(t => {
+      const s = (t.status || "").toLowerCase();
+      return s === "done" || s === "completed";
+    }).length;
+
+    set({ 
+      project: { 
+        ...project, 
+        tasks: updatedTasks,
+        tasks_count: updatedTasks.length,
+        tasks_done_count: doneCount
+      } 
+    });
   },
 
   updateProjectStatus: async (uid: string, status: ProjectStatus) => {
@@ -138,8 +151,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       t.uid === taskUid ? { ...t, status: status as any } : t
     );
     
+    const doneCount = updatedTasks.filter(t => {
+      const s = (t.status || "").toLowerCase();
+      return s === "done" || s === "completed";
+    }).length;
+
     set({ 
-      project: { ...project, tasks: updatedTasks },
+      project: { 
+        ...project, 
+        tasks: updatedTasks,
+        tasks_count: updatedTasks.length,
+        tasks_done_count: doneCount
+      },
       activeTask: activeTask?.uid === taskUid ? { ...activeTask, status: status as any } : activeTask
     });
 

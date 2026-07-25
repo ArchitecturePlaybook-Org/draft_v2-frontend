@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Project, ProjectStatus } from "@/types/projects";
 import { ProjectStatusDropdown } from "@/components/projects/ProjectStatusDropdown";
 import { ProjectActionsMenu } from "@/components/projects/ProjectActionsMenu";
@@ -115,6 +115,23 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({
     ? `https://staticmap.openstreetmap.de/?center=${project.latitude},${project.longitude}&zoom=14&size=400x200&maptype=mapnik` 
     : null;
 
+  const tasksTotal = useMemo(() => {
+    if (Array.isArray(project.tasks)) {
+      return project.tasks.length;
+    }
+    return project.tasks_count || 0;
+  }, [project.tasks, project.tasks_count]);
+
+  const tasksDone = useMemo(() => {
+    if (Array.isArray(project.tasks)) {
+      return project.tasks.filter((t: any) => {
+        const s = (t.status || "").toLowerCase();
+        return s === "done" || s === "completed";
+      }).length;
+    }
+    return project.tasks_done_count || 0;
+  }, [project.tasks, project.tasks_done_count]);
+
   return (
     <header
       className={`relative rounded-[1.5rem] mb-6 shadow-2xl group overflow-hidden transition-all duration-300 ${
@@ -213,8 +230,8 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({
 
         <div className="mt-auto">
           <ProjectProgressBar
-            tasksTotal={project.tasks_count || 0}
-            tasksDone={project.tasks_done_count || 0}
+            tasksTotal={tasksTotal}
+            tasksDone={tasksDone}
             budgetUsed={project.budget_used}
             budgetTotal={project.budget_total}
           />
