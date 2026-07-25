@@ -46,8 +46,8 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
       await projectsApi.signDiaryEntry(entry.id);
       toast.success("Diary Locked");
       onUpdate();
-    } catch (e) {
-      toast.error("Failed to sign");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to sign");
     }
   };
 
@@ -58,8 +58,8 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
       toast.success("Added successfully");
       resetFn();
       onUpdate();
-    } catch (e) {
-      toast.error("Failed to add entry");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to add entry");
     }
   };
 
@@ -70,8 +70,8 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
       await projectsApi.deleteDiarySubEntry(subModel, id);
       toast.success("Deleted successfully");
       onUpdate();
-    } catch (e) {
-      toast.error("Failed to delete entry");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to delete entry");
     }
   };
 
