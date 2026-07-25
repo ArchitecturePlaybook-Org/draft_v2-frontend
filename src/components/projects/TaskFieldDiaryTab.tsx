@@ -5,6 +5,7 @@ import { DiaryEntryDetail } from "./DiaryEntryDetail";
 import { projectsApi } from "@/domains/projects/api";
 import { Button } from "@/components/ui/Button";
 import { CheckCircle2, Clock } from "lucide-react";
+import { fieldDiaryCache } from "@/domains/projects/fieldDiaryCache";
 
 interface TaskFieldDiaryTabProps {
   task: Task;
@@ -21,8 +22,27 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
   const [quickLogNote, setQuickLogNote] = useState("");
   const [isSubmittingQuickLog, setIsSubmittingQuickLog] = useState(false);
 
-  const fetchOrCreateTodayEntry = async () => {
+  const fetchOrCreateTodayEntry = async (forceRefresh = false) => {
     if (!projectUid) return;
+    const cacheKey = `today_${projectUid}`;
+    const cachedToday = fieldDiaryCache.get<any>(cacheKey);
+
+    if (cachedToday && !forceRefresh) {
+      setTodayEntry(cachedToday);
+      setLoading(false);
+      
+      const todayStr = new Date().toISOString().split("T")[0];
+      projectsApi.getDiaryEntries(projectUid).then(async (res) => {
+        const entry = res.find((e: any) => e.entry_date === todayStr);
+        if (entry) {
+          const fullEntry = await projectsApi.getDiaryEntryDetail(entry.id);
+          setTodayEntry(fullEntry);
+          fieldDiaryCache.set(cacheKey, fullEntry);
+        }
+      }).catch(() => {});
+      return;
+    }
+
     try {
       const todayStr = new Date().toISOString().split("T")[0];
       
@@ -32,6 +52,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
       if (entry) {
         const fullEntry = await projectsApi.getDiaryEntryDetail(entry.id);
         setTodayEntry(fullEntry);
+        fieldDiaryCache.set(cacheKey, fullEntry);
         setLoading(false);
         return;
       }
@@ -48,6 +69,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
       
       const fullEntry = await projectsApi.getDiaryEntryDetail(createRes.id);
       setTodayEntry(fullEntry);
+      fieldDiaryCache.set(cacheKey, fullEntry);
     } catch (err: any) {
       console.warn("Failed to load or create today's entry:", err);
       if (err.status === 400 || err.message?.includes("must make a unique set")) {
@@ -58,6 +80,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
            if (entry) {
              const fullEntry = await projectsApi.getDiaryEntryDetail(entry.id);
              setTodayEntry(fullEntry);
+             fieldDiaryCache.set(cacheKey, fullEntry);
              setLoading(false);
              return;
            }
@@ -74,7 +97,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
   }, [projectUid]);
 
   const handleUpdate = () => {
-    fetchOrCreateTodayEntry();
+    fetchOrCreateTodayEntry(true);
   };
 
   const handleQuickLog = async () => {
