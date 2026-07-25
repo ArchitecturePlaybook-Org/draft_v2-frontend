@@ -75,6 +75,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const [activeTab, setActiveTab] = useState<TaskTab>("execution");
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(task.status);
+  const [isCopied, setIsCopied] = useState(false);
   
   // Matrix specific state
   const [newChecklistDesc, setNewChecklistDesc] = useState("");
@@ -287,10 +288,26 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     }
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     const url = `${window.location.origin}/share/task/${task.uid}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Share link copied to clipboard!");
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setIsCopied(true);
+      toast.success("Share link copied to clipboard!");
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy link.");
+    }
   };
 
   const handleLinkDrawing = async () => {
@@ -439,9 +456,13 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
             
             <button 
               onClick={handleCopyLink}
-              className="h-11 px-6 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap"
+              className={`h-11 px-6 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap ${
+                isCopied 
+                  ? "bg-emerald-600 text-white shadow-emerald-500/20 scale-[1.02]" 
+                  : "bg-accent text-background hover:opacity-90"
+              }`}
             >
-              🔗 Copy Link
+              {isCopied ? "✓ Copied!" : "🔗 Copy Link"}
             </button>
 
             <button onClick={onClose} className="w-11 h-11 rounded-xl bg-surface-200 text-surface-600 text-surface-300 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm">
