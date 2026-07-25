@@ -104,6 +104,11 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const isQA = false;
   
   React.useEffect(() => {
+    setTask(initialTask);
+    setCurrentStatus(initialTask.status);
+  }, [initialTask]);
+
+  React.useEffect(() => {
     if (projectUid) {
       projectsApi.getMatrix(projectUid).then(data => {
         setZones(data.zones);
@@ -127,14 +132,16 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   }, [projectUid, task.block, isAdmin, isQA, projectTasks]);
 
   const handleUpdateMatrixLocation = async (zId: string, pId: string) => {
-    if (zId && pId) {
-      try {
-        await projectsApi.updateTask(task.uid, { zone_id: parseInt(zId), phase_id: parseInt(pId) });
-        await refreshTask();
-        toast.success("Matrix location updated.");
-      } catch (err: any) {
-        toast.error("Failed to update matrix location.");
-      }
+    if (!zId && !pId) return;
+    try {
+      await projectsApi.updateTask(task.uid, { 
+        zone_id: zId ? parseInt(zId) : undefined, 
+        phase_id: pId ? parseInt(pId) : undefined 
+      });
+      await refreshTask();
+      toast.success("Matrix location updated.");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update matrix location.");
     }
   };
 
@@ -532,8 +539,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                             type="date" 
                             value={task.start_date || ""} 
                             onChange={async (e) => {
-                              await projectsApi.updateTask(task.uid, { start_date: e.target.value });
-                              refreshTask();
+                              const val = e.target.value;
+                              setTask(prev => ({ ...prev, start_date: val }));
+                              try {
+                                await projectsApi.updateTask(task.uid, { start_date: val });
+                                await refreshTask();
+                                toast.success("Start date updated.");
+                              } catch (err: any) {
+                                toast.error(err?.message || "Failed to update start date.");
+                              }
                             }}
                             className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
                           />
@@ -542,10 +556,17 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                           <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Due Date</label>
                           <input 
                             type="date" 
-                            value={task.due_date || task.end_date || ""} 
+                            value={task.end_date || task.due_date || ""} 
                             onChange={async (e) => {
-                              await projectsApi.updateTask(task.uid, { due_date: e.target.value });
-                              refreshTask();
+                              const val = e.target.value;
+                              setTask(prev => ({ ...prev, end_date: val, due_date: val }));
+                              try {
+                                await projectsApi.updateTask(task.uid, { end_date: val, due_date: val });
+                                await refreshTask();
+                                toast.success("Due date updated.");
+                              } catch (err: any) {
+                                toast.error(err?.message || "Failed to update due date.");
+                              }
                             }}
                             className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
                           />
@@ -555,8 +576,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                           <select
                             value={task.priority || "MEDIUM"}
                             onChange={async (e) => {
-                              await projectsApi.updateTask(task.uid, { priority: e.target.value });
-                              refreshTask();
+                              const val = e.target.value;
+                              setTask(prev => ({ ...prev, priority: val as any }));
+                              try {
+                                await projectsApi.updateTask(task.uid, { priority: val });
+                                await refreshTask();
+                                toast.success("Priority updated.");
+                              } catch (err: any) {
+                                toast.error(err?.message || "Failed to update priority.");
+                              }
                             }}
                             className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
                           >
@@ -573,8 +601,13 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                 {tag.name}
                                 <button onClick={async () => {
                                   const newTagIds = task.tags?.filter(t => t.id !== tag.id).map(t => t.id);
-                                  await projectsApi.updateTask(task.uid, { tag_ids: newTagIds });
-                                  refreshTask();
+                                  try {
+                                    await projectsApi.updateTask(task.uid, { tag_ids: newTagIds });
+                                    await refreshTask();
+                                    toast.success("Tag removed.");
+                                  } catch (err: any) {
+                                    toast.error(err?.message || "Failed to remove tag.");
+                                  }
                                 }} className="hover:text-red-500">✕</button>
                               </span>
                             ))}
@@ -586,8 +619,13 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                               const tagId = parseInt(e.target.value);
                               if (task.tags?.some(t => t.id === tagId)) return;
                               const currentTagIds = task.tags?.map(t => t.id) || [];
-                              await projectsApi.updateTask(task.uid, { tag_ids: [...currentTagIds, tagId] });
-                              refreshTask();
+                              try {
+                                await projectsApi.updateTask(task.uid, { tag_ids: [...currentTagIds, tagId] });
+                                await refreshTask();
+                                toast.success("Tag added.");
+                              } catch (err: any) {
+                                toast.error(err?.message || "Failed to add tag.");
+                              }
                             }}
                             className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
                           >
@@ -603,10 +641,19 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                         <textarea
                           rows={4}
                           value={task.description || ""}
-                          onChange={(e) => setTask({...task, description: e.target.value})}
-                          onBlur={async () => {
-                            await projectsApi.updateTask(task.uid, { description: task.description });
-                            refreshTask();
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setTask(prev => ({ ...prev, description: val }));
+                          }}
+                          onBlur={async (e) => {
+                            const val = e.target.value;
+                            try {
+                              await projectsApi.updateTask(task.uid, { description: val });
+                              await refreshTask();
+                              toast.success("Execution directives saved.");
+                            } catch (err: any) {
+                              toast.error(err?.message || "Failed to save execution directives.");
+                            }
                           }}
                           placeholder="Add architectural requirements..."
                           className="w-full p-4 bg-surface-50 border border-surface-200 rounded-2xl outline-none focus:border-accent font-medium text-sm text-primary resize-none transition-colors leading-relaxed"

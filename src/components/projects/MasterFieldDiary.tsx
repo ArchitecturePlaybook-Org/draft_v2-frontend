@@ -5,6 +5,7 @@ import { fetchFromBff } from "@/shared/api/fetchFromBff";
 import { toast } from "sonner";
 import { DiaryEntryDetail } from "./DiaryEntryDetail";
 import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { fieldDiaryCache } from "@/domains/projects/fieldDiaryCache";
 
 export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId }) => {
   const [entries, setEntries] = useState<any[]>([]);
@@ -16,13 +17,38 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
     fetchEntries();
   }, [projectId]);
 
-  const fetchEntries = async () => {
+  const fetchEntries = async (forceRefresh = false) => {
     if (!projectId) return;
+    const cacheKey = `entries_${projectId}`;
+    const cachedData = fieldDiaryCache.get<any[]>(cacheKey);
+
+    if (cachedData && !forceRefresh) {
+      setEntries(cachedData);
+      setIsLoading(false);
+      
+      const todayStr = new Date().toISOString().split("T")[0];
+      const todayEntry = cachedData.find((e: any) => e.entry_date === todayStr);
+      if (todayEntry && !selectedEntry) {
+        handleDateClick(todayStr, cachedData);
+      } else if (!todayEntry && !selectedEntry) {
+        handleDateClick(todayStr, cachedData);
+      }
+      
+      // Silent background revalidation
+      fetchFromBff<any[]>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectId}`).then(res => {
+        const fresh = Array.isArray(res) ? res : (res as any).results || [];
+        setEntries(fresh);
+        fieldDiaryCache.set(cacheKey, fresh);
+      }).catch(() => {});
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await fetchFromBff<any[]>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectId}`);
       const data = Array.isArray(res) ? res : (res as any).results || [];
       setEntries(data);
+      fieldDiaryCache.set(cacheKey, data);
       
       // Auto-select today's entry on first load
       const todayStr = new Date().toISOString().split("T")[0];
@@ -30,7 +56,6 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
       if (todayEntry && !selectedEntry) {
         handleDateClick(todayStr, data);
       } else if (!todayEntry && !selectedEntry) {
-        // If today's doesn't exist, we select today but it will auto-create
         handleDateClick(todayStr, data);
       }
     } catch (e) {
@@ -57,15 +82,19 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
           })
         });
         entry = res;
-        setEntries(prev => [res, ...prev]);
+        setEntries(prev => {
+          const updated = [res, ...prev];
+          fieldDiaryCache.set(`entries_${projectId}`, updated);
+          return updated;
+        });
         toast.dismiss(loadId);
       } catch (err) {
         toast.dismiss(loadId);
-        // It might have been created offline or concurrently by someone else, refetch to check
         try {
           const refetchRes = await fetchFromBff<any[]>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectId}`);
           const data = Array.isArray(refetchRes) ? refetchRes : (refetchRes as any).results || [];
           setEntries(data);
+          fieldDiaryCache.set(`entries_${projectId}`, data);
           entry = data.find((e: any) => e.entry_date === dateStr);
           if (!entry) throw new Error("Entry not found after refetch");
         } catch (e2) {
@@ -75,16 +104,29 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
       }
     }
     
+    const detailCacheKey = `detail_${entry.id}`;
+    const cachedDetail = fieldDiaryCache.get<any>(detailCacheKey);
+    if (cachedDetail) {
+      setSelectedEntry(cachedDetail);
+      fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/${entry.id}/`).then(fresh => {
+        setSelectedEntry(fresh);
+        fieldDiaryCache.set(detailCacheKey, fresh);
+      }).catch(() => {});
+      return;
+    }
+
     try {
       const freshEntry = await fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/${entry.id}/`);
       setSelectedEntry(freshEntry);
+      fieldDiaryCache.set(detailCacheKey, freshEntry);
     } catch (e) {
       toast.error("Failed to load details");
     }
   };
 
   const handleUpdate = () => {
-    fetchEntries();
+    fieldDiaryCache.invalidate(projectId);
+    fetchEntries(true);
     if (selectedEntry) {
       handleDateClick(selectedEntry.entry_date);
     }
