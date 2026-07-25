@@ -34,16 +34,16 @@ export const ProjectActionsMenu: React.FC<ProjectActionsMenuProps> = ({ project,
     <div className="relative" ref={menuRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-surface-100 border border-surface-200 rounded-md text-xs font-bold text-text-secondary hover:text-[#D4AF37] hover:border-[#D4AF37] transition-colors shadow-none"
+        className="flex items-center gap-2 px-3 py-1.5 bg-surface-100 dark:bg-slate-800/90 border border-surface-200 dark:border-slate-700/80 rounded-lg text-xs font-bold text-text-secondary dark:text-slate-200 hover:text-amber-500 dark:hover:text-amber-400 hover:border-amber-400/60 transition-colors shadow-sm"
       >
         <span>⚙️ Actions</span>
         <span className="text-[10px]">▾</span>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-surface-100 border border-surface-200 rounded-md shadow-none overflow-hidden z-50 py-1 animate-fade-in-up" style={{ animationDuration: '0.15s' }}>
+        <div className="absolute right-0 top-full mt-2 w-48 bg-surface-100 dark:bg-slate-900/95 border border-surface-200 dark:border-slate-800/90 rounded-xl shadow-2xl backdrop-blur-xl overflow-hidden z-50 py-1 animate-fade-in-up" style={{ animationDuration: '0.15s' }}>
           <button 
-            className="w-full text-left px-4 py-2 text-xs font-semibold text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2"
+            className="w-full text-left px-4 py-2.5 text-xs font-semibold text-text-secondary dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-800/80 hover:text-amber-500 dark:hover:text-amber-400 transition-colors flex items-center gap-2"
             onClick={() => {
               setIsOpen(false);
               onOpenSettings?.();
@@ -53,7 +53,7 @@ export const ProjectActionsMenu: React.FC<ProjectActionsMenuProps> = ({ project,
           </button>
           
           <button 
-            className="w-full text-left px-4 py-2 text-xs font-semibold text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2"
+            className="w-full text-left px-4 py-2.5 text-xs font-semibold text-text-secondary dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-800/80 hover:text-amber-500 dark:hover:text-amber-400 transition-colors flex items-center gap-2"
             onClick={() => {
               setIsOpen(false);
               onAssignPersonnel?.();
@@ -63,14 +63,14 @@ export const ProjectActionsMenu: React.FC<ProjectActionsMenuProps> = ({ project,
           </button>
           
           <button 
-            className="w-full text-left px-4 py-2 text-xs font-semibold text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2"
+            className="w-full text-left px-4 py-2.5 text-xs font-semibold text-text-secondary dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-800/80 hover:text-amber-500 dark:hover:text-amber-400 transition-colors flex items-center gap-2"
             onClick={() => window.open(`/dashboard/projects/${project.uid}/report/project-summary`, '_blank')}
           >
             <span>📄</span> Generate Report
           </button>
           
           <button 
-            className="w-full text-left px-4 py-2 text-xs font-semibold text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2"
+            className="w-full text-left px-4 py-2.5 text-xs font-semibold text-text-secondary dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-800/80 hover:text-amber-500 dark:hover:text-amber-400 transition-colors flex items-center gap-2"
             onClick={() => {
               setIsOpen(false);
               onCloneProject?.();
@@ -80,19 +80,19 @@ export const ProjectActionsMenu: React.FC<ProjectActionsMenuProps> = ({ project,
           </button>
 
           {project.status === "Completed" && (
-            <button className="w-full text-left px-4 py-2 text-xs font-semibold text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2">
+            <button className="w-full text-left px-4 py-2.5 text-xs font-semibold text-text-secondary dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-800/80 hover:text-amber-500 dark:hover:text-amber-400 transition-colors flex items-center gap-2">
               <span>🚀</span> Publish to Portfolio
             </button>
           )}
 
-          <div className="h-px bg-surface-100 my-1 mx-2" />
+          <div className="h-px bg-surface-200 dark:bg-slate-800 my-1 mx-2" />
 
           <button 
             onClick={() => {
               setIsOpen(false);
               onDeleteProject?.();
             }}
-            className="w-full text-left px-4 py-2 text-xs font-semibold text-semantic-red hover:bg-semantic-red/10 transition-colors flex items-center gap-2"
+            className="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-2"
           >
             <span>🗑️</span> Delete Blueprint
           </button>
