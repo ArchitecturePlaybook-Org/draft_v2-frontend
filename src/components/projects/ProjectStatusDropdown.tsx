@@ -51,12 +51,12 @@ export const ProjectStatusDropdown: React.FC<ProjectStatusDropdownProps> = ({
   const getButtonStyles = (currentStatus: ProjectStatus) => {
     switch (currentStatus) {
       case "Completed":
-        return "bg-semantic-green text-background";
+        return "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-bold shadow-sm";
       case "Work in Progress":
-        return "bg-semantic-blue text-background";
+        return "bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-bold shadow-sm";
       case "To Start":
       default:
-        return "bg-surface-100 border border-surface-200 text-text-secondary hover:text-[#D4AF37] hover:border-[#D4AF37]";
+        return "bg-surface-100 dark:bg-slate-800/90 border border-surface-200 dark:border-slate-700/80 text-primary dark:text-slate-200 hover:text-amber-500 dark:hover:text-amber-400 hover:border-amber-400/60 font-bold shadow-sm";
     }
   };
 
@@ -72,7 +72,7 @@ export const ProjectStatusDropdown: React.FC<ProjectStatusDropdownProps> = ({
       <button
         type="button"
         onClick={toggleDropdown}
-        className={`px-3 py-1 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.15em] rounded-md shadow-none outline-none cursor-pointer hover:brightness-110 transition-all ${getButtonStyles(
+        className={`px-3 py-1.5 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.15em] rounded-lg outline-none cursor-pointer hover:brightness-110 transition-all ${getButtonStyles(
           status
         )}`}
       >
@@ -82,7 +82,7 @@ export const ProjectStatusDropdown: React.FC<ProjectStatusDropdownProps> = ({
 
       {/* Animated Dropdown Menu */}
       <div
-        className={`absolute right-0 mt-1.5 w-40 origin-top-right rounded-md bg-surface-100 border border-surface-200 shadow-none ring-0 focus:outline-none z-50 transition-all duration-200 ease-out ${
+        className={`absolute right-0 mt-2 w-44 origin-top-right rounded-xl bg-surface-100 dark:bg-slate-900/95 border border-surface-200 dark:border-slate-800/90 shadow-2xl backdrop-blur-xl focus:outline-none z-50 transition-all duration-200 ease-out ${
           isOpen
             ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
             : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
@@ -95,8 +95,8 @@ export const ProjectStatusDropdown: React.FC<ProjectStatusDropdownProps> = ({
               onClick={(e) => handleSelect(e, option)}
               className={`w-full text-left block px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                 status === option
-                  ? "bg-surface-200 text-[#D4AF37]"
-                  : "text-text-secondary hover:bg-surface-200 hover:text-[#D4AF37]"
+                  ? "bg-surface-200 dark:bg-slate-800/80 text-amber-500 dark:text-amber-400 font-extrabold"
+                  : "text-text-secondary dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-800/60 hover:text-amber-500 dark:hover:text-amber-400"
               }`}
             >
               {option}

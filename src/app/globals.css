@@ -406,6 +406,13 @@ h1, h2, h3, h4, h5, h6 {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
+  /* Suppress OS-native select widget rendering so CSS background-color is respected */
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+
   input:focus,
   textarea:focus,
   select:focus {
