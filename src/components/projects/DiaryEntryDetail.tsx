@@ -24,7 +24,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     metadata: true,
     progress: true,
-    attachments: false,
+    attachments: true,
   });
 
   const toggleSection = (id: string) => {
@@ -75,6 +75,18 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
     }
   };
 
+  const isImageUrl = (url: string) => {
+    if (!url) return false;
+    const cleanUrl = url.split('?')[0];
+    return /\.(jpeg|jpg|gif|png|webp|svg|bmp)$/i.test(cleanUrl);
+  };
+
+  const getCleanFileName = (url: string) => {
+    if (!url) return "Attachment";
+    const cleanUrl = url.split('?')[0];
+    return cleanUrl.split('/').pop() || "Attachment";
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isLocked) return;
     const file = e.target.files?.[0];
@@ -84,9 +96,10 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
     try {
       await projectsApi.uploadDiaryAttachment(entry.id, file);
       toast.success("Attachment uploaded", { id: loadId });
+      setExpandedSections(prev => ({ ...prev, attachments: true }));
       onUpdate();
-    } catch (err) {
-      toast.error("Failed to upload attachment", { id: loadId });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to upload attachment", { id: loadId });
     }
   };
 
@@ -514,18 +527,35 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                 <div className="text-center p-6 text-surface-400 text-sm font-medium border-2 border-dashed rounded-xl">No attachments for this day.</div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {entry.attachments?.map((att: any) => (
-                    <div key={att.id} className="relative group rounded-xl overflow-hidden border border-surface-200 aspect-square bg-surface-50">
-                      {att.file.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                        <img src={att.file} alt="attachment" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-surface-400">
-                          <File className="w-8 h-8 mb-2" />
-                          <span className="text-xs font-medium truncate w-full px-2 text-center">{att.file.split('/').pop()}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {entry.attachments?.map((att: any) => {
+                    const rawUrl = att.file || att.url || "";
+                    const isImg = isImageUrl(rawUrl);
+                    const fileName = getCleanFileName(rawUrl);
+
+                    return (
+                      <div key={att.id} className="relative group rounded-xl overflow-hidden border border-surface-200 aspect-square bg-surface-50 shadow-sm hover:shadow-md transition-all">
+                        {isImg ? (
+                          <a href={rawUrl} target="_blank" rel="noopener noreferrer" className="w-full h-full block">
+                            <img src={rawUrl} alt={att.caption || fileName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                          </a>
+                        ) : (
+                          <a href={rawUrl} target="_blank" rel="noopener noreferrer" className="w-full h-full flex flex-col items-center justify-center text-surface-400 p-2 hover:bg-surface-100 transition-colors">
+                            <File className="w-8 h-8 mb-2 text-surface-500" />
+                            <span className="text-xs font-medium truncate w-full text-center text-surface-700">{fileName}</span>
+                          </a>
+                        )}
+                        {!isLocked && (
+                          <button 
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete("attachments", att.id); }}
+                            className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow"
+                            title="Delete attachment"
+                          >
+                            <Trash className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               
