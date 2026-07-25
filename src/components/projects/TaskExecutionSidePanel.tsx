@@ -67,6 +67,11 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
   const { isAdmin, hasGlobalPermission, canEditProject } = usePermissions();
   const [task, setTask] = useState<Task>(initialTask);
+
+  React.useEffect(() => {
+    setTask(initialTask);
+  }, [initialTask]);
+
   const [activeTab, setActiveTab] = useState<TaskTab>("execution");
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(task.status);
@@ -137,6 +142,8 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     try {
       const updated = await projectsApi.getTask(task.uid);
       setTask(updated);
+      const { useProjectStore } = await import("@/store/project-store");
+      useProjectStore.getState().setActiveTask(updated);
       onTaskUpdated();
     } catch { /* silent */ }
   };
@@ -225,12 +232,24 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const handleCreateSubtask = async (title: string, description: string = "") => {
     setIsUpdating(true);
     try {
-      await projectsApi.createTask({
-        project: projectId,
+      const payload: any = {
         title: title,
         description: description,
-        parent_task_id: task.id
-      });
+        parent_task_id: task.id,
+        parent_task: task.uid || task.id,
+      };
+      if (projectId && Number(projectId) > 0) {
+        payload.project = Number(projectId);
+      }
+      const createdSubtask = await projectsApi.createTask(payload);
+
+      if (createdSubtask) {
+        setTask(prev => ({
+          ...prev,
+          subtasks: [...(prev.subtasks || []), createdSubtask]
+        }));
+      }
+
       await refreshTask();
       toast.success("Subtask created successfully.");
     } catch (err: any) {
@@ -241,12 +260,18 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   };
 
   const handleUpdateSubtask = async (subtaskUid: string, data: any) => {
+    setTask(prev => ({
+      ...prev,
+      subtasks: (prev.subtasks || []).map(st => st.uid === subtaskUid ? { ...st, ...data } : st)
+    }));
+
     setIsUpdating(true);
     try {
       await projectsApi.updateTask(subtaskUid, data);
       await refreshTask();
     } catch (err: any) {
       toast.error(err.message || "Failed to update subtask.");
+      await refreshTask();
     } finally {
       setIsUpdating(false);
     }

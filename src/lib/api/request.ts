@@ -12,10 +12,20 @@ export async function buildBackendRequest(req: NextRequest): Promise<RequestInit
   if (["POST", "PUT", "PATCH"].includes(method)) {
     const contentType = req.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
-      // We must buffer the form data if we want to be able to retry the request (e.g. on 401 refresh)
-      // because the raw req.body stream can only be consumed once.
-      const formData = await req.formData();
-      body = formData;
+      // Re-create FormData entries with explicit Blob and filename
+      // because raw NextRequest File objects lose stream references when passed directly to Node fetch
+      const incomingFormData = await req.formData();
+      const newFormData = new FormData();
+      for (const [key, value] of incomingFormData.entries()) {
+        if (value && typeof value === "object" && "arrayBuffer" in value) {
+          const fileObj = value as File;
+          const buffer = await fileObj.arrayBuffer();
+          newFormData.append(key, new Blob([buffer], { type: fileObj.type }), fileObj.name || "file");
+        } else {
+          newFormData.append(key, value);
+        }
+      }
+      body = newFormData;
       headers.delete("content-type"); // let fetch handle boundary
     } else {
       body = await req.text();

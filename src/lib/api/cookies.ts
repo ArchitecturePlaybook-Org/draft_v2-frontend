@@ -15,6 +15,7 @@ export interface TokenData {
 }
 
 export function setAuthCookies(response: NextResponse, data: TokenData, rememberMe?: boolean) {
+  if (!data) return;
   const isProd = process.env.NODE_ENV === "production";
   
   const refreshMaxAge = rememberMe ? REMEMBER_ME_MAX_AGE : undefined;

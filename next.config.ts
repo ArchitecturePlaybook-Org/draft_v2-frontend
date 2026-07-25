@@ -26,10 +26,10 @@ const cspHeader = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' blob: data: ${backendUrl.origin} ${mediaUrl.origin} http://localhost:8000 http://127.0.0.1:8000 https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com`,
-  `media-src 'self' blob: data: ${backendUrl.origin} ${mediaUrl.origin} http://localhost:8000 http://127.0.0.1:8000 https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com`,
+  `img-src 'self' blob: data: https: ${backendUrl.origin} ${mediaUrl.origin} http://localhost:8000 http://127.0.0.1:8000 https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com`,
+  `media-src 'self' blob: data: https: ${backendUrl.origin} ${mediaUrl.origin} http://localhost:8000 http://127.0.0.1:8000 https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com`,
   "font-src 'self' data:",
-  `connect-src 'self' ${backendUrl.origin} ${wsUrlStr} ws://localhost:8000 ws://127.0.0.1:8000 blob: data: https://www.gstatic.com https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com`,
+  `connect-src 'self' https: ${backendUrl.origin} ${wsUrlStr} ws://localhost:8000 ws://127.0.0.1:8000 blob: data: https://www.gstatic.com https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com`,
   "worker-src 'self' blob:"
 ].join("; ");
 
