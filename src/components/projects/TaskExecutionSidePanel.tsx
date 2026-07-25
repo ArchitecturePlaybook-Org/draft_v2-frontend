@@ -201,7 +201,8 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   };
 
   const handleAddChecklistItem = async () => {
-    if (!newChecklistDesc.trim()) return;
+    if (!newChecklistDesc.trim() || isUpdating) return;
+    setIsUpdating(true);
     try {
       await projectsApi.createChecklistItem(task.uid, newChecklistDesc.trim());
       setNewChecklistDesc("");
@@ -209,6 +210,8 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
       toast.success("Checklist item added.");
     } catch (err: any) {
       toast.error(err.message || "Failed to add item.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
