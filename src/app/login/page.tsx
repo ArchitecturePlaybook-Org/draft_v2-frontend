@@ -8,14 +8,15 @@ import { useAuthStore } from "@/store/auth-store";
 // -------------------------------------------------------------------------
 // OAuth Helpers
 // -------------------------------------------------------------------------
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "602486804656-th52ob7rmh9v63dct188b3cd12i1kvdo.apps.googleusercontent.com";
 const APPLE_CLIENT_ID = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID ?? "";
 const REDIRECT_BASE =
   typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
 
 function initiateGoogleOAuth() {
+  const clientId = GOOGLE_CLIENT_ID;
   const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
+    client_id: clientId,
     redirect_uri: `${REDIRECT_BASE}/auth/callback/google`,
     response_type: "code",
     scope: "openid email profile",

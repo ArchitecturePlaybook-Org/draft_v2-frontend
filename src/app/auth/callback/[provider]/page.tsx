@@ -42,13 +42,16 @@ export default function OAuthCallbackPage() {
     }
 
     const exchangeCode = async () => {
-      try {
-        const body: Record<string, string> = { code };
+        const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+        const body: Record<string, string> = { 
+          code,
+          redirect_uri: redirectUri 
+        };
         if (provider === "apple" && idToken) {
           body.id_token = idToken;
         }
 
-        const res = await fetch(`/api/v1//social/${provider}`, {
+        const res = await fetch(`/api/v1/auth/social/${provider}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
