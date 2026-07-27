@@ -93,16 +93,52 @@ export default function ProjectSummaryReportPage() {
     fetchData();
   }, [id]);
 
+  async function urlToBase64(url: string): Promise<string> {
+    if (!url || url.startsWith("data:")) return url;
+    try {
+      const fullUrl = url.startsWith("/") ? `${window.location.origin}${url}` : url;
+      const proxyUrl = `/api/v1/proxy-asset?url=${encodeURIComponent(fullUrl)}`;
+
+      const res = await fetch(proxyUrl);
+      if (!res.ok) return url;
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string) || url);
+        reader.onerror = () => resolve(url);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return url;
+    }
+  }
+
   const handleExportAndSave = async () => {
     if (!project) return;
     setIsExporting(true);
     toast.info("Compiling multi-page report. This may take a moment...");
     
+    const originalSrcs: { img: HTMLImageElement; src: string }[] = [];
+
     try {
       const html2canvasModule = await import("html2canvas");
       const html2canvas = html2canvasModule.default;
       const jsPDFModule = await import("jspdf");
       const jsPDF = jsPDFModule.default;
+
+      // Pre-process images: convert all img tags in reportRef to Base64 to prevent CORS canvas taint
+      const imgElements = Array.from(reportRef.current?.querySelectorAll("img") || []);
+
+      await Promise.all(
+        imgElements.map(async (img) => {
+          const currentSrc = img.src || img.getAttribute("src") || "";
+          if (currentSrc && !currentSrc.startsWith("data:")) {
+            originalSrcs.push({ img, src: currentSrc });
+            const base64Src = await urlToBase64(currentSrc);
+            img.src = base64Src;
+          }
+        })
+      );
 
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -116,7 +152,7 @@ export default function ProjectSummaryReportPage() {
       
       for (let i = 0; i < pages.length; i++) {
         const pageEl = pages[i] as HTMLElement;
-        const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true, backgroundColor: config.template === 'layout_c_cinematic' ? '#0f172a' : '#ffffff' });
+        const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: config.template === 'layout_c_cinematic' ? '#0f172a' : '#ffffff' });
         const imgData = canvas.toDataURL("image/png");
         
         // Calculate proportional height to maintain aspect ratio
@@ -152,6 +188,10 @@ export default function ProjectSummaryReportPage() {
       console.error(err);
       toast.error("Failed to generate report.");
     } finally {
+      // Restore original image srcs
+      originalSrcs.forEach(({ img, src }) => {
+        img.src = src;
+      });
       setIsExporting(false);
     }
   };
@@ -304,7 +344,7 @@ export default function ProjectSummaryReportPage() {
                              className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${config.selectedImageUrls.includes(group.floorPlanUrl) ? 'border-primary shadow-md' : 'border-transparent opacity-50 hover:opacity-80'}`}
                              title="Blueprint"
                            >
-                             <img src={group.floorPlanUrl} alt="blueprint" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                             <img src={group.floorPlanUrl} alt="blueprint" className="w-full h-full object-cover" />
                              {config.selectedImageUrls.includes(group.floorPlanUrl) && (
                                <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
                              )}
@@ -319,7 +359,7 @@ export default function ProjectSummaryReportPage() {
                              className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${config.selectedImageUrls.includes(photo.url) ? 'border-primary shadow-md' : 'border-transparent opacity-50 hover:opacity-80'}`}
                              title={photo.caption || "Site Photo"}
                            >
-                             <img src={photo.url} alt="site" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                             <img src={photo.url} alt="site" className="w-full h-full object-cover" />
                              {config.selectedImageUrls.includes(photo.url) && (
                                <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
                              )}
@@ -499,7 +539,7 @@ export default function ProjectSummaryReportPage() {
                 {/* Blueprint Render */}
                 {selectedFloorPlan && (
                   <div className="mb-12 border-2 border-current/10 p-2 rounded-xl bg-current/5 shadow-inner">
-                    <img src={selectedFloorPlan} alt={group.assetTitle} className="w-full h-auto rounded" crossOrigin="anonymous" />
+                    <img src={selectedFloorPlan} alt={group.assetTitle} className="w-full h-auto rounded" />
                   </div>
                 )}
 

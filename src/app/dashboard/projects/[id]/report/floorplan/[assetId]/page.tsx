@@ -41,18 +41,54 @@ export default function FloorPlanReportPage() {
     fetchData();
   }, [id, assetId]);
 
+  async function urlToBase64(url: string): Promise<string> {
+    if (!url || url.startsWith("data:")) return url;
+    try {
+      const fullUrl = url.startsWith("/") ? `${window.location.origin}${url}` : url;
+      const proxyUrl = `/api/v1/proxy-asset?url=${encodeURIComponent(fullUrl)}`;
+
+      const res = await fetch(proxyUrl);
+      if (!res.ok) return url;
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string) || url);
+        reader.onerror = () => resolve(url);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return url;
+    }
+  }
+
   const handleExportAndSave = async () => {
     if (!reportRef.current || !project || !asset) return;
     setIsExporting(true);
     toast.info("Generating Report... Please wait.");
     
+    const originalSrcs: { img: HTMLImageElement; src: string }[] = [];
+
     try {
       const html2canvasModule = await import("html2canvas");
       const html2canvas = html2canvasModule.default;
       const jsPDFModule = await import("jspdf");
       const jsPDF = jsPDFModule.default;
 
-      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
+      // Pre-process images: convert all img tags in reportRef to Base64 to prevent CORS canvas taint
+      const imgElements = Array.from(reportRef.current?.querySelectorAll("img") || []);
+
+      await Promise.all(
+        imgElements.map(async (img) => {
+          const currentSrc = img.src || img.getAttribute("src") || "";
+          if (currentSrc && !currentSrc.startsWith("data:")) {
+            originalSrcs.push({ img, src: currentSrc });
+            const base64Src = await urlToBase64(currentSrc);
+            img.src = base64Src;
+          }
+        })
+      );
+
+      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, allowTaint: true });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       
@@ -87,6 +123,10 @@ export default function FloorPlanReportPage() {
       console.error(err);
       toast.error("Failed to generate report.");
     } finally {
+      // Restore original image srcs
+      originalSrcs.forEach(({ img, src }) => {
+        img.src = src;
+      });
       setIsExporting(false);
     }
   };
