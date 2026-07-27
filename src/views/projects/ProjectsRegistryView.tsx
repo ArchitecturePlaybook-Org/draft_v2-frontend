@@ -30,6 +30,11 @@ function SearchParamsReader({ onParams }: { onParams: (leadId: string | null, ti
 export function ProjectsRegistryView() {
   const queryClient = useQueryClient();
   const { isAdmin } = usePermissions();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [orgs, setOrgs] = useState<any[]>([]);
@@ -198,7 +203,7 @@ export function ProjectsRegistryView() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading || !isMounted ? (
         <div className="flex flex-col items-center justify-center py-32 bg-surface-100 border border-surface-200 rounded-2xl">
           <Spinner size="lg" label="Retrieving architectural nodes..." />
         </div>
@@ -410,7 +415,7 @@ export function ProjectsRegistryView() {
                         </h3>
                         <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-amber-700/80 dark:text-amber-400/80 flex items-center gap-2">
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                          {typeof task.project === "object" ? task.project.title : `Project ${task.project}`}
+                          {task.project && typeof task.project === "object" ? task.project.title : `Project ${task.project || ""}`}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">

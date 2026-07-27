@@ -116,21 +116,23 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({
     : null;
 
   const tasksTotal = useMemo(() => {
-    if (Array.isArray(project.tasks)) {
-      return project.tasks.length;
+    const tasks = (project as any).tasks;
+    if (Array.isArray(tasks)) {
+      return tasks.length;
     }
     return project.tasks_count || 0;
-  }, [project.tasks, project.tasks_count]);
+  }, [(project as any).tasks, project.tasks_count]);
 
   const tasksDone = useMemo(() => {
-    if (Array.isArray(project.tasks)) {
-      return project.tasks.filter((t: any) => {
+    const tasks = (project as any).tasks;
+    if (Array.isArray(tasks)) {
+      return tasks.filter((t: any) => {
         const s = (t.status || "").toLowerCase();
         return s === "done" || s === "completed";
       }).length;
     }
     return project.tasks_done_count || 0;
-  }, [project.tasks, project.tasks_done_count]);
+  }, [(project as any).tasks, project.tasks_done_count]);
 
   return (
     <header

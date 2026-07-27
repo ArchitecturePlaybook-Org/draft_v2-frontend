@@ -4,21 +4,7 @@ import { COOKIE_REFRESH_TOKEN, DJANGO_API_URL } from "./constants";
 // Promise cache to deduplicate simultaneous token refreshes
 let activeRefreshPromise: Promise<Record<string, any> | null> | null = null;
 
-export async function refreshIfNeeded(
-  req: NextRequest, 
-  originalRes: Response, 
-  fetchOriginal: (headers: Headers) => Promise<Response>
-): Promise<{ res: Response; newTokens?: Record<string, string>; refreshFailed?: boolean }> {
-  if (originalRes.status !== 401) {
-    return { res: originalRes };
-  }
-
-  const refreshToken = req.cookies.get(COOKIE_REFRESH_TOKEN)?.value;
-  if (!refreshToken) {
-    return { res: originalRes, refreshFailed: true };
-  }
-
-  // Deduplicate concurrent refresh calls
+export async function refreshAccessToken(refreshToken: string): Promise<Record<string, any> | null> {
   if (!activeRefreshPromise) {
     activeRefreshPromise = (async () => {
       try {
@@ -27,7 +13,7 @@ export async function refreshIfNeeded(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh: refreshToken }),
           cache: "no-store",
-      });
+        });
 
         if (!refreshRes.ok) {
           return null;
@@ -43,8 +29,24 @@ export async function refreshIfNeeded(
       }
     })();
   }
+  return activeRefreshPromise;
+}
 
-  const tokens = await activeRefreshPromise;
+export async function refreshIfNeeded(
+  req: NextRequest, 
+  originalRes: Response, 
+  fetchOriginal: (headers: Headers) => Promise<Response>
+): Promise<{ res: Response; newTokens?: Record<string, string>; refreshFailed?: boolean }> {
+  if (originalRes.status !== 401) {
+    return { res: originalRes };
+  }
+
+  const refreshToken = req.cookies.get(COOKIE_REFRESH_TOKEN)?.value;
+  if (!refreshToken) {
+    return { res: originalRes, refreshFailed: true };
+  }
+
+  const tokens = await refreshAccessToken(refreshToken);
   if (!tokens || !tokens.access) {
     return { res: originalRes, refreshFailed: true };
   }
@@ -57,7 +59,7 @@ export async function refreshIfNeeded(
     
     const retriedRes = await fetchOriginal(newHeaders);
     
-    return { res: retriedRes, newTokens: tokens };
+    return { res: retriedRes, newTokens: tokens as Record<string, string> };
   } catch {
     return { res: originalRes, refreshFailed: true };
   }

@@ -19,6 +19,34 @@ const geistMono = Geist_Mono({
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173';
 
+const performancePolyfillScript = `
+  console.log('[Performance Polyfill] initializing');
+  if (typeof window !== 'undefined' && window.performance) {
+    const origMeasure = window.performance.measure;
+    window.performance.measure = function(...args) {
+      try {
+        // Skip measuring ProjectsPage and DashboardPage to avoid negative timestamps
+        if (typeof args[0] === 'string' && (args[0].includes('ProjectsPage') || args[0].includes('DashboardPage'))) {
+          return null;
+        }
+        return origMeasure.apply(this, args);
+      } catch (e) {
+        console.warn('[Performance Polyfill] Suppressed measure error:', e);
+        return null;
+      }
+    };
+    const origMark = window.performance.mark;
+    window.performance.mark = function(...args) {
+      try {
+        return origMark.apply(this, args);
+      } catch (e) {
+        console.warn("[Performance Polyfill] Suppressed mark error:", e);
+        return null;
+      }
+    };
+  }
+`;
+
 const swRegistrationScript = `
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     window.addEventListener('load', function() {
@@ -77,6 +105,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: performancePolyfillScript }} />
         <script dangerouslySetInnerHTML={{ __html: swRegistrationScript }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>

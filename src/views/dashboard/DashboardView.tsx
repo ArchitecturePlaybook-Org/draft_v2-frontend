@@ -47,6 +47,11 @@ const itemVariants: Variants = {
 export function DashboardView() {
   const router = useRouter();
   const { user, isLoading: isUserLoading } = useAuthStore();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // TanStack Queries for caching dashboard components
   const { data: dashboardStats = null, isLoading: isStatsLoading } = useQuery<any>({
@@ -59,7 +64,7 @@ export function DashboardView() {
     queryFn: () => eventsApi.listEvents()
   });
 
-  const { data: leadsData = [], isLoading: isLeadsLoading } = useQuery<Lead[]>({
+  const { data: leadsData = [], isLoading: isLeadsLoading } = useQuery<any>({
     queryKey: ["dashboard-leads"],
     queryFn: () => leadsApi.listLeads()
   });
@@ -78,7 +83,7 @@ export function DashboardView() {
     return "Good evening";
   };
 
-  if (isUserLoading || isLoadingData) {
+  if (isUserLoading || isLoadingData || !isMounted) {
     return (
       <div className="flex items-center justify-center h-full flex-col gap-4">
         <div className="w-12 h-12 border-4 border-surface-200 border-t-primary rounded-full animate-spin" />
@@ -87,9 +92,9 @@ export function DashboardView() {
     );
   }
 
-  const events: Event[] = Array.isArray(eventsData) ? eventsData : (eventsData as any).results || [];
-  const tasks: Task[] = Array.isArray(tasksData) ? tasksData : (tasksData as any).results || [];
-  const leads: Lead[] = Array.isArray(leadsData) ? leadsData : (leadsData as any).results || [];
+  const events: Event[] = Array.isArray(eventsData) ? eventsData : (eventsData?.results || []);
+  const tasks: Task[] = Array.isArray(tasksData) ? tasksData : (tasksData?.results || []);
+  const leads: Lead[] = Array.isArray(leadsData) ? leadsData : ((leadsData as any)?.results || []);
 
   const activeProjectsCount = dashboardStats?.project_counts?.active || 0;
   const recentProjects = dashboardStats?.recent_projects || [];

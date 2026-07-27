@@ -13,7 +13,7 @@
  *   4. On failure, redirects back to /login with an error param.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -22,15 +22,10 @@ export default function OAuthCallbackPage() {
   const searchParams = useSearchParams();
   const params = useParams();
   const { setUser } = useAuthStore();
-  const hasFired = useRef(false);
 
   const provider = params.provider as string;
 
   useEffect(() => {
-    // Guard against double-invocation in React StrictMode
-    if (hasFired.current) return;
-    hasFired.current = true;
-
     const code = searchParams.get("code");
     const idToken = searchParams.get("id_token"); // Apple only
     const error = searchParams.get("error");
@@ -41,7 +36,16 @@ export default function OAuthCallbackPage() {
       return;
     }
 
+    // Guard against double-invocation (React StrictMode / double render)
+    // sessionStorage persists across remounts unlike useRef
+    const guardKey = `oauth_exchanged_${code.slice(-16)}`;
+    if (sessionStorage.getItem(guardKey)) {
+      return;
+    }
+    sessionStorage.setItem(guardKey, "1");
+
     const exchangeCode = async () => {
+      try {
         const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
         const body: Record<string, string> = { 
           code,
@@ -61,6 +65,7 @@ export default function OAuthCallbackPage() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           console.error(`[OAuth Callback] Backend error:`, data);
+          sessionStorage.removeItem(guardKey);
           router.replace(`/login?error=oauth_failed`);
           return;
         }
@@ -80,6 +85,7 @@ export default function OAuthCallbackPage() {
         }
       } catch (err) {
         console.error(`[OAuth Callback] Unexpected error:`, err);
+        sessionStorage.removeItem(guardKey);
         router.replace(`/login?error=oauth_failed`);
       }
     };

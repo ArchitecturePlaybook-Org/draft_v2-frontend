@@ -174,7 +174,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
     return (
       <div className="w-full h-64 flex flex-col items-center justify-center border-2 border-dashed border-red-200 dark:border-red-800/30 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-500">
          <p className="font-bold">Failed to load or create today's diary.</p>
-         <button onClick={fetchOrCreateTodayEntry} className="mt-4 px-4 py-2 bg-surface-100 border-surface-200 rounded-lg border border-red-200 dark:border-red-800/30 font-bold hover:bg-red-100">
+         <button onClick={() => fetchOrCreateTodayEntry(true)} className="mt-4 px-4 py-2 bg-surface-100 border-surface-200 rounded-lg border border-red-200 dark:border-red-800/30 font-bold hover:bg-red-100">
            Retry
          </button>
       </div>

@@ -13,7 +13,10 @@ interface ProjectCardProps {
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChange, onSaveAsTemplate }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   return (
-    <Link href={`/dashboard/projects/${project.uid}`} className="block group h-full">
+    <Link 
+      href={`/dashboard/projects/${project.uid}`} 
+      className="block group h-full"
+    >
       <motion.div 
         whileHover={{ rotateY: 2, rotateX: -2, y: -5, z: 20 }}
         style={{ transformStyle: "preserve-3d", perspective: 1000 }}
