@@ -16,7 +16,11 @@ export function proxy(request: NextRequest) {
   // Handle Guest Routes
   if (GUEST_ROUTES.some((r) => pathname.startsWith(r))) {
     if (isAuthenticated) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      const callbackUrl = request.nextUrl.searchParams.get("callbackUrl") || request.nextUrl.searchParams.get("next");
+      const targetUrl = (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//"))
+        ? callbackUrl
+        : "/dashboard";
+      return NextResponse.redirect(new URL(targetUrl, request.url));
     }
     return NextResponse.next();
   }

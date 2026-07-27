@@ -105,6 +105,12 @@ function LoginContent() {
     e.preventDefault();
     setError("");
     
+    // Extract target URL from callbackUrl or next query parameters
+    const rawCallback = searchParams.get("callbackUrl") || searchParams.get("next");
+    const redirectTarget = (rawCallback && rawCallback.startsWith("/") && !rawCallback.startsWith("//"))
+      ? rawCallback
+      : "/dashboard";
+
     if (step === "login") {
       try {
         const result = await login(email, password, rememberMe);
@@ -112,11 +118,10 @@ function LoginContent() {
           setPreAuthToken(result.pre_auth_token || "");
           setStep("2fa");
         } else {
-          if (result.user?.profile?.is_onboarding_complete === false) {
-            router.push("/onboarding");
-          } else {
-            router.push("/dashboard");
-          }
+          const dest = result.user?.profile?.is_onboarding_complete === false
+            ? "/onboarding"
+            : redirectTarget;
+          window.location.href = dest;
         }
       } catch (err: any) {
         if (err.data && err.data.code === "email_unverified") {
@@ -129,11 +134,10 @@ function LoginContent() {
     } else if (step === "2fa") {
       try {
         const result = await verify2FA(preAuthToken, otpCode);
-        if (result.user?.profile?.is_onboarding_complete === false) {
-          router.push("/onboarding");
-        } else {
-          router.push("/dashboard");
-        }
+        const dest = result.user?.profile?.is_onboarding_complete === false
+          ? "/onboarding"
+          : redirectTarget;
+        window.location.href = dest;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Invalid 2FA code. Please try again.");
       }
