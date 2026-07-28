@@ -397,7 +397,8 @@ export function DashboardView() {
         </div>
       </motion.div>
 
-      {/* GLOBAL ANALYTICS SECTION */}
+      {/* GLOBAL ANALYTICS SECTION (Temporarily Hidden) */}
+      {/* 
       <motion.div variants={itemVariants} className="flex flex-col gap-6 mt-4">
         <div className="flex items-center justify-between border-b border-surface-200 pb-4">
           <div className="flex items-center gap-3">
@@ -407,7 +408,6 @@ export function DashboardView() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Financial Overview AreaChart */}
           <Card className="p-6 bg-surface-50/50 backdrop-blur-xl border border-surface-200 hover:shadow-[0_10px_40px_-10px_rgba(212,175,55,0.15)] transition-all duration-500 group relative overflow-hidden h-[350px] flex flex-col">
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -445,7 +445,6 @@ export function DashboardView() {
             </div>
           </Card>
 
-          {/* Velocity Trend BarChart */}
           <Card className="p-6 bg-surface-50/50 backdrop-blur-xl border border-surface-200 hover:shadow-[0_10px_40px_-10px_rgba(52,211,153,0.15)] transition-all duration-500 group relative overflow-hidden h-[350px] flex flex-col">
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -475,6 +474,7 @@ export function DashboardView() {
           </Card>
         </div>
       </motion.div>
+      */}
 
       {/* BOTTOM WIDGETS: LEADS & CALENDAR */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
