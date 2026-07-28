@@ -12,6 +12,22 @@ interface ProjectCardProps {
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChange, onSaveAsTemplate }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
+
   return (
     <Link 
       href={`/dashboard/projects/${project.uid}`} 
@@ -53,19 +69,22 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChang
             )}
             {/* 3-dot menu */}
             {onSaveAsTemplate && (
-              <div className="relative">
+              <div className="relative" ref={menuRef}>
                 <button
+                  type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(prev => !prev); }}
-                  className="w-6 h-6 rounded-md flex items-center justify-center text-surface-400 hover:text-foreground hover:bg-surface-200 transition-colors opacity-0 group-hover:opacity-100"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-surface-400 hover:text-foreground hover:bg-surface-200 transition-colors opacity-0 group-hover:opacity-100 font-bold"
+                  title="Project Options"
                 >
                   ⋯
                 </button>
                 {menuOpen && (
                   <div
-                    className="absolute right-0 top-7 z-50 min-w-[170px] bg-surface-50 border border-surface-200 rounded-xl shadow-xl py-1"
-                    onMouseLeave={() => setMenuOpen(false)}
+                    className="absolute right-0 top-full mt-1 z-50 min-w-[180px] bg-surface-50 border border-surface-200 rounded-xl shadow-2xl py-1 backdrop-blur-xl"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                   >
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
