@@ -40,7 +40,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   phases: [],
   taskTemplates: [],
   
-  activeTab: "kanban",
+  activeTab: "matrix",
   activeHubCategory: "sketch",
   activeTask: null,
   isSidePanelOpen: false,
