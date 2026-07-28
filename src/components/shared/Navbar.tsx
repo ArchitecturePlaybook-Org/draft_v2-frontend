@@ -36,25 +36,25 @@ const Navbar = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 h-topbar z-50 transition-all duration-300 border-b flex items-center ${
+      className={`fixed top-0 left-0 right-0 h-20 z-[2000] transition-all duration-300 border-b flex items-center ${
         scrolled
-          ? "bg-background/95 backdrop-blur-md border-surface-200 shadow-sm"
-          : "bg-background/80 backdrop-blur-sm border-transparent"
+          ? "bg-background/95 dark:bg-slate-950/95 backdrop-blur-md border-surface-200 dark:border-white/10 shadow-md"
+          : "bg-background/80 dark:bg-slate-950/80 backdrop-blur-md border-surface-200/50 dark:border-white/5"
       }`}
     >
       <div className="w-full max-w-[1400px] mx-auto px-6 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 no-underline text-primary group">
+        <Link href="/" className="flex items-center gap-3.5 pl-2 py-2 no-underline text-primary group shrink-0">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 200 200"
-            className="w-10 h-10 transition-transform group-hover:scale-105"
+            className="w-9 h-9 text-primary transition-transform group-hover:scale-105 shrink-0"
             preserveAspectRatio="xMidYMid meet"
           >
             <polygon points="50,0 0,200 100,200" fill="currentColor" />
             <polygon points="100,0 100,100 200,50" fill="currentColor" />
           </svg>
-          <span className="font-bold text-base whitespace-nowrap tracking-tight uppercase text-foreground">
+          <span className="font-black text-sm md:text-base whitespace-nowrap tracking-tight uppercase text-foreground">
             Architecture Playbook
           </span>
         </Link>
