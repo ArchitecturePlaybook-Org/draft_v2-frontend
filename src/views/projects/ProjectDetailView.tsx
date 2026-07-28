@@ -197,11 +197,11 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
 
       <div className="flex gap-2 p-1.5 bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl w-fit shadow-inner mb-8 relative">
         {[
-          { id: "kanban", label: "Kanban Board" },
-          { id: "gantt", label: "Gantt Timeline" },
+          // { id: "kanban", label: "Kanban Board" },
           { id: "data_hub", label: "Master Data Hub" },
           { id: "matrix", label: "Construction Matrix" },
-          { id: "site_ops", label: "Site Operations" }
+          { id: "site_ops", label: "Site Operations" },
+          { id: "gantt", label: "Gantt Timeline" }
         ].map(tab => {
           const isActive = activeTab === tab.id;
           return (
@@ -229,7 +229,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
       </div>
 
       <div className="mt-6">
-        {activeTab === "kanban" && <KanbanTab />}
+        {/* {activeTab === "kanban" && <KanbanTab />} */}
         
         {activeTab === "gantt" && <GanttTab />}
 
