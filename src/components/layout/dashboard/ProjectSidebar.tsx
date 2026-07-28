@@ -12,7 +12,7 @@ import { useProjectNavStore } from "@/store/project-nav-store";
 export const ProjectSidebar: React.FC = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentTab = searchParams.get("tab") || "kanban";
+  const currentTab = searchParams.get("tab") || "matrix";
   const { isAdmin } = usePermissions();
   const setIsCommandPaletteOpen = useCommandPaletteStore((state) => state.setIsOpen);
   const { currentProjectUid, currentProjectTitle, setProjectContext, isSidebarCollapsed, toggleSidebar } = useProjectNavStore();
@@ -25,11 +25,10 @@ export const ProjectSidebar: React.FC = () => {
   if (!mounted || !currentProjectUid) return <aside className="sidebar opacity-0" />;
 
   const workspaceLinks = [
-    { label: "Kanban", id: "kanban", icon: "🗂️" },
-    { label: "Gantt Timeline", id: "gantt", icon: "📅" },
     { label: "Data Hub", id: "data_hub", icon: "🗄️" },
     { label: "Matrix", id: "matrix", icon: "🏗️" },
     { label: "Site Ops", id: "site_ops", icon: "🛡️" },
+    { label: "Gantt Timeline", id: "gantt", icon: "📅" },
   ];
 
   const toolsLinks = [
