@@ -480,6 +480,10 @@ export const projectsApi = {
     });
   },
 
+  getProjectAssetDetails: async (assetId: number) => {
+    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/`, { method: "GET" });
+  },
+
   updateProjectAsset: async (assetId: number, data: Partial<{ title: string; category: string }>) => {
     return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/`, { method: "PATCH", body: JSON.stringify(data) });
   },
