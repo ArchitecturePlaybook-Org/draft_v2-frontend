@@ -166,7 +166,7 @@ export const projectsApi = {
     return fetchFromBff<any>(`/api/v1/projects/tasks/${taskId}/`, { method: "GET" });
   },
 
-  createTask: async (data: { project: number; title: string; [key: string]: any }) => {
+  createTask: async (data: { project?: number | string; title: string; [key: string]: any }) => {
     return fetchFromBff<any>("/api/v1/projects/tasks/", { method: "POST", body: JSON.stringify(data) });
   },
 
@@ -275,13 +275,6 @@ export const projectsApi = {
     return unpackArray<any>(res);
   },
 
-  removeTaskCollaborator: async (taskUid: string, userId: number) => {
-    const res = await fetchFromBff<any>(`/api/v1/projects/tasks/${taskUid}/remove_collaborator/`, {
-      method: "POST",
-      body: JSON.stringify({ user_id: userId }),
-    });
-    return res;
-  },
 
   getTaskCollaborators: async (taskUid: string) => {
     const res = await fetchFromBff<any>(`/api/v1/projects/tasks/${taskUid}/collaborators/`, { method: "GET" });
