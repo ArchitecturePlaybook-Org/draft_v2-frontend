@@ -31,10 +31,12 @@ interface TaskCollaboratorItem {
 }
 
 interface TaskAccessRequestsListProps {
-  projectUid: string;
+  projectUid?: string;
+  projectId?: string;
 }
 
-export const TaskAccessRequestsList: React.FC<TaskAccessRequestsListProps> = ({ projectUid }) => {
+export const TaskAccessRequestsList: React.FC<TaskAccessRequestsListProps> = ({ projectUid, projectId }) => {
+  const targetUid = projectUid || projectId || "";
   const [activeSubTab, setActiveSubTab] = useState<"pending" | "approved">("pending");
   const [requests, setRequests] = useState<TaskAccessRequestItem[]>([]);
   const [collaborators, setCollaborators] = useState<TaskCollaboratorItem[]>([]);
@@ -46,12 +48,12 @@ export const TaskAccessRequestsList: React.FC<TaskAccessRequestsListProps> = ({ 
   const [isRevoking, setIsRevoking] = useState(false);
 
   const fetchData = async () => {
-    if (!projectUid) return;
+    if (!targetUid) return;
     try {
       setLoading(true);
       const [pendingData, collaboratorsData] = await Promise.all([
-        projectsApi.getPendingTaskRequests(projectUid),
-        projectsApi.getProjectTaskCollaborators(projectUid),
+        projectsApi.getPendingTaskRequests(targetUid),
+        projectsApi.getProjectTaskCollaborators(targetUid),
       ]);
       setRequests(pendingData);
       setCollaborators(collaboratorsData);
@@ -63,12 +65,12 @@ export const TaskAccessRequestsList: React.FC<TaskAccessRequestsListProps> = ({ 
   };
 
   useEffect(() => {
-    if (projectUid) {
+    if (targetUid) {
       fetchData();
     } else {
       setLoading(false);
     }
-  }, [projectUid]);
+  }, [targetUid]);
 
   const handleApprove = async (requestId: number, userName: string) => {
     try {

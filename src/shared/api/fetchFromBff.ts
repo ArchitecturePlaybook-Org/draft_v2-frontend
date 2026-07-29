@@ -13,6 +13,7 @@ export interface BffOptions extends RequestInit {
 export interface ApiError extends Error {
   status?: number;
   data?: unknown;
+  url?: string;
 }
 
 async function serializeRequestBody(body: unknown): Promise<unknown> {
