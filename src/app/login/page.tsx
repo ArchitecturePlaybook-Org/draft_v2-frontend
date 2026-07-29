@@ -128,7 +128,8 @@ function LoginContent() {
           setStep("unverified");
           setError("");
         } else {
-          setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+          const rawMsg = err instanceof Error ? err.message : "Invalid email or password. Please try again.";
+          setError(rawMsg.replace(/^\[.*?\]\s*/, ""));
         }
       }
     } else if (step === "2fa") {
@@ -138,8 +139,9 @@ function LoginContent() {
           ? "/onboarding"
           : redirectTarget;
         window.location.href = dest;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Invalid 2FA code. Please try again.");
+      } catch (err: any) {
+        const rawMsg = err instanceof Error ? err.message : "Invalid 2FA code. Please try again.";
+        setError(rawMsg.replace(/^\[.*?\]\s*/, ""));
       }
     } else if (step === "magic-link") {
       try {
@@ -148,8 +150,9 @@ function LoginContent() {
         setError("");
         alert(res.detail || "Magic link sent to your email.");
         setStep("login");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to send magic link.");
+      } catch (err: any) {
+        const rawMsg = err instanceof Error ? err.message : "Failed to send magic link.";
+        setError(rawMsg.replace(/^\[.*?\]\s*/, ""));
       }
     }
   }
@@ -211,7 +214,7 @@ function LoginContent() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 outline-none transition-all focus:border-accent/50 focus:ring-4 focus:ring-accent/10 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40"
+                    className={`w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border ${error ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/10' : 'border-surface-200/50 focus:border-accent/50 focus:ring-accent/10'} outline-none transition-all focus:ring-4 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40`}
                     placeholder="name@company.com"
                   />
                 </div>
@@ -228,7 +231,7 @@ function LoginContent() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 outline-none transition-all focus:border-accent/50 focus:ring-4 focus:ring-accent/10 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40"
+                      className={`w-full h-12 px-4 bg-surface-100/50 backdrop-blur-md border ${error ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/10' : 'border-surface-200/50 focus:border-accent/50 focus:ring-accent/10'} outline-none transition-all focus:ring-4 focus:bg-surface-50 rounded-xl placeholder:text-text-secondary/40`}
                       placeholder="••••••••"
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 -translate-y-1/2 text-surface-400 hover:text-accent transition-colors p-2">
@@ -353,7 +356,12 @@ function LoginContent() {
             )}
 
             {error && (
-              <div className="text-red-500 text-sm font-semibold animate-in fade-in slide-in-from-top-1">{error}</div>
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/25 text-red-600 dark:text-red-400 text-sm font-medium flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
+                <svg className="w-5 h-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>{error}</span>
+              </div>
             )}
 
             {step !== "unverified" && (
