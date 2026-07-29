@@ -95,6 +95,16 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  icons: {
+    icon: [
+      { url: "/favicon_io/favicon.ico", sizes: "any" },
+      { url: "/favicon_io/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon_io/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+    ],
+    apple: "/favicon_io/apple-touch-icon.png",
+    shortcut: "/favicon_io/favicon.ico",
+  },
+  manifest: "/favicon_io/site.webmanifest",
 };
 
 export default function RootLayout({

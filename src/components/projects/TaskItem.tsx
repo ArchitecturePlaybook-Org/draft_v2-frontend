@@ -217,7 +217,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 className="w-3.5 h-3.5 mr-1.5 rounded border-surface-300 text-primary focus:ring-accent cursor-pointer shrink-0"
               />
             )}
-            <span className="shrink-0">{task.task_code || task.uid.substring(0,8)}</span>
+            <span className="shrink-0">{task.task_code || (task.uid ? task.uid.substring(0,8) : "")}</span>
 
             {task.priority === "HIGH" && <span className="ml-2 bg-semantic-red/10 text-semantic-red text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-semantic-red/30 inline-block shrink-0" title="High Priority">High Priority</span>}
             {task.priority === "MEDIUM" && <span className="ml-2 bg-accent/10 text-accent text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-accent/30 inline-block shrink-0" title="Medium Priority">Medium Priority</span>}
@@ -273,13 +273,13 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
       {/* Footer: subtasks + checklist + issues count */}
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-surface-100">
-        {task.subtasks && task.subtasks.length > 0 && (
+        {task.subtasks && Array.isArray(task.subtasks) && task.subtasks.length > 0 && (
           <div className="flex items-center gap-1">
             <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
             <span className="text-[9px] font-bold text-indigo-500 tabular-nums">
-              {task.subtasks.filter((t: any) => t.status === 'DONE').length}/{task.subtasks.length} subtasks
+              {task.subtasks.filter((t: any) => t?.status === 'DONE').length}/{task.subtasks.length} subtasks
             </span>
           </div>
         )}

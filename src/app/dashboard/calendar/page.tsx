@@ -72,7 +72,7 @@ function DayDetailsModal({
               {data.tasks.map((task, i) => (
                 <div 
                   key={`modal-task-${i}`} 
-                  onClick={() => task.project_uid && router.push(`/dashboard/projects/${task.project_uid}?tab=kanban`)}
+                  onClick={() => task.project_uid && router.push(`/dashboard/projects/${task.project_uid}?tab=data_hub`)}
                   className="text-xs font-black p-3 rounded-lg border shadow-sm bg-success/10 text-success border-success/20 shadow-success/20 hover:bg-success/20 cursor-pointer transition-colors"
                 >
                   <div className="flex items-start gap-2">
@@ -262,7 +262,7 @@ export default function CalendarPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (task.project_uid) {
-                              router.push(`/dashboard/projects/${task.project_uid}?tab=kanban`);
+                              router.push(`/dashboard/projects/${task.project_uid}?tab=data_hub`);
                             }
                           }}
                           className="text-[9px] font-black px-2.5 py-1.5 rounded-md truncate uppercase tracking-[0.1em] border shadow-sm transition-transform hover:scale-[1.02] bg-success/10 text-success border-success/20 shadow-success/20 flex items-center gap-1 hover:bg-success/20 cursor-pointer"

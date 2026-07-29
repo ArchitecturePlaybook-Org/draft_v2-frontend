@@ -176,8 +176,9 @@ export default function OrganizationPage() {
       setSelectedOrg(updated);
       setOrgs(prev => prev.map(o => o.id === updated.id ? updated : o));
       setIsEditing(false);
-    } catch (err) {
-      alert("Failed to synchronize firm data.");
+    } catch (err: any) {
+      const msg = err?.message || "Failed to synchronize firm data.";
+      alert(msg);
     } finally {
       setIsSaving(false);
     }

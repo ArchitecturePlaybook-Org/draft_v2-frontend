@@ -252,8 +252,11 @@ export const projectsApi = {
     return res;
   },
 
-  getPendingTaskRequests: async () => {
-    const res = await fetchFromBff<any>(`/api/v1/projects/task-requests/`, { method: "GET" });
+  getPendingTaskRequests: async (projectUid?: string) => {
+    const url = projectUid 
+      ? `/api/v1/projects/task-requests/?project_uid=${projectUid}`
+      : `/api/v1/projects/task-requests/`;
+    const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<any>(res);
   },
 
@@ -270,6 +273,14 @@ export const projectsApi = {
   getProjectTaskCollaborators: async (projectUid: string) => {
     const res = await fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/task-collaborators/`, { method: "GET" });
     return unpackArray<any>(res);
+  },
+
+  removeTaskCollaborator: async (taskUid: string, userId: number) => {
+    const res = await fetchFromBff<any>(`/api/v1/projects/tasks/${taskUid}/remove_collaborator/`, {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId }),
+    });
+    return res;
   },
 
   getTaskCollaborators: async (taskUid: string) => {
@@ -467,6 +478,10 @@ export const projectsApi = {
       method: "POST",
       body: JSON.stringify({ name })
     });
+  },
+
+  getProjectAssetDetails: async (assetId: number) => {
+    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/`, { method: "GET" });
   },
 
   updateProjectAsset: async (assetId: number, data: Partial<{ title: string; category: string }>) => {

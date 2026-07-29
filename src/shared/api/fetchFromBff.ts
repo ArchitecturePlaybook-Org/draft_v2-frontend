@@ -140,9 +140,11 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
       }
     }
 
-    const error = new Error(`[${url}] ${errorDetail}`) as ApiError;
+    const cleanMessage = errorDetail.replace(/^\[.*?\]\s*/, "");
+    const error = new Error(cleanMessage) as ApiError;
     error.status = res.status;
     error.data = backendData;
+    error.url = url;
     throw error;
   }
 

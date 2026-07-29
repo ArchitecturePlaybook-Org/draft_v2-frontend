@@ -69,14 +69,28 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
   const [portfolioCountry, setPortfolioCountry] = useState("");
   const [isPublishingPortfolio, setIsPublishingPortfolio] = useState(false);
 
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  useEffect(() => {
+    if (projectUid) {
+      projectsApi.getPendingTaskRequests(projectUid)
+        .then(reqs => setPendingRequestsCount(reqs.length))
+        .catch(() => {});
+    }
+  }, [projectUid]);
+
   useEffect(() => {
     fetchProject(projectUid);
     fetchTemplates();
   }, [projectUid]);
 
   useEffect(() => {
-    if (tabParam && tabParam !== activeTab) {
-      setActiveTab(tabParam);
+    if (tabParam) {
+      if (tabParam !== activeTab) {
+        setActiveTab(tabParam);
+      }
+    } else {
+      setActiveTab("data_hub");
     }
   }, [tabParam]);
 
@@ -189,19 +203,18 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
         onDeleteProject={() => setShowDeleteModal(true)}
       />
 
-      {canManage && (
-        <div className="max-w-[1400px] mx-auto">
-          <TaskAccessRequestsList projectId={project.uid} />
-        </div>
-      )}
 
       <div className="flex gap-2 p-1.5 bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl w-fit shadow-inner mb-8 relative">
         {[
-          // { id: "kanban", label: "Kanban Board" },
           { id: "data_hub", label: "Master Data Hub" },
           { id: "matrix", label: "Construction Matrix" },
           { id: "site_ops", label: "Site Operations" },
-          { id: "gantt", label: "Gantt Timeline" }
+          { id: "gantt", label: "Gantt Timeline" },
+          { 
+            id: "access_requests", 
+            label: "Task Approvals", 
+            badge: pendingRequestsCount > 0 ? pendingRequestsCount : null 
+          }
         ].map(tab => {
           const isActive = activeTab === tab.id;
           return (
@@ -222,7 +235,14 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 />
               )}
-              {tab.label}
+              <span className="flex items-center gap-2">
+                {tab.label}
+                {tab.badge && (
+                  <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-500 text-white shadow-sm animate-pulse">
+                    {tab.badge}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}
@@ -234,6 +254,8 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
         {activeTab === "gantt" && <GanttTab />}
 
         {activeTab === "data_hub" && <DataHubTab />}
+
+        {activeTab === "access_requests" && <TaskAccessRequestsList projectUid={project.uid} />}
 
         {activeTab === "matrix" && (
           <div className="w-full">

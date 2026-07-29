@@ -33,8 +33,9 @@ const COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string 
 ];
 
 const getUpdatedBlock = (currentBlock: MilestoneBlockExpanded, updatedTasks: Task[]): MilestoneBlockExpanded => {
-  const total = updatedTasks.length;
-  const completed = updatedTasks.filter(t => t.status === "DONE").length;
+  const safeTasks = Array.isArray(updatedTasks) ? updatedTasks : [];
+  const total = safeTasks.length;
+  const completed = safeTasks.filter(t => t?.status === "DONE").length;
   const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
   let status = currentBlock.status;
   if (status !== "LOCKED") {
@@ -42,7 +43,7 @@ const getUpdatedBlock = (currentBlock: MilestoneBlockExpanded, updatedTasks: Tas
   }
   return {
     ...currentBlock,
-    tasks: updatedTasks,
+    tasks: safeTasks,
     total_tasks: total,
     completed_tasks: completed,
     progress_percent: progress,
@@ -70,54 +71,10 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const isLocked = block.status === "LOCKED";
 
-  // Yjs CRDT Integration Refs
-  const yDocRef = React.useRef<any>(null);
-  const yTasksRef = React.useRef<any>(null);
-  const wsProviderRef = React.useRef<any>(null);
-
+  // Sync tasks whenever block.tasks prop updates
   React.useEffect(() => {
-    let active = true;
-    Promise.all([
-      import("yjs"),
-      import("y-websocket")
-    ]).then(([Y, { WebsocketProvider }]) => {
-      if (!active) return;
-      const doc = new Y.Doc();
-      const wsUrl = getWebSocketUrl("/ws");
-      const provider = new WebsocketProvider(wsUrl, `kanban-block-${block.id}`, doc);
-      const yTasks = doc.getMap('tasks');
-      
-      yDocRef.current = doc;
-      yTasksRef.current = yTasks;
-      wsProviderRef.current = provider;
-
-      // Listen to remote changes
-      yTasks.observe(() => {
-        const syncedTasks = Array.from(yTasks.values());
-        if (syncedTasks.length > 0) {
-          setTasks(syncedTasks as Task[]);
-        }
-      });
-
-      // Initial sync from DB to Yjs if Yjs is empty
-      if (Array.from(yTasks.keys()).length === 0 && block.tasks) {
-        doc.transact(() => {
-          block.tasks?.forEach(t => yTasks.set(t.uid, t));
-        });
-      }
-    });
-
-    return () => {
-      active = false;
-      if (wsProviderRef.current) wsProviderRef.current.destroy();
-      if (yDocRef.current) yDocRef.current.destroy();
-    };
-  }, [block.id]);
-
-  // Sync tasks if block updates from backend (fallback)
-  React.useEffect(() => {
-    if (!yTasksRef.current || Array.from(yTasksRef.current.keys()).length === 0) {
-      setTasks(block.tasks || []);
+    if (block.tasks) {
+      setTasks(block.tasks);
     }
   }, [block.tasks]);
 
@@ -144,17 +101,11 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       return;
     }
 
-    // Optimistic UI update & Yjs sync
+    // Optimistic UI update
     const previousTasks = [...tasks];
     const updatedTask = { ...task, status: targetStatus };
     const optimisticTasks = tasks.map(t => t.uid === draggingTaskId ? updatedTask : t);
     setTasks(optimisticTasks);
-    
-    // Broadcast via CRDT
-    if (yTasksRef.current) {
-        yTasksRef.current.set(updatedTask.uid, updatedTask);
-    }
-
     setDraggingTaskId(null);
 
     try {
@@ -175,18 +126,22 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     if (!newTaskTitle.trim()) return;
     try {
       const created = await projectsApi.createTask({
-        project: block.project_id,
+        project: block.project_id || (projectUid ? (isNaN(Number(projectUid)) ? projectUid : parseInt(projectUid)) : undefined),
         block: block.id,
         title: newTaskTitle.trim(),
+        status: "TODO",
       });
-      const updatedTasks = [...tasks, created];
-      setTasks(updatedTasks);
       
-      // Update CRDT
-      if (yTasksRef.current) {
-        yTasksRef.current.set(created.uid, created);
-      }
+      const createdTask: Task = {
+        ...created,
+        status: created.status || "TODO",
+      };
 
+      const currentTasks = Array.isArray(tasks) ? tasks : [];
+      const exists = currentTasks.some(t => (createdTask.uid && t.uid === createdTask.uid) || (createdTask.id && t.id === createdTask.id));
+      const updatedTasks = exists ? currentTasks : [...currentTasks, createdTask];
+      
+      setTasks(updatedTasks);
       onBlockUpdated(getUpdatedBlock(block, updatedTasks));
       setNewTaskTitle("");
       setIsAddingTask(false);
@@ -198,31 +153,39 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
 
   // ── Task Updated callback ────────────────────────────────────────────────────
   const handleTaskUpdated = (updated: Task) => {
-    const updatedTasks = tasks.map(t => t.uid === updated.uid ? updated : t);
+    const currentTasks = Array.isArray(tasks) ? tasks : [];
+    const updatedTasks = currentTasks.map(t => t.uid === updated.uid ? updated : t);
     setTasks(updatedTasks);
-    
-    // Update CRDT
-    if (yTasksRef.current) {
-        yTasksRef.current.set(updated.uid, updated);
-    }
-
     onBlockUpdated(getUpdatedBlock(block, updatedTasks));
   };
 
   const handleTaskDeleted = (taskId: string) => {
-    const newTasks = tasks.filter(t => t.uid !== taskId);
+    const currentTasks = Array.isArray(tasks) ? tasks : [];
+    const newTasks = currentTasks.filter(t => t.uid !== taskId);
     setTasks(newTasks);
-    
-    // Update CRDT
-    if (yTasksRef.current) {
-        yTasksRef.current.delete(taskId);
-    }
-
     onBlockUpdated(getUpdatedBlock(block, newTasks));
   };
 
-  const filteredTasks = tasks.filter(t => !priorityFilter || t.priority === priorityFilter);
-  const tasksByStatus = (status: TaskStatus) => filteredTasks.filter(t => t.status === status);
+  const safeTasksList = Array.isArray(tasks) ? tasks : [];
+  const filteredTasks = safeTasksList.filter(t => t && (!priorityFilter || t.priority === priorityFilter));
+  
+  const tasksByStatus = (status: TaskStatus) => filteredTasks.filter(t => {
+    if (!t) return false;
+    const taskStatus = (t.status || "TODO").toUpperCase();
+    if (status === "TODO") {
+      return taskStatus === "TODO" || taskStatus === "PENDING";
+    }
+    if (status === "WIP") {
+      return taskStatus === "WIP" || taskStatus === "IN PROGRESS" || taskStatus === "IN_PROGRESS";
+    }
+    if (status === "QA") {
+      return taskStatus === "QA" || taskStatus === "INSPECTION" || taskStatus === "UNDER INSPECTION";
+    }
+    if (status === "DONE") {
+      return taskStatus === "DONE";
+    }
+    return taskStatus === status;
+  });
 
   return (
     <>

@@ -139,39 +139,7 @@ export default function HomeRedesign() {
   }, []);
 
   return (
-    <div className="relative bg-background selection:bg-accent/20 selection:text-accent min-h-screen text-foreground transition-colors duration-700 font-sans">
-      
-      {/* Sticky Top Navigation */}
-      <header className="fixed top-0 w-full z-[2000] backdrop-blur-md bg-background/50 border-b border-white/5 transition-colors duration-700">
-        <div className="container max-w-7xl mx-auto px-8 h-20 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 200 200" className="w-8 h-8 text-primary">
-              <polygon points="50,0 0,200 100,200" fill="currentColor" />
-              <polygon points="100,0 100,100 200,50" fill="currentColor" />
-            </svg>
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground">
-              Architecture Playbook
-            </span>
-          </div>
-          
-          {/* Controls & CTA */}
-          <div className="flex items-center gap-6">
-            <button 
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-full border border-surface-200 dark:border-white/10 hover:bg-surface-100 dark:hover:bg-white/5 transition-colors"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-surface-400 hover:text-primary" /> : <Moon className="w-4 h-4 text-surface-600 hover:text-primary" />}
-            </button>
-            <Link 
-              href="/dashboard"
-              className="px-6 py-2 border border-primary/20 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.2em] rounded-sm hover:bg-primary hover:text-background transition-all"
-            >
-              Dashboard
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="relative bg-background selection:bg-accent/20 selection:text-accent min-h-screen text-foreground transition-colors duration-700 font-sans pt-20">
       
       {/* Side Progress Navigation */}
       <div className={`fixed right-12 top-1/2 -translate-y-1/2 z-[1001] hidden xl:flex flex-col gap-8 transition-opacity duration-1000 ${

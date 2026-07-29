@@ -221,6 +221,21 @@ h1, h2, h3, h4, h5, h6 {
   bottom: 0;
   left: 0;
   z-index: 50;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.sidebar,
+.sidebar * {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.sidebar::-webkit-scrollbar,
+.sidebar *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .main-area {
@@ -382,10 +397,18 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--gray-400);
-}
-::-webkit-scrollbar-thumb:hover {
   background: var(--surface-300);
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar,
+.hide-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 /* --- Global Inputs & Empty States (Wrapped in base layer to prevent utility conflicts) --- */

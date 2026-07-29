@@ -59,18 +59,30 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
 
   const fetchMatrix = useCallback(async () => {
     if (initialPayload) {
-      setPayload(initialPayload);
+      const safeInitial = {
+        ...initialPayload,
+        zones: initialPayload.zones || [],
+        phases: initialPayload.phases || [],
+        blocks: initialPayload.blocks || [],
+      };
+      setPayload(safeInitial);
       if (onMatrixLoaded) {
-        onMatrixLoaded(initialPayload.zones.length > 0 && initialPayload.phases.length > 0);
+        onMatrixLoaded(safeInitial.zones.length > 0 && safeInitial.phases.length > 0);
       }
       setLoading(false);
       return;
     }
     try {
       const data = await projectsApi.getMatrix(projectUid);
-      setPayload(data);
+      const safeData = {
+        ...data,
+        zones: data?.zones || [],
+        phases: data?.phases || [],
+        blocks: data?.blocks || [],
+      };
+      setPayload(safeData);
       if (onMatrixLoaded) {
-        onMatrixLoaded(data.zones.length > 0 && data.phases.length > 0);
+        onMatrixLoaded(safeData.zones.length > 0 && safeData.phases.length > 0);
       }
       setError(null);
     } catch (err: any) {
@@ -78,7 +90,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [projectUid]);
+  }, [projectUid, initialPayload, onMatrixLoaded]);
 
   useEffect(() => {
     fetchMatrix();
@@ -103,10 +115,10 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     return () => {
       ws.close();
     };
-  }, [fetchMatrix, projectUid]);
+  }, [fetchMatrix, projectUid, readOnly, initialPayload]);
 
   const getBlock = (zoneId: number, phaseId: number): MilestoneBlockCompact | null =>
-    payload?.blocks.find(b => b.zone_id === zoneId && b.phase_id === phaseId) ?? null;
+    (payload?.blocks || []).find(b => b.zone_id === zoneId && b.phase_id === phaseId) ?? null;
 
   const handleCellClick = async (block: MilestoneBlockCompact, zone: SpatialZone, phase: MilestonePhase) => {
     if (readOnly) return;
@@ -521,9 +533,9 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         {/* Summary legend */}
         <div className="flex items-center gap-6 mt-4 px-1">
           {[
-            { label: "Locked", dot: "bg-surface-300", count: payload!.blocks.filter(b => b.status === "LOCKED").length },
-            { label: "Active", dot: "bg-accent", count: payload!.blocks.filter(b => b.status === "ACTIVE").length },
-            { label: "Done", dot: "bg-emerald-500", count: payload!.blocks.filter(b => b.status === "DONE").length },
+            { label: "Locked", dot: "bg-surface-300", count: (payload?.blocks || []).filter(b => b.status === "LOCKED").length },
+            { label: "Active", dot: "bg-accent", count: (payload?.blocks || []).filter(b => b.status === "ACTIVE").length },
+            { label: "Done", dot: "bg-emerald-500", count: (payload?.blocks || []).filter(b => b.status === "DONE").length },
           ].map(s => (
             <div key={s.label} className="flex items-center gap-2">
               <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />

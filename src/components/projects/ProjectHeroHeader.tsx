@@ -136,12 +136,12 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({
 
   return (
     <header
-      className={`relative rounded-[1.5rem] mb-6 shadow-2xl group overflow-hidden transition-all duration-300 ${
+      className={`relative rounded-[1.5rem] mb-6 shadow-2xl group transition-all duration-300 z-30 ${
         isDark ? "bg-slate-900/90 text-slate-100 border border-slate-800/80" : "bg-surface-card border border-surface-200"
       }`}
     >
       {/* Background layers */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden pointer-events-none">
         {isDark ? (
           <>
             {/* Dark: rich weather-driven gradient & glowing accent */}
@@ -206,7 +206,7 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 relative z-50">
             {readOnly ? (
               <div className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${isDark ? "bg-slate-800/80 text-slate-200 border-slate-700" : "bg-surface-100 text-primary border-surface-200"}`}>
                 {project.status || "TEMPLATE"}

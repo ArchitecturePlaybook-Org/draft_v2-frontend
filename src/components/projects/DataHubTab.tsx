@@ -54,12 +54,7 @@ export const DataHubTab: React.FC = () => {
 
   const handleOpenAsset = (asset: any) => {
     if (asset.category === "sketch") {
-      const isEditable = asset.file.endsWith(".excalidraw") || asset.file.endsWith(".json");
-      if (isEditable) {
-        window.open(`/dashboard/projects/${project.uid}/sketch?assetUrl=${encodeURIComponent(asset.file)}`, "_blank");
-      } else {
-        window.open(asset.file, "_blank");
-      }
+      window.open(`/dashboard/projects/${project.uid}/sketch?assetId=${asset.id}`, "_blank");
     } else if (asset.category === "2d_plan") {
       setSurveyAsset(asset);
     } else if (asset.category === "3d_model") {
