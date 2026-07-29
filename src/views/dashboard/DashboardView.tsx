@@ -372,10 +372,10 @@ export function DashboardView() {
                       </div>
                       
                       <button 
-                        onClick={() => router.push(`/dashboard/projects/${project.uid}?tab=kanban`)}
+                        onClick={() => router.push(`/dashboard/projects/${project.uid}?tab=data_hub`)}
                         className="w-full py-3 bg-surface-200/50 text-primary hover:bg-accent hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 group/btn border border-transparent hover:border-accent/50 hover:shadow-lg hover:shadow-accent/20"
                       >
-                        Open Kanban <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                        Open Master Data Hub <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                       </button>
                     </div>
                   </Card>

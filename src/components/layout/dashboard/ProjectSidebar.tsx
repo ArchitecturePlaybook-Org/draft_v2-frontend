@@ -8,11 +8,12 @@ import { ProfileBanner } from "@/components/layout/dashboard/ProfileBanner";
 import { useCommandPaletteStore } from "@/store/command-palette-store";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { useProjectNavStore } from "@/store/project-nav-store";
+import { projectsApi } from "@/domains/projects/api";
 
 export const ProjectSidebar: React.FC = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentTab = searchParams.get("tab") || "matrix";
+  const currentTab = searchParams.get("tab") || "data_hub";
   const { isAdmin } = usePermissions();
   const setIsCommandPaletteOpen = useCommandPaletteStore((state) => state.setIsOpen);
   const { currentProjectUid, currentProjectTitle, setProjectContext, isSidebarCollapsed, toggleSidebar } = useProjectNavStore();
@@ -20,7 +21,17 @@ export const ProjectSidebar: React.FC = () => {
 
   // Protect hydration
   const [mounted, setMounted] = useState(false);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (currentProjectUid) {
+      projectsApi.getPendingTaskRequests(currentProjectUid)
+        .then(reqs => setPendingRequestsCount(reqs.length))
+        .catch(() => {});
+    }
+  }, [currentProjectUid]);
 
   if (!mounted || !currentProjectUid) return <aside className="sidebar opacity-0" />;
 
@@ -29,6 +40,7 @@ export const ProjectSidebar: React.FC = () => {
     { label: "Matrix", id: "matrix", icon: "🏗️" },
     { label: "Site Ops", id: "site_ops", icon: "🛡️" },
     { label: "Gantt Timeline", id: "gantt", icon: "📅" },
+    { label: pendingRequestsCount > 0 ? `Task Approvals (${pendingRequestsCount})` : "Task Approvals", id: "access_requests", icon: "🔑" },
   ];
 
   const toolsLinks = [

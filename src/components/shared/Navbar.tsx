@@ -47,12 +47,14 @@ const Navbar = () => {
         <Link href="/" className="flex items-center gap-3.5 pl-2 py-2 no-underline text-primary group shrink-0">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 200 200"
-            className="w-9 h-9 text-primary transition-transform group-hover:scale-105 shrink-0"
+            viewBox="0 0 245 247"
+            className="w-9 h-9 text-accent transition-transform group-hover:scale-105 shrink-0"
             preserveAspectRatio="xMidYMid meet"
           >
-            <polygon points="50,0 0,200 100,200" fill="currentColor" />
-            <polygon points="100,0 100,100 200,50" fill="currentColor" />
+            <path
+              d="M 11.24 238.75 C11.48,238.06 24.24,187.21 39.59,125.75 C54.93,64.29 67.76,14.00 68.10,14.00 C68.43,14.00 81.18,63.90 96.42,124.89 C111.66,185.88 124.38,236.73 124.68,237.89 L 125.23 240.00 L 68.01 240.00 C22.66,240.00 10.88,239.74 11.24,238.75 ZM 124.00 70.00 L 124.00 13.00 L 181.25 41.62 L 238.49 70.25 L 182.00 98.57 C150.92,114.15 125.16,126.92 124.75,126.95 C124.34,126.98 124.00,101.35 124.00,70.00 Z"
+              fill="currentColor"
+            />
           </svg>
           <span className="font-black text-sm md:text-base whitespace-nowrap tracking-tight uppercase text-foreground">
             Architecture Playbook
