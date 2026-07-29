@@ -6,6 +6,8 @@ import { QueryProvider } from "@/providers/QueryProvider";
 import Navbar from "@/components/shared/Navbar";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { Toaster } from "sonner";
+import { GlobalErrorBoundary } from "@/components/shared/GlobalErrorBoundary";
+import { GlobalErrorListener } from "@/providers/GlobalErrorListener";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -109,15 +111,20 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: swRegistrationScript }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <QueryProvider>
-          <AuthProvider>
-            <Navbar />
-            <CommandPalette />
-            <main>{children}</main>
-            <Toaster position="top-right" richColors />
-          </AuthProvider>
-        </QueryProvider>
+        <GlobalErrorListener>
+          <GlobalErrorBoundary>
+            <QueryProvider>
+              <AuthProvider>
+                <Navbar />
+                <CommandPalette />
+                <main>{children}</main>
+                <Toaster position="top-right" richColors />
+              </AuthProvider>
+            </QueryProvider>
+          </GlobalErrorBoundary>
+        </GlobalErrorListener>
       </body>
     </html>
   );
 }
+
