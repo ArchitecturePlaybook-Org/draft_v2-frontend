@@ -205,7 +205,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
             />
             <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest truncate">
               Creative Sketch · V{versionNumber}
-              {isLatestVersion ? " · Latest (editable)" : " · Snapshot"}
+              {isLatestVersion ? " · Current (editable)" : " · Snapshot"}
             </p>
           </div>
         </div>
@@ -266,7 +266,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
                   Viewing version {versionNumber}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Read-only snapshot — open the latest version to edit and save.
+                  Read-only snapshot — open the current version to edit and save.
                 </p>
               </div>
             </div>
@@ -275,7 +275,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
                 onClick={onOpenLatest}
                 className="h-9 shrink-0 text-[10px] uppercase font-bold tracking-wider bg-accent hover:opacity-90"
               >
-                Open latest to edit
+                Open current to edit
               </Button>
             )}
           </div>
@@ -330,6 +330,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
 
       {showVersionPanel && assetId && (
         <SketchVersionPanel
+          isOpen={showVersionPanel}
           assetId={assetId}
           projectUid={projectUid}
           currentVersionId={assetId}

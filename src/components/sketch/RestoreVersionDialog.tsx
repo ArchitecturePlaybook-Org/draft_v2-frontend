@@ -51,7 +51,7 @@ export function RestoreVersionDialog({ version, onClose, onConfirm }: RestoreVer
               </h3>
               <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
                 Version {version.version_number} becomes the{" "}
-                <span className="font-semibold text-primary">latest editable</span> sketch. Older
+                <span className="font-semibold text-primary">current editable</span> sketch. Older
                 versions remain in history — nothing is deleted.
               </p>
             </div>
@@ -69,7 +69,7 @@ export function RestoreVersionDialog({ version, onClose, onConfirm }: RestoreVer
           )}
 
           <div className="rounded-xl border border-border/80 bg-muted/20 dark:bg-muted/10 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
-            After restoring, you can edit and save this version like any latest sketch.
+            After restoring, you can edit and save this version like any current sketch.
           </div>
 
           {error && (

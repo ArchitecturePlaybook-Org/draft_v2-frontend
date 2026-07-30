@@ -1,10 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ProjectAsset, SitePhoto } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { 
+  Upload, 
+  Camera, 
+  X, 
+  Trash2, 
+  MapPin, 
+  ImageIcon, 
+  Loader2, 
+  Maximize2,
+  FileImage,
+  CheckCircle2
+} from "lucide-react";
 
 interface CellPhotoDrawerProps {
   isOpen: boolean;
@@ -20,9 +32,17 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
   const [photos, setPhotos] = useState<SitePhoto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   
   const [caption, setCaption] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Lightbox view state
+  const [viewingPhoto, setViewingPhoto] = useState<SitePhoto | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const colLetter = String.fromCharCode(65 + gridCol);
   const rowNum = gridRow + 1;
@@ -34,19 +54,74 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
     }
   }, [isOpen, asset.id, gridCol, gridRow]);
 
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
+
   const loadPhotos = async () => {
     setIsLoading(true);
     try {
-      // For a real implementation, we could fetch all site_photos for the asset,
-      // or filter directly from asset.site_photos if it's populated.
       const res = await projectsApi.getSitePhotos(asset.id);
       const filtered = res.filter(p => p.grid_col === gridCol && p.grid_row === gridRow);
       setPhotos(filtered);
     } catch (err) {
       console.error("Failed to load photos", err);
+      toast.error("Failed to load photos for this zone.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith("image/")) {
+        setSelectedFile(file);
+      } else {
+        toast.error("Invalid file format. Please upload an image (PNG, JPG, WEBP).");
+      }
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -97,7 +172,7 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
         gps_accuracy_m: acc
       });
       setCaption("");
-      setSelectedFile(null);
+      clearSelectedFile();
       await loadPhotos();
       toast.success("Photo uploaded successfully!");
       if (onPhotoAdded) onPhotoAdded();
@@ -110,103 +185,317 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
   };
 
   const handleDelete = async (photoId: number) => {
+    setDeletingId(photoId);
     try {
       await projectsApi.deleteSitePhoto(photoId);
       setPhotos(prev => prev.filter(p => p.id !== photoId));
+      toast.success("Photo removed");
       if (onPhotoDeleted) onPhotoDeleted();
     } catch (err) {
       console.error("Failed to delete photo", err);
+      toast.error("Failed to delete photo");
+    } finally {
+      setDeletingId(null);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-surface-100 border-l border-surface-200 shadow-2xl z-[100] flex flex-col animate-fade-in-right">
-      <div className="p-4 border-b border-surface-200 flex justify-between items-center bg-surface-50">
-        <div>
-          <h2 className="text-lg font-black text-surface-900">Zone {cellLabel}</h2>
-          <p className="text-[10px] uppercase tracking-widest text-surface-500 text-surface-400 font-bold">Site Photos</p>
-        </div>
-        <button onClick={onClose} className="w-8 h-8 rounded-full bg-surface-200 flex items-center justify-center hover:bg-surface-300 transition-colors">
-          ✕
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-        {/* Upload Form */}
-        <form onSubmit={handleUpload} className="bg-surface-50 p-4 rounded-xl border border-surface-200 shadow-sm flex flex-col gap-3">
-          <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-surface-500 text-surface-400 mb-1 block">Photo File</label>
-            <input 
-              type="file" 
-              accept="image/*"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-              className="w-full text-xs"
-              required
-            />
-          </div>
-          <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-surface-500 text-surface-400 mb-1 block">Caption</label>
-            <input 
-              type="text" 
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="w-full bg-surface-100 border border-surface-300 rounded px-2 py-1.5 text-sm"
-              placeholder="Describe this photo..."
-            />
+    <>
+      <div className="fixed inset-y-0 right-0 w-96 sm:w-[420px] bg-surface-100/95 backdrop-blur-xl border-l border-surface-200 shadow-2xl z-[100] flex flex-col animate-in slide-in-from-right duration-300">
+        {/* Header */}
+        <div className="p-4 sm:p-5 border-b border-surface-200/80 flex justify-between items-center bg-surface-50/80 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-black text-sm shadow-inner">
+              {cellLabel}
+            </div>
+            <div>
+              <h2 className="text-base font-black text-surface-900 tracking-tight">Zone {cellLabel}</h2>
+              <p className="text-[10px] uppercase tracking-widest text-surface-500 font-bold flex items-center gap-1.5">
+                <Camera className="w-3 h-3 text-accent" />
+                Site Inspection Photos
+              </p>
+            </div>
           </div>
           <button 
-            type="submit" 
-            disabled={!selectedFile || isUploading}
-            className="w-full h-9 bg-primary text-background font-black text-[10px] uppercase tracking-widest rounded hover:bg-primary-dark transition-all disabled:opacity-50"
+            onClick={onClose} 
+            className="w-8 h-8 rounded-full bg-surface-200/60 hover:bg-surface-300/80 flex items-center justify-center text-surface-600 hover:text-surface-900 transition-all active:scale-95"
+            aria-label="Close drawer"
           >
-            {isUploading ? 'Uploading...' : 'Upload Photo'}
+            <X className="w-4 h-4" />
           </button>
-        </form>
+        </div>
 
-        {/* Photo List */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-surface-400 border-b border-surface-200 pb-1">
-            Uploaded Photos ({photos.length})
-          </h3>
-          
-          {isLoading ? (
-            <div className="text-center text-surface-500 text-surface-400 text-xs py-4">Loading...</div>
-          ) : photos.length === 0 ? (
-            <div className="text-center text-surface-500 text-surface-400 text-xs py-4 italic">No photos in this zone yet.</div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {photos.map(photo => (
-                <div key={photo.id} className="bg-surface-50 border border-surface-200 rounded-xl overflow-hidden shadow-sm group">
-                  <div className="aspect-video relative bg-surface-200">
-                    <img src={photo.image} alt={photo.caption} className="w-full h-full object-cover" />
-                    {photo.latitude && photo.longitude && (
-                      <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded flex items-center gap-1 shadow-sm" title={`Lat: ${Number(photo.latitude).toFixed(6)}, Lng: ${Number(photo.longitude).toFixed(6)}`}>
-                        <span className="text-[10px]">📍</span>
-                      </div>
-                    )}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
+          {/* Enhanced Photo Upload Form */}
+          <form onSubmit={handleUpload} className="bg-surface-50/90 border border-surface-200 rounded-2xl p-4 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-surface-500 flex items-center gap-1.5">
+                <Upload className="w-3.5 h-3.5 text-accent" />
+                Upload New Photo
+              </span>
+              {selectedFile && (
+                <button 
+                  type="button" 
+                  onClick={clearSelectedFile}
+                  className="text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 transition-colors"
+                >
+                  <X className="w-3 h-3" /> Remove
+                </button>
+              )}
+            </div>
+
+            {/* Drag and Drop Zone / Selected File Preview */}
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            {!selectedFile ? (
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`group relative border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-2.5 ${
+                  isDragging 
+                    ? "border-accent bg-accent/5 scale-[0.99]" 
+                    : "border-surface-300 hover:border-accent/60 hover:bg-surface-100/60"
+                }`}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-surface-200/70 group-hover:bg-accent/10 text-surface-600 group-hover:text-accent flex items-center justify-center transition-colors shadow-sm">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-surface-800">
+                    <span className="text-accent underline underline-offset-2">Click to select photo</span> or drag & drop
+                  </p>
+                  <p className="text-[10px] text-surface-400 font-medium">
+                    Supports PNG, JPG, WEBP (Max 20MB)
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="relative border border-surface-200 rounded-xl bg-surface-100 overflow-hidden shadow-inner flex flex-col gap-2 p-2">
+                <div className="aspect-video relative rounded-lg overflow-hidden bg-black/5 group">
+                  {previewUrl ? (
+                    <img 
+                      src={previewUrl} 
+                      alt="Selected preview" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-surface-400">
+                      <FileImage className="w-8 h-8" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button 
-                      onClick={() => handleDelete(photo.id)}
-                      className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-md"
-                      title="Delete Photo"
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-white/90 hover:bg-white text-surface-900 font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-md transition-all active:scale-95"
                     >
-                      ✕
+                      Change Photo
                     </button>
                   </div>
-                  <div className="p-3">
-                    <p className="text-sm font-bold text-surface-800 mb-1">{photo.caption || "No caption"}</p>
-                    <div className="flex justify-between items-center text-[10px] text-surface-500 text-surface-400">
-                      <span>{photo.uploaded_by?.first_name} {photo.uploaded_by?.last_name}</span>
-                      <span>{formatDistanceToNow(new Date(photo.created_at), { addSuffix: true })}</span>
+                </div>
+
+                <div className="px-1 flex justify-between items-center text-xs">
+                  <div className="truncate max-w-[220px]">
+                    <p className="font-bold text-surface-800 truncate">{selectedFile.name}</p>
+                    <p className="text-[10px] text-surface-400">{formatFileSize(selectedFile.size)}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <CheckCircle2 className="w-3 h-3" /> Ready
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Caption Input */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-surface-500 block">
+                Caption / Description
+              </label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  className="w-full bg-surface-100 border border-surface-300 rounded-xl px-3 py-2 text-xs text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
+                  placeholder="E.g., Wall framing inspection, column rebar..."
+                />
+              </div>
+            </div>
+
+            {/* Geolocation Notice */}
+            <div className="flex items-center gap-1.5 text-[10px] text-surface-500 bg-surface-100/60 p-2 rounded-lg border border-surface-200/50">
+              <MapPin className="w-3 h-3 text-accent shrink-0" />
+              <span>GPS location will be captured automatically if enabled.</span>
+            </div>
+
+            {/* Upload Button */}
+            <button 
+              type="submit" 
+              disabled={!selectedFile || isUploading}
+              className="w-full h-10 bg-primary text-background font-black text-xs uppercase tracking-wider rounded-xl hover:opacity-95 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Uploading Photo...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  <span>Upload to Zone {cellLabel}</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Photo List Section */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center border-b border-surface-200 pb-2">
+              <h3 className="text-xs font-black uppercase tracking-wider text-surface-700 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-surface-500" />
+                Uploaded Photos ({photos.length})
+              </h3>
+            </div>
+            
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-10 text-surface-400 gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-accent" />
+                <span className="text-xs font-medium">Loading photos...</span>
+              </div>
+            ) : photos.length === 0 ? (
+              <div className="text-center py-10 px-4 bg-surface-50/50 border border-dashed border-surface-200 rounded-2xl space-y-2">
+                <div className="w-10 h-10 rounded-full bg-surface-200/50 text-surface-400 flex items-center justify-center mx-auto">
+                  <Camera className="w-5 h-5" />
+                </div>
+                <p className="text-xs font-bold text-surface-600">No photos in Zone {cellLabel}</p>
+                <p className="text-[11px] text-surface-400 max-w-xs mx-auto">
+                  Upload photos taken on-site for this specific grid cell to document project progress.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {photos.map(photo => (
+                  <div 
+                    key={photo.id} 
+                    className="bg-surface-50 border border-surface-200/90 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group"
+                  >
+                    <div className="aspect-video relative bg-surface-200/50 overflow-hidden">
+                      <img 
+                        src={photo.image} 
+                        alt={photo.caption || `Zone ${cellLabel} photo`} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      
+                      {/* GPS Badge */}
+                      {photo.latitude && photo.longitude && (
+                        <div 
+                          className="absolute top-2.5 left-2.5 bg-surface-900/80 backdrop-blur-md text-white px-2 py-1 rounded-lg flex items-center gap-1.5 text-[10px] font-medium shadow-md" 
+                          title={`Lat: ${Number(photo.latitude).toFixed(6)}, Lng: ${Number(photo.longitude).toFixed(6)}`}
+                        >
+                          <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span>{Number(photo.latitude).toFixed(4)}, {Number(photo.longitude).toFixed(4)}</span>
+                        </div>
+                      )}
+
+                      {/* Action buttons overlay */}
+                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setViewingPhoto(photo)}
+                          className="w-8 h-8 bg-surface-900/80 hover:bg-surface-900 text-white rounded-full flex items-center justify-center transition-all shadow-md active:scale-95"
+                          title="Expand Photo"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(photo.id)}
+                          disabled={deletingId === photo.id}
+                          className="w-8 h-8 bg-red-500/90 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all shadow-md active:scale-95 disabled:opacity-50"
+                          title="Delete Photo"
+                        >
+                          {deletingId === photo.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 space-y-1.5">
+                      <p className="text-xs font-bold text-surface-900 leading-snug">
+                        {photo.caption || <span className="text-surface-400 italic font-normal">No caption provided</span>}
+                      </p>
+                      <div className="flex justify-between items-center text-[10px] text-surface-500 pt-1 border-t border-surface-200/50">
+                        <span className="font-medium truncate max-w-[150px]">
+                          {photo.uploaded_by?.first_name || photo.uploaded_by?.email ? (
+                            `${photo.uploaded_by?.first_name || ''} ${photo.uploaded_by?.last_name || ''}`.trim() || photo.uploaded_by?.email
+                          ) : (
+                            'Project Contributor'
+                          )}
+                        </span>
+                        <span className="text-surface-400 shrink-0">
+                          {formatDistanceToNow(new Date(photo.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Lightbox Photo Viewer Modal */}
+      {viewingPhoto && (
+        <div 
+          className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
+          onClick={() => setViewingPhoto(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] bg-surface-900 border border-surface-700 rounded-2xl overflow-hidden flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 bg-surface-900/90 border-b border-surface-800 flex justify-between items-center text-white">
+              <div>
+                <h4 className="font-bold text-sm text-surface-100">Zone {cellLabel} Inspection Photo</h4>
+                {viewingPhoto.caption && (
+                  <p className="text-xs text-surface-400">{viewingPhoto.caption}</p>
+                )}
+              </div>
+              <button 
+                onClick={() => setViewingPhoto(null)}
+                className="w-8 h-8 rounded-full bg-surface-800 hover:bg-surface-700 flex items-center justify-center text-surface-300 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 bg-black flex items-center justify-center p-2 overflow-hidden">
+              <img 
+                src={viewingPhoto.image} 
+                alt={viewingPhoto.caption || "Full resolution site photo"}
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-xl"
+              />
+            </div>
+            {viewingPhoto.latitude && viewingPhoto.longitude && (
+              <div className="p-3 bg-surface-900 border-t border-surface-800 text-[11px] text-surface-400 flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Captured at Lat: {Number(viewingPhoto.latitude).toFixed(6)}, Lng: {Number(viewingPhoto.longitude).toFixed(6)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
