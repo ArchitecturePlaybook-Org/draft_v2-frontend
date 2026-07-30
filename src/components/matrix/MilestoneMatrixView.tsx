@@ -13,6 +13,7 @@ import { useProjectNavStore } from "@/store/project-nav-store";
 import { TaskExecutionSidePanel } from "@/components/projects/TaskExecutionSidePanel";
 import { AnimatePresence, motion } from "framer-motion";
 import { getWebSocketUrl } from "@/lib/api/constants";
+import { Trash2, Pencil } from "lucide-react";
 
 interface MilestoneMatrixViewProps {
   projectUid: string;
@@ -49,6 +50,11 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   const [newZoneName, setNewZoneName] = useState("");
   const [showAddPhaseInput, setShowAddPhaseInput] = useState(false);
   const [newPhaseName, setNewPhaseName] = useState("");
+
+  const [editingZoneId, setEditingZoneId] = useState<number | null>(null);
+  const [editedZoneName, setEditedZoneName] = useState("");
+  const [editingPhaseId, setEditingPhaseId] = useState<number | null>(null);
+  const [editedPhaseName, setEditedPhaseName] = useState("");
 
   // ── Split-pane state ──────────────────────────────────────────────────────────
   const { isSidebarCollapsed } = useProjectNavStore();
@@ -245,14 +251,109 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         sequence_order: payload.phases.length + 1,
         color_hex: "#94a3b8"
       });
-      fetchMatrix();
-      toast.success("Phase added successfully");
       setShowAddPhaseInput(false);
       setNewPhaseName("");
     } catch (err: any) {
       toast.error("Failed to add phase: " + (err.message || ""));
     } finally {
       setIsAddingPhase(false);
+    }
+  };
+
+  const handleDeleteZone = async (zone: SpatialZone) => {
+    const hasStartedTasks = (payload?.blocks || [])
+      .filter(b => b.zone_id === zone.id)
+      .some(b => b.status === "DONE" || b.status === "ACTIVE");
+
+    if (hasStartedTasks) {
+      toast.error(`Cannot delete zone "${zone.name}": tasks have already been started in this zone.`);
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete zone "${zone.name}"? This zone can be deleted because no tasks have started yet.`)) {
+      return;
+    }
+
+    try {
+      await projectsApi.deleteZone(zone.id);
+      toast.success(`Zone "${zone.name}" deleted.`);
+      fetchMatrix();
+    } catch (err: any) {
+      toast.error(err?.data?.detail || err?.message || "Failed to delete zone.");
+    }
+  };
+
+  const handleDeletePhase = async (phase: MilestonePhase) => {
+    const hasStartedTasks = (payload?.blocks || [])
+      .filter(b => b.phase_id === phase.id)
+      .some(b => b.status === "DONE" || b.status === "ACTIVE");
+
+    if (hasStartedTasks) {
+      toast.error(`Cannot delete phase "${phase.name}": tasks have already been started in this phase.`);
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete phase "${phase.name}"? This phase can be deleted because no tasks have started yet.`)) {
+      return;
+    }
+
+    try {
+      await projectsApi.deletePhase(phase.id);
+      toast.success(`Phase "${phase.name}" deleted.`);
+      fetchMatrix();
+    } catch (err: any) {
+      toast.error(err?.data?.detail || err?.message || "Failed to delete phase.");
+    }
+  };
+
+  const handleResetMatrix = async () => {
+    const hasStartedTasks = (payload?.blocks || []).some(b => b.status === "DONE" || b.status === "ACTIVE");
+
+    if (hasStartedTasks) {
+      toast.error("Cannot reset matrix: task(s) in this matrix have already been started.");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to reset/delete the Master Gate Matrix grid? This is allowed because no tasks have been started yet.")) {
+      return;
+    }
+
+    try {
+      await projectsApi.deleteMatrix(projectUid);
+      toast.success("Master gate matrix reset successfully.");
+      fetchMatrix();
+    } catch (err: any) {
+      toast.error(err?.data?.detail || err?.message || "Failed to reset matrix.");
+    }
+  };
+
+  const submitEditZone = async (zoneId: number) => {
+    if (!editedZoneName.trim()) {
+      setEditingZoneId(null);
+      return;
+    }
+    try {
+      await projectsApi.updateZone(zoneId, { name: editedZoneName.trim() });
+      toast.success("Zone renamed");
+      setEditingZoneId(null);
+      fetchMatrix();
+    } catch (err: any) {
+      toast.error("Failed to update zone: " + (err.message || ""));
+    }
+  };
+
+  const submitEditPhase = async (phaseId: number) => {
+    if (!editedPhaseName.trim()) {
+      setEditingPhaseId(null);
+      return;
+    }
+    try {
+      await projectsApi.updatePhase(phaseId, { name: editedPhaseName.trim() });
+      toast.success("Phase renamed");
+      setEditingPhaseId(null);
+      fetchMatrix();
+    } catch (err: any) {
+      toast.error("Failed to update phase: " + (err.message || ""));
     }
   };
 
@@ -371,18 +472,77 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                   </div>
                 </th>
                 {/* Zone headers */}
-                {zones.map(zone => (
-                  <th
-                    key={zone.id}
-                    style={{ width: ZONE_COL_W, minWidth: ZONE_COL_W, height: 52 }}
-                    className="border-b border-r border-surface-200 px-2 text-center bg-surface-100/90 backdrop-blur-md"
-                  >
-                    <p className="text-[10px] font-black text-foreground uppercase tracking-[0.1em] truncate" title={zone.name}>{zone.name}</p>
-                    {zone.zone_type && (
-                      <p className="text-[8px] text-text-secondary font-bold uppercase tracking-[0.2em] mt-0.5 truncate">{zone.zone_type}</p>
-                    )}
-                  </th>
-                ))}
+                {zones.map(zone => {
+                  const hasStartedTasks = (payload?.blocks || [])
+                    .filter(b => b.zone_id === zone.id)
+                    .some(b => b.status === "DONE" || b.status === "ACTIVE");
+
+                  return (
+                    <th
+                      key={zone.id}
+                      style={{ width: ZONE_COL_W, minWidth: ZONE_COL_W, height: 52 }}
+                      className="border-b border-r border-surface-200 px-2 text-center bg-surface-100/90 backdrop-blur-md relative group"
+                    >
+                      {editingZoneId === zone.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={editedZoneName}
+                            onChange={(e) => setEditedZoneName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") submitEditZone(zone.id);
+                              if (e.key === "Escape") setEditingZoneId(null);
+                            }}
+                            className="w-full text-[10px] px-1 py-0.5 border border-accent rounded bg-surface-50 text-foreground outline-none font-bold"
+                          />
+                          <button onClick={() => submitEditZone(zone.id)} className="text-[8px] font-bold text-accent px-1">✓</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1">
+                          <p 
+                            className="text-[10px] font-black text-foreground uppercase tracking-[0.1em] truncate cursor-pointer hover:text-accent" 
+                            title="Click to edit zone name"
+                            onClick={() => {
+                              if (!readOnly && userRole === "admin") {
+                                setEditingZoneId(zone.id);
+                                setEditedZoneName(zone.name);
+                              }
+                            }}
+                          >
+                            {zone.name}
+                          </p>
+                          {!readOnly && userRole === "admin" && (
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingZoneId(zone.id); setEditedZoneName(zone.name); }}
+                                title="Edit Zone Name"
+                                className="p-0.5 rounded text-surface-400 hover:text-accent"
+                              >
+                                <Pencil className="w-2.5 h-2.5" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteZone(zone); }}
+                                disabled={hasStartedTasks}
+                                title={hasStartedTasks ? "Cannot delete zone: tasks have already been started" : "Delete Zone (no tasks started)"}
+                                className={`p-0.5 rounded ${
+                                  hasStartedTasks 
+                                    ? "text-surface-300 cursor-not-allowed" 
+                                    : "text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                }`}
+                              >
+                                <Trash2 className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {zone.zone_type && (
+                        <p className="text-[8px] text-text-secondary font-bold uppercase tracking-[0.2em] mt-0.5 truncate">{zone.zone_type}</p>
+                      )}
+                    </th>
+                  );
+                })}
                 
                 {/* Add Zone Button Column */}
                 {!readOnly && userRole === "admin" && (
@@ -428,19 +588,73 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                 const phaseDone = phaseBlocks.filter(b => b.status === "DONE").length;
                 const phaseActive = phaseBlocks.filter(b => b.status === "ACTIVE").length;
                 const phaseTotal = phaseBlocks.length;
+                const hasStartedTasksInPhase = phaseActive > 0 || phaseDone > 0;
 
                 return (
                   <tr key={phase.id}>
                     {/* Phase label — sticky left */}
                     <td
-                      className="sticky left-0 z-10 bg-surface-100/90 backdrop-blur-md border-b border-r border-surface-200 px-4 hover:bg-surface-200/50 transition-colors shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)]"
+                      className="sticky left-0 z-10 bg-surface-100/90 backdrop-blur-md border-b border-r border-surface-200 px-4 hover:bg-surface-200/50 transition-colors shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)] group"
                       style={{ width: HEADER_W, minWidth: HEADER_W, height: PHASE_ROW_H }}
                     >
                       <div className="flex flex-col h-full justify-center">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-[0_0_8px_currentColor]" style={{ backgroundColor: phase.color_hex, color: phase.color_hex }} />
-                          <span className="text-[11px] font-black text-foreground uppercase tracking-[0.1em] leading-tight line-clamp-2">{phase.name}</span>
-                        </div>
+                        {editingPhaseId === phase.id ? (
+                          <div className="flex items-center gap-1 my-1">
+                            <input
+                              type="text"
+                              autoFocus
+                              value={editedPhaseName}
+                              onChange={(e) => setEditedPhaseName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") submitEditPhase(phase.id);
+                                if (e.key === "Escape") setEditingPhaseId(null);
+                              }}
+                              className="w-full text-[10px] px-1 py-0.5 border border-accent rounded bg-surface-50 text-foreground outline-none font-bold"
+                            />
+                            <button onClick={() => submitEditPhase(phase.id)} className="text-[8px] font-bold text-accent px-1">✓</button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-1 mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-[0_0_8px_currentColor]" style={{ backgroundColor: phase.color_hex, color: phase.color_hex }} />
+                              <span 
+                                className="text-[11px] font-black text-foreground uppercase tracking-[0.1em] leading-tight line-clamp-2 cursor-pointer hover:text-accent"
+                                title="Click to edit phase name"
+                                onClick={() => {
+                                  if (!readOnly && userRole === "admin") {
+                                    setEditingPhaseId(phase.id);
+                                    setEditedPhaseName(phase.name);
+                                  }
+                                }}
+                              >
+                                {phase.name}
+                              </span>
+                            </div>
+                            {!readOnly && userRole === "admin" && (
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setEditingPhaseId(phase.id); setEditedPhaseName(phase.name); }}
+                                  title="Edit Phase Name"
+                                  className="p-1 rounded text-surface-400 hover:text-accent"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeletePhase(phase); }}
+                                  disabled={hasStartedTasksInPhase}
+                                  title={hasStartedTasksInPhase ? "Cannot delete phase: tasks have already been started" : "Delete Phase (no tasks started)"}
+                                  className={`p-1 rounded ${
+                                    hasStartedTasksInPhase 
+                                      ? "text-surface-300 cursor-not-allowed" 
+                                      : "text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                  }`}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {/* Phase progress summary */}
                         <div className="text-[10px] font-bold text-text-secondary tabular-nums">
                           {phaseDone}/{phaseTotal} zones done
@@ -546,12 +760,25 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
               <span className="text-[10px] font-black text-primary tabular-nums">{s.count}</span>
             </div>
           ))}
-          <button
-            onClick={fetchMatrix}
-            className="ml-auto text-[9px] font-bold text-surface-400 hover:text-accent uppercase tracking-widest flex items-center gap-1 transition-colors"
-          >
-            ↺ Refresh
-          </button>
+
+          <div className="ml-auto flex items-center gap-4">
+            {!readOnly && userRole === "admin" && (
+              <button
+                onClick={handleResetMatrix}
+                disabled={(payload?.blocks || []).some(b => b.status === "DONE" || b.status === "ACTIVE")}
+                title={(payload?.blocks || []).some(b => b.status === "DONE" || b.status === "ACTIVE") ? "Cannot reset matrix: Tasks have already been started" : "Reset Matrix Grid"}
+                className="text-[9px] font-bold text-surface-400 hover:text-red-500 disabled:opacity-30 disabled:hover:text-surface-400 uppercase tracking-widest flex items-center gap-1 transition-colors"
+              >
+                <Trash2 className="w-3 h-3" /> Reset Matrix Grid
+              </button>
+            )}
+            <button
+              onClick={fetchMatrix}
+              className="text-[9px] font-bold text-surface-400 hover:text-accent uppercase tracking-widest flex items-center gap-1 transition-colors"
+            >
+              ↺ Refresh
+            </button>
+          </div>
         </div>
       </div>
 
