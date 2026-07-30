@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Task, ProjectAsset, TaskChecklistItem, SpatialZone, MilestonePhase, ChecklistTemplate, TaskComment } from "@/types/projects";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useInfiniteScrollBatch } from "@/hooks/useInfiniteScrollBatch";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 import { FloorPlanGridViewer } from "./FloorPlanGridViewer";
@@ -40,6 +41,7 @@ interface TaskExecutionSidePanelProps {
   leftOffset?: number;
   /** Width controlled externally by the split ratio. Replaces internal panelWidth. */
   panelWidthOverride?: number;
+  readOnly?: boolean;
 }
 
 type TaskTab = "execution" | "subtasks" | "checklist" | "drawing" | "diary";
@@ -57,6 +59,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   splitMode = false,
   leftOffset = 0,
   panelWidthOverride,
+  readOnly = false,
 }) => {
   const { isSidebarCollapsed } = useProjectNavStore();
   const NAV_W = isSidebarCollapsed ? 80 : 280;
@@ -360,6 +363,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
   const linked2dPlanUids = new Set(linked2dPlanLinks.map(l => l.latest_asset?.canonical_uid));
 
+  const {
+    visibleItems: visiblePlanLinks,
+    hasMore: hasMorePlans,
+    isLoadingMore: isLoadingMorePlans,
+    sentinelRef: plansSentinelRef,
+    loadedCount: loadedPlanCount,
+    totalCount: totalPlanCount,
+  } = useInfiniteScrollBatch(linked2dPlanLinks, { resetKey: task.uid });
+
   // ── Split-pane vs standalone layout ─────────────────────────────────────
   const effectiveWidth = splitMode && panelWidthOverride ? panelWidthOverride : panelWidth;
   const slideX = splitMode ? "-100%" : "100%";
@@ -367,8 +379,8 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     ? { left: leftOffset, width: effectiveWidth, transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)" }
     : { width: panelWidth };
   const panelClass = splitMode
-    ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200"
-    : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200";
+    ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden"
+    : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden";
 
   return (
     <>
@@ -413,12 +425,12 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
         )}
 
         {/* Header */}
-        <div className="sticky top-0 z-50 px-8 py-6 border-b border-surface-200 bg-surface-50/80 bg-background/80 backdrop-blur-2xl flex flex-col md:flex-row justify-between items-start md:items-center shrink-0 relative overflow-hidden gap-6 shadow-sm">
+        <div className={`sticky top-0 z-50 border-b border-surface-200 bg-surface-50/80 bg-background/80 backdrop-blur-2xl flex flex-col gap-4 shrink-0 relative min-w-0 w-full shadow-sm ${splitMode ? "px-4 py-4" : "px-4 sm:px-8 py-5 sm:py-6"}`}>
           <div className="absolute -top-20 -right-20 w-64 h-64 arch-grid opacity-5 pointer-events-none" />
 
-          <div className="relative z-10 flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border ${currentStatus === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30" :
+          <div className="relative z-10 min-w-0 w-full">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+              <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border shrink-0 ${currentStatus === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30" :
                   currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
                     currentStatus === "QA" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800/30" :
                       "bg-surface-200 text-surface-600 text-surface-300 border-surface-300"
@@ -426,29 +438,29 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 {currentStatus}
               </span>
               {task.trade && (
-                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white"
+                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white shrink-0 max-w-full truncate"
                   style={{ backgroundColor: task.trade.color_hex }}>
                   {task.trade.name}
                 </span>
               )}
               {task.has_active_blocker && (
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[9px] font-black uppercase tracking-widest animate-pulse">
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[9px] font-black uppercase tracking-widest animate-pulse shrink-0">
                   🚨 Blocker
                 </span>
               )}
-              <span className="text-[10px] font-mono text-surface-400">ID: {task.task_code || task.uid}</span>
+              <span className="text-[10px] font-mono text-surface-400 truncate max-w-full">ID: {task.task_code || task.uid}</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-primary tracking-tight truncate" title={task.title}>{task.title}</h2>
+            <h2 className={`font-extrabold text-primary tracking-tight truncate ${splitMode ? "text-lg" : "text-xl sm:text-2xl md:text-3xl"}`} title={task.title}>{task.title}</h2>
           </div>
 
-          <div className="relative z-10 flex items-center gap-4 shrink-0 flex-wrap">
-            <div className="flex bg-surface-200/50 p-1 rounded-xl border border-surface-200">
+          <div className="relative z-10 flex flex-wrap items-center gap-2 w-full">
+            <div className="flex bg-surface-200/50 p-1 rounded-xl border border-surface-200 shrink-0">
               {["TODO", "WIP", "QA", "DONE"].map(s => (
                 <button
                   key={s}
                   onClick={() => handleStatusChange(s)}
                   disabled={isUpdating}
-                  className={`px-4 py-2 text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all ${currentStatus === s ? "bg-surface-100 border-surface-200 shadow-xl text-primary" : "text-surface-500 text-surface-400 hover:text-primary"
+                  className={`${splitMode ? "px-2 py-1.5" : "px-2.5 sm:px-4 py-2"} text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all whitespace-nowrap ${currentStatus === s ? "bg-surface-100 border-surface-200 shadow-xl text-primary" : "text-surface-500 text-surface-400 hover:text-primary"
                     }`}
                 >
                   {s}
@@ -458,15 +470,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
             <button
               onClick={handleCopyLink}
-              className={`h-11 px-6 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap ${isCopied
+              className={`${splitMode ? "h-9 px-3" : "h-10 sm:h-11 px-3 sm:px-6"} font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap shrink-0 ${isCopied
                   ? "bg-emerald-600 text-white shadow-emerald-500/20 scale-[1.02]"
                   : "bg-accent text-background hover:opacity-90"
                 }`}
             >
-              {isCopied ? "✓ Copied!" : "🔗 Copy Link"}
+              {isCopied ? "✓" : splitMode ? "🔗" : "🔗 Copy Link"}
             </button>
 
-            <button onClick={onClose} className="w-11 h-11 rounded-xl bg-surface-200 text-surface-600 text-surface-300 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm">
+            <button onClick={onClose} className={`${splitMode ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"} rounded-xl bg-surface-200 text-surface-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm shrink-0`}>
               ✕
             </button>
           </div>
@@ -476,7 +488,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
         <div className="flex flex-1 overflow-hidden">
           <div className="flex-1 flex flex-col bg-surface-100 border-surface-200 overflow-hidden">
             {/* Tabs */}
-            <div className="flex px-8 border-b border-surface-200 bg-surface-100 pt-4 pb-2 shrink-0 overflow-x-auto gap-2 custom-scrollbar">
+            <div className={`flex border-b border-surface-200 bg-surface-100 pt-4 pb-2 shrink-0 overflow-x-auto gap-2 custom-scrollbar ${splitMode ? "px-4" : "px-8"}`}>
               {tabs.filter(t => !t.hidden).map(tab => (
                 <button
                   key={tab.id}
@@ -745,7 +757,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                           </div>
                         </div>
                         <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-                          {linked2dPlanLinks.map(link => {
+                          {visiblePlanLinks.map(link => {
                             const asset = link.latest_asset;
                             if (!asset) return null;
                             return (
@@ -772,6 +784,21 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                               </div>
                             );
                           })}
+
+                          {hasMorePlans && (
+                            <div ref={plansSentinelRef} className="flex flex-col items-center justify-center py-4 gap-2">
+                              {isLoadingMorePlans ? (
+                                <div className="flex items-center gap-2 text-xs font-bold text-surface-400">
+                                  <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                                  Loading more floor plans...
+                                </div>
+                              ) : (
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">
+                                  Showing {loadedPlanCount} of {totalPlanCount} — scroll for more
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

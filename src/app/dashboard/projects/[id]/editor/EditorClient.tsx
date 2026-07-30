@@ -20,9 +20,7 @@ export default function EditorClient() {
   if (!projectId) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-surface-100 border-surface-200">
-      {/* We use fixed inset-0 to cover the whole screen, overlaying any existing dashboard layout */}
-
+    <div className="w-full h-full min-h-0 overflow-hidden bg-surface-100">
       <SweetHome3DEditor 
         projectId={projectId}
         projectUid={projectId} // The URL param "id" is actually the project UID

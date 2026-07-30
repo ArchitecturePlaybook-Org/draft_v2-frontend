@@ -123,7 +123,7 @@ export default function RootLayout({
           <AuthProvider>
             <Navbar />
             <CommandPalette />
-            <main>{children}</main>
+            <main className="min-w-0 max-w-full overflow-x-clip">{children}</main>
             <Toaster position="top-right" richColors />
           </AuthProvider>
         </QueryProvider>

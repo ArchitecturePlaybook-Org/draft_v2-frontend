@@ -6,6 +6,7 @@ import Link from "next/link";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -127,7 +128,7 @@ export default function TemplateDetailPage() {
   const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "tasks" | "ratings" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"matrix" | "overview" | "tasks" | "ratings" | "settings">("matrix");
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [ratingsLoading, setRatingsLoading] = useState(false);
   const [userScore, setUserScore] = useState(0);
@@ -278,8 +279,9 @@ export default function TemplateDetailPage() {
   const isPublished = template.template_status === "PUBLISHED";
 
   const TABS = [
+    { key: "matrix" as const, label: "🏗 Construction Matrix" },
     { key: "overview" as const, label: "Overview" },
-    { key: "tasks" as const, label: `Tasks (${template.task_count})` },
+    { key: "tasks" as const, label: `Task Tree (${template.task_count})` },
     { key: "ratings" as const, label: `Ratings (${template.rating_count})` },
     { key: "settings" as const, label: "Settings" },
   ];
@@ -293,10 +295,10 @@ export default function TemplateDetailPage() {
             ← Templates
           </Link>
           <span className="text-surface-300">/</span>
-          <span className="text-sm font-bold text-foreground truncate max-w-xs">{template.title}</span>
+          <span className="text-surface-400 text-sm font-bold">Template Detail</span>
           <StatusBadge status={template.template_status} />
-          {template.template_visibility !== "PRIVATE" && (
-            <span className="px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border bg-primary/8 text-primary border-primary/10">
+          {template.template_visibility && (
+            <span className="px-2.5 py-0.5 text-[10px] font-bold bg-surface-100 text-surface-500 rounded-md border border-surface-200 uppercase tracking-widest">
               {template.template_visibility}
             </span>
           )}
@@ -456,6 +458,16 @@ export default function TemplateDetailPage() {
 
       {/* ── Tab Content ── */}
       <div className="flex-1 overflow-y-auto px-8 py-8">
+        {/* MATRIX PREVIEW (READ-ONLY) */}
+        {activeTab === "matrix" && (
+          <div className="h-full min-h-[500px] w-full">
+            <MilestoneMatrixView
+              projectUid={template.uid}
+              projectTasks={(template.tasks || []) as any[]}
+              readOnly={true}
+            />
+          </div>
+        )}
         {/* OVERVIEW */}
         {activeTab === "overview" && (
           <div className="max-w-3xl space-y-6">

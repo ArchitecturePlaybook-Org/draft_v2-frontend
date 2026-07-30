@@ -52,7 +52,7 @@ const WeatherStrip: React.FC<{ lat?: number; lng?: number; location?: string; is
   const wrapCls = isDark ? "text-slate-300" : "text-primary/70";
 
   return (
-    <div className={`flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.2em] mb-3 ${wrapCls}`}>
+    <div className={`flex flex-wrap items-center gap-2 sm:gap-3 text-[9px] font-black uppercase tracking-[0.2em] mb-3 ${wrapCls}`}>
       {weatherInfo && (
         <span className={`flex items-center gap-2 px-2.5 py-1 rounded-lg backdrop-blur-md border transition-all ${pillCls}`}>
           {weatherInfo}

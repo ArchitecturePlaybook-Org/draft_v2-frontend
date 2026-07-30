@@ -197,21 +197,21 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
         style={{ width: width ?? 896 }}
-        className="fixed top-0 right-0 h-screen bg-background border-l border-surface-200 shadow-premium z-[45] flex flex-col"
+        className="fixed top-0 right-0 h-screen bg-background border-l border-surface-200 shadow-premium z-[45] flex flex-col min-w-0 overflow-hidden"
       >
         {/* Drawer Header */}
-        <div className="flex items-center justify-between px-7 py-5 border-b border-surface-100 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50 shrink-0">
-          <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between px-4 sm:px-7 py-4 border-b border-surface-100 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50 shrink-0 min-w-0 w-full">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span
-                className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full text-white"
+                className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full text-white shrink-0"
                 style={{ backgroundColor: phase.color_hex }}
               >
                 {phase.name}
               </span>
-              <span className="text-surface-300 text-xs">›</span>
-              <span className="text-[9px] font-bold text-surface-500 uppercase tracking-widest">{zone.name}</span>
-              <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ml-1 ${
+              <span className="text-surface-300 text-xs shrink-0">›</span>
+              <span className="text-[9px] font-bold text-surface-500 uppercase tracking-widest truncate">{zone.name}</span>
+              <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 ${
                 block.status === "DONE" ? "bg-emerald-100 text-emerald-700" :
                 block.status === "ACTIVE" ? "bg-accent/10 text-accent" :
                 "bg-surface-100 text-surface-400"
@@ -219,18 +219,18 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                 {block.status}
               </span>
             </div>
-            <h2 className="text-xl font-extrabold text-primary dark:text-white tracking-tight">
+            <h2 className="text-lg sm:text-xl font-extrabold text-primary dark:text-white tracking-tight truncate">
               {zone.name} — Kanban Board
             </h2>
             <p className="text-xs text-surface-400 dark:text-surface-500 font-medium mt-0.5">
               {tasks.length} tasks · {block.completed_tasks}/{block.total_tasks} done
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:justify-end w-full sm:w-auto max-w-full overflow-x-auto custom-scrollbar">
             <select
               value={priorityFilter || ""}
               onChange={(e) => setPriorityFilter(e.target.value || null)}
-              className="h-9 px-3 bg-surface-100 dark:bg-surface-800 border border-transparent hover:border-surface-200 dark:hover:border-surface-700 rounded-xl outline-none focus:border-accent text-[10px] font-bold uppercase tracking-widest text-surface-500 text-surface-400 transition-colors"
+              className="h-9 px-3 bg-surface-100 dark:bg-surface-800 border border-transparent hover:border-surface-200 dark:hover:border-surface-700 rounded-xl outline-none focus:border-accent text-[10px] font-bold uppercase tracking-widest text-surface-500 text-surface-400 transition-colors shrink-0 max-w-full"
             >
               <option value="">All Priorities</option>
               <option value="HIGH">High Priority</option>
@@ -240,14 +240,14 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             {userRole === "admin" && (
               <button
                 onClick={() => setIsAddingTask(true)}
-                className="h-9 px-4 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all"
+                className="h-9 px-4 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shrink-0 whitespace-nowrap"
               >
                 + Add Task
               </button>
             )}
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-red-500 hover:text-white text-surface-500 text-surface-400 flex items-center justify-center transition-all font-bold"
+              className="w-9 h-9 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-red-500 hover:text-white text-surface-500 text-surface-400 flex items-center justify-center transition-all font-bold shrink-0"
             >
               ✕
             </button>

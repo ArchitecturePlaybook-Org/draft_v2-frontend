@@ -6,6 +6,11 @@ import { Sidebar } from "@/components/layout/dashboard/Sidebar";
 import { ProjectSidebar } from "@/components/layout/dashboard/ProjectSidebar";
 import { usePathname } from "next/navigation";
 
+/** Reserves horizontal space for the fixed-position sidebar in the flex layout. */
+const SidebarSpacer = () => (
+  <div className="sidebar-spacer shrink-0" aria-hidden="true" />
+);
+
 export const SidebarShell: React.FC = () => {
   const { isInsideProject, setProjectContext } = useProjectNavStore();
   const pathname = usePathname();
@@ -28,10 +33,18 @@ export const SidebarShell: React.FC = () => {
     }
   }, [pathname, setProjectContext]);
 
-  if (!mounted) return <div className="sidebar opacity-0" />;
+  if (!mounted) {
+    return (
+      <>
+        <SidebarSpacer />
+        <aside className="sidebar opacity-0 pointer-events-none" aria-hidden="true" />
+      </>
+    );
+  }
 
   return (
     <>
+      <SidebarSpacer />
       {isInsideProject ? <ProjectSidebar /> : <Sidebar />}
     </>
   );

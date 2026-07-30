@@ -1,7 +1,8 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { ProjectAsset } from "@/types/projects";
 import { useProjectStore } from "@/store/project-store";
 import { projectsApi } from "@/domains/projects/api";
+import { useInfiniteScrollBatch } from "@/hooks/useInfiniteScrollBatch";
 import dynamic from "next/dynamic";
 const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
   ssr: false,
@@ -10,6 +11,8 @@ const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { RevisionHistoryModal } from "./RevisionHistoryModal";
 import { FloorPlanGridViewer } from "./FloorPlanGridViewer";
+import { Create3DModelModal } from "./Create3DModelModal";
+import { CreateSketchModal } from "./CreateSketchModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const DataHubTab: React.FC = () => {
@@ -27,24 +30,28 @@ export const DataHubTab: React.FC = () => {
   const [surveyAsset, setSurveyAsset] = useState<ProjectAsset | null>(null);
   const [viewerAsset, setViewerAsset] = useState<ProjectAsset | null>(null);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const [isCreate3DModalOpen, setIsCreate3DModalOpen] = useState(false);
+  const [isCreateSketchModalOpen, setIsCreateSketchModalOpen] = useState(false);
+
+  const filteredAssets = useMemo(() => {
+    if (!project?.assets) return [];
+    return project.assets.filter((a) =>
+      activeHubCategory === "3d_model"
+        ? a.category === "3d_model" || a.category === "sh3d"
+        : a.category === activeHubCategory
+    );
+  }, [project?.assets, activeHubCategory]);
+
+  const {
+    visibleItems: visibleAssets,
+    hasMore: hasMoreAssets,
+    isLoadingMore: isLoadingMoreAssets,
+    sentinelRef: assetsSentinelRef,
+    totalCount: totalAssetCount,
+    loadedCount: loadedAssetCount,
+  } = useInfiniteScrollBatch(filteredAssets, { resetKey: activeHubCategory });
 
   if (!project) return null;
-
-  const handleCreateSH3DModel = async () => {
-    const name = prompt("Enter a name for the new 3D model:", "New Design");
-    if (!name) return;
-    
-    setIsUploading(true);
-    try {
-      await projectsApi.initSH3DProject(project.uid, name);
-      fetchProject(project.uid);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to initialize model");
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const isImageUrl = (url?: string | null) => {
     if (!url) return false;
@@ -54,7 +61,10 @@ export const DataHubTab: React.FC = () => {
 
   const handleOpenAsset = (asset: any) => {
     if (asset.category === "sketch") {
-      window.open(`/dashboard/projects/${project.uid}/sketch?assetId=${asset.id}`, "_blank");
+      window.open(
+        `/dashboard/projects/${project.uid}/sketch?assetId=${asset.id}`,
+        "_blank",
+      );
     } else if (asset.category === "2d_plan") {
       setSurveyAsset(asset);
     } else if (asset.category === "3d_model") {
@@ -133,14 +143,14 @@ export const DataHubTab: React.FC = () => {
           className="col-span-1 md:col-span-3"
         >
           <div className="bg-surface-50/40 dark:bg-surface-900/40 backdrop-blur-3xl border-white/10 p-8 rounded-[2.5rem] border shadow-2xl shadow-black/5 min-h-[400px]">
-            <div className="flex justify-between items-center mb-6 border-b border-surface-100 pb-4">
-              <h3 className="text-xl font-extrabold text-primary tracking-tight">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 border-b border-surface-100 pb-4 min-w-0">
+              <h3 className="text-lg sm:text-xl font-extrabold text-primary tracking-tight truncate min-w-0">
                 {activeHubCategory.replace('_', ' ').toUpperCase()}
               </h3>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3 shrink-0">
                 {activeHubCategory === "sketch" && (
                   <button 
-                    onClick={() => window.open(`/dashboard/projects/${project.uid}/sketch`, "_blank")}
+                    onClick={() => setIsCreateSketchModalOpen(true)}
                     className="px-6 py-2 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-lg hover:opacity-90 transition-all shadow-lg shadow-accent/20"
                   >
                     New Design Sketch
@@ -148,8 +158,8 @@ export const DataHubTab: React.FC = () => {
                 )}
                 {activeHubCategory === "3d_model" && (
                   <button 
-                    onClick={handleCreateSH3DModel}
-                    className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 font-black text-[10px] uppercase tracking-widest rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-2"
+                    onClick={() => setIsCreate3DModalOpen(true)}
+                    className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all duration-200 border border-emerald-500/30 flex items-center gap-2 shadow-sm"
                   >
                     <span>🏠</span> Create SH3D Model
                   </button>
@@ -207,8 +217,8 @@ export const DataHubTab: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {project.assets?.filter(a => activeHubCategory === "3d_model" ? (a.category === "3d_model" || a.category === "sh3d") : a.category === activeHubCategory).length ? (
-                project.assets.filter(a => activeHubCategory === "3d_model" ? (a.category === "3d_model" || a.category === "sh3d") : a.category === activeHubCategory).map((asset, idx) => (
+              {filteredAssets.length ? (
+                visibleAssets.map((asset, idx) => (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -216,17 +226,15 @@ export const DataHubTab: React.FC = () => {
                     key={asset.id} 
                     className="p-5 rounded-[1.5rem] transition-all duration-300 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 hover:border-accent/50 hover:-translate-y-2 hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.1),0_0_15px_var(--accent-glow)] group relative"
                   >
-                    {asset.category !== "sketch" && (
-                      <div className="absolute top-3 left-3 z-10">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                          asset.is_latest 
-                            ? "bg-emerald-100 text-emerald-700" 
-                            : "bg-surface-100 text-surface-400"
-                        }`}>
-                          V{asset.version_number}
-                        </span>
-                      </div>
-                    )}
+                    <div className="absolute top-3 left-3 z-10">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                        asset.is_latest 
+                          ? "bg-emerald-100 text-emerald-700" 
+                          : "bg-surface-100 text-surface-400"
+                      }`}>
+                        V{asset.version_number}
+                      </span>
+                    </div>
 
                     <div 
                       onClick={() => handleOpenAsset(asset)}
@@ -242,9 +250,9 @@ export const DataHubTab: React.FC = () => {
                           </span>
                         </div>
                       ) : asset.thumbnail ? (
-                        <img src={asset.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        <img src={asset.thumbnail} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       ) : isImageUrl(asset.file) ? (
-                        <img src={asset.file} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                        <img src={asset.file} loading="lazy" decoding="async" className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
                       ) : asset.category === "sketch" ? (
                         <div className="flex flex-col items-center gap-2">
                           <span className="text-4xl">✏️</span>
@@ -276,15 +284,13 @@ export const DataHubTab: React.FC = () => {
                           </div>
                           
                           <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {asset.category !== "sketch" && (
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); setHistoryAsset(asset); }}
-                                className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-100 text-xs"
-                                title="Revision History"
-                              >
-                                🕐
-                              </button>
-                            )}
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setHistoryAsset(asset); }}
+                              className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-100 text-xs"
+                              title="Revision History"
+                            >
+                              🕐
+                            </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); setRenamingAssetId(asset.id); setNewAssetTitle(asset.title); }}
                               className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-100 text-xs grayscale hover:grayscale-0"
@@ -341,6 +347,27 @@ export const DataHubTab: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {filteredAssets.length > 0 && (
+              <div ref={assetsSentinelRef} className="col-span-full flex flex-col items-center justify-center py-6 gap-2">
+                {isLoadingMoreAssets && (
+                  <div className="flex items-center gap-2 text-xs font-bold text-surface-400">
+                    <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                    Loading more assets...
+                  </div>
+                )}
+                {!hasMoreAssets && loadedAssetCount > 15 && (
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">
+                    All {totalAssetCount} assets loaded
+                  </p>
+                )}
+                {hasMoreAssets && !isLoadingMoreAssets && (
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">
+                    Showing {loadedAssetCount} of {totalAssetCount} — scroll for more
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       </motion.div>
@@ -439,6 +466,22 @@ export const DataHubTab: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      {isCreate3DModalOpen && (
+        <Create3DModelModal
+          isOpen={isCreate3DModalOpen}
+          onClose={() => setIsCreate3DModalOpen(false)}
+          projectUid={project.uid}
+          onSuccess={() => fetchProject(project.uid)}
+        />
+      )}
+      {isCreateSketchModalOpen && (
+        <CreateSketchModal
+          isOpen={isCreateSketchModalOpen}
+          onClose={() => setIsCreateSketchModalOpen(false)}
+          projectUid={project.uid}
+          onSuccess={() => fetchProject(project.uid)}
+        />
       )}
     </>
   );

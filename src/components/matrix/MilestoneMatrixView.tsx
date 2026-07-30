@@ -121,14 +121,17 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     (payload?.blocks || []).find(b => b.zone_id === zoneId && b.phase_id === phaseId) ?? null;
 
   const handleCellClick = async (block: MilestoneBlockCompact, zone: SpatialZone, phase: MilestonePhase) => {
-    if (readOnly) return;
     setLoadingBlockId(block.id);
     try {
-      // Fetch full task details for the expanded block
-      const tasks = await projectsApi.getBlockTasks(block.id);
+      let tasks: Task[] = [];
+      try {
+        tasks = await projectsApi.getBlockTasks(block.id);
+      } catch (e) {
+        tasks = (block as any).tasks || [];
+      }
       const expandedBlock: MilestoneBlockExpanded = {
         ...block,
-        tasks,
+        tasks: Array.isArray(tasks) ? tasks : [],
         zone_name: zone.name,
         phase_name: phase.name,
       };
@@ -531,7 +534,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         </div>
 
         {/* Summary legend */}
-        <div className="flex items-center gap-6 mt-4 px-1">
+        <div className="flex flex-wrap items-center gap-6 mt-4 px-1">
           {[
             { label: "Locked", dot: "bg-surface-300", count: (payload?.blocks || []).filter(b => b.status === "LOCKED").length },
             { label: "Active", dot: "bg-accent", count: (payload?.blocks || []).filter(b => b.status === "ACTIVE").length },
@@ -572,7 +575,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
 
       {/* ── Task detail panel — slides from LEFT of main-area ────────────── */}
       <AnimatePresence>
-        {selectedTask && selectedBlock && (
+        {selectedTask && (
           <TaskExecutionSidePanel
             key={selectedTask.uid}
             task={selectedTask}
@@ -586,6 +589,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
             panelWidthOverride={taskPanelWidth}
             onClose={() => setSelectedTask(null)}
             onTaskUpdated={() => {}}
+            readOnly={readOnly}
           />
         )}
       </AnimatePresence>
@@ -625,3 +629,5 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     </>
   );
 };
+
+export default MilestoneMatrixView;
