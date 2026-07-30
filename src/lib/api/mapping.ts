@@ -137,6 +137,12 @@ export const API_ROUTES: ApiRouteConfig[] = [
     auth: false,
   },
   {
+    prefix: "v1/projects/site-photos",
+    target: "/api/v1/projects/site-photos/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: false,
+  },
+  {
     prefix: "v1/projects/field-diaries",
     target: "/api/v1/projects/field-diaries/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],

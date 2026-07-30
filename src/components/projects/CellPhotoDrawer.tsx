@@ -387,7 +387,8 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
                 {photos.map(photo => (
                   <div 
                     key={photo.id} 
-                    className="bg-surface-50 border border-surface-200/90 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group"
+                    onClick={() => setViewingPhoto(photo)}
+                    className="bg-surface-50 border border-surface-200/90 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group cursor-pointer"
                   >
                     <div className="aspect-video relative bg-surface-200/50 overflow-hidden">
                       <img 
@@ -417,7 +418,7 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
                           <Maximize2 className="w-3.5 h-3.5" />
                         </button>
                         <button 
-                          onClick={() => handleDelete(photo.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
                           disabled={deletingId === photo.id}
                           className="w-8 h-8 bg-red-500/90 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all shadow-md active:scale-95 disabled:opacity-50"
                           title="Delete Photo"

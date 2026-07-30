@@ -19,6 +19,7 @@ const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
 });
 
 import { TaskFieldDiaryTab } from "@/components/projects/TaskFieldDiaryTab";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 
 export default function SharedTaskPage() {
   const params = useParams();
@@ -42,6 +43,7 @@ export default function SharedTaskPage() {
   const [isAddingChecklist, setIsAddingChecklist] = useState(false);
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [fullScreenDrawingId, setFullScreenDrawingId] = useState<string | null>(null);
+  const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (uid) {
@@ -467,7 +469,11 @@ export default function SharedTaskPage() {
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {task.asset_links?.filter((l: any) => l.latest_asset?.category === 'site_photo').map((link: any) => (
-                    <div key={link.id} className="relative aspect-square rounded-2xl overflow-hidden border border-surface-200/50 bg-surface-50 group">
+                    <div 
+                      key={link.id} 
+                      onClick={() => setViewingPhotoUrl(link.latest_asset?.file || null)}
+                      className="relative aspect-square rounded-2xl overflow-hidden border border-surface-200/50 bg-surface-50 group cursor-pointer"
+                    >
                       <img src={link.latest_asset?.file} alt={link.latest_asset?.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                         <p className="text-white text-xs font-bold truncate">{link.latest_asset?.title}</p>
@@ -560,6 +566,15 @@ export default function SharedTaskPage() {
             />
           ) : null;
         })()}
+
+        {/* Full-Screen Photo Lightbox */}
+        {viewingPhotoUrl && (
+          <ImageLightbox
+            imageUrl={viewingPhotoUrl}
+            onClose={() => setViewingPhotoUrl(null)}
+            altText="Site Photo"
+          />
+        )}
       </div>
     );
   }
