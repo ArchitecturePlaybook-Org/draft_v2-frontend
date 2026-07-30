@@ -237,10 +237,13 @@ const SiteOpsDelaysPanel: React.FC<{ projectUid: string }> = ({ projectUid }) =>
   );
 };
 
+import { resolveAssetFileUrl } from "@/lib/resolveAssetFileUrl";
+
 // ── Site Gallery Panel ────────────────────────────────────────────────────────
 const SiteOpsGalleryPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => {
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -256,7 +259,14 @@ const SiteOpsGalleryPanel: React.FC<{ projectUid: string }> = ({ projectUid }) =
     load();
   }, [projectUid]);
 
-  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" /></div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" />
+        <span className="text-xs font-bold text-surface-400 uppercase tracking-widest">Loading site gallery...</span>
+      </div>
+    );
+  }
 
   const attachments = entries.flatMap((e) =>
     (e.attachments || []).map((att: any) => ({ ...att, entry_date: e.entry_date }))
@@ -264,39 +274,118 @@ const SiteOpsGalleryPanel: React.FC<{ projectUid: string }> = ({ projectUid }) =
 
   if (attachments.length === 0) {
     return (
-      <div className="text-center py-16 bg-surface-50 rounded-2xl border-2 border-dashed border-surface-200">
-        <span className="text-5xl block mb-4">📸</span>
-        <p className="text-lg font-bold text-primary mb-1">No Site Photos</p>
-        <p className="text-sm text-surface-400">Photos and documents attached to daily logs will appear here.</p>
+      <div className="text-center py-16 bg-surface-50 rounded-2xl border-2 border-dashed border-surface-200 space-y-2">
+        <span className="text-5xl block mb-2">📸</span>
+        <p className="text-lg font-bold text-primary mb-1">No Site Photos Yet</p>
+        <p className="text-sm text-surface-400 max-w-md mx-auto">
+          Photos and documents attached to daily logs will automatically appear in this gallery.
+        </p>
       </div>
     );
   }
 
+  const isImageUrl = (urlStr?: string | null) => {
+    if (!urlStr) return false;
+    const clean = urlStr.split("?")[0].toLowerCase();
+    return /\.(jpeg|jpg|gif|png|webp|avif|bmp|svg)$/i.test(clean);
+  };
+
+  const getCleanFileName = (urlStr?: string | null) => {
+    if (!urlStr) return "Attachment";
+    const clean = urlStr.split("?")[0];
+    return clean.split("/").pop() || "Attachment";
+  };
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {attachments.map((att, i) => {
-        const isImage = att.file.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-        return (
-          <div key={i} className="group relative rounded-2xl overflow-hidden border border-surface-200 bg-surface-50 aspect-square flex flex-col cursor-pointer">
-            {isImage ? (
-              <img src={att.file} alt={att.caption || "Site photo"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-surface-400 bg-surface-100 group-hover:bg-surface-200 transition-colors">
-                <File className="w-12 h-12 mb-3 text-surface-300" />
-                <span className="text-xs font-bold uppercase tracking-widest truncate w-full px-4 text-center">{att.file.split('/').pop()}</span>
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {attachments.map((att, i) => {
+          const rawUrl = att.file || att.image || att.url || "";
+          const resolvedUrl = resolveAssetFileUrl(rawUrl);
+          const isImage = isImageUrl(rawUrl) || att.file_type?.startsWith("image/") || att.mime_type?.startsWith("image/");
+          const fileName = getCleanFileName(rawUrl);
+
+          return (
+            <div 
+              key={i} 
+              onClick={() => isImage && setSelectedPhoto({ ...att, resolvedUrl, fileName })}
+              className="group relative rounded-2xl overflow-hidden border border-surface-200 bg-surface-50 aspect-square flex flex-col cursor-pointer hover:shadow-lg transition-all duration-300"
+            >
+              {isImage ? (
+                <img 
+                  src={resolvedUrl} 
+                  alt={att.caption || fileName || "Site photo"} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 bg-surface-200" 
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-surface-400 bg-surface-100 group-hover:bg-surface-200 transition-colors p-3">
+                  <File className="w-10 h-10 mb-2 text-surface-400 shrink-0" />
+                  <span className="text-[11px] font-bold text-surface-700 truncate w-full text-center">{fileName}</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3.5">
+                {att.caption && <p className="text-white text-xs font-bold mb-1 line-clamp-2">{att.caption}</p>}
+                <div className="text-white/80 text-[10px] font-bold uppercase tracking-wider flex items-center justify-between w-full">
+                  <span>{att.entry_date}</span>
+                  <a 
+                    href={resolvedUrl} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded-md backdrop-blur-md transition-colors"
+                  >
+                    Open
+                  </a>
+                </div>
               </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-              {att.caption && <p className="text-white text-sm font-medium mb-1 line-clamp-2">{att.caption}</p>}
-              <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest flex items-center justify-between w-full">
-                <span>{att.entry_date}</span>
-                <a href={att.file} target="_blank" rel="noreferrer" className="bg-white/20 hover:bg-white/40 px-2 py-1 rounded backdrop-blur-md transition-colors">Open</a>
-              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Lightbox Photo Preview */}
+      {selectedPhoto && (
+        <div 
+          className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] bg-surface-900 border border-surface-700 rounded-2xl overflow-hidden flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 bg-surface-900/90 border-b border-surface-800 flex justify-between items-center text-white">
+              <div>
+                <h4 className="font-bold text-sm text-surface-100">{selectedPhoto.caption || selectedPhoto.fileName}</h4>
+                <p className="text-xs text-surface-400">Log Date: {selectedPhoto.entry_date}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={selectedPhoto.resolvedUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 bg-accent text-background font-bold text-xs rounded-xl hover:opacity-90 transition-all"
+                >
+                  Download Original
+                </a>
+                <button 
+                  onClick={() => setSelectedPhoto(null)}
+                  className="w-8 h-8 rounded-full bg-surface-800 hover:bg-surface-700 flex items-center justify-center text-surface-300 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 bg-black flex items-center justify-center p-2 overflow-hidden">
+              <img 
+                src={selectedPhoto.resolvedUrl} 
+                alt={selectedPhoto.caption || "Site photo"}
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-xl"
+              />
             </div>
           </div>
-        );
-      })}
-    </div>
+        </div>
+      )}
+    </>
   );
 };
 
