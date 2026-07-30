@@ -793,6 +793,10 @@ export const projectsApi = {
     return fetchFromBff<void>(`/api/v1/projects/phases/${phaseId}/`, { method: "DELETE" });
   },
 
+  deleteMatrix: async (projectUid: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/matrix/`, { method: "DELETE" });
+  },
+
   // ── Unified Tasks for Matrix ────────────────────────────────────────────────
   getOrCreateBlock: async (zoneId: number, phaseId: number) => {
     return fetchFromBff<any>(`/api/v1/projects/blocks/get_or_create_empty/`, {
