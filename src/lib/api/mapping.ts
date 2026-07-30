@@ -125,6 +125,12 @@ export const API_ROUTES: ApiRouteConfig[] = [
     auth: true,
   },
   {
+    prefix: "v1/projects/assets/presigned-upload-url",
+    target: "/api/v1/projects/assets/presigned-upload-url/",
+    methods: ["POST"],
+    auth: true,
+  },
+  {
     prefix: "v1/projects/task-asset-links",
     target: "/api/v1/projects/task-asset-links/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
