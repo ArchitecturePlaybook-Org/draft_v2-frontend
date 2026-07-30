@@ -427,6 +427,56 @@ export const projectsApi = {
   },
 
   uploadProjectAsset: async (projectId: number, category: string, file: File, title: string, thumbnail?: Blob, folderId?: number | null) => {
+    try {
+      // Step 1: Request presigned S3 upload URL from backend
+      const presignedRes = await fetchFromBff<{
+        direct_s3?: boolean;
+        upload_url?: string;
+        file_key?: string;
+        file_url?: string;
+      }>("/api/v1/projects/assets/presigned-upload-url/", {
+        method: "POST",
+        body: JSON.stringify({
+          file_name: file.name,
+          file_type: file.type || "application/octet-stream",
+          category,
+          project_id: projectId
+        })
+      });
+
+      if (presignedRes?.direct_s3 && presignedRes.upload_url && presignedRes.file_key) {
+        console.log("[Direct S3 Upload] Uploading directly from frontend to S3...");
+        // Step 2: Upload file directly from browser to S3 via PUT request
+        const s3PutRes = await fetch(presignedRes.upload_url, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type || "application/octet-stream"
+          },
+          body: file
+        });
+
+        if (!s3PutRes.ok) {
+          throw new Error(`Direct S3 upload failed with status ${s3PutRes.status}`);
+        }
+
+        console.log("[Direct S3 Upload] S3 upload successful. Saving asset metadata in DB.");
+        // Step 3: Register asset record in DB using S3 file key
+        const formData = new FormData();
+        formData.append("project", projectId.toString());
+        formData.append("category", category);
+        formData.append("file_key", presignedRes.file_key);
+        formData.append("title", title);
+        formData.append("size", file.size.toString());
+        if (folderId) formData.append("folder", folderId.toString());
+        if (thumbnail) formData.append("thumbnail", thumbnail, "thumbnail.png");
+
+        return fetchFromBff<any>("/api/v1/projects/assets/", { method: "POST", body: formData });
+      }
+    } catch (err) {
+      console.warn("[Direct S3 Upload] Skipped or failed, falling back to standard upload:", err);
+    }
+
+    // Step 4: Fallback to standard multipart upload
     const formData = new FormData();
     formData.append("project", projectId.toString());
     formData.append("category", category);

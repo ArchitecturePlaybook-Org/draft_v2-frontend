@@ -135,8 +135,8 @@ const GanttTaskBar: React.FC<GanttTaskBarProps> = ({
   const barColor = task.status === "DONE"
     ? "bg-emerald-500 shadow-emerald-200"
     : task.status === "WIP"
-    ? "bg-accent shadow-accent/20"
-    : "bg-primary shadow-primary/20";
+      ? "bg-accent shadow-accent/20"
+      : "bg-primary shadow-primary/20";
 
   return (
     <div
@@ -372,11 +372,10 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
               <button
                 key={opt.id}
                 onClick={() => setGroupBy(opt.id)}
-                className={`px-4 py-1.5 text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all ${
-                  groupBy === opt.id
+                className={`px-4 py-1.5 text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all ${groupBy === opt.id
                     ? "bg-surface-100 border-surface-200 shadow-md text-primary"
                     : "text-surface-500 text-surface-400 hover:text-primary"
-                }`}
+                  }`}
               >
                 {opt.label}
               </button>
@@ -441,9 +440,9 @@ export const GanttChartView: React.FC<GanttChartViewProps> = ({
                 </div>
                 <div className="space-y-4">
                   {groupTasks.map((task) => {
-                      return (
-                        <div
-                          key={task.uid}
+                    return (
+                      <div
+                        key={task.uid}
                         className="flex items-center group"
                       >
                         {/* Task Label */}

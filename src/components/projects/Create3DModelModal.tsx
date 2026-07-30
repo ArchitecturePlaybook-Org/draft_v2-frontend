@@ -25,6 +25,7 @@ export const Create3DModelModal: React.FC<Create3DModelModalProps> = ({
   onSuccess,
 }) => {
   const [modelName, setModelName] = useState("New Architectural Design");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [openEditorImmediately, setOpenEditorImmediately] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,10 +44,29 @@ export const Create3DModelModal: React.FC<Create3DModelModalProps> = ({
     setError(null);
 
     try {
-      const createdAsset = await projectsApi.initSH3DProject(projectUid, trimmedName);
+      let createdAsset: any = null;
+
+      if (selectedFile) {
+        const projectData = await projectsApi.getProjectDetails(projectUid);
+        if (!projectData?.id) throw new Error("Project details not found.");
+
+        const isSh3d = selectedFile.name.toLowerCase().endsWith('.sh3d');
+        const category = isSh3d ? "sh3d" : "3d_model";
+
+        // Direct S3 Upload via presigned URL
+        createdAsset = await projectsApi.uploadProjectAsset(
+          projectData.id,
+          category,
+          selectedFile,
+          trimmedName
+        );
+      } else {
+        createdAsset = await projectsApi.initSH3DProject(projectUid, trimmedName);
+      }
+
       onSuccess(createdAsset);
 
-      if (openEditorImmediately && createdAsset) {
+      if (openEditorImmediately && createdAsset && !selectedFile) {
         const assetId = createdAsset.canonical_uid || createdAsset.id;
         if (assetId) {
           window.open(
@@ -58,8 +78,8 @@ export const Create3DModelModal: React.FC<Create3DModelModalProps> = ({
 
       onClose();
     } catch (err: any) {
-      console.error("Failed to initialize 3D model:", err);
-      setError(err?.message || "Failed to initialize 3D model. Please try again.");
+      console.error("Failed to initialize or upload 3D model:", err);
+      setError(err?.message || "Failed to initialize/upload 3D model. Please try again.");
     } finally {
       setIsCreating(false);
     }
@@ -134,6 +154,59 @@ export const Create3DModelModal: React.FC<Create3DModelModalProps> = ({
                   >
                     ✕
                   </button>
+                )}
+              </div>
+            </div>
+
+            {/* Optional Direct S3 3D File Upload */}
+            <div>
+              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2">
+                Upload Existing 3D File <span className="text-surface-400 font-medium lowercase">(Direct S3 Upload)</span>
+              </label>
+              <div className="relative border-2 border-dashed border-surface-300 dark:border-white/10 rounded-2xl p-4 text-center hover:border-emerald-500/50 bg-surface-100/30 dark:bg-surface-800/20 transition-colors cursor-pointer group">
+                <input
+                  type="file"
+                  accept=".obj,.glb,.gltf,.ifc,.sh3d,.sh3x,.zip,.stl,.fbx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSelectedFile(file);
+                      if (!modelName || modelName === "New Architectural Design") {
+                        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+                        setModelName(nameWithoutExt);
+                      }
+                      if (error) setError(null);
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+                {selectedFile ? (
+                  <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                      <span>📦</span>
+                      <span className="truncate">{selectedFile.name}</span>
+                      <span className="text-[10px] text-surface-400 font-semibold">({(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedFile(null);
+                      }}
+                      className="z-20 text-surface-400 hover:text-red-500 text-xs font-bold px-2 py-1"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-primary group-hover:text-emerald-500 transition-colors">
+                      📁 Click or drag 3D file (.OBJ, .GLB, .GLTF, .IFC, .SH3D, .ZIP)
+                    </p>
+                    <p className="text-[10px] font-medium text-surface-400">
+                      File will be uploaded directly from browser to AWS S3 storage
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
