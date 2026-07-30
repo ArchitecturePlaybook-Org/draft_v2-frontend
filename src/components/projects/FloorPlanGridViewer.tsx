@@ -84,36 +84,38 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
   return (
     <div className={inline ? "flex flex-col bg-surface-900 w-full h-full min-h-[500px] rounded-2xl overflow-hidden shadow-inner no-print border border-surface-200" : "fixed inset-0 z-50 bg-surface-900 flex flex-col no-print"}>
       {/* Header */}
-      <div className="h-16 px-6 bg-surface-100 border-surface-200 border-b border-surface-200 flex items-center justify-between z-40 shrink-0">
-        <div className="flex items-center gap-4">
+      <div className="min-h-16 px-3 sm:px-6 py-3 bg-surface-100 border-surface-200 border-b border-surface-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between z-40 shrink-0 min-w-0 w-full">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           {!inline && onClose && (
-            <button onClick={onClose} className="p-2 hover:bg-surface-50 rounded-xl transition-colors text-lg">←</button>
+            <button onClick={onClose} className="p-2 hover:bg-surface-50 rounded-xl transition-colors text-lg shrink-0">←</button>
           )}
-          <div>
-            <h2 className="font-black text-primary text-sm uppercase tracking-tighter">{asset.title}</h2>
-            <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Site Survey Grid (8×8)</p>
+          <div className="min-w-0">
+            <h2 className="font-black text-primary text-sm uppercase tracking-tighter truncate">{asset.title}</h2>
+            <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest truncate">Site Survey Grid (8×8)</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="flex bg-surface-100 p-1 rounded-xl">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:justify-end w-full sm:w-auto max-w-full overflow-x-auto custom-scrollbar pb-0.5">
+          <div className="flex bg-surface-100 p-1 rounded-xl shrink-0">
             <button onClick={() => handleZoom(-0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-100 border-surface-200 rounded-lg transition-all font-bold text-lg">－</button>
-            <div className="px-3 flex items-center text-[10px] font-black text-primary uppercase">{(zoom * 100).toFixed(0)}%</div>
+            <div className="px-2 sm:px-3 flex items-center text-[10px] font-black text-primary uppercase whitespace-nowrap">{(zoom * 100).toFixed(0)}%</div>
             <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-100 border-surface-200 rounded-lg transition-all font-bold text-lg">＋</button>
           </div>
           <button 
             onClick={() => window.open(`/sh3d/index.html?projectId=${asset.project}`, "_blank")} 
-            className="px-4 h-10 bg-indigo-50 text-indigo-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-indigo-100 transition-all border border-indigo-200 flex items-center gap-2"
+            className="px-3 sm:px-4 h-10 bg-indigo-50 text-indigo-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-indigo-100 transition-all border border-indigo-200 flex items-center gap-2 shrink-0 whitespace-nowrap"
           >
-            <span>🏠</span> Open in SH3D
+            <span>🏠</span> <span className="hidden sm:inline">Open in SH3D</span><span className="sm:hidden">SH3D</span>
           </button>
           {inline && onToggleFullScreen && (
-            <button onClick={onToggleFullScreen} className="px-4 h-10 bg-surface-100 text-surface-600 text-surface-300 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200">
-              ⛶ Full Screen
+            <button onClick={onToggleFullScreen} className="px-3 sm:px-4 h-10 bg-surface-100 text-surface-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200 shrink-0 whitespace-nowrap">
+              ⛶ <span className="hidden sm:inline">Full Screen</span>
             </button>
           )}
           {!inline && onClose && (
-            <button onClick={onClose} className="px-4 h-10 bg-accent text-background font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20">Done Viewing</button>
+            <button onClick={onClose} className="px-3 sm:px-4 h-10 bg-accent text-background font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all shadow-lg shadow-primary/20 shrink-0 whitespace-nowrap">
+              Done
+            </button>
           )}
         </div>
       </div>
@@ -136,7 +138,7 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
             }}
             className="relative"
           >
-            <ProtectedFloorPlanViewer assetId={asset.id}>
+            <ProtectedFloorPlanViewer assetId={asset.id} versionKey={asset.updated_at}>
               {/* The Grid Overlay */}
               <div 
                 className="absolute inset-0 grid grid-cols-8 grid-rows-8"

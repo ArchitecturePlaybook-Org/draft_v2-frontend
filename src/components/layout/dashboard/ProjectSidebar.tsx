@@ -33,7 +33,9 @@ export const ProjectSidebar: React.FC = () => {
     }
   }, [currentProjectUid]);
 
-  if (!mounted || !currentProjectUid) return <aside className="sidebar opacity-0" />;
+  if (!mounted || !currentProjectUid) {
+    return <aside className="sidebar opacity-0 pointer-events-none" aria-hidden="true" />;
+  }
 
   const workspaceLinks = [
     { label: "Data Hub", id: "data_hub", icon: "🗄️" },
@@ -49,7 +51,7 @@ export const ProjectSidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="sidebar shadow-2xl z-50 relative">
+    <aside className="sidebar shadow-2xl z-50 relative min-h-0">
       {/* Floating Toggle Button */}
       <button
         onClick={toggleSidebar}
@@ -64,20 +66,21 @@ export const ProjectSidebar: React.FC = () => {
         </svg>
       </button>
       {/* Toggle Collapse Button & Back to Portal */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 min-w-0">
         <button 
           onClick={() => {
             setProjectContext(null);
             router.push("/dashboard/projects");
           }}
-          className={`flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-foreground transition-colors ${isSidebarCollapsed ? 'justify-center w-10 h-10 bg-surface-100 rounded-lg' : 'uppercase tracking-widest'}`}
+          className={`flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-foreground transition-colors min-w-0 ${isSidebarCollapsed ? 'justify-center w-10 h-10 bg-surface-100 rounded-lg shrink-0' : 'uppercase tracking-widest'}`}
           title="Back to Projects"
         >
           {isSidebarCollapsed ? (
             <span className="text-sm leading-none mt-px">←</span>
           ) : (
             <>
-              <span className="text-sm leading-none mt-px">←</span> Global Portfolio
+              <span className="text-sm leading-none mt-px shrink-0">←</span>
+              <span className="truncate">Global Portfolio</span>
             </>
           )}
         </button>
@@ -85,7 +88,7 @@ export const ProjectSidebar: React.FC = () => {
 
       {/* Project Title Block */}
       {!isSidebarCollapsed && (
-        <div className="mb-8">
+        <div className="mb-8 min-w-0">
           <h2 className="text-xl font-extrabold text-foreground tracking-tight leading-tight line-clamp-2">
             {currentProjectTitle || "Loading Project..."}
           </h2>
@@ -96,7 +99,7 @@ export const ProjectSidebar: React.FC = () => {
         </div>
       )}
 
-      <nav className="flex-1 flex flex-col gap-6 overflow-y-auto no-scrollbar scroll-smooth overflow-x-hidden">
+      <nav className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto overflow-x-hidden scroll-smooth">
         {/* Workspace Views */}
         <div>
           {!isSidebarCollapsed && (
@@ -113,7 +116,7 @@ export const ProjectSidebar: React.FC = () => {
                 title={isSidebarCollapsed ? link.label : undefined}
               >
                 <span className="text-lg leading-none grayscale opacity-70 transition-all group-hover:grayscale-0 group-hover:opacity-100 shrink-0">{link.icon}</span>
-                {!isSidebarCollapsed && link.label}
+                {!isSidebarCollapsed && <span className="truncate">{link.label}</span>}
               </Link>
             ))}
           </div>
@@ -136,14 +139,14 @@ export const ProjectSidebar: React.FC = () => {
                 title={isSidebarCollapsed ? link.label : undefined}
               >
                 <span className="text-lg leading-none grayscale opacity-70 transition-all shrink-0">{link.icon}</span>
-                {!isSidebarCollapsed && link.label}
+                {!isSidebarCollapsed && <span className="truncate">{link.label}</span>}
               </Link>
             ))}
           </div>
         </div>
       </nav>
 
-      {!isSidebarCollapsed && <ProfileBanner />}
+      {!isSidebarCollapsed && <div className="shrink-0"><ProfileBanner /></div>}
     </aside>
   );
 };

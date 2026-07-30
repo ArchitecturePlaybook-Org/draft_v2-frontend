@@ -193,7 +193,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
   const canManage = canManageProject(project);
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
+    <div className="space-y-8 animate-fade-in pb-12 min-w-0 max-w-full overflow-x-clip">
       <ProjectHeroHeader 
         project={project} 
         onStatusChange={(uid, status) => updateProjectStatus(uid, status)} 
@@ -204,7 +204,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
       />
 
 
-      <div className="flex gap-2 p-1.5 bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl w-fit shadow-inner mb-8 relative">
+      <div className="flex flex-wrap gap-2 p-1.5 bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl w-full shadow-inner relative mb-8">
         {[
           { id: "data_hub", label: "Master Data Hub" },
           { id: "matrix", label: "Construction Matrix" },
@@ -224,7 +224,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
                 setActiveTab(tab.id as any);
                 router.push(`?tab=${tab.id}`, { scroll: false });
               }}
-              className={`relative px-6 py-2.5 font-black text-[10px] uppercase tracking-widest rounded-xl transition-colors z-10 ${
+              className={`relative px-3 sm:px-6 py-2.5 font-black text-[10px] uppercase tracking-widest rounded-xl transition-colors z-10 whitespace-nowrap shrink-0 ${
                 isActive ? "text-primary" : "text-surface-400 hover:text-primary hover:bg-white/5"
               }`}
             >
@@ -248,7 +248,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
         })}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 min-w-0 max-w-full">
         {/* {activeTab === "kanban" && <KanbanTab />} */}
         
         {activeTab === "gantt" && <GanttTab />}
@@ -258,8 +258,8 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
         {activeTab === "access_requests" && <TaskAccessRequestsList projectUid={project.uid} />}
 
         {activeTab === "matrix" && (
-          <div className="w-full">
-            <div className="flex gap-4 mb-6 bg-surface-50 p-2 rounded-xl border border-surface-200 w-fit">
+          <div className="w-full min-w-0">
+            <div className="flex flex-wrap gap-2 mb-6 bg-surface-50 p-2 rounded-xl border border-surface-200 w-full">
               <button 
                 onClick={() => setMatrixView('grid')} 
                 className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${matrixView === 'grid' ? 'bg-surface-200 text-primary shadow-md border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}

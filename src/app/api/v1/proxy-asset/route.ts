@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
       headers: {
         "Content-Type": contentType,
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": "private, no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
       },
     });
   } catch (err: any) {

@@ -39,11 +39,11 @@ export function TrialBanner() {
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          className="bg-red-500/10 border-b border-red-500/30 px-4 py-3 text-red-400 flex items-center justify-between gap-4 z-50 sticky top-0"
+          className="bg-red-500/10 border-b border-red-500/30 px-3 sm:px-4 py-3 text-red-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-50 sticky top-0"
         >
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 animate-pulse" />
-            <span className="text-xs font-bold leading-tight">
+          <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 animate-pulse mt-0.5 sm:mt-0" />
+            <span className="text-xs font-bold leading-tight break-words">
               Your{" "}
               {subscription.status === "canceled" ? "subscription has been cancelled" : "trial has expired"}.
               Your account is in <strong>read-only mode</strong>. Upgrade to restore full access.
@@ -101,7 +101,7 @@ export function TrialBanner() {
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          className={`border-b px-4 py-3 flex items-center justify-between gap-4 z-50 sticky top-0 ${colorClass}`}
+          className={`border-b px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-50 sticky top-0 ${colorClass}`}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {isUrgent ? (
@@ -109,10 +109,10 @@ export function TrialBanner() {
             ) : (
               <Clock className="w-4 h-4 flex-shrink-0" />
             )}
-            <span className="text-xs font-bold leading-tight">{message}</span>
+            <span className="text-xs font-bold leading-tight break-words">{message}</span>
           </div>
 
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 self-end sm:self-auto">
             <Link
               href="/dashboard/subscription"
               className={`flex items-center gap-1.5 text-[10px] text-white font-black uppercase tracking-[0.15em] py-2 px-4 rounded-xl transition-colors ${buttonClass}`}

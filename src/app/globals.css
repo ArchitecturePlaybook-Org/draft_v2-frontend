@@ -1,6 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 /* --- Themes --- */
 :root {
   /* Default Theme (Dark) */
@@ -197,6 +203,9 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow: hidden;
   background-color: var(--background);
 }
 
@@ -210,16 +219,22 @@ h1, h2, h3, h4, h5, h6 {
 
 .sidebar {
   width: var(--nav-width);
+  max-width: var(--nav-width);
   background: var(--surface-50);
   border-right: 1px solid var(--surface-300);
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
-  transition: width var(--transition-smooth);
+  box-sizing: border-box;
+  transition: width var(--transition-smooth), max-width var(--transition-smooth);
   position: fixed;
   top: 0;
   bottom: 0;
   left: 0;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
   z-index: 50;
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
@@ -239,34 +254,60 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .main-area {
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
   min-height: 0;
-  margin-left: var(--nav-width);
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow-x: clip;
   overflow-y: auto;
 }
 
+.sidebar-spacer {
+  width: var(--nav-width);
+  max-width: var(--nav-width);
+  flex-shrink: 0;
+  transition: width var(--transition-smooth), max-width var(--transition-smooth);
+}
+
 .topbar {
-  height: var(--topbar-height);
-  padding: 0 2rem;
+  height: auto;
+  min-height: var(--topbar-height);
+  padding: 0.75rem 1rem;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--glass-border);
   position: sticky;
   top: 0;
   z-index: 40;
+  flex-shrink: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .topbar {
+    padding: 0.75rem 2rem;
+  }
 }
 
 .page-content {
   padding: 2rem;
-  max-width: 1400px;
+  padding-top: 1.5rem;
+  max-width: min(1400px, 100%);
   width: 100%;
+  min-width: 0;
   margin: 0 auto;
+  box-sizing: border-box;
+  overflow-x: clip;
 }
 
 .glass-card {
@@ -297,6 +338,9 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
   transition: all var(--transition-smooth);
   border-left: 3px solid transparent;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .nav-item:hover {
   background: var(--surface-100);

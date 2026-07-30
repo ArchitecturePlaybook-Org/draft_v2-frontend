@@ -21,32 +21,30 @@ export const Topbar: React.FC = () => {
 
   return (
     <header className="topbar">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0 flex-1 basis-full sm:basis-auto overflow-x-auto custom-scrollbar">
         {breadcrumbs.map((crumb, idx) => (
           <React.Fragment key={crumb.href}>
             <span 
-              className={`text-sm font-medium ${
-                idx === breadcrumbs.length - 1 ? "text-foreground" : "text-(--gray-600)"
+              className={`text-sm font-medium whitespace-nowrap shrink-0 ${
+                idx === breadcrumbs.length - 1 ? "text-foreground truncate max-w-[min(200px,40vw)]" : "text-(--gray-600)"
               }`}
             >
               {crumb.label}
             </span>
             {idx < breadcrumbs.length - 1 && (
-              <span className="text-(--gray-600) text-xs">/</span>
+              <span className="text-(--gray-600) text-xs shrink-0">/</span>
             )}
           </React.Fragment>
         ))}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0 ml-auto">
         {isAdmin && (
-          <div className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-400 uppercase tracking-widest animate-pulse">
-            System Overseer Mode
+          <div className="px-2 sm:px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] sm:text-[10px] font-bold text-red-400 uppercase tracking-widest animate-pulse whitespace-nowrap">
+            Overseer
           </div>
         )}
-        <div className="flex gap-2">
-          <ThemeToggle />
-        </div>
+        <ThemeToggle />
       </div>
     </header>
   );

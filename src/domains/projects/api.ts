@@ -473,8 +473,31 @@ export const projectsApi = {
     });
   },
 
-  getProjectAssetDetails: async (assetId: number) => {
-    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/`, { method: "GET" });
+  initSketchProject: async (projectUid: string, name: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/init-sketch/`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  getProjectAssetDetails: async (assetId: number, options?: { skipCache?: boolean }) => {
+    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/?all=true`, {
+      method: "GET",
+      skipCache: options?.skipCache,
+    });
+  },
+
+  /** Load Excalidraw JSON for a specific asset revision (server reads storage directly). */
+  getAssetScene: async (assetId: number) => {
+    const cacheBust = Date.now();
+    return fetchFromBff<any>(
+      `/api/v1/projects/assets/${assetId}/scene/?all=true&_=${cacheBust}`,
+      { method: "GET", skipCache: true },
+    );
+  },
+
+  getAssetByCanonicalUid: async (canonicalUid: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/assets/by-canonical/${canonicalUid}/`, { method: "GET" });
   },
 
   updateProjectAsset: async (assetId: number, data: Partial<{ title: string; category: string }>) => {
@@ -503,8 +526,19 @@ export const projectsApi = {
     return fetchFromBff<any>(`/api/v1/projects/assets/${parentAssetId}/upload-revision/`, { method: "POST", body: formData });
   },
 
+  overwriteAsset: async (assetId: number, file: File, thumbnail?: Blob, revisionNotes?: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (thumbnail) formData.append("thumbnail", thumbnail, "thumbnail.png");
+    if (revisionNotes) formData.append("revision_notes", revisionNotes);
+    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/overwrite/`, { method: "POST", body: formData });
+  },
+
   getAssetHistory: async (assetId: number) => {
-    return fetchFromBff<any[]>(`/api/v1/projects/assets/${assetId}/history/`, { method: "GET" });
+    return fetchFromBff<any[]>(`/api/v1/projects/assets/${assetId}/history/?all=true`, {
+      method: "GET",
+      skipCache: true,
+    });
   },
 
   promoteAssetVersion: async (assetId: number) => {

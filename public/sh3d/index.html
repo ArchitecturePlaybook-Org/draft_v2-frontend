@@ -9,6 +9,13 @@
   <meta name="format-detection" content="telephone=no">
   <meta name="msapplication-tap-highlight" content="no">
   <title>Sweet Home 3D JS</title>
+  <script>
+    (function () {
+      if (new URLSearchParams(location.search).get('embedded') === '1') {
+        document.documentElement.dataset.embedded = '1';
+      }
+    })();
+  </script>
   <script type="text/javascript" src="lib/big.min.js"></script>
   <script type="text/javascript" src="lib/gl-matrix-min.js"></script>
   <script type="text/javascript" src="lib/jszip.min.js"></script>
@@ -91,8 +98,8 @@
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       background-color: #f8fafc;
       z-index: 999999;
       display: flex;
@@ -215,8 +222,13 @@
     }
 
     function initThemeToggle() {
+      if (window.__sh3d_themeToggleInit) return;
+      window.__sh3d_themeToggleInit = true;
+
       let stored = localStorage.getItem(STORAGE_KEY) || 'Light Mode';
       applyTheme(stored);
+
+      if (document.getElementById('theme-toggle-btn')) return;
 
       // Create the toggle button dynamically
       const btn = document.createElement('button');
@@ -234,13 +246,12 @@
       btn.addEventListener('click', toggleTheme);
 
       // We must append it to the toolbar.
-      // The SweetHome3D engine builds the toolbar dynamically, so we wait slightly for it to populate
       setTimeout(() => {
         const toolbar = document.getElementById('home-pane-toolbar');
-        if (toolbar) {
+        if (toolbar && !document.getElementById('theme-toggle-btn')) {
           toolbar.appendChild(btn);
         }
-      }, 500); // Wait 500ms for JS to render toolbar tools
+      }, 500);
     }
 
     if (document.readyState === 'loading') {
@@ -301,8 +312,11 @@
 
     html,
     body {
-      overflow-x: hidden;
-      overflow-y: hidden;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
     }
 
     body {
@@ -336,112 +350,16 @@
  * No-touch devices common CSS
  */
     #application-menu-toolbar {
-      display: none;
+      display: none !important;
     }
 
-    /* Enhanced toolbar with modern gradient, proper flexbox layout, and improved button styling */
+    /* Toolbar layout handled in #rayon-modern-overrides — keep only structural positioning here */
     #home-pane-toolbar {
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 50px;
-      background: linear-gradient(135deg, var(--toolbar-bg-start) 0%, var(--toolbar-bg-end) 100%);
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 12px;
-      box-shadow: 0 4px 12px var(--shadow-color);
-      overflow-x: auto;
-      overflow-y: hidden;
-      white-space: nowrap;
       z-index: 100;
     }
 
-    /* Professional button styling with improved hover and active states */
-    #home-pane-toolbar .toolbar-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 44px;
-      height: 44px;
-      padding: 0 14px;
-      background-color: var(--button-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      color: var(--button-text);
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      flex-shrink: 0;
-      white-space: nowrap;
-      user-select: none;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Hover state with smooth elevation and glow effect */
-    #home-pane-toolbar .toolbar-button:hover {
-      background-color: var(--button-hover-bg);
-      color: var(--button-text-hover);
-      border-color: var(--primary-color);
-      box-shadow: 0 0 16px rgba(59, 130, 246, 0.25), 0 4px 12px var(--shadow-color);
-      transform: translateY(-2px);
-    }
-
-    /* Active/selected state with primary color and inset shadow */
-    #home-pane-toolbar .toolbar-button:active,
-    #home-pane-toolbar .toolbar-button.selected {
-      background-color: var(--button-active-bg);
-      border-color: var(--primary-active);
-      color: white;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 16px rgba(59, 130, 246, 0.35);
-      transform: translateY(0);
-    }
-
-    #home-pane-toolbar .toolbar-button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    /* Toolbar button group separator for visual organization */
-    #home-pane-toolbar .toolbar-separator {
-      width: 1px;
-      height: 28px;
-      background-color: var(--border-color);
-      margin: 0 6px;
-      flex-shrink: 0;
-      opacity: 0.6;
-    }
-
-    /* Icon styling with proper brightness and smooth transitions */
-    #home-pane-toolbar .toolbar-button img,
-    #home-pane-toolbar .toolbar-button svg {
-      width: 20px;
-      height: 20px;
-      margin-right: 8px;
-      filter: brightness(1) drop-shadow(0 0 1px rgba(255, 255, 255, 0.1));
-      transition: filter 0.25s ease, transform 0.25s ease;
-    }
-
-    #home-pane-toolbar .toolbar-button:hover img,
-    #home-pane-toolbar .toolbar-button:hover svg {
-      filter: brightness(1.15) drop-shadow(0 0 2px rgba(59, 130, 246, 0.3));
-      transform: scale(1.05);
-    }
-
-    #home-pane-toolbar .toolbar-button:active img,
-    #home-pane-toolbar .toolbar-button:active svg,
-    #home-pane-toolbar .toolbar-button.selected img,
-    #home-pane-toolbar .toolbar-button.selected svg {
-      filter: brightness(1.2) drop-shadow(0 0 3px rgba(255, 255, 255, 0.2));
-      transform: scale(1);
-    }
-
     #catalog-furniture-pane {
-      top: 50px;
+      top: 72px;
       left: 0;
       width: 296px;
       height: calc(100% - 45px);
@@ -486,13 +404,13 @@
     }
 
     #furniture-plan-splitter {
-      top: 50px;
+      top: 72px;
       left: 296px;
       height: calc(100% - 45px);
     }
 
     #plan-3D-view-pane {
-      top: 50px;
+      top: 72px;
       left: 300px;
       width: calc(100% - 300px);
       height: calc(100% - 45px);
@@ -839,8 +757,8 @@
   <style id="rayon-modern-overrides">
     /* Immersive Canvas */
     #home-pane {
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100% !important;
+        height: 100% !important;
         overflow: hidden;
         position: relative;
         background: var(--toolbar-bg-end);
@@ -850,20 +768,20 @@
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100% !important;
+        height: 100% !important;
         z-index: 1;
     }
 
     #home-plan, #home-3D-view {
-        width: 100vw !important;
+        width: 100% !important;
         border: none !important;
         box-sizing: border-box;
     }
 
     /* Modern 2D/3D Splitter */
     #plan-3D-view-splitter {
-        width: 100vw !important;
+        width: 100% !important;
         background: transparent !important;
         position: absolute !important;
         z-index: 10;
@@ -886,13 +804,16 @@
         opacity: 0.8;
     }
 
-    /* Floating Pill Toolbar */
+    /* Floating Pill Toolbar — constrained to viewport, scrolls when many tools */
     #home-pane-toolbar {
         position: absolute !important;
         top: 16px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: max-content !important;
+        left: 16px !important;
+        right: 16px !important;
+        transform: none !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
         height: 54px !important;
         border-radius: 100px !important;
         background: rgba(255, 255, 255, 0.7) !important;
@@ -904,8 +825,30 @@
         padding: 0 8px !important;
         gap: 4px !important;
         display: flex !important;
-        justify-content: center !important;
-        overflow: visible !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        box-sizing: border-box !important;
+    }
+
+    #home-pane-toolbar .toolbar-button-group {
+        flex-shrink: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+    }
+
+    #home-pane-toolbar::-webkit-scrollbar {
+        display: block !important;
+        height: 4px !important;
+    }
+
+    #home-pane-toolbar::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2) !important;
+        border-radius: 4px !important;
     }
 
     [data-theme="Dark Mode"] {
@@ -1230,11 +1173,10 @@
 
     @media (max-width: 768px) {
         #home-pane-toolbar {
-            width: calc(100% - 32px) !important;
+            left: 8px !important;
+            right: 8px !important;
             border-radius: 20px !important;
             top: 8px !important;
-            overflow-x: auto !important;
-            justify-content: flex-start !important;
         }
         #catalog-furniture-pane {
             width: calc(100% - 32px) !important;
@@ -1257,6 +1199,29 @@
             bottom: 16px !important;
             left: 16px !important;
         }
+    }
+
+    /* Embedded in dashboard iframe: single top toolbar only (no touch bottom duplicate) */
+    [data-embedded="1"] #application-menu-toolbar {
+      display: none !important;
+    }
+
+    @media (hover: none), (pointer: coarse) {
+      [data-embedded="1"] #home-pane-toolbar {
+        top: 16px !important;
+        left: 16px !important;
+        right: 16px !important;
+        bottom: auto !important;
+        height: 54px !important;
+        width: auto !important;
+        transform: none !important;
+      }
+
+      [data-embedded="1"] #catalog-furniture-pane,
+      [data-embedded="1"] #furniture-plan-splitter,
+      [data-embedded="1"] #plan-3D-view-pane {
+        top: 72px !important;
+      }
     }
   </style>
 </head>
@@ -2466,6 +2431,45 @@
     const urlBase = location.href.substring(0, location.href.lastIndexOf("/") + 1);
     const defaultName = "model-" + new Date().toISOString().replace(/\D/g, "").slice(0, 14);
 
+    /* ===== Embedded mode: block native file-download save ===== */
+    (function () {
+      if (document.documentElement.dataset.embedded !== '1') return;
+
+      function redirectSave() {
+        if (typeof window.customSaveModel === 'function') {
+          window.customSaveModel(true);
+        } else {
+          console.warn('[SH3D] customSaveModel not ready — retrying…');
+          setTimeout(redirectSave, 100);
+        }
+      }
+
+      function redirectSaveAs() {
+        if (typeof window.customSaveAsModel === 'function') {
+          window.customSaveAsModel();
+        } else {
+          setTimeout(redirectSaveAs, 100);
+        }
+      }
+
+      function patchSaveProto(proto) {
+        if (!proto) return;
+        proto.save = function () { redirectSave(); };
+        proto.saveAs = function () { redirectSaveAs(); };
+      }
+
+      patchSaveProto(typeof HomeController !== 'undefined' ? HomeController.prototype : null);
+      patchSaveProto(typeof LocalFileHomeController !== 'undefined' ? LocalFileHomeController.prototype : null);
+      patchSaveProto(typeof DirectRecordingHomeController !== 'undefined' ? DirectRecordingHomeController.prototype : null);
+
+      if (typeof SweetHome3DJSApplication !== 'undefined') {
+        SweetHome3DJSApplication.prototype.saveHome = function () { redirectSave(); };
+        SweetHome3DJSApplication.prototype.saveHomeAs = function () { redirectSaveAs(); };
+      }
+
+      console.log('[SH3D] Embedded save intercept installed (no file download)');
+    })();
+
     /* ===== Init SweetHome3D app (LOCAL SAVE MODE) ===== */
     // Server-side URLs commented out to enforce local saving logic
     var application = new SweetHome3DJSApplication({
@@ -2552,73 +2556,127 @@
         }
       }
 
-      window.__sh3d_triggerLoad = function(loadAssetId, loadToken) {
-        if (loadAssetId) {
-          var fetchOpts = { credentials: 'same-origin' };
-          if (loadToken) {
-            fetchOpts.headers = { 'Authorization': 'Bearer ' + loadToken };
-          }
-          fetch('/api/v1/projects/assets/by-canonical/' + loadAssetId + '/', fetchOpts)
-          .then(res => {
-            if (!res.ok) throw new Error("Asset not found or unauthorized");
-            return res.json();
-          })
-          .then(asset => {
-            if (!asset.file) throw new Error("Asset file URL is empty");
-            
-            // Store PK for subsequent revisions
-            if (asset.id) {
-              window.__sh3d_assetPk = asset.id;
+      function resolveAssetFileUrl(fileUrl) {
+        if (!fileUrl) return null;
+        if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+          try {
+            var urlObj = new URL(fileUrl);
+            if (urlObj.origin === location.origin) {
+              return urlObj.pathname + urlObj.search;
             }
+          } catch (e) {}
+          return '/api/v1/proxy-asset?url=' + encodeURIComponent(fileUrl);
+        }
+        return fileUrl;
+      }
 
-            var ext = '.sh3d';
-            var match = asset.file.match(/\.(sh3d|sh3x)(\?|$)/i);
-            if (match) ext = match[0].split('?')[0];
-            window.__sh3d_ext = ext;
-            
-            // Fix CORS by ensuring we fetch through Next.js proxy for local media
-            var fileUrl = asset.file;
-            if (fileUrl && (fileUrl.includes('localhost:') || fileUrl.includes('127.0.0.1:'))) {
-              try {
-                var urlObj = new URL(fileUrl);
-                fileUrl = urlObj.pathname + urlObj.search;
-              } catch (e) {}
-            }
-            
-            return fetch(fileUrl, { credentials: 'same-origin' });
-          })
-          .then(res => res.blob())
-          .then(blob => {
-            const objectUrl = URL.createObjectURL(blob) + '#model' + window.__sh3d_ext;
-            tryLoad(objectUrl);
-          })
-          .catch(err => {
-            console.error("Failed to load secure asset:", err);
-            alert("Failed to securely load the 3D model.");
+      window.__sh3d_triggerLoad = function(loadAssetId, loadToken) {
+        if (!loadAssetId) return;
+
+        var fetchOpts = { credentials: 'same-origin' };
+        if (loadToken) {
+          fetchOpts.headers = { 'Authorization': 'Bearer ' + loadToken };
+        }
+
+        fetch('/api/v1/projects/assets/by-canonical/' + loadAssetId + '/', fetchOpts)
+        .then(function(res) {
+          if (!res.ok) throw new Error("Asset not found or unauthorized");
+          return res.json();
+        })
+        .then(function(asset) {
+          if (asset.id) {
+            window.__sh3d_assetPk = asset.id;
+          }
+          window.__sh3d_ext = '.sh3d';
+
+          // Newly created models ship with an empty placeholder file — start blank
+          if (isNew || !asset.file || asset.size === 0) {
             application.addHome(application.createHome());
             hideLoader();
-          });
-        }
+            return;
+          }
+
+          var ext = '.sh3d';
+          var match = asset.file.match(/\.(sh3d|sh3x)(\?|$)/i);
+          if (match) ext = match[0].split('?')[0];
+          window.__sh3d_ext = ext;
+
+          var fileUrl = resolveAssetFileUrl(asset.file);
+          if (!fileUrl) throw new Error("Asset file URL is empty");
+
+          return fetch(fileUrl, { credentials: 'same-origin' })
+            .then(function(res) {
+              if (!res.ok) throw new Error("Failed to fetch model file (" + res.status + ")");
+              return res.blob();
+            })
+            .then(function(blob) {
+              if (!blob || blob.size === 0) throw new Error("Model file is empty");
+              var objectUrl = URL.createObjectURL(blob) + '#model' + window.__sh3d_ext;
+              tryLoad(objectUrl);
+            });
+        })
+        .catch(function(err) {
+          console.error("Failed to load secure asset:", err);
+          if (isNew) {
+            application.addHome(application.createHome());
+            hideLoader();
+            return;
+          }
+          alert("Failed to securely load the 3D model.");
+          application.addHome(application.createHome());
+          hideLoader();
+        });
       };
+
+      function applySh3dInit(payload) {
+        if (window.__sh3d_initApplied) {
+          console.log('[SH3D] SH3D_INIT ignored — editor already initialized');
+          return;
+        }
+        window.__sh3d_initApplied = true;
+
+        if (payload.token) {
+          token = payload.token;
+          window.__sh3d_token = token;
+        }
+        if (payload.projectId) {
+          projectId = payload.projectId;
+          window.__sh3d_projectId = projectId;
+        }
+        if (payload.assetId) {
+          assetId = payload.assetId;
+          window.__sh3d_assetId = assetId;
+        }
+        if (payload.assetPk) {
+          window.__sh3d_assetPk = payload.assetPk;
+        }
+        if (payload.modelExt) {
+          window.__sh3d_ext = payload.modelExt;
+        }
+
+        if (payload.isNew || !payload.modelBlobUrl) {
+          application.addHome(application.createHome());
+          hideLoader();
+          return;
+        }
+
+        var ext = payload.modelExt || window.__sh3d_ext || '.sh3d';
+        if (!tryLoad(payload.modelBlobUrl + '#model' + ext)) {
+          application.addHome(application.createHome());
+          hideLoader();
+        }
+      }
 
       window.addEventListener('message', function(event) {
         if (event.data && event.data.type === 'SH3D_INIT') {
-          token = event.data.token || token;
-          window.__sh3d_token = token;
-          
-          if (event.data.projectId) {
-            projectId = event.data.projectId;
-            window.__sh3d_projectId = projectId;
-          }
-          if (event.data.assetId) {
-            assetId = event.data.assetId;
-            window.__sh3d_assetId = assetId;
-            window.__sh3d_triggerLoad(assetId, token);
-          }
+          applySh3dInit(event.data);
         }
       });
 
-      if (assetId) {
+      var deferLoad = QS.get('deferLoad') === '1';
+      if (deferLoad) {
+        // Parent React shell loads the asset via authenticated BFF and sends SH3D_INIT.
+      } else if (assetId) {
         window.__sh3d_triggerLoad(assetId, token);
       } else {
         const incoming = QS.get('home') || QS.get('file');
@@ -2681,6 +2739,9 @@
 
         const bar = document.getElementById('home-pane-toolbar');
         if (!bar) return;
+
+        if (bar.dataset.sh3dEnhanced === '1') return;
+        bar.dataset.sh3dEnhanced = '1';
 
         // Find the existing "Create Walls" button
         const createWallsBtn = bar.querySelector('#toolbar-button-CREATE_WALLS');
@@ -2913,8 +2974,10 @@
           return;
         }
 
-        // Select level
-        home.setSelectedLevel(level);
+        // Select level when available
+        if (level && typeof home.setSelectedLevel === 'function') {
+          home.setSelectedLevel(level);
+        }
 
         // Wait for render (a few rAF or timeout)
         setTimeout(() => {
@@ -2961,15 +3024,112 @@
     window.findHome = function() {
       if (!window.application) return null;
       var app = window.application;
-      if (typeof app.getHome === 'function') return app.getHome();
-      if (typeof app.getDisplayedHome === 'function') return app.getDisplayedHome();
-      if (app.homes && app.homes.length > 0) return app.homes[0];
+      if (window.activeHomePane && window.activeHomePane.home) return window.activeHomePane.home;
+      if (typeof app.getDisplayedHome === 'function') {
+        var displayed = app.getDisplayedHome();
+        if (displayed) return displayed;
+      }
+      if (typeof app.getHome === 'function') {
+        var current = app.getHome();
+        if (current) return current;
+      }
       if (app.getHomes && typeof app.getHomes === 'function') {
         var list = app.getHomes();
         if (list && typeof list.size === 'function' && list.size() > 0) return list.get(0);
         if (list && list.length > 0) return list[0];
       }
+      if (app.homes && app.homes.length > 0) return app.homes[0];
       if (app.home) return app.home;
+      return null;
+    };
+
+    /** Generate .sh3d blob using the app recorder — bypasses native file download. */
+    window._generateSh3dBlob = function(home, modelName, onSuccess, onError) {
+      if (!window.application || typeof window.application.getHomeRecorder !== 'function') {
+        onError(0, 'Editor recorder is not ready yet');
+        return;
+      }
+
+      var recorder = window.application.getHomeRecorder();
+      if (!recorder || typeof recorder.writeHomeToZip !== 'function') {
+        onError(0, 'Home recorder cannot export this model');
+        return;
+      }
+
+      var localContents = [];
+      recorder.searchContents(home, [], localContents, function(h) {
+        return h instanceof LocalURLContent ||
+          (h.isJAREntry && h.isJAREntry() && URLContent.fromURL(h.getJAREntryURL()) instanceof LocalURLContent);
+      });
+
+      function buildSavedNames(existing) {
+        var names = existing || {};
+        var homeContents = [];
+        recorder.searchContents(home, [], homeContents, function(o) {
+          return o instanceof HomeURLContent || o instanceof SimpleURLContent;
+        });
+
+        var counter = 0;
+        for (var i = 0; i < homeContents.length; i++) {
+          var item = homeContents[i];
+          if (item instanceof HomeURLContent) {
+            var entry = item.getJAREntryName();
+            if (entry.indexOf('/') < 0) {
+              names[item.getURL()] = (++counter).toString();
+            } else {
+              names[item.getURL()] = (++counter) + entry.substring(entry.indexOf('/'));
+            }
+          } else if (item instanceof SimpleURLContent && item.isJAREntry() &&
+            URLContent.fromURL(item.getJAREntryURL()) instanceof LocalURLContent) {
+            names[item.getURL()] = (++counter).toString();
+          }
+        }
+        return { names: names, homeContents: homeContents };
+      }
+
+      function startZip(savedNames) {
+        var built = buildSavedNames(savedNames);
+        recorder.writeHomeToZip(home, modelName, built.homeContents, built.names, 'blob', {
+          homeSaved: function(savedHome, sh3dData) {
+            var blob = sh3dData;
+            if (blob && !(blob instanceof Blob)) {
+              blob = new Blob([blob], { type: 'application/octet-stream' });
+            }
+            onSuccess(savedHome, blob);
+          },
+          homeError: function(status, error) {
+            onError(status, error);
+          }
+        });
+      }
+
+      if (recorder.configuration &&
+          recorder.configuration.writeResourceURL !== undefined &&
+          recorder.configuration.readResourceURL !== undefined &&
+          typeof recorder.saveContents === 'function') {
+        recorder.saveContents(localContents, {
+          contentsSaved: startZip,
+          contentsError: onError
+        });
+      } else {
+        startZip({});
+      }
+    };
+
+    window._resolveLevelForCapture = function(home) {
+      if (!home) return null;
+      var level = home.getSelectedLevel ? home.getSelectedLevel() : null;
+      if (level) return level;
+      var levels = home.getLevels ? home.getLevels() : null;
+      if (!levels) return null;
+      if (typeof levels.get === 'function' && typeof levels.size === 'function' && levels.size() > 0) {
+        return levels.get(0);
+      }
+      if (typeof levels.toArray === 'function') {
+        var arr = levels.toArray();
+        return arr.length > 0 ? arr[0] : null;
+      }
+      if (levels.length > 0) return levels[0];
       return null;
     };
     
@@ -2983,23 +3143,23 @@
       if (!evt.data || typeof evt.data !== 'object') return;
 
       if (evt.data.type === 'SH3D_SAVE_ACK') {
-        // Parent confirmed backend save was successful
+        window.__sh3d_saveInProgress = false;
         var assetId   = evt.data.assetId;
         var assetPk   = evt.data.assetPk;
         var assetUid  = evt.data.canonicalUid;
         console.log('[SH3D] SH3D_SAVE_ACK received from parent. assetId:', assetId, 'assetPk:', assetPk, 'canonicalUid:', assetUid);
-        window.__sh3d_assetId = assetId;
+        window.__sh3d_assetId = assetUid || assetId;
         window.__sh3d_assetPk = assetPk;
-        // Update URL so a refresh doesn't create a duplicate
-        if (window.__sh3d_projectId && assetUid) {
-          window.history.replaceState({}, '', '?projectId=' + window.__sh3d_projectId + '&assetId=' + assetUid);
-        }
-        // Dismiss saving notification
+        window.__sh3d_lastSavedAt = evt.data.updatedAt || Date.now();
         _sh3d_dismissSaveUI('Model saved successfully to project! ✅', '#22c55e');
+        var savedHome = window.findHome && window.findHome();
+        if (savedHome && typeof savedHome.setModified === 'function') savedHome.setModified(false);
+        if (savedHome && typeof savedHome.setRecovered === 'function') savedHome.setRecovered(false);
         console.log('[SH3D] UI refreshed after save ack.');
       }
 
       if (evt.data.type === 'SH3D_SAVE_ERROR') {
+        window.__sh3d_saveInProgress = false;
         var errMsg = evt.data.error || 'Unknown error';
         console.error('[SH3D] SH3D_SAVE_ERROR from parent:', errMsg);
         _sh3d_dismissSaveUI('Save failed: ' + errMsg, '#ef4444');
@@ -3012,12 +3172,23 @@
         try { window.__sh3d_saveNotification.remove(); } catch(e) {}
       }
       var n = document.createElement('div');
-      n.textContent = '💾 Saving model...';
+      n.textContent = '💾 Saving to project...';
+      n.setAttribute('role', 'status');
+      n.setAttribute('aria-live', 'polite');
       Object.assign(n.style, {
-        position: 'fixed', right: '16px', bottom: '16px',
-        background: '#f59e0b', color: '#fff', padding: '10px 16px',
-        borderRadius: '8px', zIndex: 99999, font: '600 13px system-ui',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.2)', transition: 'all 0.3s'
+        position: 'fixed',
+        top: '80px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: '#f59e0b',
+        color: '#fff',
+        padding: '12px 20px',
+        borderRadius: '12px',
+        zIndex: 99999,
+        font: '600 14px system-ui',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        transition: 'all 0.3s',
+        pointerEvents: 'none',
       });
       document.body.appendChild(n);
       window.__sh3d_saveNotification = n;
@@ -3069,86 +3240,20 @@
       if (modelName.indexOf('.') < 0) modelName += '.sh3d';
 
       if (window.__sh3d_assetId && !skipPrompt) {
-        // Show custom modal
-        var overlay = document.createElement('div');
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0'; overlay.style.left = '0';
-        overlay.style.width = '100vw'; overlay.style.height = '100vh';
-        overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        overlay.style.zIndex = '1000000';
-        overlay.style.display = 'flex';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        
-        var modal = document.createElement('div');
-        modal.style.backgroundColor = '#fff';
-        modal.style.padding = '24px';
-        modal.style.borderRadius = '12px';
-        modal.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
-        modal.style.width = '320px';
-        modal.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-        
-        var title = document.createElement('h3');
-        title.innerText = 'Save Options';
-        title.style.margin = '0 0 16px 0';
-        title.style.color = '#0f172a';
-        
-        var btnStyle = 'display: block; width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; text-align: left; transition: background 0.2s;';
-        
-        var btnOverwrite = document.createElement('button');
-        btnOverwrite.innerText = 'Overwrite Existing File';
-        btnOverwrite.style.cssText = btnStyle + 'background: #2563eb; color: #fff;';
-        btnOverwrite.onmouseover = function() { this.style.background = '#1d4ed8'; };
-        btnOverwrite.onmouseout = function() { this.style.background = '#2563eb'; };
-        btnOverwrite.onclick = function() {
-          overlay.remove();
-          window._executeSave(home, modelName, false, false);
-        };
-        
-        var btnRevision = document.createElement('button');
-        btnRevision.innerText = 'Save as New Revision';
-        btnRevision.style.cssText = btnStyle + 'background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1;';
-        btnRevision.onmouseover = function() { this.style.background = '#e2e8f0'; };
-        btnRevision.onmouseout = function() { this.style.background = '#f1f5f9'; };
-        btnRevision.onclick = function() {
-          overlay.remove();
-          window._executeSave(home, modelName, true, false);
-        };
-        
-        var btnNewFile = document.createElement('button');
-        btnNewFile.innerText = 'Save as New File';
-        btnNewFile.style.cssText = btnStyle + 'background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1;';
-        btnNewFile.onmouseover = function() { this.style.background = '#e2e8f0'; };
-        btnNewFile.onmouseout = function() { this.style.background = '#f1f5f9'; };
-        btnNewFile.onclick = function() {
-          overlay.remove();
-          window.customSaveAsModel();
-        };
-        
-        var btnCancel = document.createElement('button');
-        btnCancel.innerText = 'Cancel';
-        btnCancel.style.cssText = btnStyle + 'background: transparent; color: #64748b; text-align: center; margin-bottom: 0;';
-        btnCancel.onmouseover = function() { this.style.background = '#f8fafc'; };
-        btnCancel.onmouseout = function() { this.style.background = 'transparent'; };
-        btnCancel.onclick = function() {
-          overlay.remove();
-        };
-        
-        modal.appendChild(title);
-        modal.appendChild(btnOverwrite);
-        modal.appendChild(btnRevision);
-        modal.appendChild(btnNewFile);
-        modal.appendChild(btnCancel);
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-        
-        return; // Wait for user choice
+        // Embedded editor: always overwrite the open asset (no modal)
+        window._executeSave(home, modelName, false, false);
+        return;
       }
 
       window._executeSave(home, modelName, false, false);
     };
 
     window._executeSave = function(home, modelName, asRevision, isSaveAs) {
+      if (window.__sh3d_saveInProgress) {
+        console.warn('[SH3D] Save already in progress — ignoring duplicate request');
+        return;
+      }
+      window.__sh3d_saveInProgress = true;
       _sh3d_showSaveUI();
 
       var saveBtn = document.getElementById('sh3d-save-btn');
@@ -3156,14 +3261,12 @@
 
       console.log('[SH3D] Generating native .sh3d blob for: ' + modelName);
 
-      // Step 1: Generate the native SH3D blob via HomeRecorder
-      var recorder = new HomeRecorder();
-      recorder.writeHome(home, modelName, {
-        homeSaved: function(savedHome, sh3dBlob) {
+      window._generateSh3dBlob(home, modelName, function(savedHome, sh3dBlob) {
           console.log('[SH3D] SH3D blob generated. Size:', sh3dBlob ? sh3dBlob.size : 0, 'bytes.');
 
           if (!sh3dBlob || sh3dBlob.size === 0) {
             console.error('[SH3D] SH3D blob is empty or null. Aborting save.');
+            window.__sh3d_saveInProgress = false;
             _sh3d_dismissSaveUI('Error: SH3D file was empty', '#ef4444');
             alert('Save error: Generated SH3D file was empty.');
             return;
@@ -3171,7 +3274,8 @@
 
           // Step 2: Capture a 2D plan thumbnail
           console.log('[SH3D] Capturing 2D plan thumbnail...');
-          window.captureLevelImage(home, home.getSelectedLevel(), function(thumbnailBlob) {
+          var captureLevel = window._resolveLevelForCapture(home);
+          window.captureLevelImage(home, captureLevel, function(thumbnailBlob) {
             console.log('[SH3D] Thumbnail captured. Size:', thumbnailBlob ? thumbnailBlob.size : 0, 'bytes.');
 
             // Step 3: postMessage both blobs to parent React window
@@ -3190,23 +3294,24 @@
               isSaveAs: isSaveAs
             };
 
-            // postMessage to parent (the React iframe parent)
             try {
               window.parent.postMessage(msg, '*');
               console.log('[SH3D] postMessage dispatched to parent.');
             } catch(e) {
               console.error('[SH3D] Failed to postMessage to parent:', e);
+              window.__sh3d_saveInProgress = false;
               _sh3d_dismissSaveUI('Error: Could not communicate with app', '#ef4444');
               alert('Save error: Could not communicate with the application. ' + e.message);
             }
           });
         },
-        homeError: function(status, error) {
-          console.error('[SH3D] HomeRecorder.writeHome error. Status:', status, 'Error:', error);
+        function(status, error) {
+          console.error('[SH3D] SH3D blob generation error. Status:', status, 'Error:', error);
+          window.__sh3d_saveInProgress = false;
           _sh3d_dismissSaveUI('SH3D generation failed', '#ef4444');
           alert('SH3D save failed: ' + error);
         }
-      });
+      );
     };
 
     window.customSaveAsModel = function() {

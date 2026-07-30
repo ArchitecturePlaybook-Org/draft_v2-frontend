@@ -8,6 +8,8 @@ import { db, flushSyncQueue } from '../offline/db';
 
 export interface BffOptions extends RequestInit {
   skipAuth?: boolean;
+  /** Skip IndexedDB cache read/write (use for versioned asset scenes). */
+  skipCache?: boolean;
 }
 
 export interface ApiError extends Error {
@@ -68,7 +70,7 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
   };
 
   // Offline support
-  if (!isServer && !window.navigator.onLine) {
+  if (!isServer && !options.skipCache && !window.navigator.onLine) {
     if (method !== 'GET') {
       // Queue mutation
       const serializedBody = await serializeRequestBody(finalOptions.body);
@@ -154,7 +156,7 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
   try {
     const data = text ? JSON.parse(text) : ({} as T);
     // Cache successful GET responses
-    if (!isServer && method === 'GET') {
+    if (!isServer && method === "GET" && !options.skipCache) {
       db.apiCache.put({
         url: fullUrl,
         data,

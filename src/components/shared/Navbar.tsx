@@ -36,15 +36,15 @@ const Navbar = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 h-20 z-[2000] transition-all duration-300 border-b flex items-center ${
+      className={`fixed top-0 left-0 right-0 h-20 z-[2000] transition-all duration-300 border-b flex items-center overflow-hidden ${
         scrolled
           ? "bg-background/95 dark:bg-slate-950/95 backdrop-blur-md border-surface-200 dark:border-white/10 shadow-md"
           : "bg-background/80 dark:bg-slate-950/80 backdrop-blur-md border-surface-200/50 dark:border-white/5"
       }`}
     >
-      <div className="w-full max-w-[1400px] mx-auto px-6 flex items-center justify-between">
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-3 min-w-0">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3.5 pl-2 py-2 no-underline text-primary group shrink-0">
+        <Link href="/" className="flex items-center gap-3 sm:gap-3.5 py-2 no-underline text-primary group shrink-0 min-w-0">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 245 247"
@@ -56,18 +56,18 @@ const Navbar = () => {
               fill="currentColor"
             />
           </svg>
-          <span className="font-black text-sm md:text-base whitespace-nowrap tracking-tight uppercase text-foreground">
+          <span className="font-black text-sm md:text-base tracking-tight uppercase text-foreground truncate max-w-[140px] sm:max-w-none">
             Architecture Playbook
           </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-6 mx-6">
+        <nav className="hidden lg:flex items-center gap-3 xl:gap-6 mx-2 min-w-0 flex-1 justify-center overflow-x-auto">
           {navLinks.map((link) => (
             <Link
               key={link.name}
               href={link.href}
-              className={`text-[13px] font-medium transition-colors hover:text-foreground ${
+              className={`text-[13px] font-medium transition-colors hover:text-foreground whitespace-nowrap shrink-0 ${
                 pathname === link.href ? "text-foreground" : "text-text-secondary"
               }`}
             >
@@ -77,7 +77,7 @@ const Navbar = () => {
         </nav>
 
         {/* Action Buttons */}
-        <div className="hidden lg:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-3 xl:gap-4 shrink-0">
           <ThemeToggle />
           {isAuthenticated ? (
             <Link

@@ -39,7 +39,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="sidebar relative">
+    <aside className="sidebar relative min-h-0">
       {/* Floating Toggle Button */}
       <button
         onClick={toggleSidebar}
@@ -53,34 +53,34 @@ export const Sidebar: React.FC = () => {
           <path d="m15 18-6-6 6-6"/>
         </svg>
       </button>
-      <div className="flex items-center justify-between mb-8 px-2">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-8 px-2 min-w-0 gap-2">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 shrink-0 rounded-xl bg-surface-100 flex items-center justify-center text-xl shadow-none border border-surface-200">
             🏗
           </div>
-          {!isSidebarCollapsed && <span className="text-xl font-bold tracking-tight text-foreground">Playbook</span>}
+          {!isSidebarCollapsed && <span className="text-xl font-bold tracking-tight text-foreground truncate">Playbook</span>}
         </div>
         {!isSidebarCollapsed && (
-          <div className="ml-auto">
+          <div className="ml-auto shrink-0">
             <NotificationBell />
           </div>
         )}
       </div>
 
-      <div className="px-2 mb-6 flex gap-2">
+      <div className="px-2 mb-6 flex gap-2 min-w-0">
         <button 
           onClick={() => setIsCommandPaletteOpen(true)}
-          className={`flex items-center justify-center ${isSidebarCollapsed ? 'w-10 h-10 p-0' : 'w-full px-3 py-2 justify-between'} bg-surface-100 hover:bg-surface-200 border border-surface-200 rounded-lg transition-all text-sm text-text-secondary shadow-none shrink-0`}
+          className={`flex items-center min-w-0 ${isSidebarCollapsed ? 'justify-center w-10 h-10 p-0 shrink-0' : 'w-full px-3 py-2 justify-between'} bg-surface-100 hover:bg-surface-200 border border-surface-200 rounded-lg transition-all text-sm text-text-secondary shadow-none shrink-0`}
         >
           {isSidebarCollapsed ? (
             <span className="opacity-70">🔍</span>
           ) : (
             <>
-              <div className="flex items-center gap-2">
-                <span className="opacity-70 text-text-secondary">🔍</span>
-                <span className="font-semibold text-text-secondary">Search...</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="opacity-70 text-text-secondary shrink-0">🔍</span>
+                <span className="font-semibold text-text-secondary truncate">Search...</span>
               </div>
-              <div className="flex items-center gap-1 opacity-70">
+              <div className="flex items-center gap-1 opacity-70 shrink-0">
                 <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-surface-200 border border-surface-300 rounded text-text-secondary">Cmd</kbd>
                 <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-surface-200 border border-surface-300 rounded text-text-secondary">K</kbd>
               </div>
@@ -90,7 +90,7 @@ export const Sidebar: React.FC = () => {
         
       </div>
 
-      <nav className="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 -mr-2 overflow-x-hidden">
+      <nav className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto overflow-x-hidden">
         <div>
           {!isSidebarCollapsed && (
             <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-bold">
@@ -146,7 +146,7 @@ export const Sidebar: React.FC = () => {
         </div>
       </nav>
 
-      {!isSidebarCollapsed && <ProfileBanner />}
+      {!isSidebarCollapsed && <div className="shrink-0"><ProfileBanner /></div>}
     </aside>
   );
 };
@@ -166,6 +166,6 @@ const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, icon, active, is
     title={isCollapsed ? label : undefined}
   >
     <span className="text-lg leading-none grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 shrink-0">{icon}</span>
-    {!isCollapsed && label}
+    {!isCollapsed && <span className="truncate">{label}</span>}
   </Link>
 );

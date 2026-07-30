@@ -78,7 +78,8 @@ export default function OAuthCallbackPage() {
         }
 
         // Route based on whether this is a brand new user or hasn't finished onboarding
-        if (data.is_new_user || data.user?.profile?.is_onboarding_complete === false) {
+        const isOnboardingComplete = data.user?.profile?.is_onboarding_complete;
+        if (isOnboardingComplete === false || (data.is_new_user && isOnboardingComplete !== true)) {
           router.replace("/onboarding");
         } else {
           router.replace("/dashboard");
