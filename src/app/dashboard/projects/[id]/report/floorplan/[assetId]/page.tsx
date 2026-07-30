@@ -65,68 +65,52 @@ export default function FloorPlanReportPage() {
     if (!reportRef.current || !project || !asset) return;
     setIsExporting(true);
     toast.info("Generating Report... Please wait.");
-    
-    const originalSrcs: { img: HTMLImageElement; src: string }[] = [];
 
     try {
-      const html2canvasModule = await import("html2canvas");
-      const html2canvas = html2canvasModule.default;
+      const { toJpeg } = await import("html-to-image");
       const jsPDFModule = await import("jspdf");
       const jsPDF = jsPDFModule.default;
 
-      // Pre-process images: convert all img tags in reportRef to Base64 to prevent CORS canvas taint
-      const imgElements = Array.from(reportRef.current?.querySelectorAll("img") || []);
+      // Dynamic pixelRatio: always output exactly 1240px wide (150 DPI A4)
+      const cssWidth = reportRef.current.getBoundingClientRect().width;
+      const pixelRatio = Math.round((1240 / cssWidth) * 1000) / 1000;
 
-      await Promise.all(
-        imgElements.map(async (img) => {
-          const currentSrc = img.src || img.getAttribute("src") || "";
-          if (currentSrc && !currentSrc.startsWith("data:")) {
-            originalSrcs.push({ img, src: currentSrc });
-            const base64Src = await urlToBase64(currentSrc);
-            img.src = base64Src;
-          }
-        })
-      );
-
-      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, allowTaint: true });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      let position = 0;
-      let heightLeft = pdfHeight;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - pdfHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pageHeight;
-      }
-
-      // 1. Download to user's machine
-      const fileName = `FloorPlan_Report_${asset.title.replace(/\s+/g, "_")}.pdf`;
-      pdf.save(fileName);
-
-      // 2. Upload to Master Data Hub
-      const pdfBlob = pdf.output("blob");
-      const file = new File([pdfBlob], fileName, { type: "application/pdf" });
-      await projectsApi.uploadProjectAsset(project.id, "document", file, `Floor Plan Report: ${asset.title}`);
-      
-      toast.success("Report downloaded and saved to Master Data Hub!");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to generate report.");
-    } finally {
-      // Restore original image srcs
-      originalSrcs.forEach(({ img, src }) => {
-        img.src = src;
+      // toJpeg: JPEG compression drastically reduces file size (PNG would be 7-8MB/page)
+      const imgData = await toJpeg(reportRef.current, {
+        pixelRatio,
+        quality: 0.85,
+        fetchRequestInit: { cache: "no-cache" },
       });
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      // Direct full A4 fill — no letterboxing, no side padding added by jsPDF
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+
+      const fileName = `FloorPlan_Report_${asset.title.replace(/\s+/g, "_")}.pdf`;
+
+      // 1. Download to user's machine immediately
+      pdf.save(fileName);
+      toast.success("Report downloaded successfully!");
+
+      // 2. Non-blocking background upload to Master Data Hub
+      if (project?.id) {
+        try {
+          const pdfBlob = pdf.output("blob");
+          const file = new File([pdfBlob], fileName, { type: "application/pdf" });
+          projectsApi.uploadProjectAsset(project.id, "document", file, `Floor Plan Report: ${asset.title}`)
+            .then(() => console.log("Floor plan report saved to Master Data Hub"))
+            .catch(e => console.warn("Background report upload skipped:", e));
+        } catch (e) {
+          console.warn("Could not create PDF blob for background upload:", e);
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message ? `Failed to generate report: ${err.message}` : "Failed to generate report.");
+    } finally {
       setIsExporting(false);
     }
   };

@@ -131,6 +131,18 @@ export const API_ROUTES: ApiRouteConfig[] = [
     auth: true,
   },
   {
+    prefix: "v1/projects/assets",
+    target: "/api/v1/projects/assets/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: false,
+  },
+  {
+    prefix: "v1/projects/field-diaries",
+    target: "/api/v1/projects/field-diaries/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: false,
+  },
+  {
     prefix: "v1/projects/task-asset-links",
     target: "/api/v1/projects/task-asset-links/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],

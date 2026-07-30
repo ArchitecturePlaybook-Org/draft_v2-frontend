@@ -7,7 +7,7 @@ import { ProjectDetail, MatrixPayload, Task, ProjectAsset } from "@/types/projec
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 
-type TemplateType = 'layout_a_masonry' | 'layout_b_museum' | 'layout_c_cinematic';
+type TemplateType = 'layout_a_masonry';
 
 interface ReportConfig {
   template: TemplateType;
@@ -137,81 +137,64 @@ export default function ProjectSummaryReportPage() {
     if (!project) return;
     setIsExporting(true);
     toast.info("Compiling multi-page report. This may take a moment...");
-    
-    const originalSrcs: { img: HTMLImageElement; src: string }[] = [];
 
     try {
-      const html2canvasModule = await import("html2canvas");
-      const html2canvas = html2canvasModule.default;
+      const { toJpeg } = await import("html-to-image");
       const jsPDFModule = await import("jspdf");
       const jsPDF = jsPDFModule.default;
-
-      // Pre-process images: convert all img tags in reportRef to Base64 to prevent CORS canvas taint
-      const imgElements = Array.from(reportRef.current?.querySelectorAll("img") || []);
-
-      await Promise.all(
-        imgElements.map(async (img) => {
-          const currentSrc = img.src || img.getAttribute("src") || "";
-          if (currentSrc && !currentSrc.startsWith("data:")) {
-            originalSrcs.push({ img, src: currentSrc });
-            const base64Src = await urlToBase64(currentSrc);
-            img.src = base64Src;
-          }
-        })
-      );
-
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
 
       // Find all sections marked as a 'pdf-page' inside the report container
       const pages = reportRef.current?.querySelectorAll(".pdf-page");
       if (!pages || pages.length === 0) {
         throw new Error("No pages to export.");
       }
-      
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
       for (let i = 0; i < pages.length; i++) {
         const pageEl = pages[i] as HTMLElement;
-        const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: config.template === 'layout_c_cinematic' ? '#0f172a' : '#ffffff' });
-        const imgData = canvas.toDataURL("image/png");
-        
-        // Calculate proportional height to maintain aspect ratio
-        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-        
-        let heightLeft = imgHeight;
-        let position = 0;
 
+        // Dynamic pixelRatio: always output exactly 1240px wide (150 DPI A4)
+        const cssWidth = pageEl.getBoundingClientRect().width;
+        const pixelRatio = Math.round((1240 / cssWidth) * 1000) / 1000;
+
+        // toJpeg: JPEG compression drastically reduces file size (PNG would be 7-8MB/page)
+        const imgData = await toJpeg(pageEl, {
+          pixelRatio,
+          quality: 0.85,
+          backgroundColor: "#ffffff",
+          fetchRequestInit: { cache: "no-cache" },
+        });
+
+        // Each pdf-page maps to exactly ONE A4 page — direct full-page fill, no letterboxing
         if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfHeight;
-
-        while (heightLeft > 0) {
-          position -= pdfHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-          heightLeft -= pdfHeight;
-        }
+        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
       }
 
       const fileName = `Project_Report_${project.project_code || project.uid}.pdf`;
-      
-      // 1. Download
-      pdf.save(fileName);
 
-      // 2. Upload to Master Data Hub
-      const pdfBlob = pdf.output("blob");
-      const file = new File([pdfBlob], fileName, { type: "application/pdf" });
-      await projectsApi.uploadProjectAsset(project.id, "document", file, `Consolidated Project Report`);
-      
-      toast.success("Report downloaded and saved to Master Data Hub!");
-    } catch (err) {
+      // 1. Save and download PDF to user machine immediately
+      pdf.save(fileName);
+      toast.success("Report downloaded successfully!");
+
+      // 2. Non-blocking background upload to Master Data Hub
+      if (project?.id) {
+        try {
+          const pdfBlob = pdf.output("blob");
+          const file = new File([pdfBlob], fileName, { type: "application/pdf" });
+          projectsApi.uploadProjectAsset(project.id, "document", file, `Consolidated Project Report`)
+            .then(() => console.log("Report saved to Master Data Hub"))
+            .catch(e => console.warn("Background report upload skipped:", e));
+        } catch (e) {
+          console.warn("Could not create PDF blob for background upload:", e);
+        }
+      }
+    } catch (err: any) {
       console.error(err);
-      toast.error("Failed to generate report.");
+      toast.error(err?.message ? `Failed to generate report: ${err.message}` : "Failed to generate report.");
     } finally {
-      // Restore original image srcs
-      originalSrcs.forEach(({ img, src }) => {
-        img.src = src;
-      });
       setIsExporting(false);
     }
   };
@@ -246,42 +229,16 @@ export default function ProjectSummaryReportPage() {
 
   // --- THEME UTILS ---
   const getThemeClasses = () => {
-    switch(config.template) {
-      case 'layout_b_museum':
-        return {
-          container: "bg-stone-50 text-stone-900 font-serif",
-          page: "bg-stone-50 border-stone-200",
-          heading1: "text-5xl font-black tracking-tighter text-stone-900",
-          heading2: "text-3xl font-bold tracking-tight text-stone-800",
-          heading3: "text-sm font-bold uppercase tracking-[0.2em] text-stone-500",
-          card: "bg-surface-100 border-surface-200 border border-stone-200 rounded-none shadow-sm",
-          accent: "text-stone-900",
-          accentBg: "bg-stone-900 text-white"
-        };
-      case 'layout_c_cinematic':
-        return {
-          container: "bg-slate-900 text-slate-100 font-sans",
-          page: "bg-slate-900 border-slate-800",
-          heading1: "text-4xl font-extrabold tracking-widest text-white uppercase",
-          heading2: "text-2xl font-bold tracking-wider text-slate-200",
-          heading3: "text-xs font-black uppercase tracking-[0.3em] text-cyan-400",
-          card: "bg-slate-800/50 border border-slate-700/50 rounded-2xl backdrop-blur-md shadow-2xl",
-          accent: "text-cyan-400",
-          accentBg: "bg-cyan-500 text-slate-900"
-        };
-      case 'layout_a_masonry':
-      default:
-        return {
-          container: "bg-surface-100 text-surface-900 font-sans",
-          page: "bg-surface-100 border-surface-200 border-surface-200",
-          heading1: "text-4xl font-extrabold text-primary tracking-tight",
-          heading2: "text-2xl font-extrabold text-primary tracking-tight",
-          heading3: "text-xs font-black text-surface-400 uppercase tracking-widest",
-          card: "bg-surface-50 border border-surface-200 rounded-2xl",
-          accent: "text-primary",
-          accentBg: "bg-accent text-background"
-        };
-    }
+    return {
+      container: "bg-white text-gray-900 font-sans",
+      page: "bg-white border-gray-200",
+      heading1: "text-3xl font-bold text-gray-900 tracking-tight",
+      heading2: "text-xl font-bold text-gray-800",
+      heading3: "text-xs font-semibold text-gray-500 uppercase tracking-widest",
+      card: "bg-gray-50 border border-gray-200 rounded-lg",
+      accent: "text-gray-800",
+      accentBg: "bg-gray-800 text-white"
+    };
   };
   const theme = getThemeClasses();
 
@@ -297,26 +254,7 @@ export default function ProjectSummaryReportPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          {/* Master Templates */}
-          <div>
-            <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-widest mb-3">Master Template</h3>
-            <div className="space-y-2">
-              {[
-                { id: 'layout_a_masonry', label: 'Premium Masonry', desc: 'Modern & Dense' },
-                { id: 'layout_b_museum', label: 'Museum Spotlight', desc: 'Editorial & Elegant' },
-                { id: 'layout_c_cinematic', label: 'Cinematic Glass', desc: 'Immersive & Bold' }
-              ].map(tpl => (
-                <button
-                  key={tpl.id}
-                  onClick={() => setConfig(prev => ({ ...prev, template: tpl.id as TemplateType }))}
-                  className={`w-full text-left p-3 rounded-xl border transition-all ${config.template === tpl.id ? 'bg-accent text-background shadow-md' : 'bg-surface-100 border-surface-200 border-surface-200 text-surface-600 text-surface-300 hover:border-surface-300'}`}
-                >
-                  <div className="font-bold text-sm">{tpl.label}</div>
-                  <div className={`text-[10px] uppercase tracking-widest mt-0.5 ${config.template === tpl.id ? 'text-primary-100' : 'text-surface-400'}`}>{tpl.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Template selector hidden — Classic template only */}
 
           {/* Data Sections */}
           <div>
@@ -433,14 +371,14 @@ export default function ProjectSummaryReportPage() {
       </div>
 
       {/* RIGHT PANE: LIVE PREVIEW */}
-      <div className={`flex-1 overflow-y-auto p-12 ${theme.container}`}>
+      <div className={`flex-1 overflow-y-auto px-0 py-8 ${theme.container}`}>
         <div className="max-w-[210mm] mx-auto space-y-12" ref={reportRef}>
           
           {/* PAGE 1: EXECUTIVE SUMMARY */}
           {config.showExecutiveSummary && (
-            <div className={`pdf-page w-full min-h-[297mm] p-12 pb-32 shadow-2xl relative ${theme.page} print:shadow-none`}>
+            <div className={`pdf-page w-full min-h-[297mm] px-[75px] py-[75px] flex flex-col shadow-2xl ${theme.page} print:shadow-none`}>
               
-              <div className={`border-b-4 ${config.template === 'layout_c_cinematic' ? 'border-cyan-500' : 'border-current'} pb-8 mb-10 flex justify-between items-end`}>
+              <div className={`border-b-4 border-gray-300 pb-8 mb-10 flex justify-between items-end`}>
                 <div>
                   <h4 className={`${theme.heading3} mb-2`}>{project.account.name}</h4>
                   <h1 className={`${theme.heading1} mb-2`}>{project.title}</h1>
@@ -474,21 +412,21 @@ export default function ProjectSummaryReportPage() {
                     <span className="text-sm font-bold opacity-70 mb-1">{completedTasks} / {totalTasks} Tasks</span>
                   </div>
                   <div className="w-full bg-current/10 h-2 rounded-full mt-4 overflow-hidden">
-                    <div className="h-full" style={{ width: `${progressPercent}%`, backgroundColor: config.template === 'layout_c_cinematic' ? '#06b6d4' : 'currentColor' }} />
+                    <div className="h-full bg-gray-800" style={{ width: `${progressPercent}%` }} />
                   </div>
                 </div>
 
 
               </div>
 
-              <div className="absolute bottom-12 left-12 right-12 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 pt-4 opacity-50">
+              <div className="mt-auto pt-4 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 opacity-50">
                 Executive Summary
               </div>
             </div>
           )}
 
           {config.showMatrixProgress && (
-            <div className={`pdf-page w-full min-h-[297mm] p-12 pb-32 shadow-2xl relative ${theme.page} print:shadow-none`}>
+            <div className={`pdf-page w-full min-h-[297mm] px-[75px] py-[75px] flex flex-col shadow-2xl ${theme.page} print:shadow-none`}>
               
               <h2 className={`${theme.heading2} mb-8`}>Logistics & Progress</h2>
               
@@ -516,7 +454,7 @@ export default function ProjectSummaryReportPage() {
                 </div>
               )}
 
-              <div className="absolute bottom-12 left-12 right-12 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 pt-4 opacity-50">
+              <div className="mt-auto pt-4 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 opacity-50">
                 Matrix
               </div>
             </div>
@@ -526,7 +464,7 @@ export default function ProjectSummaryReportPage() {
 
           {/* PAGE 4+: TASK DRILLDOWN */}
           {config.showTaskDrilldown && Object.entries(tasksByPhase).map(([phase, tasks], index) => (
-            <div key={`phase-${index}`} className={`pdf-page w-full min-h-[297mm] p-12 pb-32 shadow-2xl relative ${theme.page} print:shadow-none`}>
+            <div key={`phase-${index}`} className={`pdf-page w-full min-h-[297mm] px-[75px] py-[75px] flex flex-col shadow-2xl ${theme.page} print:shadow-none`}>
               <h2 className={`${theme.heading2} mb-8`}>Execution: {phase}</h2>
               
               <div className="space-y-6">
@@ -564,7 +502,7 @@ export default function ProjectSummaryReportPage() {
                 ))}
               </div>
 
-              <div className="absolute bottom-12 left-12 right-12 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 pt-4 opacity-50">
+              <div className="mt-auto pt-4 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 opacity-50">
                 Execution Log - {phase}
               </div>
             </div>
@@ -578,7 +516,7 @@ export default function ProjectSummaryReportPage() {
             if (!selectedFloorPlan && visibleSitePhotos.length === 0) return null;
 
             return (
-              <div key={group.assetId} className={`pdf-page w-full min-h-[297mm] p-12 pb-32 shadow-2xl relative ${theme.page} print:shadow-none mb-12`}>
+              <div key={group.assetId} className={`pdf-page w-full min-h-[297mm] px-[75px] py-[75px] flex flex-col shadow-2xl ${theme.page} print:shadow-none mb-12`}>
                 <h2 className={`${theme.heading2} mb-2`}>Visual Context: {group.assetTitle}</h2>
                 <p className={`${theme.heading3} mb-6 opacity-70`}>Primary Blueprint & Site Grid Verification Photos</p>
 
@@ -625,7 +563,7 @@ export default function ProjectSummaryReportPage() {
                   </div>
                 )}
 
-                <div className="absolute bottom-12 left-12 right-12 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 pt-4 opacity-50">
+                <div className="mt-auto pt-4 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 opacity-50">
                   Media Gallery: {group.assetTitle}
                 </div>
               </div>

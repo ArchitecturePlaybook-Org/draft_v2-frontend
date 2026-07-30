@@ -26,14 +26,29 @@ export default function ObjModel({ url }: ObjModelProps) {
         const mesh = child as THREE.Mesh;
         if (mesh.geometry) {
           mesh.geometry.computeVertexNormals();
+
+          // Add crisp edge highlights around geometry contours
+          try {
+            const edges = new THREE.EdgesGeometry(mesh.geometry, 20);
+            const lineMat = new THREE.LineBasicMaterial({
+              color: 0x0f172a,
+              linewidth: 1.5,
+              opacity: 0.8,
+              transparent: true,
+            });
+            const lineSegments = new THREE.LineSegments(edges, lineMat);
+            mesh.add(lineSegments);
+          } catch (e) {
+            console.warn("Could not generate edge lines for mesh:", e);
+          }
         }
 
         // Apply fallback standard material if missing or completely black
         if (!mesh.material || (Array.isArray(mesh.material) && mesh.material.length === 0)) {
           mesh.material = new THREE.MeshStandardMaterial({
-            color: 0x94a3b8,
-            roughness: 0.4,
-            metalness: 0.2,
+            color: 0xc0c7d0,
+            roughness: 0.35,
+            metalness: 0.15,
             side: THREE.DoubleSide,
           });
         } else if (Array.isArray(mesh.material)) {
@@ -41,7 +56,7 @@ export default function ObjModel({ url }: ObjModelProps) {
             if (m) {
               m.side = THREE.DoubleSide;
               if ((m as any).color && (m as any).color.getHex() === 0x000000) {
-                (m as any).color.setHex(0x94a3b8);
+                (m as any).color.setHex(0xc0c7d0);
               }
             }
             return m;
@@ -49,7 +64,7 @@ export default function ObjModel({ url }: ObjModelProps) {
         } else if (mesh.material) {
           mesh.material.side = THREE.DoubleSide;
           if ((mesh.material as any).color && (mesh.material as any).color.getHex() === 0x000000) {
-            (mesh.material as any).color.setHex(0x94a3b8);
+            (mesh.material as any).color.setHex(0xc0c7d0);
           }
         }
       }

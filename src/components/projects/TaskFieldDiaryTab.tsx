@@ -57,11 +57,13 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
         return;
       }
 
-      const projRes = await projectsApi.getProjectDetails(projectUid);
-      if (!projRes || !projRes.id) throw new Error("Could not find project ID");
+      let targetProjectId = typeof task?.project === "object" ? (task.project as any)?.id : task?.project;
+      if (!targetProjectId) {
+        targetProjectId = projectUid;
+      }
 
       const createRes = await projectsApi.createDiaryEntry({
-        project: projRes.id,
+        project: targetProjectId,
         entry_date: todayStr,
         weather_am: "",
         weather_pm: ""

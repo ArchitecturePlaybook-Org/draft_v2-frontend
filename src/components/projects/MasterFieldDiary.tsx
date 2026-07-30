@@ -71,11 +71,21 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
     if (!entry) {
       const loadId = toast.loading(`Creating diary for ${dateStr}...`);
       try {
-        const projRes = await fetchFromBff<any>(`/api/v1/projects/projects/${projectId}/`);
+        let targetId = typeof projectId === "number" || (!isNaN(Number(projectId)) && !isNaN(parseFloat(String(projectId)))) ? projectId : null;
+        if (!targetId) {
+          try {
+            const projRes = await fetchFromBff<any>(`/api/v1/projects/projects/${projectId}/`);
+            targetId = projRes.id;
+          } catch (e) {
+            console.warn("Failed to fetch project details:", e);
+          }
+        }
+        if (!targetId) throw new Error("Project ID not found");
+
         const res = await fetchFromBff<any>('/api/v1/projects/field-diaries/entries/', {
           method: 'POST',
           body: JSON.stringify({
-            project: projRes.id,
+            project: targetId,
             entry_date: dateStr,
             weather: "",
             site_conditions: ""
