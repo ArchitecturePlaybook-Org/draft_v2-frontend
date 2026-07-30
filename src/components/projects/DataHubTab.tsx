@@ -399,7 +399,7 @@ export const DataHubTab: React.FC = () => {
             <div className="flex-1 w-full h-full bg-slate-50/50">
               <ModelViewer 
                 url={viewerAsset.file} 
-                format={viewerAsset.file.toLowerCase().endsWith('.obj') ? 'obj' : 'glb'} 
+                format={viewerAsset.file?.toLowerCase().includes('.obj') ? 'obj' : viewerAsset.file?.toLowerCase().includes('.sh3d') ? 'sh3d' : 'glb'} 
               />
             </div>
           </div>

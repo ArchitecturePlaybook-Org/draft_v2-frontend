@@ -15,14 +15,24 @@ interface ReportConfig {
   showMatrixProgress: boolean;
   showTaskDrilldown: boolean;
   showMediaGallery: boolean;
+  photoColumns: 1 | 2 | 3 | 4;
   selectedImageUrls: string[];
+}
+
+interface SitePhotoItem {
+  id?: number;
+  url: string;
+  caption: string;
+  gridCol: number;
+  gridRow: number;
+  capturedAt?: string;
 }
 
 interface AssetGroup {
   assetId: number;
   assetTitle: string;
   floorPlanUrl: string | null;
-  sitePhotos: { url: string; caption: string }[];
+  sitePhotos: SitePhotoItem[];
 }
 
 export default function ProjectSummaryReportPage() {
@@ -43,6 +53,7 @@ export default function ProjectSummaryReportPage() {
     showMatrixProgress: true,
     showTaskDrilldown: true,
     showMediaGallery: true,
+    photoColumns: 2,
     selectedImageUrls: [],
   });
 
@@ -63,18 +74,27 @@ export default function ProjectSummaryReportPage() {
         const allUrls: string[] = [];
 
         projData.assets.forEach(asset => {
-          const is2DPlan = asset.category === '2d_plan' && asset.file.match(/\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i) !== null;
+          const is2DPlan = asset.category === '2d_plan' && asset.file && asset.file.match(/\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i) !== null;
           
           if (is2DPlan) {
             const group: AssetGroup = {
               assetId: asset.id,
               assetTitle: asset.title,
               floorPlanUrl: asset.file,
-              sitePhotos: (asset.site_photos || []).map(sp => ({ url: sp.image, caption: sp.caption }))
+              sitePhotos: (asset.site_photos || []).map(sp => ({
+                id: sp.id,
+                url: sp.image,
+                caption: sp.caption || '',
+                gridCol: sp.grid_col ?? 0,
+                gridRow: sp.grid_row ?? 0,
+                capturedAt: sp.captured_at || (sp as any).created_at
+              }))
             };
             
             if (asset.file) allUrls.push(asset.file);
-            group.sitePhotos.forEach(p => allUrls.push(p.url));
+            group.sitePhotos.forEach(p => {
+              if (p.url) allUrls.push(p.url);
+            });
             
             groups.push(group);
           }
@@ -322,6 +342,31 @@ export default function ProjectSummaryReportPage() {
             </div>
           </div>
 
+          {/* Photo Grid Columns Selection */}
+          {config.showMediaGallery && (
+            <div>
+              <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-widest mb-2">
+                Photo Grid Layout (1 - 4 Columns)
+              </h3>
+              <div className="flex gap-1.5 bg-surface-100 dark:bg-surface-800 p-1.5 rounded-xl border border-surface-200/50">
+                {([1, 2, 3, 4] as const).map(cols => (
+                  <button
+                    key={cols}
+                    type="button"
+                    onClick={() => setConfig(prev => ({ ...prev, photoColumns: cols }))}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                      config.photoColumns === cols 
+                        ? 'bg-primary text-white shadow-md' 
+                        : 'text-surface-600 dark:text-surface-300 hover:text-primary hover:bg-surface-200/60'
+                    }`}
+                  >
+                    {cols} {cols === 1 ? 'Col' : 'Cols'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Granular Image Selection */}
           {config.showMediaGallery && assetGroups.length > 0 && (
             <div>
@@ -528,22 +573,57 @@ export default function ProjectSummaryReportPage() {
           {/* PAGE 5+: MEDIA GALLERY (Grouped by Asset) */}
           {config.showMediaGallery && assetGroups.map(group => {
             const selectedFloorPlan = group.floorPlanUrl && config.selectedImageUrls.includes(group.floorPlanUrl) ? group.floorPlanUrl : null;
+            const visibleSitePhotos = group.sitePhotos.filter(sp => config.selectedImageUrls.includes(sp.url));
             
-            if (!selectedFloorPlan) return null;
+            if (!selectedFloorPlan && visibleSitePhotos.length === 0) return null;
 
             return (
               <div key={group.assetId} className={`pdf-page w-full min-h-[297mm] p-12 pb-32 shadow-2xl relative ${theme.page} print:shadow-none mb-12`}>
                 <h2 className={`${theme.heading2} mb-2`}>Visual Context: {group.assetTitle}</h2>
-                <p className={`${theme.heading3} mb-8 opacity-70`}>Floor Plan</p>
+                <p className={`${theme.heading3} mb-6 opacity-70`}>Primary Blueprint & Site Grid Verification Photos</p>
 
                 {/* Blueprint Render */}
                 {selectedFloorPlan && (
-                  <div className="mb-12 border-2 border-current/10 p-2 rounded-xl bg-current/5 shadow-inner">
-                    <img src={selectedFloorPlan} alt={group.assetTitle} className="w-full h-auto rounded" />
+                  <div className="mb-8 border-2 border-current/10 p-2 rounded-xl bg-current/5 shadow-inner">
+                    <img src={selectedFloorPlan} alt={group.assetTitle} className="w-full max-h-[420px] object-contain rounded" />
                   </div>
                 )}
 
-
+                {/* Site Photos Attached to 8x8 Grid Cells */}
+                {visibleSitePhotos.length > 0 && (
+                  <div className="mt-6 break-inside-avoid">
+                    <h3 className={`${theme.heading3} border-b border-current/20 pb-2 mb-4 opacity-80 uppercase tracking-widest text-xs font-black`}>
+                      Site Grid Photos ({visibleSitePhotos.length})
+                    </h3>
+                    <div className={`grid ${
+                      config.photoColumns === 1 ? 'grid-cols-1' :
+                      config.photoColumns === 2 ? 'grid-cols-2' :
+                      config.photoColumns === 3 ? 'grid-cols-3' : 'grid-cols-4'
+                    } gap-4`}>
+                      {visibleSitePhotos.map((photo, i) => {
+                        const colLetter = String.fromCharCode(65 + photo.gridCol);
+                        const rowNum = photo.gridRow + 1;
+                        return (
+                          <div key={`photo-${group.assetId}-${i}`} className={`rounded-xl overflow-hidden border border-current/10 ${theme.card} flex flex-col shadow-sm`}>
+                            <div className="aspect-video relative bg-current/5 overflow-hidden flex items-center justify-center p-1.5">
+                              <img src={photo.url} alt={photo.caption} className="max-w-full max-h-full object-contain rounded" />
+                              <div className="absolute top-2 right-2 bg-black/75 backdrop-blur-md text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest shadow">
+                                Grid {colLetter}{rowNum}
+                              </div>
+                            </div>
+                            <div className="p-3">
+                              <p className="text-xs font-bold truncate">{photo.caption || "No caption"}</p>
+                              <div className="flex justify-between items-center text-[9px] opacity-60 uppercase font-extrabold mt-1">
+                                <span>Cell [{colLetter}{rowNum}]</span>
+                                {photo.capturedAt && <span>{new Date(photo.capturedAt).toLocaleDateString()}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="absolute bottom-12 left-12 right-12 text-center text-[10px] font-bold uppercase tracking-widest border-t border-current/20 pt-4 opacity-50">
                   Media Gallery: {group.assetTitle}

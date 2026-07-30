@@ -194,8 +194,8 @@ export default function FloorPlanReportPage() {
                   const rowNum = photo.grid_row + 1;
                   return (
                     <div key={`photo-${i}`} className="bg-surface-50 border border-surface-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
-                      <div className="aspect-square relative bg-surface-200">
-                        <img src={photo.image} alt={photo.caption} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                      <div className="aspect-square relative bg-surface-200 flex items-center justify-center p-1.5">
+                        <img src={photo.image} alt={photo.caption} className="max-w-full max-h-full object-contain rounded" crossOrigin="anonymous" />
                         <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest shadow-sm">
                           {colLetter}{rowNum}
                         </div>

@@ -75,9 +75,23 @@ function getModelProxyUrl(url: string) {
   return url;
 }
 
+function getModelFormat(url: string, formatProp?: string): 'glb' | 'gltf' | 'obj' | 'sh3d' {
+  const cleanUrl = (url || "").split("?")[0].toLowerCase();
+  if (cleanUrl.endsWith(".obj") || url.toLowerCase().includes(".obj")) return "obj";
+  if (cleanUrl.endsWith(".sh3d") || url.toLowerCase().includes(".sh3d")) return "sh3d";
+  if (formatProp) {
+    const f = formatProp.toLowerCase();
+    if (f === 'obj' || f === 'sh3d' || f === 'glb' || f === 'gltf') {
+      return f as any;
+    }
+  }
+  return "glb";
+}
+
 export default function ModelViewer({ url, format }: ModelViewerProps) {
-  const isGlb = format === 'glb' || format === 'gltf';
-  const isSh3d = format === 'sh3d';
+  const actualFormat = getModelFormat(url, format);
+  const isObj = actualFormat === 'obj';
+  const isSh3d = actualFormat === 'sh3d';
   const modelUrl = getModelProxyUrl(url);
 
   if (isSh3d) {
@@ -90,7 +104,7 @@ export default function ModelViewer({ url, format }: ModelViewerProps) {
         />
         <div className="absolute bottom-4 right-4 flex justify-between text-xs text-slate-500 pointer-events-none">
           <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm uppercase font-semibold">
-            {format}
+            {actualFormat}
           </div>
         </div>
       </div>
@@ -108,10 +122,10 @@ export default function ModelViewer({ url, format }: ModelViewerProps) {
             <directionalLight position={[-10, 10, -10]} intensity={1} />
             <directionalLight position={[0, -10, 0]} intensity={0.5} />
             <Stage environment={null} intensity={1}>
-              {isGlb ? (
-                <GlbModel url={modelUrl} />
-              ) : (
+              {isObj ? (
                 <ObjModel url={modelUrl} />
+              ) : (
+                <GlbModel url={modelUrl} />
               )}
             </Stage>
           </Suspense>
@@ -122,7 +136,7 @@ export default function ModelViewer({ url, format }: ModelViewerProps) {
             Drag to rotate, scroll to zoom
           </div>
           <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm uppercase font-semibold">
-            {format}
+            {actualFormat}
           </div>
         </div>
       </div>

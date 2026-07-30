@@ -101,12 +101,6 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
             <div className="px-2 sm:px-3 flex items-center text-[10px] font-black text-primary uppercase whitespace-nowrap">{(zoom * 100).toFixed(0)}%</div>
             <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-100 border-surface-200 rounded-lg transition-all font-bold text-lg">＋</button>
           </div>
-          <button 
-            onClick={() => window.open(`/sh3d/index.html?projectId=${asset.project}`, "_blank")} 
-            className="px-3 sm:px-4 h-10 bg-indigo-50 text-indigo-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-indigo-100 transition-all border border-indigo-200 flex items-center gap-2 shrink-0 whitespace-nowrap"
-          >
-            <span>🏠</span> <span className="hidden sm:inline">Open in SH3D</span><span className="sm:hidden">SH3D</span>
-          </button>
           {inline && onToggleFullScreen && (
             <button onClick={onToggleFullScreen} className="px-3 sm:px-4 h-10 bg-surface-100 text-surface-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-200 transition-all border border-surface-200 shrink-0 whitespace-nowrap">
               ⛶ <span className="hidden sm:inline">Full Screen</span>
