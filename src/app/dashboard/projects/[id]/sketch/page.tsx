@@ -208,8 +208,8 @@ function SketchPageContent() {
       const latest = history.find((v) => v.is_latest);
       if (latest) await openVersion(latest);
     } catch (err) {
-      console.error("Failed to open latest version:", err);
-      toast.error("Could not open the latest version.");
+      console.error("Failed to open current version:", err);
+      toast.error("Could not open the current version.");
     }
   }, [latestAssetId, currentAssetId, openVersion]);
 
@@ -274,12 +274,23 @@ function SketchPageContent() {
     );
   };
 
+  const handleCloseTab = () => {
+    try {
+      window.close();
+    } catch {
+      // Ignore if blocked by browser
+    }
+    setTimeout(() => {
+      router.push(`/dashboard/projects/${projectUid}`);
+    }, 100);
+  };
+
   if (showCreateModal && !hasAssetParams) {
     return (
       <CreateSketchModal
         isOpen
         projectUid={projectUid}
-        onClose={() => router.push(`/dashboard/projects/${projectUid}`)}
+        onClose={handleCloseTab}
         onSuccess={() => {}}
         onCreated={navigateToSketch}
         openInSameTab
@@ -301,7 +312,7 @@ function SketchPageContent() {
         <div className="text-4xl">✏️</div>
         <h1 className="text-lg font-black text-primary">{loadError}</h1>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => router.push(`/dashboard/projects/${projectUid}`)}>
+          <Button variant="outline" onClick={handleCloseTab}>
             Back to project
           </Button>
           <Button onClick={() => void loadSketchFromUrl()}>Retry</Button>
@@ -336,7 +347,7 @@ function SketchPageContent() {
         initialData={sceneData}
         sceneKey={sceneKey}
         latestAssetId={latestAssetId}
-        onClose={() => router.push(`/dashboard/projects/${projectUid}`)}
+        onClose={handleCloseTab}
         onSave={handleSave}
         onOpenVersion={openVersion}
         onOpenLatest={openLatestVersion}
