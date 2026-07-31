@@ -100,6 +100,8 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
       onUpdate();
     } catch (err: any) {
       toast.error(err?.message || "Failed to upload attachment", { id: loadId });
+    } finally {
+      e.target.value = "";
     }
   };
 
