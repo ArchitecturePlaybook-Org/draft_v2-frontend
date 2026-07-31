@@ -134,7 +134,7 @@ export const API_ROUTES: ApiRouteConfig[] = [
     prefix: "v1/projects/assets",
     target: "/api/v1/projects/assets/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    auth: false,
+    auth: true,
   },
   {
     prefix: "v1/projects/site-photos",

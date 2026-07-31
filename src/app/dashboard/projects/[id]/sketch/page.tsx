@@ -142,10 +142,9 @@ function SketchPageContent() {
     setLoadError(null);
 
     try {
-      if (!projectId) {
-        const project = await projectsApi.getProjectDetails(projectUid);
-        setProjectId(project.id);
-      }
+      // Load the asset directly — projectId is only needed at save time and will be
+      // fetched lazily then. Calling getProjectDetails here (auth: true) would kill
+      // the whole page when the refresh token is blacklisted/expired.
       await loadAssetById(assetId);
     } catch (err) {
       console.error("Failed to load sketch:", err);
@@ -153,7 +152,7 @@ function SketchPageContent() {
     } finally {
       setIsInitialLoading(false);
     }
-  }, [assetIdFromUrl, projectUid, projectId, loadAssetById, sceneData]);
+  }, [assetIdFromUrl, projectUid, loadAssetById, sceneData]);
 
   useEffect(() => {
     if (skipUrlLoadRef.current) {
@@ -178,10 +177,6 @@ function SketchPageContent() {
       if (typeof version.is_latest === "boolean") setIsLatestVersion(version.is_latest);
 
       try {
-        if (!projectId) {
-          const project = await projectsApi.getProjectDetails(projectUid);
-          setProjectId(project.id);
-        }
         await loadAssetById(version.id);
         skipUrlLoadRef.current = true;
         router.replace(`/dashboard/projects/${projectUid}/sketch?assetId=${version.id}`);
@@ -194,7 +189,7 @@ function SketchPageContent() {
         setIsSwitchingVersion(false);
       }
     },
-    [loadAssetById, projectUid, projectId, router, sceneData],
+    [loadAssetById, projectUid, router, sceneData],
   );
 
   const openLatestVersion = useCallback(async () => {
@@ -225,7 +220,6 @@ function SketchPageContent() {
     thumbnail?: Blob,
     versionNotes?: string,
   ) => {
-    if (!projectId) throw new Error("Project not loaded yet");
     if (!currentAssetId) throw new Error("No sketch loaded");
 
     const parsedScene = parseExcalidrawScene(json);

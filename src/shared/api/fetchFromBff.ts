@@ -52,7 +52,7 @@ async function serializeRequestBody(body: unknown): Promise<unknown> {
 export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Promise<T> {
   const isServer = typeof window === "undefined";
   const baseURL = isServer ? (process.env.NEXTAUTH_URL || "http://localhost:3000") : "";
-  
+
   // Ensure url starts with /
   const path = url.startsWith("/") ? url : `/${url}`;
   const fullUrl = `${baseURL}${path}`;
@@ -125,7 +125,7 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
     try {
       backendData = await res.json();
       const bd = backendData as Record<string, unknown>;
-      
+
       if (bd.detail || bd.message) {
         errorDetail = (bd.detail as string) || (bd.message as string);
       } else {
@@ -136,7 +136,7 @@ export async function fetchFromBff<T>(url: string, options: BffOptions = {}): Pr
     } catch {
       // ignore
     }
-    
+
     if (res.status === 401 && !options.skipAuth && !url.includes("auth/login")) {
       if (!isServer) {
         window.location.href = "/login";
