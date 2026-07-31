@@ -7,6 +7,8 @@ import { ProjectDetail, MatrixPayload, Task, ProjectAsset } from "@/types/projec
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 
+import { resolveAssetFileUrl } from "@/lib/resolveAssetFileUrl";
+
 type TemplateType = 'layout_a_masonry';
 
 interface ReportConfig {
@@ -75,31 +77,32 @@ export default function ProjectSummaryReportPage() {
 
         projData.assets.forEach(asset => {
           const is2DPlan = asset.category === '2d_plan' && asset.file && asset.file.match(/\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i) !== null;
-          
+
           if (is2DPlan) {
+            const resolvedFloorPlan = resolveAssetFileUrl(asset.file);
             const group: AssetGroup = {
               assetId: asset.id,
               assetTitle: asset.title,
-              floorPlanUrl: asset.file,
+              floorPlanUrl: resolvedFloorPlan,
               sitePhotos: (asset.site_photos || []).map(sp => ({
                 id: sp.id,
-                url: sp.image,
+                url: resolveAssetFileUrl(sp.image),
                 caption: sp.caption || '',
                 gridCol: sp.grid_col ?? 0,
                 gridRow: sp.grid_row ?? 0,
                 capturedAt: sp.captured_at || (sp as any).created_at
               }))
             };
-            
-            if (asset.file) allUrls.push(asset.file);
+
+            if (resolvedFloorPlan) allUrls.push(resolvedFloorPlan);
             group.sitePhotos.forEach(p => {
               if (p.url) allUrls.push(p.url);
             });
-            
+
             groups.push(group);
           }
         });
-        
+
         setAssetGroups(groups);
         setConfig(prev => ({ ...prev, selectedImageUrls: allUrls }));
 
@@ -244,7 +247,7 @@ export default function ProjectSummaryReportPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface-50 font-sans">
-      
+
       {/* LEFT PANE: CONFIGURATION BUILDER (Not Printed) */}
       <div className="w-[340px] bg-surface-100 border-surface-200 border-r border-surface-200 flex flex-col h-full shadow-2xl z-50 print:hidden overflow-hidden shrink-0">
         <div className="p-6 border-b border-surface-200 bg-surface-50/50">
@@ -268,8 +271,8 @@ export default function ProjectSummaryReportPage() {
                 { key: 'showMediaGallery', label: 'Media Gallery' }
               ].map(sec => (
                 <label key={sec.key} className="flex items-center gap-3 p-2 hover:bg-surface-50 rounded-lg cursor-pointer transition-colors">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={config[sec.key as keyof ReportConfig] as boolean}
                     onChange={(e) => setConfig(prev => ({ ...prev, [sec.key]: e.target.checked }))}
                     className="w-4 h-4 rounded border-surface-300 text-primary focus:ring-primary"
@@ -292,11 +295,10 @@ export default function ProjectSummaryReportPage() {
                     key={cols}
                     type="button"
                     onClick={() => setConfig(prev => ({ ...prev, photoColumns: cols }))}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
-                      config.photoColumns === cols 
-                        ? 'bg-primary text-white shadow-md' 
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-all ${config.photoColumns === cols
+                        ? 'bg-primary text-white shadow-md'
                         : 'text-surface-600 dark:text-surface-300 hover:text-primary hover:bg-surface-200/60'
-                    }`}
+                      }`}
                   >
                     {cols} {cols === 1 ? 'Col' : 'Cols'}
                   </button>
@@ -317,41 +319,41 @@ export default function ProjectSummaryReportPage() {
               </div>
               <div className="space-y-6">
                 {assetGroups.map(group => {
-                   return (
-                     <div key={group.assetId}>
-                       <h4 className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest border-b border-surface-200 pb-1 mb-2 truncate" title={group.assetTitle}>📍 {group.assetTitle}</h4>
-                       <div className="grid grid-cols-2 gap-2">
-                         {group.floorPlanUrl && (
-                           <div 
-                             onClick={() => group.floorPlanUrl && toggleImage(group.floorPlanUrl)}
-                             className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${config.selectedImageUrls.includes(group.floorPlanUrl) ? 'border-primary shadow-md' : 'border-transparent opacity-50 hover:opacity-80'}`}
-                             title="Blueprint"
-                           >
-                             <img src={group.floorPlanUrl} alt="blueprint" className="w-full h-full object-cover" />
-                             {config.selectedImageUrls.includes(group.floorPlanUrl) && (
-                               <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
-                             )}
-                             <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-[8px] text-white p-0.5 text-center uppercase tracking-widest">Blueprint</div>
-                           </div>
-                         )}
-                         
-                         {group.sitePhotos.map((photo, i) => (
-                           <div 
-                             key={`photo-${i}`}
-                             onClick={() => toggleImage(photo.url)}
-                             className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${config.selectedImageUrls.includes(photo.url) ? 'border-primary shadow-md' : 'border-transparent opacity-50 hover:opacity-80'}`}
-                             title={photo.caption || "Site Photo"}
-                           >
-                             <img src={photo.url} alt="site" className="w-full h-full object-cover" />
-                             {config.selectedImageUrls.includes(photo.url) && (
-                               <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
-                             )}
-                             <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-[8px] text-white p-0.5 text-center uppercase tracking-widest truncate">{photo.caption || "Photo"}</div>
-                           </div>
-                         ))}
-                       </div>
-                     </div>
-                   );
+                  return (
+                    <div key={group.assetId}>
+                      <h4 className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest border-b border-surface-200 pb-1 mb-2 truncate" title={group.assetTitle}>📍 {group.assetTitle}</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.floorPlanUrl && (
+                          <div
+                            onClick={() => group.floorPlanUrl && toggleImage(group.floorPlanUrl)}
+                            className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${config.selectedImageUrls.includes(group.floorPlanUrl) ? 'border-primary shadow-md' : 'border-transparent opacity-50 hover:opacity-80'}`}
+                            title="Blueprint"
+                          >
+                            <img src={group.floorPlanUrl} alt="blueprint" className="w-full h-full object-cover" />
+                            {config.selectedImageUrls.includes(group.floorPlanUrl) && (
+                              <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-[8px] text-white p-0.5 text-center uppercase tracking-widest">Blueprint</div>
+                          </div>
+                        )}
+
+                        {group.sitePhotos.map((photo, i) => (
+                          <div
+                            key={`photo-${i}`}
+                            onClick={() => toggleImage(photo.url)}
+                            className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${config.selectedImageUrls.includes(photo.url) ? 'border-primary shadow-md' : 'border-transparent opacity-50 hover:opacity-80'}`}
+                            title={photo.caption || "Site Photo"}
+                          >
+                            <img src={photo.url} alt="site" className="w-full h-full object-cover" />
+                            {config.selectedImageUrls.includes(photo.url) && (
+                              <div className="absolute top-1 right-1 bg-accent text-background rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">✓</div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-[8px] text-white p-0.5 text-center uppercase tracking-widest truncate">{photo.caption || "Photo"}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
                 })}
               </div>
             </div>
@@ -360,7 +362,7 @@ export default function ProjectSummaryReportPage() {
         </div>
 
         <div className="p-6 border-t border-surface-200 bg-surface-50">
-          <button 
+          <button
             onClick={handleExportAndSave}
             disabled={isExporting}
             className="w-full h-12 bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
@@ -373,11 +375,11 @@ export default function ProjectSummaryReportPage() {
       {/* RIGHT PANE: LIVE PREVIEW */}
       <div className={`flex-1 overflow-y-auto px-0 py-8 ${theme.container}`}>
         <div className="max-w-[210mm] mx-auto space-y-12" ref={reportRef}>
-          
+
           {/* PAGE 1: EXECUTIVE SUMMARY */}
           {config.showExecutiveSummary && (
             <div className={`pdf-page w-full min-h-[297mm] px-[75px] py-[75px] flex flex-col shadow-2xl ${theme.page} print:shadow-none`}>
-              
+
               <div className={`border-b-4 border-gray-300 pb-8 mb-10 flex justify-between items-end`}>
                 <div>
                   <h4 className={`${theme.heading3} mb-2`}>{project.account.name}</h4>
@@ -427,30 +429,30 @@ export default function ProjectSummaryReportPage() {
 
           {config.showMatrixProgress && (
             <div className={`pdf-page w-full min-h-[297mm] px-[75px] py-[75px] flex flex-col shadow-2xl ${theme.page} print:shadow-none`}>
-              
+
               <h2 className={`${theme.heading2} mb-8`}>Logistics & Progress</h2>
-              
+
               {config.showMatrixProgress && matrix && matrix.phases.length > 0 && (
                 <div className="mb-12">
-                   <h3 className={`${theme.heading3} border-b border-current/20 pb-2 mb-4 opacity-70`}>Milestone Phases</h3>
-                   <div className="space-y-4">
-                     {matrix.phases.map(phase => {
-                       const blocksInPhase = matrix.blocks.filter(b => b.phase_id === phase.id);
-                       const total = blocksInPhase.reduce((sum, b) => sum + b.total_tasks, 0);
-                       const comp = blocksInPhase.reduce((sum, b) => sum + b.completed_tasks, 0);
-                       const pct = total === 0 ? 0 : Math.round((comp / total) * 100);
-                       return (
-                         <div key={phase.id} className={`flex items-center gap-4 text-sm font-medium ${theme.card} p-4`}>
-                            <div className="w-4 h-4 rounded-full shadow-inner" style={{ backgroundColor: phase.color_hex }} />
-                            <div className="w-1/3 font-bold">{phase.name}</div>
-                            <div className="flex-1 bg-current/10 h-2 rounded-full overflow-hidden">
-                              <div className="h-full" style={{ width: `${pct}%`, backgroundColor: phase.color_hex }} />
-                            </div>
-                            <div className="w-16 text-right font-black opacity-80">{pct}%</div>
-                         </div>
-                       );
-                     })}
-                   </div>
+                  <h3 className={`${theme.heading3} border-b border-current/20 pb-2 mb-4 opacity-70`}>Milestone Phases</h3>
+                  <div className="space-y-4">
+                    {matrix.phases.map(phase => {
+                      const blocksInPhase = matrix.blocks.filter(b => b.phase_id === phase.id);
+                      const total = blocksInPhase.reduce((sum, b) => sum + b.total_tasks, 0);
+                      const comp = blocksInPhase.reduce((sum, b) => sum + b.completed_tasks, 0);
+                      const pct = total === 0 ? 0 : Math.round((comp / total) * 100);
+                      return (
+                        <div key={phase.id} className={`flex items-center gap-4 text-sm font-medium ${theme.card} p-4`}>
+                          <div className="w-4 h-4 rounded-full shadow-inner" style={{ backgroundColor: phase.color_hex }} />
+                          <div className="w-1/3 font-bold">{phase.name}</div>
+                          <div className="flex-1 bg-current/10 h-2 rounded-full overflow-hidden">
+                            <div className="h-full" style={{ width: `${pct}%`, backgroundColor: phase.color_hex }} />
+                          </div>
+                          <div className="w-16 text-right font-black opacity-80">{pct}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -466,7 +468,7 @@ export default function ProjectSummaryReportPage() {
           {config.showTaskDrilldown && Object.entries(tasksByPhase).map(([phase, tasks], index) => (
             <div key={`phase-${index}`} className={`pdf-page w-full min-h-[297mm] px-[75px] py-[75px] flex flex-col shadow-2xl ${theme.page} print:shadow-none`}>
               <h2 className={`${theme.heading2} mb-8`}>Execution: {phase}</h2>
-              
+
               <div className="space-y-6">
                 {tasks.map(task => (
                   <div key={task.id} className={`${theme.card} p-5 break-inside-avoid`}>
@@ -484,7 +486,7 @@ export default function ProjectSummaryReportPage() {
                         {task.task_code || task.uid}
                       </div>
                     </div>
-                    
+
                     {task.checklists && task.checklists.length > 0 && (
                       <div className="mt-4 p-3 rounded bg-current/5 border border-current/10">
                         <p className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-70">Checklists</p>
@@ -512,7 +514,7 @@ export default function ProjectSummaryReportPage() {
           {config.showMediaGallery && assetGroups.map(group => {
             const selectedFloorPlan = group.floorPlanUrl && config.selectedImageUrls.includes(group.floorPlanUrl) ? group.floorPlanUrl : null;
             const visibleSitePhotos = group.sitePhotos.filter(sp => config.selectedImageUrls.includes(sp.url));
-            
+
             if (!selectedFloorPlan && visibleSitePhotos.length === 0) return null;
 
             return (
@@ -533,11 +535,10 @@ export default function ProjectSummaryReportPage() {
                     <h3 className={`${theme.heading3} border-b border-current/20 pb-2 mb-4 opacity-80 uppercase tracking-widest text-xs font-black`}>
                       Site Grid Photos ({visibleSitePhotos.length})
                     </h3>
-                    <div className={`grid ${
-                      config.photoColumns === 1 ? 'grid-cols-1' :
-                      config.photoColumns === 2 ? 'grid-cols-2' :
-                      config.photoColumns === 3 ? 'grid-cols-3' : 'grid-cols-4'
-                    } gap-4`}>
+                    <div className={`grid ${config.photoColumns === 1 ? 'grid-cols-1' :
+                        config.photoColumns === 2 ? 'grid-cols-2' :
+                          config.photoColumns === 3 ? 'grid-cols-3' : 'grid-cols-4'
+                      } gap-4`}>
                       {visibleSitePhotos.map((photo, i) => {
                         const colLetter = String.fromCharCode(65 + photo.gridCol);
                         const rowNum = photo.gridRow + 1;

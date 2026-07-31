@@ -7,6 +7,8 @@ import { ProjectDetail, ProjectAsset, Task } from "@/types/projects";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "sonner";
 
+import { resolveAssetFileUrl } from "@/lib/resolveAssetFileUrl";
+
 export default function FloorPlanReportPage() {
   const { id, assetId } = useParams();
   const router = useRouter();
@@ -161,7 +163,7 @@ export default function FloorPlanReportPage() {
             <div className="bg-surface-50 border border-surface-200 rounded-2xl overflow-hidden flex items-center justify-center p-4">
                {asset.file.match(/\.(png|jpg|jpeg|gif|webp)(?:\?.*)?$/i) ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={asset.file} alt="Floor Plan" className="max-h-[400px] object-contain rounded-xl shadow-sm" crossOrigin="anonymous" />
+                  <img src={resolveAssetFileUrl(asset.file)} alt="Floor Plan" className="max-h-[400px] object-contain rounded-xl shadow-sm" crossOrigin="anonymous" />
                 ) : (
                   <div className="py-20 text-surface-400 font-bold">No visual preview available.</div>
                 )}
@@ -179,7 +181,7 @@ export default function FloorPlanReportPage() {
                   return (
                     <div key={`photo-${i}`} className="bg-surface-50 border border-surface-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
                       <div className="aspect-square relative bg-surface-200 flex items-center justify-center p-1.5">
-                        <img src={photo.image} alt={photo.caption} className="max-w-full max-h-full object-contain rounded" crossOrigin="anonymous" />
+                        <img src={resolveAssetFileUrl(photo.image)} alt={photo.caption} className="max-w-full max-h-full object-contain rounded" crossOrigin="anonymous" />
                         <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest shadow-sm">
                           {colLetter}{rowNum}
                         </div>
