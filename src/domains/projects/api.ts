@@ -151,6 +151,14 @@ export const projectsApi = {
     });
   },
 
+  deleteTask: async (uid: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/tasks/${uid}/`, { method: "DELETE" });
+  },
+
+  restoreTask: async (uid: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/tasks/${uid}/restore/`, { method: "POST" });
+  },
+
   addProjectMember: async (projectId: number, userId: number, role: string = "viewer") => {
     return fetchFromBff<any>(`/api/v1/projects/projects/${projectId}/members/`, {
       method: "POST",

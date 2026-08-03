@@ -9,6 +9,7 @@ interface TaskSubtasksTabProps {
   isArchitect: boolean;
   handleUpdateSubtask: (subtaskUid: string, data: any) => void;
   handleCreateSubtask: (title: string, description: string) => void;
+  handleDeleteSubtask?: (subtaskUid: string) => void;
   onSelectSubtask?: (subtask: Task) => void;
 }
 
@@ -19,6 +20,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
   isArchitect,
   handleUpdateSubtask,
   handleCreateSubtask,
+  handleDeleteSubtask,
   onSelectSubtask,
 }) => {
   return (
@@ -53,22 +55,40 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                 <div>
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <h4 className={`text-sm font-bold ${subtask.status === "DONE" ? "text-surface-500 dark:text-surface-400 line-through" : "text-primary"}`}>{subtask.title}</h4>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const nextStatus = subtask.status === "DONE" ? "TODO" : subtask.status === "TODO" ? "WIP" : "DONE";
-                        handleUpdateSubtask(subtask.uid, { status: nextStatus });
-                      }}
-                      className={`shrink-0 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md border transition-all hover:scale-105 ${
-                        subtask.status === "DONE" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:border-emerald-800/30" :
-                        subtask.status === "WIP" ? "bg-blue-100 text-blue-700 border-blue-200 dark:border-blue-800/30" :
-                        "bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 border-surface-300 dark:border-surface-600"
-                      }`}
-                      title="Click to toggle status"
-                    >
-                      {subtask.status}
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const nextStatus = subtask.status === "DONE" ? "TODO" : subtask.status === "TODO" ? "WIP" : "DONE";
+                          handleUpdateSubtask(subtask.uid, { status: nextStatus });
+                        }}
+                        className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md border transition-all hover:scale-105 ${
+                          subtask.status === "DONE" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:border-emerald-800/30" :
+                          subtask.status === "WIP" ? "bg-blue-100 text-blue-700 border-blue-200 dark:border-blue-800/30" :
+                          "bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 border-surface-300 dark:border-surface-600"
+                        }`}
+                        title="Click to toggle status"
+                      >
+                        {subtask.status}
+                      </button>
+
+                      {handleDeleteSubtask && (isAdmin || isArchitect) && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Are you sure you want to delete subtask "${subtask.title}"?`)) {
+                              handleDeleteSubtask(subtask.uid);
+                            }
+                          }}
+                          className="p-1 text-xs hover:bg-red-500/10 text-red-500 rounded-md transition-colors"
+                          title="Delete Subtask"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {subtask.description && (
                     <p className={`text-xs mt-2 line-clamp-3 ${subtask.status === "DONE" ? "text-emerald-700/60 dark:text-emerald-400/60" : "text-surface-500 dark:text-surface-400"}`}>{subtask.description}</p>

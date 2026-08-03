@@ -104,6 +104,23 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedSubtask, setSelectedSubtask] = useState<Task | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteTask = async () => {
+    setIsDeleting(true);
+    try {
+      await projectsApi.deleteTask(task.uid);
+      toast.success("Task soft-deleted successfully");
+      setShowDeleteModal(false);
+      onTaskUpdated();
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete task");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
 
   const isMatrixTask = task.block !== null && task.block !== undefined;
@@ -294,6 +311,23 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     } catch (err: any) {
       toast.error(err.message || "Failed to update subtask.");
       await refreshTask();
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteSubtask = async (subtaskUid: string) => {
+    setIsUpdating(true);
+    try {
+      await projectsApi.deleteTask(subtaskUid);
+      setTask(prev => ({
+        ...prev,
+        subtasks: (prev.subtasks || []).filter(st => st.uid !== subtaskUid)
+      }));
+      await refreshTask();
+      toast.success("Subtask soft-deleted successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete subtask");
     } finally {
       setIsUpdating(false);
     }
@@ -497,6 +531,16 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
             >
               {isCopied ? "✓" : splitMode ? "🔗" : "🔗 Copy Link"}
             </button>
+
+            {!readOnly && (isAdmin || isArchitect) && (
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                title="Soft Delete Task"
+                className={`${splitMode ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"} rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm shrink-0 border border-red-200 dark:border-red-800/30`}
+              >
+                🗑️
+              </button>
+            )}
 
             <button onClick={onClose} className={`${splitMode ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"} rounded-xl bg-surface-200 text-surface-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm shrink-0`}>
               ✕
@@ -760,6 +804,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                   isArchitect={isArchitect}
                   handleUpdateSubtask={handleUpdateSubtask}
                   handleCreateSubtask={handleCreateSubtask}
+                  handleDeleteSubtask={handleDeleteSubtask}
                   onSelectSubtask={(subtask) => setSelectedSubtask(subtask)}
                 />
               )}
@@ -968,6 +1013,41 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest bg-accent text-background shadow-lg shadow-accent/20 hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center min-w-[120px]"
               >
                 {isUpdating ? "Verifying..." : "Verify & Complete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-background border border-surface-200 dark:border-surface-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center text-xl mx-auto">
+              🗑️
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-extrabold text-primary dark:text-white">Soft-Delete Task?</h3>
+              <p className="text-xs text-surface-500 dark:text-surface-400">
+                Are you sure you want to delete <strong className="text-primary dark:text-white">"{task.title}"</strong>? It will be hidden from all active views and can be restored if needed.
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl border border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 text-xs font-bold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteTask}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Delete Task"}
               </button>
             </div>
           </div>
