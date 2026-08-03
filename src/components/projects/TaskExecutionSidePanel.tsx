@@ -392,7 +392,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     { id: "subtasks", label: "Subtasks", hidden: isSubtaskPanel },
     { id: "checklist", label: "Checklists & Action Steps" },
     { id: "diary", label: "Field Diary", hidden: isSubtaskPanel },
-    { id: "drawing", label: "Context & Models", hidden: !isMatrixTask && !isSubtaskPanel },
+    { id: "drawing", label: "Floorplans & Models", hidden: !isMatrixTask && !isSubtaskPanel },
   ];
 
   const linked2dPlanLinks = task.asset_links?.filter(l => l.latest_asset?.category === "2d_plan") || [];
