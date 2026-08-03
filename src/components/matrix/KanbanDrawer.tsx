@@ -73,12 +73,12 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const isLocked = block.status === "LOCKED";
 
-  // Sync tasks whenever block.tasks prop updates
+  // Sync tasks whenever block or block.tasks prop updates
   React.useEffect(() => {
-    if (block.tasks) {
-      setTasks(block.tasks);
+    if (block?.tasks) {
+      setTasks(block.tasks.filter((t: any) => t && !t.is_deleted));
     }
-  }, [block.tasks]);
+  }, [block, block?.tasks]);
 
   // ── Drag & Drop ─────────────────────────────────────────────────────────────
   const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
@@ -168,7 +168,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     onBlockUpdated(getUpdatedBlock(block, newTasks));
   };
 
-  const safeTasksList = Array.isArray(tasks) ? tasks : [];
+  const safeTasksList = Array.isArray(tasks) ? tasks.filter(t => t && !t.is_deleted) : [];
   const filteredTasks = safeTasksList.filter(t => t && (!priorityFilter || t.priority === priorityFilter));
   
   const tasksByStatus = (status: TaskStatus) => filteredTasks.filter(t => {

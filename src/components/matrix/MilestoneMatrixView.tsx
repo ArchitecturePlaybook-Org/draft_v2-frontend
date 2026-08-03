@@ -63,6 +63,26 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const refreshMatrix = useCallback(async () => {
+    try {
+      const data = await projectsApi.getMatrix(projectUid);
+      const safeData = {
+        ...data,
+        zones: data?.zones || [],
+        phases: data?.phases || [],
+        blocks: data?.blocks || [],
+      };
+      setPayload(safeData);
+      if (onMatrixLoaded) {
+        onMatrixLoaded(safeData.zones.length > 0 && safeData.phases.length > 0);
+      }
+      if (onTaskChange) onTaskChange();
+      setError(null);
+    } catch (err: any) {
+      console.error("Failed to refresh matrix", err);
+    }
+  }, [projectUid, onMatrixLoaded, onTaskChange]);
+
   const fetchMatrix = useCallback(async () => {
     if (initialPayload) {
       const safeInitial = {
@@ -78,25 +98,9 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
       setLoading(false);
       return;
     }
-    try {
-      const data = await projectsApi.getMatrix(projectUid);
-      const safeData = {
-        ...data,
-        zones: data?.zones || [],
-        phases: data?.phases || [],
-        blocks: data?.blocks || [],
-      };
-      setPayload(safeData);
-      if (onMatrixLoaded) {
-        onMatrixLoaded(safeData.zones.length > 0 && safeData.phases.length > 0);
-      }
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || "Failed to load matrix.");
-    } finally {
-      setLoading(false);
-    }
-  }, [projectUid, initialPayload, onMatrixLoaded]);
+    await refreshMatrix();
+    setLoading(false);
+  }, [initialPayload, onMatrixLoaded, refreshMatrix]);
 
   useEffect(() => {
     fetchMatrix();
@@ -846,7 +850,27 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
             projectTasks={projectTasks}
             taskTags={[]}
             onClose={() => setSelectedTask(null)}
-            onTaskUpdated={() => {}}
+            onTaskUpdated={async () => {
+              await refreshMatrix();
+              if (selectedBlock) {
+                try {
+                  const updatedTasks = await projectsApi.getBlockTasks(selectedBlock.id);
+                  const safeTasks = Array.isArray(updatedTasks) ? updatedTasks.filter(t => t && !t.is_deleted) : [];
+                  const doneCount = safeTasks.filter(t => t.status === "DONE").length;
+                  const totalCount = safeTasks.length;
+                  const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+                  setSelectedBlock(prev => prev ? {
+                    ...prev,
+                    tasks: safeTasks,
+                    completed_tasks: doneCount,
+                    total_tasks: totalCount,
+                    progress_percent: progressPct,
+                  } : null);
+                } catch (e) {
+                  console.error("Failed to update active block state", e);
+                }
+              }
+            }}
             readOnly={readOnly}
           />
         )}

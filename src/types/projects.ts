@@ -141,6 +141,8 @@ export interface Task {
   priority?: "HIGH" | "MEDIUM" | "LOW";
   tags?: TaskTag[];
   external_collaborator_count?: number;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
 }
 
 
