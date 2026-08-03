@@ -388,11 +388,11 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const uncheckedCount = checklists.filter((i: any) => !i.is_completed).length;
 
   const tabs: { id: TaskTab; label: string; hidden?: boolean }[] = [
-    { id: "execution", label: isMatrixTask ? "Timeline & Directives" : "Execution Details" },
-    { id: "subtasks", label: "Subtasks" },
-    { id: "checklist", label: "Checklists & QA" },
-    { id: "diary", label: "Field Diary" },
-    { id: "drawing", label: "Context & Models", hidden: !isMatrixTask },
+    { id: "execution", label: isSubtaskPanel ? "Subtask Details & Timeline" : (isMatrixTask ? "Timeline & Directives" : "Execution Details") },
+    { id: "subtasks", label: "Subtasks", hidden: isSubtaskPanel },
+    { id: "checklist", label: "Checklists & Action Steps" },
+    { id: "diary", label: "Field Diary", hidden: isSubtaskPanel },
+    { id: "drawing", label: "Context & Models", hidden: !isMatrixTask && !isSubtaskPanel },
   ];
 
   const linked2dPlanLinks = task.asset_links?.filter(l => l.latest_asset?.category === "2d_plan") || [];
@@ -484,6 +484,11 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
           <div className="relative z-10 min-w-0 w-full">
             <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+              {isSubtaskPanel && (
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 shrink-0 shadow-sm">
+                  ↳ Subtask
+                </span>
+              )}
               <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border shrink-0 ${currentStatus === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30" :
                   currentStatus === "ON_HOLD" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800/30" :
                     currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
@@ -505,7 +510,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
               )}
               <span className="text-[10px] font-mono text-surface-400 truncate max-w-full">ID: {task.task_code || task.uid}</span>
             </div>
-            <h2 className={`font-extrabold text-primary tracking-tight truncate ${splitMode ? "text-lg" : "text-xl sm:text-2xl md:text-3xl"}`} title={task.title}>{task.title}</h2>
+            <h2 className={`font-extrabold text-primary tracking-tight truncate ${splitMode || isSubtaskPanel ? "text-lg sm:text-xl" : "text-xl sm:text-2xl md:text-3xl"}`} title={task.title}>{task.title}</h2>
           </div>
 
           <div className="relative z-10 flex flex-wrap items-center gap-2 w-full">
@@ -585,9 +590,35 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 <div className="flex flex-col lg:flex-row gap-8 max-w-[1400px] h-[calc(100vh-280px)]">
                   {/* Main Execution Content */}
                   <div className="flex-1 space-y-8 overflow-y-auto pr-2 pb-8 max-w-4xl">
+                    {/* Subtask Header Overview Card */}
+                    {isSubtaskPanel && (
+                      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20 p-6 rounded-2xl shadow-sm space-y-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <span className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-base shadow-sm">
+                              ↳
+                            </span>
+                            <div>
+                              <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-500 dark:text-indigo-400">Parent Task Context</span>
+                              <h4 className="text-sm font-extrabold text-primary dark:text-white truncate max-w-md">
+                                {initialTask.parent_task?.title || "Parent Task"}
+                              </h4>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 bg-background/60 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-surface-200 dark:border-surface-700">
+                            <span className="text-[10px] font-bold text-surface-500 uppercase tracking-wider">Subtask Progress</span>
+                            <span className="text-xs font-black text-primary dark:text-white">
+                              {currentStatus === "DONE" ? "100%" : currentStatus === "QA" ? "75%" : currentStatus === "WIP" ? "50%" : currentStatus === "ON_HOLD" ? "25%" : "0%"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Matrix Location */}
-                    <div>
-                      <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Matrix Location</h3>
+                    {!isSubtaskPanel && (
+                      <div>
+                        <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Matrix Location</h3>
                       <div className="bg-surface-100 border-surface-200 p-8 rounded-2xl border border-surface-200 shadow-sm space-y-8">
                         <div className="grid grid-cols-2 gap-8">
                           <div className="space-y-2">
@@ -625,6 +656,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                         </div>
                       </div>
                     </div>
+                  )}
 
                     {/* Standard Directives & Timeline */}
                     <div>
