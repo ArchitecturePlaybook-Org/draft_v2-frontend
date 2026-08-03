@@ -69,11 +69,12 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                     handleUpdateSubtask(subtask.uid, { status: nextStatus });
                   }
                 }}
-                className={`group p-6 rounded-2xl border shadow-sm cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl relative z-10 flex flex-col justify-between min-h-[170px] ${
-                  subtask.status === "DONE" ? "bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40" :
-                  subtask.status === "ON_HOLD" ? "bg-amber-50/80 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40" :
-                  subtask.status === "WIP" ? "bg-blue-50/80 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/40" :
-                  "bg-surface-100 dark:bg-surface-800/90 border-surface-200 dark:border-surface-700 hover:border-accent"
+                className={`group p-6 rounded-2xl border-l-4 border-r border-t border-b border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800/90 shadow-sm cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-accent relative z-10 flex flex-col justify-between min-h-[175px] ${
+                  subtask.status === "DONE" ? "border-l-emerald-500" :
+                  subtask.status === "ON_HOLD" ? "border-l-amber-500" :
+                  subtask.status === "WIP" ? "border-l-blue-500" :
+                  subtask.status === "QA" ? "border-l-purple-500" :
+                  "border-l-slate-400"
                 }`}
               >
                 <div>
@@ -87,10 +88,11 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                           const nextStatus = subtask.status === "TODO" ? "ON_HOLD" : subtask.status === "ON_HOLD" ? "WIP" : subtask.status === "WIP" ? "DONE" : "TODO";
                           handleUpdateSubtask(subtask.uid, { status: nextStatus });
                         }}
-                        className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all hover:scale-105 ${
-                          subtask.status === "DONE" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700" :
-                          subtask.status === "ON_HOLD" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700" :
-                          subtask.status === "WIP" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700" :
+                        className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all hover:scale-105 shadow-sm ${
+                          subtask.status === "DONE" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" :
+                          subtask.status === "ON_HOLD" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" :
+                          subtask.status === "WIP" ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" :
+                          subtask.status === "QA" ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30" :
                           "bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 border-surface-300 dark:border-surface-600"
                         }`}
                         title="Click to toggle status"
