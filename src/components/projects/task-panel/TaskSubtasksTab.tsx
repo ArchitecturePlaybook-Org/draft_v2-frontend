@@ -48,6 +48,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                 }}
                 className={`p-5 rounded-2xl border shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md flex flex-col justify-between ${
                   subtask.status === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/30" :
+                  subtask.status === "ON_HOLD" ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30" :
                   subtask.status === "WIP" ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/30" :
                   "bg-surface-100 dark:bg-surface-800 border-surface-200 dark:border-surface-700 hover:border-accent"
                 }`}
@@ -60,17 +61,18 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const nextStatus = subtask.status === "DONE" ? "TODO" : subtask.status === "TODO" ? "WIP" : "DONE";
+                          const nextStatus = subtask.status === "TODO" ? "ON_HOLD" : subtask.status === "ON_HOLD" ? "WIP" : subtask.status === "WIP" ? "DONE" : "TODO";
                           handleUpdateSubtask(subtask.uid, { status: nextStatus });
                         }}
                         className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md border transition-all hover:scale-105 ${
                           subtask.status === "DONE" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:border-emerald-800/30" :
+                          subtask.status === "ON_HOLD" ? "bg-amber-100 text-amber-700 border-amber-200 dark:border-amber-800/30" :
                           subtask.status === "WIP" ? "bg-blue-100 text-blue-700 border-blue-200 dark:border-blue-800/30" :
                           "bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 border-surface-300 dark:border-surface-600"
                         }`}
                         title="Click to toggle status"
                       >
-                        {subtask.status}
+                        {subtask.status === "ON_HOLD" ? "ON HOLD" : subtask.status}
                       </button>
 
                       {handleDeleteSubtask && (isAdmin || isArchitect) && (

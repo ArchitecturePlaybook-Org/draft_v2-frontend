@@ -28,6 +28,7 @@ interface KanbanDrawerProps {
 
 const COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
   { id: "TODO", label: "To Do", color: "border-t-[3px] border-surface-300 bg-transparent", dotColor: "bg-surface-300" },
+  { id: "ON_HOLD", label: "On Hold", color: "border-t-[3px] border-amber-500 bg-transparent", dotColor: "bg-amber-500" },
   { id: "WIP", label: "In Progress", color: "border-t-[3px] border-semantic-blue bg-transparent", dotColor: "bg-semantic-blue" },
   { id: "QA", label: "Under Inspection", color: "border-t-[3px] border-accent bg-transparent", dotColor: "bg-accent" },
   { id: "DONE", label: "Done", color: "border-t-[3px] border-semantic-green bg-transparent", dotColor: "bg-semantic-green" },
@@ -176,6 +177,9 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     const taskStatus = (t.status || "TODO").toUpperCase();
     if (status === "TODO") {
       return taskStatus === "TODO" || taskStatus === "PENDING";
+    }
+    if (status === "ON_HOLD") {
+      return taskStatus === "ON_HOLD" || taskStatus === "ON HOLD" || taskStatus === "HOLD";
     }
     if (status === "WIP") {
       return taskStatus === "WIP" || taskStatus === "IN PROGRESS" || taskStatus === "IN_PROGRESS";

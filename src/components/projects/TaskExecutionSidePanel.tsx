@@ -485,11 +485,12 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
           <div className="relative z-10 min-w-0 w-full">
             <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
               <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border shrink-0 ${currentStatus === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30" :
-                  currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
-                    currentStatus === "QA" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800/30" :
-                      "bg-surface-200 text-surface-600 text-surface-300 border-surface-300"
+                  currentStatus === "ON_HOLD" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800/30" :
+                    currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
+                      currentStatus === "QA" ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 border-purple-200 dark:border-purple-800/30" :
+                        "bg-surface-200 text-surface-600 text-surface-300 border-surface-300"
                 }`}>
-                {currentStatus}
+                {currentStatus === "ON_HOLD" ? "ON HOLD" : currentStatus}
               </span>
               {task.trade && (
                 <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white shrink-0 max-w-full truncate"
@@ -509,7 +510,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
           <div className="relative z-10 flex flex-wrap items-center gap-2 w-full">
             <div className="flex bg-surface-200/50 p-1 rounded-xl border border-surface-200 shrink-0">
-              {["TODO", "WIP", "QA", "DONE"].map(s => (
+              {["TODO", "ON_HOLD", "WIP", "QA", "DONE"].map(s => (
                 <button
                   key={s}
                   onClick={() => handleStatusChange(s)}
@@ -517,7 +518,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                   className={`${splitMode ? "px-2 py-1.5" : "px-2.5 sm:px-4 py-2"} text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all whitespace-nowrap ${currentStatus === s ? "bg-surface-100 border-surface-200 shadow-xl text-primary" : "text-surface-500 text-surface-400 hover:text-primary"
                     }`}
                 >
-                  {s}
+                  {s === "ON_HOLD" ? "ON HOLD" : s}
                 </button>
               ))}
             </div>

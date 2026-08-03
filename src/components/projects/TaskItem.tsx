@@ -120,21 +120,25 @@ function CollaboratorsBubble({ taskUid, count }: { taskUid: string, count: numbe
 
 const STATUS_COLORS: Record<string, string> = {
   TODO: "bg-surface-100 text-text-secondary border-surface-200",
+  ON_HOLD: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
   WIP: "bg-semantic-blue/10 text-semantic-blue border-semantic-blue/30",
   QA: "bg-accent/10 text-accent border-accent/30",
   DONE: "bg-semantic-green/10 text-semantic-green border-semantic-green/30",
   // Fallbacks for generic tasks if they still use old statuses before DB update
   "Pending": "bg-surface-100 text-text-secondary border-surface-200",
+  "On Hold": "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
   "In Progress": "bg-semantic-blue/10 text-semantic-blue border-semantic-blue/30",
   "Done": "bg-semantic-green/10 text-semantic-green border-semantic-green/30",
 };
 
 const STATUS_LABELS: Record<string, string> = {
   TODO: "To Do",
+  ON_HOLD: "On Hold",
   WIP: "In Progress",
   QA: "Inspection",
   DONE: "Done",
   "Pending": "Pending",
+  "On Hold": "On Hold",
   "In Progress": "In Progress",
   "Done": "Done",
 };
