@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Task, ProjectAsset, TaskChecklistItem, SpatialZone, MilestonePhase, ChecklistTemplate, TaskComment } from "@/types/projects";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useInfiniteScrollBatch } from "@/hooks/useInfiniteScrollBatch";
@@ -42,6 +42,8 @@ interface TaskExecutionSidePanelProps {
   /** Width controlled externally by the split ratio. Replaces internal panelWidth. */
   panelWidthOverride?: number;
   readOnly?: boolean;
+  /** When true: subtask panel positioned on left side while parent task stays on right */
+  isSubtaskPanel?: boolean;
 }
 
 type TaskTab = "execution" | "subtasks" | "checklist" | "drawing" | "diary";
@@ -60,6 +62,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   leftOffset = 0,
   panelWidthOverride,
   readOnly = false,
+  isSubtaskPanel = false,
 }) => {
   const { isSidebarCollapsed } = useProjectNavStore();
   const NAV_W = isSidebarCollapsed ? 80 : 280;
@@ -100,6 +103,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
   const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedSubtask, setSelectedSubtask] = useState<Task | null>(null);
 
 
   const isMatrixTask = task.block !== null && task.block !== undefined;
@@ -373,14 +377,30 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   } = useInfiniteScrollBatch(linked2dPlanLinks, { resetKey: task.uid });
 
   // ── Split-pane vs standalone layout ─────────────────────────────────────
-  const effectiveWidth = splitMode && panelWidthOverride ? panelWidthOverride : panelWidth;
-  const slideX = splitMode ? "-100%" : "100%";
-  const panelStyle = splitMode
-    ? { left: leftOffset, width: effectiveWidth, transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)" }
-    : { width: panelWidth };
-  const panelClass = splitMode
-    ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden"
-    : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden";
+  const isParentWithActiveSubtask = !!selectedSubtask;
+  const effectiveWidth = splitMode && panelWidthOverride 
+    ? panelWidthOverride 
+    : (isParentWithActiveSubtask || isSubtaskPanel)
+      ? `calc(50vw - ${NAV_W / 2}px)` 
+      : panelWidth;
+
+  const slideX = isSubtaskPanel ? "-100%" : (splitMode ? "-100%" : "100%");
+
+  const panelStyle = isSubtaskPanel
+    ? { left: NAV_W, width: effectiveWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
+    : isParentWithActiveSubtask
+      ? { right: 0, width: effectiveWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
+      : splitMode
+        ? { left: leftOffset, width: effectiveWidth, transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)" }
+        : { width: panelWidth };
+
+  const panelClass = isSubtaskPanel
+    ? "fixed top-0 bottom-0 z-[60] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden"
+    : isParentWithActiveSubtask
+      ? "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden"
+      : splitMode
+        ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden"
+        : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden";
 
   return (
     <>
@@ -740,6 +760,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                   isArchitect={isArchitect}
                   handleUpdateSubtask={handleUpdateSubtask}
                   handleCreateSubtask={handleCreateSubtask}
+                  onSelectSubtask={(subtask) => setSelectedSubtask(subtask)}
                 />
               )}
 
@@ -960,6 +981,28 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
           onClose={() => setLightboxImageUrl(null)}
         />
       )}
+
+      {/* Subtask Slide-in Panel — slides in from the RIGHT */}
+      <AnimatePresence>
+        {selectedSubtask && (
+          <TaskExecutionSidePanel
+            key={selectedSubtask.uid}
+            task={selectedSubtask}
+            projectId={projectId}
+            projectUid={projectUid}
+            projectAssets={projectAssets}
+            projectTasks={projectTasks}
+            taskTags={taskTags}
+            onClose={() => setSelectedSubtask(null)}
+            onTaskUpdated={async () => {
+              await refreshTask();
+              onTaskUpdated();
+            }}
+            readOnly={readOnly}
+            isSubtaskPanel
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };

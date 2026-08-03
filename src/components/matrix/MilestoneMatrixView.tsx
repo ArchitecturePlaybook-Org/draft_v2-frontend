@@ -800,32 +800,30 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── Task detail panel — slides from LEFT of main-area ────────────── */}
+      {/* ── Kanban Drawer — slides from LEFT of main-area ── */}
       <AnimatePresence>
-        {selectedTask && (
-          <TaskExecutionSidePanel
-            key={selectedTask.uid}
-            task={selectedTask}
-            projectId={0}
-            projectUid={projectUid}
-            projectAssets={[]}
-            projectTasks={projectTasks}
-            taskTags={[]}
-            splitMode
+        {selectedBlock && drawerOpen && (
+          <KanbanDrawer
+            block={selectedBlock}
+            phase={phases.find(p => p.id === selectedBlock.phase_id)!}
+            zone={zones.find(z => z.id === selectedBlock.zone_id)!}
+            isOpen={drawerOpen}
+            width={kanbanWidth}
             leftOffset={NAV_W}
-            panelWidthOverride={taskPanelWidth}
-            onClose={() => setSelectedTask(null)}
-            onTaskUpdated={() => {}}
-            readOnly={readOnly}
+            onClose={() => { setSelectedTask(null); setDrawerOpen(false); setSelectedBlock(null); }}
+            onBlockUpdated={handleBlockUpdated}
+            onTaskSelect={setSelectedTask}
+            userRole={userRole}
+            projectUid={projectUid}
           />
         )}
       </AnimatePresence>
 
-      {/* ── Shared resize handle — between task panel and Kanban ────────── */}
+      {/* ── Shared resize handle — between Kanban and Task detail panel ────────── */}
       {selectedTask && drawerOpen && (
         <div
           className="fixed top-0 bottom-0 w-2 z-[49] cursor-col-resize hover:bg-accent/60 transition-colors group"
-          style={{ left: NAV_W + taskPanelWidth }}
+          style={{ left: NAV_W + kanbanWidth }}
           onPointerDown={handleResizeDrag}
         >
           <div className="absolute top-1/2 -translate-y-1/2 flex flex-col gap-1 pl-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -836,20 +834,20 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         </div>
       )}
 
-      {/* ── Kanban Drawer — slides from RIGHT, width = remaining main-area ── */}
+      {/* ── Task detail panel — slides from RIGHT ────────────── */}
       <AnimatePresence>
-        {selectedBlock && drawerOpen && (
-          <KanbanDrawer
-            block={selectedBlock}
-            phase={phases.find(p => p.id === selectedBlock.phase_id)!}
-            zone={zones.find(z => z.id === selectedBlock.zone_id)!}
-            isOpen={drawerOpen}
-            width={kanbanWidth}
-            onClose={() => { setSelectedTask(null); setDrawerOpen(false); setSelectedBlock(null); }}
-            onBlockUpdated={handleBlockUpdated}
-            onTaskSelect={setSelectedTask}
-            userRole={userRole}
+        {selectedTask && (
+          <TaskExecutionSidePanel
+            key={selectedTask.uid}
+            task={selectedTask}
+            projectId={0}
             projectUid={projectUid}
+            projectAssets={[]}
+            projectTasks={projectTasks}
+            taskTags={[]}
+            onClose={() => setSelectedTask(null)}
+            onTaskUpdated={() => {}}
+            readOnly={readOnly}
           />
         )}
       </AnimatePresence>

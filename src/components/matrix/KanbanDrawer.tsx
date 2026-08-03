@@ -21,6 +21,7 @@ interface KanbanDrawerProps {
   projectUid?: string;
   /** Controlled panel width from parent split state */
   width?: number;
+  leftOffset?: number;
   /** Bubbles task click up to parent for split-pane rendering */
   onTaskSelect?: (task: Task) => void;
 }
@@ -61,6 +62,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   userRole = "admin",
   projectUid,
   width,
+  leftOffset = 0,
   onTaskSelect,
 }) => {
   const [tasks, setTasks] = useState<Task[]>(block.tasks || []);
@@ -192,12 +194,12 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
 
       {/* Drawer Panel */}
       <motion.div
-        initial={{ x: "100%" }}
+        initial={{ x: "-100%" }}
         animate={{ x: 0 }}
-        exit={{ x: "100%" }}
+        exit={{ x: "-100%" }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        style={{ width: width ?? 896 }}
-        className="fixed top-0 right-0 h-screen bg-background border-l border-surface-200 shadow-premium z-[45] flex flex-col min-w-0 overflow-hidden"
+        style={{ left: leftOffset, width: width ?? 896 }}
+        className="fixed top-0 bottom-0 h-screen bg-background border-r border-surface-200 shadow-premium z-[45] flex flex-col min-w-0 overflow-hidden"
       >
         {/* Drawer Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between px-4 sm:px-7 py-4 border-b border-surface-100 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50 shrink-0 min-w-0 w-full">

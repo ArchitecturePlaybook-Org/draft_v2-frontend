@@ -9,6 +9,7 @@ interface TaskSubtasksTabProps {
   isArchitect: boolean;
   handleUpdateSubtask: (subtaskUid: string, data: any) => void;
   handleCreateSubtask: (title: string, description: string) => void;
+  onSelectSubtask?: (subtask: Task) => void;
 }
 
 export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
@@ -18,13 +19,14 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
   isArchitect,
   handleUpdateSubtask,
   handleCreateSubtask,
+  onSelectSubtask,
 }) => {
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto h-[calc(100vh-280px)]">
-      <div className="flex items-center justify-between bg-surface-100 border-surface-200 p-6 rounded-2xl border border-surface-200 shadow-sm">
+      <div className="flex items-center justify-between bg-surface-100 dark:bg-surface-800 border-surface-200 dark:border-surface-700 p-6 rounded-2xl border shadow-sm">
         <div>
           <h3 className="text-xl font-bold text-primary">Subtasks</h3>
-          <p className="text-xs text-surface-500 text-surface-400 font-medium mt-1">Break this task down into smaller actionable steps.</p>
+          <p className="text-xs text-surface-500 dark:text-surface-400 font-medium mt-1">Break this task down into smaller actionable steps.</p>
         </div>
       </div>
 
@@ -35,36 +37,59 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
               <div 
                 key={subtask.uid} 
                 onClick={() => {
-                  const nextStatus = subtask.status === "DONE" ? "TODO" : subtask.status === "TODO" ? "WIP" : "DONE";
-                  handleUpdateSubtask(subtask.uid, { status: nextStatus });
+                  if (onSelectSubtask) {
+                    onSelectSubtask(subtask);
+                  } else {
+                    const nextStatus = subtask.status === "DONE" ? "TODO" : subtask.status === "TODO" ? "WIP" : "DONE";
+                    handleUpdateSubtask(subtask.uid, { status: nextStatus });
+                  }
                 }}
-                className={`p-5 rounded-2xl border shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md ${
+                className={`p-5 rounded-2xl border shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md flex flex-col justify-between ${
                   subtask.status === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/30" :
                   subtask.status === "WIP" ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/30" :
-                  "bg-surface-100 border-surface-200 border-surface-200 hover:border-accent"
+                  "bg-surface-100 dark:bg-surface-800 border-surface-200 dark:border-surface-700 hover:border-accent"
                 }`}
               >
-                <div className="flex justify-between items-start mb-2 gap-2">
-                  <h4 className={`text-sm font-bold ${subtask.status === "DONE" ? "text-surface-500 text-surface-400 line-through" : "text-primary"}`}>{subtask.title}</h4>
-                  <span className={`shrink-0 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md border ${
-                    subtask.status === "DONE" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:border-emerald-800/30" :
-                    subtask.status === "WIP" ? "bg-blue-100 text-blue-700 border-blue-200 dark:border-blue-800/30" :
-                    "bg-surface-100 text-surface-500 text-surface-400 border-surface-200"
-                  }`}>
-                    {subtask.status}
+                <div>
+                  <div className="flex justify-between items-start mb-2 gap-2">
+                    <h4 className={`text-sm font-bold ${subtask.status === "DONE" ? "text-surface-500 dark:text-surface-400 line-through" : "text-primary"}`}>{subtask.title}</h4>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const nextStatus = subtask.status === "DONE" ? "TODO" : subtask.status === "TODO" ? "WIP" : "DONE";
+                        handleUpdateSubtask(subtask.uid, { status: nextStatus });
+                      }}
+                      className={`shrink-0 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md border transition-all hover:scale-105 ${
+                        subtask.status === "DONE" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:border-emerald-800/30" :
+                        subtask.status === "WIP" ? "bg-blue-100 text-blue-700 border-blue-200 dark:border-blue-800/30" :
+                        "bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 border-surface-300 dark:border-surface-600"
+                      }`}
+                      title="Click to toggle status"
+                    >
+                      {subtask.status}
+                    </button>
+                  </div>
+                  {subtask.description && (
+                    <p className={`text-xs mt-2 line-clamp-3 ${subtask.status === "DONE" ? "text-emerald-700/60 dark:text-emerald-400/60" : "text-surface-500 dark:text-surface-400"}`}>{subtask.description}</p>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-surface-200/50 dark:border-surface-700/50 flex items-center justify-between">
+                  {subtask.assigned_to ? (
+                    <Link href={`/dashboard/team/${subtask.assigned_to.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                      <div className="w-5 h-5 rounded-full bg-accent text-background flex items-center justify-center text-[8px] font-bold uppercase">
+                        {subtask.assigned_to.name.charAt(0)}
+                      </div>
+                      <span className={`text-[10px] font-bold hover:underline ${subtask.status === "DONE" ? "text-emerald-700/60 dark:text-emerald-400/60" : "text-surface-500 dark:text-surface-400"}`}>{subtask.assigned_to.name}</span>
+                    </Link>
+                  ) : (
+                    <span className="text-[10px] font-bold text-surface-400 dark:text-surface-500">Unassigned</span>
+                  )}
+                  <span className="text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                    Details →
                   </span>
                 </div>
-                {subtask.description && (
-                  <p className={`text-xs mt-2 line-clamp-3 ${subtask.status === "DONE" ? "text-emerald-700/60" : "text-surface-500 text-surface-400"}`}>{subtask.description}</p>
-                )}
-                {subtask.assigned_to && (
-                  <Link href={`/dashboard/team/${subtask.assigned_to.id}`} className="mt-4 flex items-center gap-2 hover:opacity-80 transition-opacity">
-                    <div className="w-5 h-5 rounded-full bg-accent text-background flex items-center justify-center text-[8px] font-bold uppercase">
-                      {subtask.assigned_to.name.charAt(0)}
-                    </div>
-                    <span className={`text-[10px] font-bold hover:underline ${subtask.status === "DONE" ? "text-emerald-700/60" : "text-surface-500 text-surface-400"}`}>{subtask.assigned_to.name}</span>
-                  </Link>
-                )}
               </div>
             ))}
           </div>
