@@ -1,17 +1,37 @@
 import React, { useState } from "react";
 import Link from "next/link";
-import { Task } from "@/types/projects";
-import { Plus, X, Layers } from "lucide-react";
+import { Task, TaskChecklistItem } from "@/types/projects";
+import { Plus, X, Layers, CheckSquare, ListChecks } from "lucide-react";
+import { TaskChecklistTab } from "./TaskChecklistTab";
+
+interface ChecklistTemplate {
+  id: number;
+  name: string;
+  items?: any[];
+}
 
 interface TaskSubtasksTabProps {
   task: Task;
   isUpdating: boolean;
   isAdmin: boolean;
   isArchitect: boolean;
+  isContractor?: boolean;
+  isQA?: boolean;
   handleUpdateSubtask: (subtaskUid: string, data: any) => void;
   handleCreateSubtask: (title: string, description: string) => void;
   handleDeleteSubtask?: (subtaskUid: string) => void;
   onSelectSubtask?: (subtask: Task) => void;
+  // Checklist props for unified view
+  checklists?: TaskChecklistItem[];
+  newChecklistDesc?: string;
+  setNewChecklistDesc?: (val: string) => void;
+  handleAddChecklistItem?: () => void;
+  handleToggleChecklist?: (item: TaskChecklistItem) => void;
+  checklistTemplates?: ChecklistTemplate[];
+  selectedTemplateId?: string;
+  setSelectedTemplateId?: (val: string) => void;
+  handleImportTemplate?: () => void;
+  setLightboxImageUrl?: (url: string | null) => void;
 }
 
 export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
@@ -19,12 +39,25 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
   isUpdating,
   isAdmin,
   isArchitect,
+  isContractor = false,
+  isQA = false,
   handleUpdateSubtask,
   handleCreateSubtask,
   handleDeleteSubtask,
   onSelectSubtask,
+  checklists = [],
+  newChecklistDesc = "",
+  setNewChecklistDesc = () => {},
+  handleAddChecklistItem = () => {},
+  handleToggleChecklist = () => {},
+  checklistTemplates = [],
+  selectedTemplateId = "",
+  setSelectedTemplateId = () => {},
+  handleImportTemplate = () => {},
+  setLightboxImageUrl = () => {},
 }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const completedChecklistsCount = checklists.filter(i => i.is_completed).length;
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto h-[calc(100vh-280px)] p-2">
@@ -33,12 +66,12 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="p-1.5 rounded-lg bg-accent/10 text-accent">
-              <Layers className="w-5 h-5" />
+              <ListChecks className="w-5 h-5" />
             </span>
-            <h3 className="text-xl font-extrabold text-primary dark:text-white tracking-tight">Subtasks</h3>
+            <h3 className="text-xl font-extrabold text-primary dark:text-white tracking-tight">Tasks & Checklists</h3>
           </div>
           <p className="text-xs text-surface-500 dark:text-surface-400 font-medium ml-8">
-            Break this task down into smaller actionable steps.
+            Manage subtasks, action items, and quality verification checklists together in one place.
           </p>
         </div>
 
@@ -54,109 +87,156 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
         )}
       </div>
 
-      {/* Subtask Cards Grid */}
-      <div className="flex-1 overflow-y-auto p-2 pb-6 custom-scrollbar">
-        {task.subtasks && task.subtasks.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
-            {task.subtasks.map((subtask: any) => (
-              <div 
-                key={subtask.uid} 
-                onClick={() => {
-                  if (onSelectSubtask) {
-                    onSelectSubtask(subtask);
-                  } else {
-                    const nextStatus = subtask.status === "TODO" ? "ON_HOLD" : subtask.status === "ON_HOLD" ? "WIP" : subtask.status === "WIP" ? "DONE" : "TODO";
-                    handleUpdateSubtask(subtask.uid, { status: nextStatus });
-                  }
-                }}
-                className={`group p-6 rounded-2xl border-l-4 border-r border-t border-b border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800/90 shadow-sm cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-accent relative z-10 flex flex-col justify-between min-h-[175px] ${
-                  subtask.status === "DONE" ? "border-l-emerald-500" :
-                  subtask.status === "ON_HOLD" ? "border-l-amber-500" :
-                  subtask.status === "WIP" ? "border-l-blue-500" :
-                  subtask.status === "QA" ? "border-l-purple-500" :
-                  "border-l-slate-400"
-                }`}
-              >
-                <div>
-                  <div className="flex justify-between items-start mb-3 gap-3">
-                    <h4 className={`text-sm font-extrabold tracking-tight line-clamp-2 ${subtask.status === "DONE" ? "text-surface-500 dark:text-surface-400 line-through" : "text-primary dark:text-white"}`}>{subtask.title}</h4>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const nextStatus = subtask.status === "TODO" ? "ON_HOLD" : subtask.status === "ON_HOLD" ? "WIP" : subtask.status === "WIP" ? "DONE" : "TODO";
-                          handleUpdateSubtask(subtask.uid, { status: nextStatus });
-                        }}
-                        className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all hover:scale-105 shadow-sm ${
-                          subtask.status === "DONE" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" :
-                          subtask.status === "ON_HOLD" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" :
-                          subtask.status === "WIP" ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" :
-                          subtask.status === "QA" ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30" :
-                          "bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 border-surface-300 dark:border-surface-600"
-                        }`}
-                        title="Click to toggle status"
-                      >
-                        {subtask.status === "ON_HOLD" ? "ON HOLD" : subtask.status}
-                      </button>
+      {/* Main Unified Content Area */}
+      <div className="flex-1 overflow-y-auto p-2 pb-8 space-y-8 custom-scrollbar">
+        {/* Section 1: Subtasks & Breakdown Items */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b border-surface-200 dark:border-surface-700 pb-2">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-indigo-500" />
+              <h4 className="text-sm font-extrabold uppercase tracking-wider text-primary dark:text-white">
+                Subtasks ({task.subtasks?.length || 0})
+              </h4>
+            </div>
+            {task.subtasks && task.subtasks.length > 0 && (
+              <span className="text-[10px] font-bold text-surface-400">
+                Click item to update status or view details
+              </span>
+            )}
+          </div>
 
-                      {handleDeleteSubtask && (isAdmin || isArchitect) && (
+          {task.subtasks && task.subtasks.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-2">
+              {task.subtasks.map((subtask: any) => (
+                <div 
+                  key={subtask.uid} 
+                  onClick={() => {
+                    if (onSelectSubtask) {
+                      onSelectSubtask(subtask);
+                    } else {
+                      const nextStatus = subtask.status === "TODO" ? "ON_HOLD" : subtask.status === "ON_HOLD" ? "WIP" : subtask.status === "WIP" ? "DONE" : "TODO";
+                      handleUpdateSubtask(subtask.uid, { status: nextStatus });
+                    }
+                  }}
+                  className={`group p-6 rounded-2xl border-l-4 border-r border-t border-b border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800/90 shadow-sm cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-accent relative z-10 flex flex-col justify-between min-h-[175px] ${
+                    subtask.status === "DONE" ? "border-l-emerald-500" :
+                    subtask.status === "ON_HOLD" ? "border-l-amber-500" :
+                    subtask.status === "WIP" ? "border-l-blue-500" :
+                    subtask.status === "QA" ? "border-l-purple-500" :
+                    "border-l-slate-400"
+                  }`}
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-3 gap-3">
+                      <h4 className={`text-sm font-extrabold tracking-tight line-clamp-2 ${subtask.status === "DONE" ? "text-surface-500 dark:text-surface-400 line-through" : "text-primary dark:text-white"}`}>{subtask.title}</h4>
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm(`Are you sure you want to delete subtask "${subtask.title}"?`)) {
-                              handleDeleteSubtask(subtask.uid);
-                            }
+                            const nextStatus = subtask.status === "TODO" ? "ON_HOLD" : subtask.status === "ON_HOLD" ? "WIP" : subtask.status === "WIP" ? "DONE" : "TODO";
+                            handleUpdateSubtask(subtask.uid, { status: nextStatus });
                           }}
-                          className="p-1 text-xs hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
-                          title="Delete Subtask"
+                          className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all hover:scale-105 shadow-sm ${
+                            subtask.status === "DONE" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" :
+                            subtask.status === "ON_HOLD" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" :
+                            subtask.status === "WIP" ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" :
+                            subtask.status === "QA" ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30" :
+                            "bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 border-surface-300 dark:border-surface-600"
+                          }`}
+                          title="Click to toggle status"
                         >
-                          🗑️
+                          {subtask.status === "ON_HOLD" ? "ON HOLD" : subtask.status}
                         </button>
-                      )}
-                    </div>
-                  </div>
-                  {subtask.description && (
-                    <p className={`text-xs mt-2 line-clamp-3 leading-relaxed ${subtask.status === "DONE" ? "text-emerald-700/60 dark:text-emerald-400/60" : "text-surface-500 dark:text-surface-400"}`}>{subtask.description}</p>
-                  )}
-                </div>
 
-                <div className="mt-5 pt-3.5 border-t border-surface-200/60 dark:border-surface-700/60 flex items-center justify-between">
-                  {subtask.assigned_to ? (
-                    <Link href={`/dashboard/team/${subtask.assigned_to.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                      <div className="w-5 h-5 rounded-full bg-accent text-background flex items-center justify-center text-[8px] font-bold uppercase">
-                        {subtask.assigned_to.name.charAt(0)}
+                        {handleDeleteSubtask && (isAdmin || isArchitect) && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Are you sure you want to delete subtask "${subtask.title}"?`)) {
+                                handleDeleteSubtask(subtask.uid);
+                              }
+                            }}
+                            className="p-1 text-xs hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                            title="Delete Subtask"
+                          >
+                            🗑️
+                          </button>
+                        )}
                       </div>
-                      <span className={`text-[10px] font-bold hover:underline ${subtask.status === "DONE" ? "text-emerald-700/60 dark:text-emerald-400/60" : "text-surface-500 dark:text-surface-400"}`}>{subtask.assigned_to.name}</span>
-                    </Link>
-                  ) : (
-                    <span className="text-[10px] font-bold text-surface-400 dark:text-surface-500">Unassigned</span>
-                  )}
-                  <span className="text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                    Details →
-                  </span>
+                    </div>
+                    {subtask.description && (
+                      <p className={`text-xs mt-2 line-clamp-3 leading-relaxed ${subtask.status === "DONE" ? "text-emerald-700/60 dark:text-emerald-400/60" : "text-surface-500 dark:text-surface-400"}`}>{subtask.description}</p>
+                    )}
+                  </div>
+
+                  <div className="mt-5 pt-3.5 border-t border-surface-200/60 dark:border-surface-700/60 flex items-center justify-between">
+                    {subtask.assigned_to ? (
+                      <Link href={`/dashboard/team/${subtask.assigned_to.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                        <div className="w-5 h-5 rounded-full bg-accent text-background flex items-center justify-center text-[8px] font-bold uppercase">
+                          {subtask.assigned_to.name.charAt(0)}
+                        </div>
+                        <span className={`text-[10px] font-bold hover:underline ${subtask.status === "DONE" ? "text-emerald-700/60 dark:text-emerald-400/60" : "text-surface-500 dark:text-surface-400"}`}>{subtask.assigned_to.name}</span>
+                      </Link>
+                    ) : (
+                      <span className="text-[10px] font-bold text-surface-400 dark:text-surface-500">Unassigned</span>
+                    )}
+                    <span className="text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                      Details →
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-36 bg-surface-50 dark:bg-surface-800/40 rounded-2xl border-2 border-dashed border-surface-200 dark:border-surface-700 p-6 text-center">
+              <Layers className="w-8 h-8 text-surface-300 dark:text-surface-600 mb-2" />
+              <p className="text-surface-600 dark:text-surface-300 font-extrabold text-sm mb-1">No subtasks added yet.</p>
+              {(isAdmin || isArchitect) && (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(true)}
+                  className="mt-1 px-3.5 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add First Subtask
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Section 2: Quality & Inspection Checklists */}
+        <div className="space-y-4 pt-4 border-t border-surface-200 dark:border-surface-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-emerald-500" />
+              <h4 className="text-sm font-extrabold uppercase tracking-wider text-primary dark:text-white">
+                Quality & Inspection Checklists ({completedChecklistsCount}/{checklists.length} Completed)
+              </h4>
+            </div>
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-48 bg-surface-50 dark:bg-surface-800/40 rounded-2xl border-2 border-dashed border-surface-200 dark:border-surface-700 p-8 text-center">
-            <Layers className="w-10 h-10 text-surface-300 dark:text-surface-600 mb-3" />
-            <p className="text-surface-600 dark:text-surface-300 font-extrabold text-base mb-1">No subtasks added yet.</p>
-            <p className="text-xs text-surface-400 dark:text-surface-500 max-w-sm mb-4">Click "Create Subtask" above to break this task into smaller manageable action items.</p>
-            {(isAdmin || isArchitect) && (
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-accent/10 hover:bg-accent/20 text-accent text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                Add First Subtask
-              </button>
-            )}
-          </div>
-        )}
+
+          <TaskChecklistTab
+            task={task}
+            checklists={checklists}
+            newChecklistDesc={newChecklistDesc}
+            setNewChecklistDesc={setNewChecklistDesc}
+            handleAddChecklistItem={handleAddChecklistItem}
+            handleToggleChecklist={handleToggleChecklist}
+            isContractor={isContractor}
+            isUpdating={isUpdating}
+            isAdmin={isAdmin}
+            isArchitect={isArchitect}
+            isQA={isQA}
+            checklistTemplates={checklistTemplates}
+            selectedTemplateId={selectedTemplateId}
+            setSelectedTemplateId={setSelectedTemplateId}
+            handleImportTemplate={handleImportTemplate}
+            setLightboxImageUrl={setLightboxImageUrl}
+          />
+        </div>
       </div>
 
       {/* Create Subtask Modal */}

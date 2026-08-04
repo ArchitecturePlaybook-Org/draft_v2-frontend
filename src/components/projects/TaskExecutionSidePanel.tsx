@@ -389,8 +389,8 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
   const tabs: { id: TaskTab; label: string; hidden?: boolean }[] = [
     { id: "execution", label: isSubtaskPanel ? "Subtask Details & Timeline" : (isMatrixTask ? "Timeline & Directives" : "Execution Details") },
-    { id: "subtasks", label: "Subtasks", hidden: isSubtaskPanel },
-    { id: "checklist", label: "Checklists & Action Steps" },
+    { id: "subtasks", label: "Tasks & Checklists", hidden: isSubtaskPanel },
+    { id: "checklist", label: "Checklists & QA", hidden: !isSubtaskPanel },
     { id: "diary", label: "Field Diary", hidden: isSubtaskPanel },
     { id: "drawing", label: "Floorplans & Models", hidden: !isMatrixTask && !isSubtaskPanel },
   ];
@@ -822,17 +822,29 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
               )}
 
 
-              {/* SUBTASKS TAB */}
+              {/* SUBTASKS & CHECKLISTS UNIFIED TAB */}
               {activeTab === "subtasks" && (
                 <TaskSubtasksTab
                   task={task}
                   isUpdating={isUpdating}
                   isAdmin={isAdmin}
                   isArchitect={isArchitect}
+                  isContractor={isContractor}
+                  isQA={isQA}
                   handleUpdateSubtask={handleUpdateSubtask}
                   handleCreateSubtask={handleCreateSubtask}
                   handleDeleteSubtask={handleDeleteSubtask}
                   onSelectSubtask={(subtask) => setSelectedSubtask(subtask)}
+                  checklists={checklists}
+                  newChecklistDesc={newChecklistDesc}
+                  setNewChecklistDesc={setNewChecklistDesc}
+                  handleAddChecklistItem={handleAddChecklistItem}
+                  handleToggleChecklist={handleToggleChecklist}
+                  checklistTemplates={checklistTemplates}
+                  selectedTemplateId={selectedTemplateId}
+                  setSelectedTemplateId={setSelectedTemplateId}
+                  handleImportTemplate={handleImportTemplate}
+                  setLightboxImageUrl={setLightboxImageUrl}
                 />
               )}
 
