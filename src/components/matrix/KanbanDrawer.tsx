@@ -17,17 +17,19 @@ interface KanbanDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onBlockUpdated: (updated: MilestoneBlockExpanded) => void;
-  userRole?: "contractor" | "qa_inspector" | "admin";
+  userRole?: "contractor" | "qa_inspector" | "admin" | "viewer";
   projectUid?: string;
   /** Controlled panel width from parent split state */
   width?: number;
   leftOffset?: number;
   /** Bubbles task click up to parent for split-pane rendering */
   onTaskSelect?: (task: Task) => void;
+  readOnly?: boolean;
 }
 
 const COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
   { id: "TODO", label: "To Do", color: "border-t-[3px] border-surface-300 bg-transparent", dotColor: "bg-surface-300" },
+  { id: "ON_HOLD", label: "On Hold", color: "border-t-[3px] border-amber-500 bg-transparent", dotColor: "bg-amber-500" },
   { id: "WIP", label: "In Progress", color: "border-t-[3px] border-semantic-blue bg-transparent", dotColor: "bg-semantic-blue" },
   { id: "QA", label: "Under Inspection", color: "border-t-[3px] border-accent bg-transparent", dotColor: "bg-accent" },
   { id: "DONE", label: "Done", color: "border-t-[3px] border-semantic-green bg-transparent", dotColor: "bg-semantic-green" },
@@ -64,6 +66,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   width,
   leftOffset = 0,
   onTaskSelect,
+  readOnly = false,
 }) => {
   const [tasks, setTasks] = useState<Task[]>(block.tasks || []);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -71,34 +74,46 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
-  const isLocked = block.status === "LOCKED";
+  const isLocked = block.status === "LOCKED" || readOnly;
 
-  // Sync tasks whenever block.tasks prop updates
+  // Sync tasks whenever block or block.tasks prop updates
   React.useEffect(() => {
-    if (block.tasks) {
-      setTasks(block.tasks);
+    if (block?.tasks) {
+      setTasks(block.tasks.filter((t: any) => t && !t.is_deleted));
     }
-  }, [block.tasks]);
+  }, [block, block?.tasks]);
+
+  const [onHoldPromptTask, setOnHoldPromptTask] = useState<{ taskId: string; taskTitle: string } | null>(null);
+  const [onHoldReasonText, setOnHoldReasonText] = useState("");
 
   // ── Drag & Drop ─────────────────────────────────────────────────────────────
   const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
+    if (readOnly) return;
     e.dataTransfer.effectAllowed = "move";
     setDraggingTaskId(taskId);
-  }, []);
+  }, [readOnly]);
 
   const handleDragOver = useCallback((e: React.DragEvent, col: TaskStatus) => {
+    if (readOnly) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOverColumn(col);
-  }, []);
+  }, [readOnly]);
 
   const handleDrop = useCallback(async (e: React.DragEvent, targetStatus: TaskStatus) => {
+    if (readOnly) return;
     e.preventDefault();
     setDragOverColumn(null);
     if (draggingTaskId === null) return;
 
     const task = tasks.find(t => t.uid === draggingTaskId);
     if (!task || task.status === targetStatus) {
+      setDraggingTaskId(null);
+      return;
+    }
+
+    if (targetStatus === "ON_HOLD") {
+      setOnHoldPromptTask({ taskId: draggingTaskId, taskTitle: task.title });
       setDraggingTaskId(null);
       return;
     }
@@ -122,6 +137,32 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       toast.error(err?.message || "Cannot move task — gate rule violated.");
     }
   }, [draggingTaskId, tasks, block, onBlockUpdated]);
+
+  const handleConfirmOnHoldDrop = async () => {
+    if (!onHoldPromptTask || !onHoldReasonText.trim()) return;
+    const { taskId } = onHoldPromptTask;
+    const task = tasks.find(t => t.uid === taskId);
+    if (!task) return;
+
+    const previousTasks = [...tasks];
+    const updatedTask = { ...task, status: "ON_HOLD" as const, on_hold_reason: onHoldReasonText.trim() };
+    const optimisticTasks = tasks.map(t => t.uid === taskId ? updatedTask : t);
+    setTasks(optimisticTasks);
+    setOnHoldPromptTask(null);
+    const reason = onHoldReasonText.trim();
+    setOnHoldReasonText("");
+
+    try {
+      const updated = await projectsApi.updateTask(taskId, { status: "ON_HOLD", on_hold_reason: reason });
+      const updatedTasks = optimisticTasks.map(t => t.uid === updated.uid ? updated : t);
+      setTasks(updatedTasks);
+      onBlockUpdated(getUpdatedBlock(block, updatedTasks));
+      toast.success("Moved to On Hold");
+    } catch (err: any) {
+      setTasks(previousTasks);
+      toast.error(err?.message || "Could not move task to On Hold.");
+    }
+  };
 
   // ── Add Task ────────────────────────────────────────────────────────────────
   const handleAddTask = async () => {
@@ -168,7 +209,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     onBlockUpdated(getUpdatedBlock(block, newTasks));
   };
 
-  const safeTasksList = Array.isArray(tasks) ? tasks : [];
+  const safeTasksList = Array.isArray(tasks) ? tasks.filter(t => t && !t.is_deleted) : [];
   const filteredTasks = safeTasksList.filter(t => t && (!priorityFilter || t.priority === priorityFilter));
   
   const tasksByStatus = (status: TaskStatus) => filteredTasks.filter(t => {
@@ -176,6 +217,9 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     const taskStatus = (t.status || "TODO").toUpperCase();
     if (status === "TODO") {
       return taskStatus === "TODO" || taskStatus === "PENDING";
+    }
+    if (status === "ON_HOLD") {
+      return taskStatus === "ON_HOLD" || taskStatus === "ON HOLD" || taskStatus === "HOLD";
     }
     if (status === "WIP") {
       return taskStatus === "WIP" || taskStatus === "IN PROGRESS" || taskStatus === "IN_PROGRESS";
@@ -239,7 +283,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
               <option value="MEDIUM">Medium Priority</option>
               <option value="LOW">Low Priority</option>
             </select>
-            {userRole === "admin" && (
+            {!readOnly && userRole === "admin" && (
               <button
                 onClick={() => setIsAddingTask(true)}
                 className="h-9 px-4 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shrink-0 whitespace-nowrap"
@@ -259,9 +303,10 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         {/* Block Notes */}
         <div className="px-7 py-3 border-b border-surface-100 dark:border-surface-800 bg-surface-100 bg-background shrink-0">
           <textarea
-            className="w-full text-xs text-surface-600 text-surface-300 bg-surface-50 dark:bg-surface-800 hover:bg-surface-100 dark:hover:bg-surface-900 border border-transparent hover:border-surface-200 dark:hover:border-surface-700 focus:border-accent focus:bg-surface-100 dark:focus:bg-surface-900 rounded-lg p-3 outline-none resize-none transition-all placeholder:text-surface-300 dark:placeholder:text-surface-600 font-medium"
+            className="w-full text-xs text-surface-600 text-surface-300 bg-surface-50 dark:bg-surface-800 hover:bg-surface-100 dark:hover:bg-surface-900 border border-transparent hover:border-surface-200 dark:hover:border-surface-700 focus:border-accent focus:bg-surface-100 dark:focus:bg-surface-900 rounded-lg p-3 outline-none resize-none transition-all placeholder:text-surface-300 dark:placeholder:text-surface-600 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
             rows={2}
-            placeholder="Add notes for this block... (e.g. key blockers, handover instructions)"
+            disabled={readOnly}
+            placeholder={readOnly ? "No notes added for this block." : "Add notes for this block... (e.g. key blockers, handover instructions)"}
             defaultValue={block.notes || ""}
             onBlur={async (e) => {
               if (e.target.value !== block.notes) {
@@ -391,6 +436,61 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             <span className="text-[9px] font-bold text-surface-400">{block.progress_percent}% complete</span>
           </div>
         </div>
+
+        {/* On Hold Prompt Modal */}
+        {onHoldPromptTask && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
+            <div className="bg-background border border-surface-200 dark:border-surface-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 border-b border-surface-200 dark:border-surface-700 pb-3">
+                <span className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-lg">
+                  ⏸️
+                </span>
+                <div>
+                  <h3 className="text-lg font-extrabold text-primary dark:text-white">Why is this task on hold?</h3>
+                  <p className="text-xs text-surface-500 dark:text-surface-400">Moving <strong className="text-primary dark:text-white">"{onHoldPromptTask.taskTitle}"</strong> to On Hold.</p>
+                </div>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleConfirmOnHoldDrop();
+                }}
+                className="space-y-4"
+              >
+                <textarea
+                  value={onHoldReasonText}
+                  onChange={(e) => setOnHoldReasonText(e.target.value)}
+                  placeholder="e.g. Waiting for material delivery / client approval..."
+                  rows={3}
+                  required
+                  autoFocus
+                  className="w-full p-3.5 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-xs font-medium text-primary dark:text-white outline-none focus:ring-2 focus:ring-amber-500 transition-all resize-none leading-relaxed"
+                />
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOnHoldPromptTask(null);
+                      setOnHoldReasonText("");
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 text-xs font-bold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!onHoldReasonText.trim()}
+                    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                  >
+                    Confirm On Hold
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </motion.div>
 
     </>

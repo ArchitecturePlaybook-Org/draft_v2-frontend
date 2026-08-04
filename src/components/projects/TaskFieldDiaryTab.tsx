@@ -10,9 +10,10 @@ import { fieldDiaryCache } from "@/domains/projects/fieldDiaryCache";
 interface TaskFieldDiaryTabProps {
   task: Task;
   projectUid: string;
+  readOnly?: boolean;
 }
 
-export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, projectUid }) => {
+export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, projectUid, readOnly = false }) => {
   const [loading, setLoading] = useState(true);
   const [todayEntry, setTodayEntry] = useState<any | null>(null);
   
@@ -195,7 +196,11 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
            <h3 className="font-bold text-indigo-900">{task.title}</h3>
          </div>
          
-         {!isLocked ? (
+         {readOnly ? (
+           <div className="bg-surface-100 border-surface-200/50 p-3 rounded-lg border border-indigo-100 text-sm text-indigo-800 font-medium flex items-center gap-2">
+             🔒 Template Preview Mode — Field Diary is view-only.
+           </div>
+         ) : !isLocked ? (
            <div className="flex flex-col md:flex-row gap-3 items-end">
               <div className="flex-1 w-full relative">
                 <label className="block text-xs font-bold text-indigo-700 uppercase mb-1 flex items-center gap-1">
@@ -294,6 +299,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
            entry={todayEntry} 
            projectId={projectUid} 
            onUpdate={handleUpdate} 
+           readOnly={readOnly}
          />
        </div>
     </div>

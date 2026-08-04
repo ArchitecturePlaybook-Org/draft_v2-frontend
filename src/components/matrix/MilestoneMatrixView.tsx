@@ -18,7 +18,7 @@ import { Trash2, Pencil } from "lucide-react";
 interface MilestoneMatrixViewProps {
   projectUid: string;
   projectTasks: Task[];
-  userRole?: "contractor" | "qa_inspector" | "admin";
+  userRole?: "contractor" | "qa_inspector" | "admin" | "viewer";
   onMatrixLoaded?: (hasData: boolean) => void;
   onTaskChange?: () => void;
   readOnly?: boolean;
@@ -63,21 +63,14 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const fetchMatrix = useCallback(async () => {
-    if (initialPayload) {
-      const safeInitial = {
-        ...initialPayload,
-        zones: initialPayload.zones || [],
-        phases: initialPayload.phases || [],
-        blocks: initialPayload.blocks || [],
-      };
-      setPayload(safeInitial);
-      if (onMatrixLoaded) {
-        onMatrixLoaded(safeInitial.zones.length > 0 && safeInitial.phases.length > 0);
-      }
-      setLoading(false);
-      return;
-    }
+  const onTaskChangeRef = useRef(onTaskChange);
+  const onMatrixLoadedRef = useRef(onMatrixLoaded);
+  useEffect(() => {
+    onTaskChangeRef.current = onTaskChange;
+    onMatrixLoadedRef.current = onMatrixLoaded;
+  }, [onTaskChange, onMatrixLoaded]);
+
+  const refreshMatrix = useCallback(async () => {
     try {
       const data = await projectsApi.getMatrix(projectUid);
       const safeData = {
@@ -87,23 +80,44 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         blocks: data?.blocks || [],
       };
       setPayload(safeData);
-      if (onMatrixLoaded) {
-        onMatrixLoaded(safeData.zones.length > 0 && safeData.phases.length > 0);
+      if (onMatrixLoadedRef.current) {
+        onMatrixLoadedRef.current(safeData.zones.length > 0 && safeData.phases.length > 0);
       }
       setError(null);
     } catch (err: any) {
-      setError(err.message || "Failed to load matrix.");
-    } finally {
-      setLoading(false);
+      console.error("Failed to refresh matrix", err);
     }
-  }, [projectUid, initialPayload, onMatrixLoaded]);
+  }, [projectUid]);
 
+  const refreshMatrixRef = useRef(refreshMatrix);
   useEffect(() => {
-    fetchMatrix();
-    
-    if (readOnly || initialPayload) return; // No live updates for static public views
+    refreshMatrixRef.current = refreshMatrix;
+  }, [refreshMatrix]);
 
-    // Connect WebSocket for real-time updates
+  // Initial matrix fetch
+  useEffect(() => {
+    if (initialPayload) {
+      const safeInitial = {
+        ...initialPayload,
+        zones: initialPayload.zones || [],
+        phases: initialPayload.phases || [],
+        blocks: initialPayload.blocks || [],
+      };
+      setPayload(safeInitial);
+      if (onMatrixLoadedRef.current) {
+        onMatrixLoadedRef.current(safeInitial.zones.length > 0 && safeInitial.phases.length > 0);
+      }
+      setLoading(false);
+      return;
+    }
+
+    refreshMatrix().finally(() => setLoading(false));
+  }, [projectUid, initialPayload, refreshMatrix]);
+
+  // Connect WebSocket for real-time updates (stable connection)
+  useEffect(() => {
+    if (readOnly || initialPayload) return;
+
     const wsUrl = getWebSocketUrl(`/ws/projects/${projectUid}/matrix/`);
     const ws = new WebSocket(wsUrl);
 
@@ -111,7 +125,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
       try {
         const data = JSON.parse(event.data);
         if (data.type === "matrix_update") {
-          fetchMatrix();
+          refreshMatrixRef.current();
         }
       } catch (e) {
         console.error("Failed to parse websocket message", e);
@@ -121,7 +135,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     return () => {
       ws.close();
     };
-  }, [fetchMatrix, projectUid, readOnly, initialPayload]);
+  }, [projectUid, readOnly, initialPayload]);
 
   const getBlock = (zoneId: number, phaseId: number): MilestoneBlockCompact | null =>
     (payload?.blocks || []).find(b => b.zone_id === zoneId && b.phase_id === phaseId) ?? null;
@@ -156,7 +170,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     setLoadingCellId(cellId);
     try {
       const block = await projectsApi.getOrCreateBlock(zone.id, phase.id);
-      fetchMatrix();
+      refreshMatrix();
       
       const expandedBlock: MilestoneBlockExpanded = {
         ...block,
@@ -175,8 +189,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
 
   const handleBlockUpdated = (updated: MilestoneBlockExpanded) => {
     // Refresh matrix totals after a task change
-    fetchMatrix();
-    if (onTaskChange) onTaskChange();
+    refreshMatrix();
+    if (onTaskChangeRef.current) onTaskChangeRef.current();
     if (selectedBlock?.id === updated.id) {
       setSelectedBlock(updated);
     }
@@ -187,7 +201,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     try {
       const updatedBlock = await projectsApi.unlockBlock(blockId, reason);
       toast.success("Block unlocked");
-      fetchMatrix();
+      refreshMatrix();
       // Update selectedBlock so KanbanDrawer recomputes isLocked immediately
       if (selectedBlock?.id === blockId) {
         setSelectedBlock(prev => prev ? { ...prev, ...updatedBlock, status: "ACTIVE" as const } : prev);
@@ -202,7 +216,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     try {
       const updatedBlock = await projectsApi.lockBlock(blockId);
       toast.success("Block re-locked");
-      fetchMatrix();
+      refreshMatrix();
       // Update selectedBlock so KanbanDrawer recomputes isLocked immediately
       if (selectedBlock?.id === blockId) {
         setSelectedBlock(prev => prev ? { ...prev, ...updatedBlock, status: "LOCKED" as const } : prev);
@@ -227,7 +241,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         order: payload.zones.length,
         zone_type: "custom"
       });
-      fetchMatrix();
+      refreshMatrix();
       toast.success("Zone added successfully");
       setShowAddZoneInput(false);
       setNewZoneName("");
@@ -251,6 +265,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         sequence_order: payload.phases.length + 1,
         color_hex: "#94a3b8"
       });
+      refreshMatrix();
+      toast.success("Phase added successfully");
       setShowAddPhaseInput(false);
       setNewPhaseName("");
     } catch (err: any) {
@@ -277,7 +293,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     try {
       await projectsApi.deleteZone(zone.id);
       toast.success(`Zone "${zone.name}" deleted.`);
-      fetchMatrix();
+      refreshMatrix();
     } catch (err: any) {
       toast.error(err?.data?.detail || err?.message || "Failed to delete zone.");
     }
@@ -300,7 +316,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     try {
       await projectsApi.deletePhase(phase.id);
       toast.success(`Phase "${phase.name}" deleted.`);
-      fetchMatrix();
+      refreshMatrix();
     } catch (err: any) {
       toast.error(err?.data?.detail || err?.message || "Failed to delete phase.");
     }
@@ -321,7 +337,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     try {
       await projectsApi.deleteMatrix(projectUid);
       toast.success("Master gate matrix reset successfully.");
-      fetchMatrix();
+      refreshMatrix();
     } catch (err: any) {
       toast.error(err?.data?.detail || err?.message || "Failed to reset matrix.");
     }
@@ -336,7 +352,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
       await projectsApi.updateZone(zoneId, { name: editedZoneName.trim() });
       toast.success("Zone renamed");
       setEditingZoneId(null);
-      fetchMatrix();
+      refreshMatrix();
     } catch (err: any) {
       toast.error("Failed to update zone: " + (err.message || ""));
     }
@@ -351,7 +367,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
       await projectsApi.updatePhase(phaseId, { name: editedPhaseName.trim() });
       toast.success("Phase renamed");
       setEditingPhaseId(null);
-      fetchMatrix();
+      refreshMatrix();
     } catch (err: any) {
       toast.error("Failed to update phase: " + (err.message || ""));
     }
@@ -396,7 +412,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
           projectUid={projectUid} 
           onComplete={() => {
             setShowWizard(false);
-            fetchMatrix();
+            refreshMatrix();
           }} 
         />
       );
@@ -438,7 +454,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     return (
       <div className="flex items-center justify-center h-64 gap-3">
         <p className="text-sm font-bold text-red-500">{error}</p>
-        <button onClick={fetchMatrix} className="text-accent text-sm font-bold hover:underline">Retry</button>
+        <button onClick={refreshMatrix} className="text-accent text-sm font-bold hover:underline">Retry</button>
       </div>
     );
   }
@@ -690,10 +706,10 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                             <MatrixBlockCell
                               block={block}
                               zoneName={zone.name}
-                              isManager={userRole === "admin"}
-                              onClick={block ? () => handleCellClick(block, zone, phase) : () => handleEmptyCellClick(zone, phase)}
-                              onUnlock={handleUnlockBlock}
-                              onLock={handleLockBlock}
+                              isManager={!readOnly && userRole === "admin"}
+                              onClick={block ? () => handleCellClick(block, zone, phase) : (!readOnly ? () => handleEmptyCellClick(zone, phase) : undefined)}
+                              onUnlock={!readOnly ? handleUnlockBlock : undefined}
+                              onLock={!readOnly ? handleLockBlock : undefined}
                             />
                           )}
                         </td>
@@ -773,7 +789,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
               </button>
             )}
             <button
-              onClick={fetchMatrix}
+              onClick={refreshMatrix}
               className="text-[9px] font-bold text-surface-400 hover:text-accent uppercase tracking-widest flex items-center gap-1 transition-colors"
             >
               ↺ Refresh
@@ -846,7 +862,28 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
             projectTasks={projectTasks}
             taskTags={[]}
             onClose={() => setSelectedTask(null)}
-            onTaskUpdated={() => {}}
+            onTaskUpdated={async () => {
+              await refreshMatrix();
+              onTaskChangeRef.current?.();
+              if (selectedBlock) {
+                try {
+                  const updatedTasks = await projectsApi.getBlockTasks(selectedBlock.id);
+                  const safeTasks = Array.isArray(updatedTasks) ? updatedTasks.filter(t => t && !t.is_deleted) : [];
+                  const doneCount = safeTasks.filter(t => t.status === "DONE").length;
+                  const totalCount = safeTasks.length;
+                  const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+                  setSelectedBlock(prev => prev ? {
+                    ...prev,
+                    tasks: safeTasks,
+                    completed_tasks: doneCount,
+                    total_tasks: totalCount,
+                    progress_percent: progressPct,
+                  } : null);
+                } catch (e) {
+                  console.error("Failed to update active block state", e);
+                }
+              }
+            }}
             readOnly={readOnly}
           />
         )}
