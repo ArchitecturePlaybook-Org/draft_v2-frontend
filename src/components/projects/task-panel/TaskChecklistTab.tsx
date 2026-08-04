@@ -24,6 +24,7 @@ interface TaskChecklistTabProps {
   setSelectedTemplateId: (val: string) => void;
   handleImportTemplate: () => void;
   setLightboxImageUrl: (url: string | null) => void;
+  readOnly?: boolean;
 }
 
 export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
@@ -43,6 +44,7 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
   setSelectedTemplateId,
   handleImportTemplate,
   setLightboxImageUrl,
+  readOnly = false,
 }) => {
   return (
     <div className="max-w-4xl space-y-4">
@@ -56,13 +58,13 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
           <div className="divide-y divide-surface-100">
             {checklists.map((item) => (
               <div key={item.id} className="flex flex-col gap-2 p-4 hover:bg-surface-50 transition-colors group border-b border-surface-100 last:border-0">
-                <label className="flex items-start gap-4 cursor-pointer">
+                <label className={`flex items-start gap-4 ${readOnly ? "cursor-default" : "cursor-pointer"}`}>
                   <input
                     type="checkbox"
                     checked={item.is_completed}
-                    onChange={() => handleToggleChecklist(item)}
-                    disabled={(isContractor && task.status !== "WIP") || isUpdating}
-                    className="w-5 h-5 mt-0.5 rounded border-surface-300 accent-accent shrink-0"
+                    onChange={() => !readOnly && handleToggleChecklist(item)}
+                    disabled={(isContractor && task.status !== "WIP") || isUpdating || readOnly}
+                    className="w-5 h-5 mt-0.5 rounded border-surface-300 accent-accent shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -102,7 +104,7 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
         )}
       </div>
 
-      {(isAdmin || isArchitect || isQA) && (
+      {!readOnly && (isAdmin || isArchitect || isQA) && (
         <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-4 shadow-sm">
           <div className="flex gap-3">
             <input

@@ -535,9 +535,9 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 <button
                   key={s}
                   onClick={() => handleStatusChange(s)}
-                  disabled={isUpdating}
+                  disabled={isUpdating || readOnly}
                   className={`${splitMode ? "px-2 py-1.5" : "px-2.5 sm:px-4 py-2"} text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all whitespace-nowrap ${currentStatus === s ? "bg-surface-100 border-surface-200 shadow-xl text-primary" : "text-surface-500 text-surface-400 hover:text-primary"
-                    }`}
+                    } disabled:opacity-60 disabled:cursor-not-allowed`}
                 >
                   {s === "ON_HOLD" ? "ON HOLD" : s}
                 </button>
@@ -641,11 +641,12 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                             <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Zone</label>
                             <select
                               value={selectedZoneId}
+                              disabled={isUpdating || readOnly}
                               onChange={(e) => {
                                 setSelectedZoneId(e.target.value);
                                 handleUpdateMatrixLocation(e.target.value, selectedPhaseId);
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none"
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               <option value="" disabled>Select Zone...</option>
                               {zones.map(z => (
@@ -657,11 +658,12 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                             <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Phase</label>
                             <select
                               value={selectedPhaseId}
+                              disabled={isUpdating || readOnly}
                               onChange={(e) => {
                                 setSelectedPhaseId(e.target.value);
                                 handleUpdateMatrixLocation(selectedZoneId, e.target.value);
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none"
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               <option value="" disabled>Select Phase...</option>
                               {phases.map(p => (
@@ -684,6 +686,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                             <input
                               type="date"
                               value={task.start_date || ""}
+                              disabled={isUpdating || readOnly}
                               onChange={async (e) => {
                                 const val = e.target.value;
                                 setTask(prev => ({ ...prev, start_date: val }));
@@ -695,7 +698,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                   toast.error(err?.message || "Failed to update start date.");
                                 }
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                           </div>
                           <div className="space-y-2">
@@ -714,13 +717,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                   toast.error(err?.message || "Failed to update due date.");
                                 }
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                              disabled={isUpdating || readOnly}
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Priority</label>
                             <select
                               value={task.priority || "MEDIUM"}
+                              disabled={isUpdating || readOnly}
                               onChange={async (e) => {
                                 const val = e.target.value;
                                 setTask(prev => ({ ...prev, priority: val as any }));
@@ -732,7 +737,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                   toast.error(err?.message || "Failed to update priority.");
                                 }
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               <option value="HIGH">High Priority</option>
                               <option value="MEDIUM">Medium Priority</option>
@@ -745,41 +750,45 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                               {task.tags?.map(tag => (
                                 <span key={tag.id} className="text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-widest flex items-center gap-1" style={{ borderColor: tag.color, backgroundColor: `${tag.color}10`, color: tag.color }}>
                                   {tag.name}
-                                  <button onClick={async () => {
-                                    const newTagIds = task.tags?.filter(t => t.id !== tag.id).map(t => t.id);
-                                    try {
-                                      await projectsApi.updateTask(task.uid, { tag_ids: newTagIds });
-                                      await refreshTask();
-                                      toast.success("Tag removed.");
-                                    } catch (err: any) {
-                                      toast.error(err?.message || "Failed to remove tag.");
-                                    }
-                                  }} className="hover:text-red-500">✕</button>
+                                  {!readOnly && (
+                                    <button onClick={async () => {
+                                      const newTagIds = task.tags?.filter(t => t.id !== tag.id).map(t => t.id);
+                                      try {
+                                        await projectsApi.updateTask(task.uid, { tag_ids: newTagIds });
+                                        await refreshTask();
+                                        toast.success("Tag removed.");
+                                      } catch (err: any) {
+                                        toast.error(err?.message || "Failed to remove tag.");
+                                      }
+                                    }} className="hover:text-red-500">✕</button>
+                                  )}
                                 </span>
                               ))}
                             </div>
-                            <select
-                              value=""
-                              onChange={async (e) => {
-                                if (!e.target.value) return;
-                                const tagId = parseInt(e.target.value);
-                                if (task.tags?.some(t => t.id === tagId)) return;
-                                const currentTagIds = task.tags?.map(t => t.id) || [];
-                                try {
-                                  await projectsApi.updateTask(task.uid, { tag_ids: [...currentTagIds, tagId] });
-                                  await refreshTask();
-                                  toast.success("Tag added.");
-                                } catch (err: any) {
-                                  toast.error(err?.message || "Failed to add tag.");
-                                }
-                              }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
-                            >
-                              <option value="" disabled>Add a tag...</option>
-                              {taskTags?.filter(t => !task.tags?.some(tt => tt.id === t.id)).map(t => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
-                              ))}
-                            </select>
+                            {!readOnly && (
+                              <select
+                                value=""
+                                onChange={async (e) => {
+                                  if (!e.target.value) return;
+                                  const tagId = parseInt(e.target.value);
+                                  if (task.tags?.some(t => t.id === tagId)) return;
+                                  const currentTagIds = task.tags?.map(t => t.id) || [];
+                                  try {
+                                    await projectsApi.updateTask(task.uid, { tag_ids: [...currentTagIds, tagId] });
+                                    await refreshTask();
+                                    toast.success("Tag added.");
+                                  } catch (err: any) {
+                                    toast.error(err?.message || "Failed to add tag.");
+                                  }
+                                }}
+                                className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                              >
+                                <option value="" disabled>Add a tag...</option>
+                                {taskTags?.filter(t => !task.tags?.some(tt => tt.id === t.id)).map(t => (
+                                  <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                              </select>
+                            )}
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -787,6 +796,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                           <textarea
                             rows={4}
                             value={task.description || ""}
+                            disabled={isUpdating || readOnly}
                             onChange={(e) => {
                               const val = e.target.value;
                               setTask(prev => ({ ...prev, description: val }));
@@ -811,7 +821,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
                   {/* Communication Side Panel */}
                   <div className="w-[380px] shrink-0 border-l border-surface-200 pl-8 hidden lg:flex flex-col h-full">
-                    <TaskCommunicationPanel task={task} onCommentAdded={refreshTask} />
+                    <TaskCommunicationPanel task={task} onCommentAdded={refreshTask} readOnly={readOnly} />
                   </div>
                 </div>
               )}
@@ -840,7 +850,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
               {/* DIARY TAB */}
               {activeTab === "diary" && (
-                <TaskFieldDiaryTab task={task} projectUid={projectUid} />
+                <TaskFieldDiaryTab task={task} projectUid={projectUid} readOnly={readOnly} />
               )}
 
 
@@ -867,6 +877,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                   setSelectedTemplateId={setSelectedTemplateId}
                   handleImportTemplate={handleImportTemplate}
                   setLightboxImageUrl={setLightboxImageUrl}
+                  readOnly={readOnly}
                 />
               )}
 
@@ -891,13 +902,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                               <div key={link.id} className="border border-surface-200 rounded-xl overflow-hidden bg-surface-50 p-3 shadow-sm">
                                 <div className="flex justify-between items-center mb-3">
                                   <h5 className="text-xs font-bold text-primary truncate pr-4">{asset.title}</h5>
-                                  <button
-                                    onClick={() => handleUnlinkDrawing(link.id)}
-                                    disabled={isLinking}
-                                    className="h-7 px-3 shrink-0 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
-                                  >
-                                    Unlink
-                                  </button>
+                                  {!readOnly && (
+                                    <button
+                                      onClick={() => handleUnlinkDrawing(link.id)}
+                                      disabled={isLinking}
+                                      className="h-7 px-3 shrink-0 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                                    >
+                                      Unlink
+                                    </button>
+                                  )}
                                 </div>
                                 <div className="relative min-h-[350px]">
                                   <FloorPlanGridViewer
@@ -945,13 +958,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                             >
                               Full Screen
                             </button>
-                            <button
-                              onClick={() => handleUnlinkDrawing(linked3dModelLink!.id)}
-                              disabled={isLinking}
-                              className="h-8 px-4 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
-                            >
-                              Unlink
-                            </button>
+                            {!readOnly && (
+                              <button
+                                onClick={() => handleUnlinkDrawing(linked3dModelLink!.id)}
+                                disabled={isLinking}
+                                className="h-8 px-4 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                              >
+                                Unlink
+                              </button>
+                            )}
                           </div>
                         </div>
                         <div className="flex-1 relative min-h-[400px] rounded-xl overflow-hidden border border-surface-200 bg-slate-50">
@@ -969,7 +984,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                     )}
 
                     {/* Linking UI */}
-                    {projectAssets.filter(a =>
+                    {!readOnly && projectAssets.filter(a =>
                       (a.category === "2d_plan" && !linked2dPlanUids.has(a.canonical_uid)) ||
                       ((a.category === "3d_model" || a.category === "sh3d") && !linked3dModel)
                     ).length > 0 && (

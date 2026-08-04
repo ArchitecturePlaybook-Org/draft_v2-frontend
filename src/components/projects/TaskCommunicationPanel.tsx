@@ -18,9 +18,10 @@ function formatTimeAgo(dateString: string) {
 interface TaskCommunicationPanelProps {
   task: Task;
   onCommentAdded?: () => void;
+  readOnly?: boolean;
 }
 
-export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ task, onCommentAdded }) => {
+export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ task, onCommentAdded, readOnly = false }) => {
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,7 +49,7 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || isSubmitting || readOnly) return;
 
     setIsSubmitting(true);
     try {
@@ -56,27 +57,25 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
       setNewComment("");
       await fetchComments();
       if (onCommentAdded) onCommentAdded();
+      toast.success("Comment added.");
     } catch (err: any) {
-      toast.error(err.message || "Failed to send message.");
+      toast.error(err?.message || "Failed to add comment.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-surface-200 bg-surface-50 shrink-0">
-        <h3 className="text-sm font-bold text-primary flex items-center gap-2">
-          <span>💬</span> Communications
-        </h3>
-        <p className="text-[10px] text-surface-500 text-surface-400 uppercase tracking-widest mt-1 font-bold">
-          Message the task owner
-        </p>
+    <div className="flex flex-col h-full bg-surface-50 rounded-2xl border border-surface-200 overflow-hidden shadow-sm">
+      <div className="p-4 border-b border-surface-200 bg-surface-100 border-surface-200 shrink-0">
+        <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Communication & Audit Log</h4>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-50/50 min-h-[300px]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
         {isLoading ? (
-          <div className="text-center text-sm text-surface-400 py-8">Loading...</div>
+          <div className="text-center text-sm text-surface-400 py-8 font-medium">
+            Loading messages...
+          </div>
         ) : comments.length === 0 ? (
           <div className="text-center text-sm text-surface-400 py-8 font-medium">
             No messages yet. Start the conversation!
@@ -98,32 +97,38 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t border-surface-200 bg-surface-100 border-surface-200 shrink-0">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Type your message..."
-            className="w-full h-20 bg-surface-50 border border-surface-200 rounded-xl p-3 outline-none focus:border-accent font-medium text-sm text-primary resize-none transition-colors"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e);
-              }
-            }}
-          />
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] text-surface-400">Press Enter to send</span>
-            <button
-              type="submit"
-              disabled={isSubmitting || !newComment.trim()}
-              className="h-9 px-5 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
-            >
-              {isSubmitting ? "Sending..." : "Send"}
-            </button>
-          </div>
-        </form>
-      </div>
+      {!readOnly ? (
+        <div className="p-4 border-t border-surface-200 bg-surface-100 border-surface-200 shrink-0">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Type your message..."
+              className="w-full h-20 bg-surface-50 border border-surface-200 rounded-xl p-3 outline-none focus:border-accent font-medium text-sm text-primary resize-none transition-colors"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+            />
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-surface-400">Press Enter to send</span>
+              <button
+                type="submit"
+                disabled={isSubmitting || !newComment.trim()}
+                className="h-9 px-5 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
+              >
+                {isSubmitting ? "Sending..." : "Send"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : (
+        <div className="p-4 border-t border-surface-200 bg-surface-100 text-xs font-bold text-surface-400 text-center shrink-0">
+          🔒 Audit Log is view-only in template preview
+        </div>
+      )}
     </div>
   );
 };

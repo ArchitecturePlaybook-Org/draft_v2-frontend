@@ -18,7 +18,7 @@ import { Trash2, Pencil } from "lucide-react";
 interface MilestoneMatrixViewProps {
   projectUid: string;
   projectTasks: Task[];
-  userRole?: "contractor" | "qa_inspector" | "admin";
+  userRole?: "contractor" | "qa_inspector" | "admin" | "viewer";
   onMatrixLoaded?: (hasData: boolean) => void;
   onTaskChange?: () => void;
   readOnly?: boolean;
@@ -706,10 +706,10 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                             <MatrixBlockCell
                               block={block}
                               zoneName={zone.name}
-                              isManager={userRole === "admin"}
-                              onClick={block ? () => handleCellClick(block, zone, phase) : () => handleEmptyCellClick(zone, phase)}
-                              onUnlock={handleUnlockBlock}
-                              onLock={handleLockBlock}
+                              isManager={!readOnly && userRole === "admin"}
+                              onClick={block ? () => handleCellClick(block, zone, phase) : (!readOnly ? () => handleEmptyCellClick(zone, phase) : undefined)}
+                              onUnlock={!readOnly ? handleUnlockBlock : undefined}
+                              onLock={!readOnly ? handleLockBlock : undefined}
                             />
                           )}
                         </td>

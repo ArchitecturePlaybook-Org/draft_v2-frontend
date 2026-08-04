@@ -17,6 +17,7 @@ interface TaskSubtasksTabProps {
   isArchitect: boolean;
   isContractor?: boolean;
   isQA?: boolean;
+  readOnly?: boolean;
   handleUpdateSubtask: (subtaskUid: string, data: any) => void;
   handleCreateSubtask: (title: string, description: string) => void;
   handleDeleteSubtask?: (subtaskUid: string) => void;
@@ -41,6 +42,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
   isArchitect,
   isContractor = false,
   isQA = false,
+  readOnly = false,
   handleUpdateSubtask,
   handleCreateSubtask,
   handleDeleteSubtask,
@@ -75,7 +77,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
           </p>
         </div>
 
-        {(isAdmin || isArchitect) && (
+        {!readOnly && (isAdmin || isArchitect) && (
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
@@ -100,7 +102,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
             </div>
             {task.subtasks && task.subtasks.length > 0 && (
               <span className="text-[10px] font-bold text-surface-400">
-                Click item to update status or view details
+                Click item to {readOnly ? "view details" : "update status or view details"}
               </span>
             )}
           </div>
@@ -113,7 +115,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                   onClick={() => {
                     if (onSelectSubtask) {
                       onSelectSubtask(subtask);
-                    } else {
+                    } else if (!readOnly) {
                       const nextStatus = subtask.status === "TODO" ? "ON_HOLD" : subtask.status === "ON_HOLD" ? "WIP" : subtask.status === "WIP" ? "DONE" : "TODO";
                       handleUpdateSubtask(subtask.uid, { status: nextStatus });
                     }
@@ -132,24 +134,26 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           type="button"
+                          disabled={readOnly}
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (readOnly) return;
                             const nextStatus = subtask.status === "TODO" ? "ON_HOLD" : subtask.status === "ON_HOLD" ? "WIP" : subtask.status === "WIP" ? "DONE" : "TODO";
                             handleUpdateSubtask(subtask.uid, { status: nextStatus });
                           }}
-                          className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all hover:scale-105 shadow-sm ${
+                          className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all shadow-sm ${
                             subtask.status === "DONE" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" :
                             subtask.status === "ON_HOLD" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" :
                             subtask.status === "WIP" ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" :
                             subtask.status === "QA" ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30" :
                             "bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 border-surface-300 dark:border-surface-600"
-                          }`}
-                          title="Click to toggle status"
+                          } disabled:opacity-80 disabled:cursor-default`}
+                          title={readOnly ? subtask.status : "Click to toggle status"}
                         >
                           {subtask.status === "ON_HOLD" ? "ON HOLD" : subtask.status}
                         </button>
 
-                        {handleDeleteSubtask && (isAdmin || isArchitect) && (
+                        {!readOnly && handleDeleteSubtask && (isAdmin || isArchitect) && (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -193,7 +197,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
             <div className="flex flex-col items-center justify-center h-36 bg-surface-50 dark:bg-surface-800/40 rounded-2xl border-2 border-dashed border-surface-200 dark:border-surface-700 p-6 text-center">
               <Layers className="w-8 h-8 text-surface-300 dark:text-surface-600 mb-2" />
               <p className="text-surface-600 dark:text-surface-300 font-extrabold text-sm mb-1">No subtasks added yet.</p>
-              {(isAdmin || isArchitect) && (
+              {!readOnly && (isAdmin || isArchitect) && (
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
@@ -235,6 +239,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
             setSelectedTemplateId={setSelectedTemplateId}
             handleImportTemplate={handleImportTemplate}
             setLightboxImageUrl={setLightboxImageUrl}
+            readOnly={readOnly}
           />
         </div>
       </div>

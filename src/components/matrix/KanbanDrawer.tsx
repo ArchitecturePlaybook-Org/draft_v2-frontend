@@ -17,13 +17,14 @@ interface KanbanDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onBlockUpdated: (updated: MilestoneBlockExpanded) => void;
-  userRole?: "contractor" | "qa_inspector" | "admin";
+  userRole?: "contractor" | "qa_inspector" | "admin" | "viewer";
   projectUid?: string;
   /** Controlled panel width from parent split state */
   width?: number;
   leftOffset?: number;
   /** Bubbles task click up to parent for split-pane rendering */
   onTaskSelect?: (task: Task) => void;
+  readOnly?: boolean;
 }
 
 const COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
@@ -65,6 +66,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   width,
   leftOffset = 0,
   onTaskSelect,
+  readOnly = false,
 }) => {
   const [tasks, setTasks] = useState<Task[]>(block.tasks || []);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
-  const isLocked = block.status === "LOCKED";
+  const isLocked = block.status === "LOCKED" || readOnly;
 
   // Sync tasks whenever block or block.tasks prop updates
   React.useEffect(() => {
@@ -86,17 +88,20 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
 
   // ── Drag & Drop ─────────────────────────────────────────────────────────────
   const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
+    if (readOnly) return;
     e.dataTransfer.effectAllowed = "move";
     setDraggingTaskId(taskId);
-  }, []);
+  }, [readOnly]);
 
   const handleDragOver = useCallback((e: React.DragEvent, col: TaskStatus) => {
+    if (readOnly) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOverColumn(col);
-  }, []);
+  }, [readOnly]);
 
   const handleDrop = useCallback(async (e: React.DragEvent, targetStatus: TaskStatus) => {
+    if (readOnly) return;
     e.preventDefault();
     setDragOverColumn(null);
     if (draggingTaskId === null) return;
@@ -278,7 +283,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
               <option value="MEDIUM">Medium Priority</option>
               <option value="LOW">Low Priority</option>
             </select>
-            {userRole === "admin" && (
+            {!readOnly && userRole === "admin" && (
               <button
                 onClick={() => setIsAddingTask(true)}
                 className="h-9 px-4 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shrink-0 whitespace-nowrap"
@@ -298,9 +303,10 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         {/* Block Notes */}
         <div className="px-7 py-3 border-b border-surface-100 dark:border-surface-800 bg-surface-100 bg-background shrink-0">
           <textarea
-            className="w-full text-xs text-surface-600 text-surface-300 bg-surface-50 dark:bg-surface-800 hover:bg-surface-100 dark:hover:bg-surface-900 border border-transparent hover:border-surface-200 dark:hover:border-surface-700 focus:border-accent focus:bg-surface-100 dark:focus:bg-surface-900 rounded-lg p-3 outline-none resize-none transition-all placeholder:text-surface-300 dark:placeholder:text-surface-600 font-medium"
+            className="w-full text-xs text-surface-600 text-surface-300 bg-surface-50 dark:bg-surface-800 hover:bg-surface-100 dark:hover:bg-surface-900 border border-transparent hover:border-surface-200 dark:hover:border-surface-700 focus:border-accent focus:bg-surface-100 dark:focus:bg-surface-900 rounded-lg p-3 outline-none resize-none transition-all placeholder:text-surface-300 dark:placeholder:text-surface-600 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
             rows={2}
-            placeholder="Add notes for this block... (e.g. key blockers, handover instructions)"
+            disabled={readOnly}
+            placeholder={readOnly ? "No notes added for this block." : "Add notes for this block... (e.g. key blockers, handover instructions)"}
             defaultValue={block.notes || ""}
             onBlur={async (e) => {
               if (e.target.value !== block.notes) {
