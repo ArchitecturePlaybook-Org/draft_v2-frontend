@@ -465,6 +465,7 @@ export default function TemplateDetailPage() {
               projectUid={template.uid}
               projectTasks={(template.tasks || []) as any[]}
               readOnly={true}
+              userRole="viewer"
             />
           </div>
         )}

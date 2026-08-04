@@ -24,7 +24,7 @@ export default function TemplateDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<"kanban" | "matrix">("kanban");
+  const [activeTab, setActiveTab] = useState<"kanban" | "matrix">("matrix");
   
   useEffect(() => {
     async function loadTemplate() {
@@ -170,6 +170,7 @@ export default function TemplateDetailPage() {
                 projectUid={projectMock.uid}
                 projectTasks={projectMock.tasks}
                 readOnly
+                userRole="viewer"
                 initialPayload={matrixPayload}
               />
             )}

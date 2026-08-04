@@ -9,10 +9,11 @@ interface DiaryEntryDetailProps {
   projectId: string;
   onUpdate: () => void;
   onClose?: () => void;
+  readOnly?: boolean;
 }
 
-export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, projectId, onUpdate, onClose }) => {
-  const isLocked = entry.status === "signed";
+export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, projectId, onUpdate, onClose, readOnly = false }) => {
+  const isLocked = entry.status === "signed" || readOnly;
   
   // Section states for adding new items
   const [newLabor, setNewLabor] = useState({ crew_name: "", trade_type: "", headcount: "", total_hours: "", zone: "" });

@@ -41,7 +41,7 @@ export interface Project {
   updated_at: string;
 }
 
-export type TaskStatus = "TODO" | "WIP" | "QA" | "DONE";
+export type TaskStatus = "TODO" | "ON_HOLD" | "WIP" | "QA" | "DONE";
 
 export type AssetCategory = "sketch" | "2d_plan" | "3d_model" | "document" | "sh3d";
 
@@ -141,6 +141,9 @@ export interface Task {
   priority?: "HIGH" | "MEDIUM" | "LOW";
   tags?: TaskTag[];
   external_collaborator_count?: number;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  on_hold_reason?: string | null;
 }
 
 

@@ -180,21 +180,34 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     } catch { /* silent */ }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const [showOnHoldModal, setShowOnHoldModal] = useState(false);
+  const [onHoldReasonText, setOnHoldReasonText] = useState("");
+
+  const handleStatusChange = async (newStatus: string, reason?: string) => {
+    if (newStatus === "ON_HOLD" && !reason) {
+      setShowOnHoldModal(true);
+      return;
+    }
+
     const previousStatus = currentStatus;
     setCurrentStatus(newStatus as any);
     setIsUpdating(true);
     try {
-      await projectsApi.updateTask(task.uid, { status: newStatus });
-      // Sync the new status into the Zustand store so the Kanban board
-      // moves this task card to the correct column instantly (no page refresh needed).
+      const payload: any = { status: newStatus };
+      if (newStatus === "ON_HOLD" && reason) {
+        payload.on_hold_reason = reason;
+      }
+      const updated = await projectsApi.updateTask(task.uid, payload);
+      setTask(updated);
       const { useProjectStore } = await import("@/store/project-store");
       useProjectStore.getState().updateTaskStatus(task.uid, newStatus);
       await refreshTask();
-    } catch (err) {
+      onTaskUpdated();
+      toast.success(newStatus === "ON_HOLD" ? "Task placed on hold" : `Status updated to ${newStatus}`);
+    } catch (err: any) {
       console.error(err);
       setCurrentStatus(previousStatus);
-      toast.error("Protocol failed: Could not synchronize status.");
+      toast.error(err?.message || "Protocol failed: Could not synchronize status.");
     } finally {
       setIsUpdating(false);
     }
@@ -388,11 +401,11 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const uncheckedCount = checklists.filter((i: any) => !i.is_completed).length;
 
   const tabs: { id: TaskTab; label: string; hidden?: boolean }[] = [
-    { id: "execution", label: isMatrixTask ? "Timeline & Directives" : "Execution Details" },
-    { id: "subtasks", label: "Subtasks" },
-    { id: "checklist", label: "Checklists & QA" },
-    { id: "diary", label: "Field Diary" },
-    { id: "drawing", label: "Context & Models", hidden: !isMatrixTask },
+    { id: "execution", label: isSubtaskPanel ? "Subtask Details & Timeline" : (isMatrixTask ? "Timeline & Directives" : "Execution Details") },
+    { id: "subtasks", label: "Tasks & Checklists", hidden: isSubtaskPanel },
+    { id: "checklist", label: "Checklists & QA", hidden: !isSubtaskPanel },
+    { id: "diary", label: "Field Diary", hidden: isSubtaskPanel },
+    { id: "drawing", label: "Floorplans & Models", hidden: !isMatrixTask && !isSubtaskPanel },
   ];
 
   const linked2dPlanLinks = task.asset_links?.filter(l => l.latest_asset?.category === "2d_plan") || [];
@@ -410,31 +423,25 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     totalCount: totalPlanCount,
   } = useInfiniteScrollBatch(linked2dPlanLinks, { resetKey: task.uid });
 
-  // ── Split-pane vs standalone layout ─────────────────────────────────────
+  // ── Split-pane vs standalone vs overlay layout ──────────────────────────
   const isParentWithActiveSubtask = !!selectedSubtask;
   const effectiveWidth = splitMode && panelWidthOverride 
     ? panelWidthOverride 
-    : (isParentWithActiveSubtask || isSubtaskPanel)
-      ? `calc(50vw - ${NAV_W / 2}px)` 
-      : panelWidth;
+    : panelWidth;
 
-  const slideX = isSubtaskPanel ? "-100%" : (splitMode ? "-100%" : "100%");
+  const slideX = "100%";
 
   const panelStyle = isSubtaskPanel
-    ? { left: NAV_W, width: effectiveWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
-    : isParentWithActiveSubtask
-      ? { right: 0, width: effectiveWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
-      : splitMode
-        ? { left: leftOffset, width: effectiveWidth, transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)" }
-        : { width: panelWidth };
+    ? { right: 0, width: effectiveWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
+    : splitMode
+      ? { left: leftOffset, width: effectiveWidth, transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)" }
+      : { right: 0, width: panelWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" };
 
   const panelClass = isSubtaskPanel
-    ? "fixed top-0 bottom-0 z-[60] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden"
-    : isParentWithActiveSubtask
-      ? "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden"
-      : splitMode
-        ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden"
-        : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden";
+    ? "fixed top-0 right-0 bottom-0 z-[70] bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden"
+    : splitMode
+      ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden"
+      : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden";
 
   return (
     <>
@@ -484,12 +491,18 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
           <div className="relative z-10 min-w-0 w-full">
             <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+              {isSubtaskPanel && (
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 shrink-0 shadow-sm">
+                  ↳ Subtask
+                </span>
+              )}
               <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border shrink-0 ${currentStatus === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30" :
-                  currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
-                    currentStatus === "QA" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800/30" :
-                      "bg-surface-200 text-surface-600 text-surface-300 border-surface-300"
+                  currentStatus === "ON_HOLD" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800/30" :
+                    currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
+                      currentStatus === "QA" ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 border-purple-200 dark:border-purple-800/30" :
+                        "bg-surface-200 text-surface-600 text-surface-300 border-surface-300"
                 }`}>
-                {currentStatus}
+                {currentStatus === "ON_HOLD" ? "ON HOLD" : currentStatus}
               </span>
               {task.trade && (
                 <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white shrink-0 max-w-full truncate"
@@ -504,20 +517,29 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
               )}
               <span className="text-[10px] font-mono text-surface-400 truncate max-w-full">ID: {task.task_code || task.uid}</span>
             </div>
-            <h2 className={`font-extrabold text-primary tracking-tight truncate ${splitMode ? "text-lg" : "text-xl sm:text-2xl md:text-3xl"}`} title={task.title}>{task.title}</h2>
+            <h2 className={`font-extrabold text-primary tracking-tight truncate ${splitMode || isSubtaskPanel ? "text-lg sm:text-xl" : "text-xl sm:text-2xl md:text-3xl"}`} title={task.title}>{task.title}</h2>
+            {currentStatus === "ON_HOLD" && task.on_hold_reason && (
+              <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-start gap-2.5 mt-2.5">
+                <span className="text-sm shrink-0 mt-0.5">⏸️</span>
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300">On Hold Reason</h4>
+                  <p className="text-xs text-amber-900 dark:text-amber-200 font-semibold mt-0.5 leading-relaxed">{task.on_hold_reason}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="relative z-10 flex flex-wrap items-center gap-2 w-full">
             <div className="flex bg-surface-200/50 p-1 rounded-xl border border-surface-200 shrink-0">
-              {["TODO", "WIP", "QA", "DONE"].map(s => (
+              {["TODO", "ON_HOLD", "WIP", "QA", "DONE"].map(s => (
                 <button
                   key={s}
                   onClick={() => handleStatusChange(s)}
-                  disabled={isUpdating}
+                  disabled={isUpdating || readOnly}
                   className={`${splitMode ? "px-2 py-1.5" : "px-2.5 sm:px-4 py-2"} text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all whitespace-nowrap ${currentStatus === s ? "bg-surface-100 border-surface-200 shadow-xl text-primary" : "text-surface-500 text-surface-400 hover:text-primary"
-                    }`}
+                    } disabled:opacity-60 disabled:cursor-not-allowed`}
                 >
-                  {s}
+                  {s === "ON_HOLD" ? "ON HOLD" : s}
                 </button>
               ))}
             </div>
@@ -584,20 +606,47 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 <div className="flex flex-col lg:flex-row gap-8 max-w-[1400px] h-[calc(100vh-280px)]">
                   {/* Main Execution Content */}
                   <div className="flex-1 space-y-8 overflow-y-auto pr-2 pb-8 max-w-4xl">
+                    {/* Subtask Header Overview Card */}
+                    {isSubtaskPanel && (
+                      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20 p-6 rounded-2xl shadow-sm space-y-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <span className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-base shadow-sm">
+                              ↳
+                            </span>
+                            <div>
+                              <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-500 dark:text-indigo-400">Parent Task Context</span>
+                              <h4 className="text-sm font-extrabold text-primary dark:text-white truncate max-w-md">
+                                {initialTask.parent_task?.title || "Parent Task"}
+                              </h4>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 bg-background/60 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-surface-200 dark:border-surface-700">
+                            <span className="text-[10px] font-bold text-surface-500 uppercase tracking-wider">Subtask Progress</span>
+                            <span className="text-xs font-black text-primary dark:text-white">
+                              {currentStatus === "DONE" ? "100%" : currentStatus === "QA" ? "75%" : currentStatus === "WIP" ? "50%" : currentStatus === "ON_HOLD" ? "25%" : "0%"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Matrix Location */}
-                    <div>
-                      <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Matrix Location</h3>
+                    {!isSubtaskPanel && (
+                      <div>
+                        <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Matrix Location</h3>
                       <div className="bg-surface-100 border-surface-200 p-8 rounded-2xl border border-surface-200 shadow-sm space-y-8">
                         <div className="grid grid-cols-2 gap-8">
                           <div className="space-y-2">
                             <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Zone</label>
                             <select
                               value={selectedZoneId}
+                              disabled={isUpdating || readOnly}
                               onChange={(e) => {
                                 setSelectedZoneId(e.target.value);
                                 handleUpdateMatrixLocation(e.target.value, selectedPhaseId);
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none"
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               <option value="" disabled>Select Zone...</option>
                               {zones.map(z => (
@@ -609,11 +658,12 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                             <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Phase</label>
                             <select
                               value={selectedPhaseId}
+                              disabled={isUpdating || readOnly}
                               onChange={(e) => {
                                 setSelectedPhaseId(e.target.value);
                                 handleUpdateMatrixLocation(selectedZoneId, e.target.value);
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none"
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               <option value="" disabled>Select Phase...</option>
                               {phases.map(p => (
@@ -624,6 +674,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                         </div>
                       </div>
                     </div>
+                  )}
 
                     {/* Standard Directives & Timeline */}
                     <div>
@@ -635,6 +686,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                             <input
                               type="date"
                               value={task.start_date || ""}
+                              disabled={isUpdating || readOnly}
                               onChange={async (e) => {
                                 const val = e.target.value;
                                 setTask(prev => ({ ...prev, start_date: val }));
@@ -646,7 +698,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                   toast.error(err?.message || "Failed to update start date.");
                                 }
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                           </div>
                           <div className="space-y-2">
@@ -665,13 +717,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                   toast.error(err?.message || "Failed to update due date.");
                                 }
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                              disabled={isUpdating || readOnly}
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Priority</label>
                             <select
                               value={task.priority || "MEDIUM"}
+                              disabled={isUpdating || readOnly}
                               onChange={async (e) => {
                                 const val = e.target.value;
                                 setTask(prev => ({ ...prev, priority: val as any }));
@@ -683,7 +737,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                   toast.error(err?.message || "Failed to update priority.");
                                 }
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               <option value="HIGH">High Priority</option>
                               <option value="MEDIUM">Medium Priority</option>
@@ -696,41 +750,45 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                               {task.tags?.map(tag => (
                                 <span key={tag.id} className="text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-widest flex items-center gap-1" style={{ borderColor: tag.color, backgroundColor: `${tag.color}10`, color: tag.color }}>
                                   {tag.name}
-                                  <button onClick={async () => {
-                                    const newTagIds = task.tags?.filter(t => t.id !== tag.id).map(t => t.id);
-                                    try {
-                                      await projectsApi.updateTask(task.uid, { tag_ids: newTagIds });
-                                      await refreshTask();
-                                      toast.success("Tag removed.");
-                                    } catch (err: any) {
-                                      toast.error(err?.message || "Failed to remove tag.");
-                                    }
-                                  }} className="hover:text-red-500">✕</button>
+                                  {!readOnly && (
+                                    <button onClick={async () => {
+                                      const newTagIds = task.tags?.filter(t => t.id !== tag.id).map(t => t.id);
+                                      try {
+                                        await projectsApi.updateTask(task.uid, { tag_ids: newTagIds });
+                                        await refreshTask();
+                                        toast.success("Tag removed.");
+                                      } catch (err: any) {
+                                        toast.error(err?.message || "Failed to remove tag.");
+                                      }
+                                    }} className="hover:text-red-500">✕</button>
+                                  )}
                                 </span>
                               ))}
                             </div>
-                            <select
-                              value=""
-                              onChange={async (e) => {
-                                if (!e.target.value) return;
-                                const tagId = parseInt(e.target.value);
-                                if (task.tags?.some(t => t.id === tagId)) return;
-                                const currentTagIds = task.tags?.map(t => t.id) || [];
-                                try {
-                                  await projectsApi.updateTask(task.uid, { tag_ids: [...currentTagIds, tagId] });
-                                  await refreshTask();
-                                  toast.success("Tag added.");
-                                } catch (err: any) {
-                                  toast.error(err?.message || "Failed to add tag.");
-                                }
-                              }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
-                            >
-                              <option value="" disabled>Add a tag...</option>
-                              {taskTags?.filter(t => !task.tags?.some(tt => tt.id === t.id)).map(t => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
-                              ))}
-                            </select>
+                            {!readOnly && (
+                              <select
+                                value=""
+                                onChange={async (e) => {
+                                  if (!e.target.value) return;
+                                  const tagId = parseInt(e.target.value);
+                                  if (task.tags?.some(t => t.id === tagId)) return;
+                                  const currentTagIds = task.tags?.map(t => t.id) || [];
+                                  try {
+                                    await projectsApi.updateTask(task.uid, { tag_ids: [...currentTagIds, tagId] });
+                                    await refreshTask();
+                                    toast.success("Tag added.");
+                                  } catch (err: any) {
+                                    toast.error(err?.message || "Failed to add tag.");
+                                  }
+                                }}
+                                className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                              >
+                                <option value="" disabled>Add a tag...</option>
+                                {taskTags?.filter(t => !task.tags?.some(tt => tt.id === t.id)).map(t => (
+                                  <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                              </select>
+                            )}
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -738,6 +796,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                           <textarea
                             rows={4}
                             value={task.description || ""}
+                            disabled={isUpdating || readOnly}
                             onChange={(e) => {
                               const val = e.target.value;
                               setTask(prev => ({ ...prev, description: val }));
@@ -762,7 +821,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
                   {/* Communication Side Panel */}
                   <div className="w-[380px] shrink-0 border-l border-surface-200 pl-8 hidden lg:flex flex-col h-full">
-                    <TaskCommunicationPanel task={task} onCommentAdded={refreshTask} />
+                    <TaskCommunicationPanel task={task} onCommentAdded={refreshTask} readOnly={readOnly} />
                   </div>
                 </div>
               )}
@@ -791,21 +850,34 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
               {/* DIARY TAB */}
               {activeTab === "diary" && (
-                <TaskFieldDiaryTab task={task} projectUid={projectUid} />
+                <TaskFieldDiaryTab task={task} projectUid={projectUid} readOnly={readOnly} />
               )}
 
 
-              {/* SUBTASKS TAB */}
+              {/* SUBTASKS & CHECKLISTS UNIFIED TAB */}
               {activeTab === "subtasks" && (
                 <TaskSubtasksTab
                   task={task}
                   isUpdating={isUpdating}
                   isAdmin={isAdmin}
                   isArchitect={isArchitect}
+                  isContractor={isContractor}
+                  isQA={isQA}
                   handleUpdateSubtask={handleUpdateSubtask}
                   handleCreateSubtask={handleCreateSubtask}
                   handleDeleteSubtask={handleDeleteSubtask}
                   onSelectSubtask={(subtask) => setSelectedSubtask(subtask)}
+                  checklists={checklists}
+                  newChecklistDesc={newChecklistDesc}
+                  setNewChecklistDesc={setNewChecklistDesc}
+                  handleAddChecklistItem={handleAddChecklistItem}
+                  handleToggleChecklist={handleToggleChecklist}
+                  checklistTemplates={checklistTemplates}
+                  selectedTemplateId={selectedTemplateId}
+                  setSelectedTemplateId={setSelectedTemplateId}
+                  handleImportTemplate={handleImportTemplate}
+                  setLightboxImageUrl={setLightboxImageUrl}
+                  readOnly={readOnly}
                 />
               )}
 
@@ -830,13 +902,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                               <div key={link.id} className="border border-surface-200 rounded-xl overflow-hidden bg-surface-50 p-3 shadow-sm">
                                 <div className="flex justify-between items-center mb-3">
                                   <h5 className="text-xs font-bold text-primary truncate pr-4">{asset.title}</h5>
-                                  <button
-                                    onClick={() => handleUnlinkDrawing(link.id)}
-                                    disabled={isLinking}
-                                    className="h-7 px-3 shrink-0 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
-                                  >
-                                    Unlink
-                                  </button>
+                                  {!readOnly && (
+                                    <button
+                                      onClick={() => handleUnlinkDrawing(link.id)}
+                                      disabled={isLinking}
+                                      className="h-7 px-3 shrink-0 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                                    >
+                                      Unlink
+                                    </button>
+                                  )}
                                 </div>
                                 <div className="relative min-h-[350px]">
                                   <FloorPlanGridViewer
@@ -884,13 +958,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                             >
                               Full Screen
                             </button>
-                            <button
-                              onClick={() => handleUnlinkDrawing(linked3dModelLink!.id)}
-                              disabled={isLinking}
-                              className="h-8 px-4 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
-                            >
-                              Unlink
-                            </button>
+                            {!readOnly && (
+                              <button
+                                onClick={() => handleUnlinkDrawing(linked3dModelLink!.id)}
+                                disabled={isLinking}
+                                className="h-8 px-4 bg-red-50 dark:bg-red-900/20 text-red-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-40"
+                              >
+                                Unlink
+                              </button>
+                            )}
                           </div>
                         </div>
                         <div className="flex-1 relative min-h-[400px] rounded-xl overflow-hidden border border-surface-200 bg-slate-50">
@@ -908,7 +984,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                     )}
 
                     {/* Linking UI */}
-                    {projectAssets.filter(a =>
+                    {!readOnly && projectAssets.filter(a =>
                       (a.category === "2d_plan" && !linked2dPlanUids.has(a.canonical_uid)) ||
                       ((a.category === "3d_model" || a.category === "sh3d") && !linked3dModel)
                     ).length > 0 && (
@@ -1050,6 +1126,65 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 {isDeleting ? "Deleting..." : "Delete Task"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* On Hold Reason Modal */}
+      {showOnHoldModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-background border border-surface-200 dark:border-surface-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 border-b border-surface-200 dark:border-surface-700 pb-3">
+              <span className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-lg">
+                ⏸️
+              </span>
+              <div>
+                <h3 className="text-lg font-extrabold text-primary dark:text-white">Why is this task on hold?</h3>
+                <p className="text-xs text-surface-500 dark:text-surface-400">Please enter a reason for placing this task on hold.</p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (onHoldReasonText.trim()) {
+                  setShowOnHoldModal(false);
+                  handleStatusChange("ON_HOLD", onHoldReasonText.trim());
+                  setOnHoldReasonText("");
+                }
+              }}
+              className="space-y-4"
+            >
+              <textarea
+                value={onHoldReasonText}
+                onChange={(e) => setOnHoldReasonText(e.target.value)}
+                placeholder="e.g. Waiting for client approval on material specifications..."
+                rows={3}
+                required
+                autoFocus
+                className="w-full p-3.5 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-xs font-medium text-primary dark:text-white outline-none focus:ring-2 focus:ring-amber-500 transition-all resize-none leading-relaxed"
+              />
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOnHoldModal(false);
+                    setOnHoldReasonText("");
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 text-xs font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!onHoldReasonText.trim() || isUpdating}
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                >
+                  {isUpdating ? "Saving..." : "Confirm On Hold"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
