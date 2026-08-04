@@ -81,6 +81,9 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     }
   }, [block, block?.tasks]);
 
+  const [onHoldPromptTask, setOnHoldPromptTask] = useState<{ taskId: string; taskTitle: string } | null>(null);
+  const [onHoldReasonText, setOnHoldReasonText] = useState("");
+
   // ── Drag & Drop ─────────────────────────────────────────────────────────────
   const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
     e.dataTransfer.effectAllowed = "move";
@@ -104,6 +107,12 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       return;
     }
 
+    if (targetStatus === "ON_HOLD") {
+      setOnHoldPromptTask({ taskId: draggingTaskId, taskTitle: task.title });
+      setDraggingTaskId(null);
+      return;
+    }
+
     // Optimistic UI update
     const previousTasks = [...tasks];
     const updatedTask = { ...task, status: targetStatus };
@@ -123,6 +132,32 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       toast.error(err?.message || "Cannot move task — gate rule violated.");
     }
   }, [draggingTaskId, tasks, block, onBlockUpdated]);
+
+  const handleConfirmOnHoldDrop = async () => {
+    if (!onHoldPromptTask || !onHoldReasonText.trim()) return;
+    const { taskId } = onHoldPromptTask;
+    const task = tasks.find(t => t.uid === taskId);
+    if (!task) return;
+
+    const previousTasks = [...tasks];
+    const updatedTask = { ...task, status: "ON_HOLD" as const, on_hold_reason: onHoldReasonText.trim() };
+    const optimisticTasks = tasks.map(t => t.uid === taskId ? updatedTask : t);
+    setTasks(optimisticTasks);
+    setOnHoldPromptTask(null);
+    const reason = onHoldReasonText.trim();
+    setOnHoldReasonText("");
+
+    try {
+      const updated = await projectsApi.updateTask(taskId, { status: "ON_HOLD", on_hold_reason: reason });
+      const updatedTasks = optimisticTasks.map(t => t.uid === updated.uid ? updated : t);
+      setTasks(updatedTasks);
+      onBlockUpdated(getUpdatedBlock(block, updatedTasks));
+      toast.success("Moved to On Hold");
+    } catch (err: any) {
+      setTasks(previousTasks);
+      toast.error(err?.message || "Could not move task to On Hold.");
+    }
+  };
 
   // ── Add Task ────────────────────────────────────────────────────────────────
   const handleAddTask = async () => {
@@ -395,6 +430,61 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             <span className="text-[9px] font-bold text-surface-400">{block.progress_percent}% complete</span>
           </div>
         </div>
+
+        {/* On Hold Prompt Modal */}
+        {onHoldPromptTask && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
+            <div className="bg-background border border-surface-200 dark:border-surface-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 border-b border-surface-200 dark:border-surface-700 pb-3">
+                <span className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-lg">
+                  ⏸️
+                </span>
+                <div>
+                  <h3 className="text-lg font-extrabold text-primary dark:text-white">Why is this task on hold?</h3>
+                  <p className="text-xs text-surface-500 dark:text-surface-400">Moving <strong className="text-primary dark:text-white">"{onHoldPromptTask.taskTitle}"</strong> to On Hold.</p>
+                </div>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleConfirmOnHoldDrop();
+                }}
+                className="space-y-4"
+              >
+                <textarea
+                  value={onHoldReasonText}
+                  onChange={(e) => setOnHoldReasonText(e.target.value)}
+                  placeholder="e.g. Waiting for material delivery / client approval..."
+                  rows={3}
+                  required
+                  autoFocus
+                  className="w-full p-3.5 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-xs font-medium text-primary dark:text-white outline-none focus:ring-2 focus:ring-amber-500 transition-all resize-none leading-relaxed"
+                />
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOnHoldPromptTask(null);
+                      setOnHoldReasonText("");
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 text-xs font-bold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!onHoldReasonText.trim()}
+                    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                  >
+                    Confirm On Hold
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </motion.div>
 
     </>

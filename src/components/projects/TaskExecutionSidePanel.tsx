@@ -180,21 +180,34 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     } catch { /* silent */ }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const [showOnHoldModal, setShowOnHoldModal] = useState(false);
+  const [onHoldReasonText, setOnHoldReasonText] = useState("");
+
+  const handleStatusChange = async (newStatus: string, reason?: string) => {
+    if (newStatus === "ON_HOLD" && !reason) {
+      setShowOnHoldModal(true);
+      return;
+    }
+
     const previousStatus = currentStatus;
     setCurrentStatus(newStatus as any);
     setIsUpdating(true);
     try {
-      await projectsApi.updateTask(task.uid, { status: newStatus });
-      // Sync the new status into the Zustand store so the Kanban board
-      // moves this task card to the correct column instantly (no page refresh needed).
+      const payload: any = { status: newStatus };
+      if (newStatus === "ON_HOLD" && reason) {
+        payload.on_hold_reason = reason;
+      }
+      const updated = await projectsApi.updateTask(task.uid, payload);
+      setTask(updated);
       const { useProjectStore } = await import("@/store/project-store");
       useProjectStore.getState().updateTaskStatus(task.uid, newStatus);
       await refreshTask();
-    } catch (err) {
+      onTaskUpdated();
+      toast.success(newStatus === "ON_HOLD" ? "Task placed on hold" : `Status updated to ${newStatus}`);
+    } catch (err: any) {
       console.error(err);
       setCurrentStatus(previousStatus);
-      toast.error("Protocol failed: Could not synchronize status.");
+      toast.error(err?.message || "Protocol failed: Could not synchronize status.");
     } finally {
       setIsUpdating(false);
     }
@@ -505,6 +518,15 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
               <span className="text-[10px] font-mono text-surface-400 truncate max-w-full">ID: {task.task_code || task.uid}</span>
             </div>
             <h2 className={`font-extrabold text-primary tracking-tight truncate ${splitMode || isSubtaskPanel ? "text-lg sm:text-xl" : "text-xl sm:text-2xl md:text-3xl"}`} title={task.title}>{task.title}</h2>
+            {currentStatus === "ON_HOLD" && task.on_hold_reason && (
+              <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-start gap-2.5 mt-2.5">
+                <span className="text-sm shrink-0 mt-0.5">⏸️</span>
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300">On Hold Reason</h4>
+                  <p className="text-xs text-amber-900 dark:text-amber-200 font-semibold mt-0.5 leading-relaxed">{task.on_hold_reason}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="relative z-10 flex flex-wrap items-center gap-2 w-full">
@@ -1089,6 +1111,65 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 {isDeleting ? "Deleting..." : "Delete Task"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* On Hold Reason Modal */}
+      {showOnHoldModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-background border border-surface-200 dark:border-surface-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 border-b border-surface-200 dark:border-surface-700 pb-3">
+              <span className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-lg">
+                ⏸️
+              </span>
+              <div>
+                <h3 className="text-lg font-extrabold text-primary dark:text-white">Why is this task on hold?</h3>
+                <p className="text-xs text-surface-500 dark:text-surface-400">Please enter a reason for placing this task on hold.</p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (onHoldReasonText.trim()) {
+                  setShowOnHoldModal(false);
+                  handleStatusChange("ON_HOLD", onHoldReasonText.trim());
+                  setOnHoldReasonText("");
+                }
+              }}
+              className="space-y-4"
+            >
+              <textarea
+                value={onHoldReasonText}
+                onChange={(e) => setOnHoldReasonText(e.target.value)}
+                placeholder="e.g. Waiting for client approval on material specifications..."
+                rows={3}
+                required
+                autoFocus
+                className="w-full p-3.5 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-xs font-medium text-primary dark:text-white outline-none focus:ring-2 focus:ring-amber-500 transition-all resize-none leading-relaxed"
+              />
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOnHoldModal(false);
+                    setOnHoldReasonText("");
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 text-xs font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!onHoldReasonText.trim() || isUpdating}
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                >
+                  {isUpdating ? "Saving..." : "Confirm On Hold"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

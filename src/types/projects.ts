@@ -143,6 +143,7 @@ export interface Task {
   external_collaborator_count?: number;
   is_deleted?: boolean;
   deleted_at?: string | null;
+  on_hold_reason?: string | null;
 }
 
 
