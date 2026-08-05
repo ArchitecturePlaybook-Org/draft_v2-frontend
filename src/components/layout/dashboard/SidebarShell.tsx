@@ -27,7 +27,9 @@ export const SidebarShell: React.FC = () => {
     
     // Check if the id is literally "page" (Next.js route file error fallback) or "null"
     if (projectMatch && projectMatch[1] && projectMatch[1] !== "page") {
-      setProjectContext(projectMatch[1]);
+      // Pass undefined so the store preserves the existing project title
+      // (title is set by ProjectDetailView once the project data loads)
+      setProjectContext(projectMatch[1], undefined);
     } else {
       setProjectContext(null);
     }
