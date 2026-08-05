@@ -37,11 +37,16 @@ export const useProjectNavStore = create<ProjectNavStore>()(
           return { recentProjects: updated };
         }),
 
-      setProjectContext: (uid, title = null) =>
+      // title === undefined → preserve existing title
+      // title === null     → clear the title (user left the project)
+      // title === string   → set new title
+      setProjectContext: (uid, title) =>
         set((state) => ({
           isInsideProject: !!uid,
           currentProjectUid: uid,
-          currentProjectTitle: title !== null ? title : state.currentProjectTitle,
+          currentProjectTitle: title === undefined
+            ? state.currentProjectTitle
+            : title,
         })),
 
       toggleSidebar: () => 

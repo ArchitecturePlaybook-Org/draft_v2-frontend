@@ -4,16 +4,24 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import { usePermissions } from "@/hooks/use-permissions";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { useProjectNavStore } from "@/store/project-nav-store";
 
 export const Topbar: React.FC = () => {
   const pathname = usePathname();
   const { isAdmin } = usePermissions();
+  const { currentProjectTitle, currentProjectUid } = useProjectNavStore();
 
   const getBreadcrumbs = () => {
     const parts = pathname.split("/").filter(Boolean);
     return parts.map((part, index) => {
       const href = "/" + parts.slice(0, index + 1).join("/");
-      return { label: part.charAt(0).toUpperCase() + part.slice(1), href };
+      // Replace the raw project UID segment with the human-readable project title
+      const isProjectUidSegment =
+        currentProjectUid && part === currentProjectUid;
+      const label = isProjectUidSegment && currentProjectTitle
+        ? currentProjectTitle
+        : part.charAt(0).toUpperCase() + part.slice(1);
+      return { label, href };
     });
   };
 
