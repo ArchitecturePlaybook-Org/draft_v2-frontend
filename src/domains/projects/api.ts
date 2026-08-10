@@ -350,6 +350,14 @@ export const projectsApi = {
     });
   },
 
+  uploadMaterialReceipt: async (materialId: number, file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append("receipt_image", file);
+    return fetchFromBff<any>(`/api/v1/projects/field-diaries/materials/${materialId}/upload-receipt/`, {
+      method: "PATCH",
+      body: formData
+    });
+  },
 
 
   // ── Non-Conformance Reports (NCR) ───────────────────────────────────────
