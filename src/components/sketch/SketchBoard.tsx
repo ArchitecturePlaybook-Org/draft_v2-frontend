@@ -214,37 +214,16 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
     }
   };
 
-  const handleExportImage = async () => {
-    if (!excalidrawAPI || !exportToBlob) {
+  const handleExportImage = () => {
+    if (!excalidrawAPI) {
       toast.error("Sketching engine not ready");
       return;
     }
-    const elements = excalidrawAPI.getSceneElements();
-    if (!elements || elements.length === 0) {
-      toast.error("Nothing to export — draw something first");
-      return;
-    }
-    try {
-      const blob = await exportToBlob({
-        elements,
-        mimeType: "image/png",
-        appState: {
-          ...excalidrawAPI.getAppState(),
-          exportWithBlurryBackground: false,
-          exportBackground: true,
-        },
-        files: excalidrawAPI.getFiles(),
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${title.replace(/[^a-z0-9]/gi, "_") || "sketch"}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Image exported");
-    } catch (err: any) {
-      toast.error(err?.message || "Export failed");
-    }
+    excalidrawAPI.updateScene({
+      appState: {
+        openDialog: { name: "imageExport" },
+      },
+    });
   };
 
   const showReadOnlyBanner = !isLatestVersion;
@@ -397,7 +376,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
               export: { saveFileToDisk: false },
               loadScene: false,
               saveToActiveFile: false,
-              saveAsImage: false,
+              saveAsImage: true,
             },
           }}
         />
