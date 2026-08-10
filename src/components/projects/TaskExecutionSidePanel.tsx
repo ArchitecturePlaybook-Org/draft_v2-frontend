@@ -544,15 +544,17 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
               ))}
             </div>
 
-            <button
-              onClick={handleCopyLink}
-              className={`${splitMode ? "h-9 px-3" : "h-10 sm:h-11 px-3 sm:px-6"} font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap shrink-0 ${isCopied
-                  ? "bg-emerald-600 text-white shadow-emerald-500/20 scale-[1.02]"
-                  : "bg-accent text-background hover:opacity-90"
-                }`}
-            >
-              {isCopied ? "✓" : splitMode ? "🔗" : "🔗 Copy Link"}
-            </button>
+            {!isSubtaskPanel && (
+              <button
+                onClick={handleCopyLink}
+                className={`${splitMode ? "h-9 px-3" : "h-10 sm:h-11 px-3 sm:px-6"} font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap shrink-0 ${isCopied
+                    ? "bg-emerald-600 text-white shadow-emerald-500/20 scale-[1.02]"
+                    : "bg-accent text-background hover:opacity-90"
+                  }`}
+              >
+                {isCopied ? "✓" : splitMode ? "🔗" : "🔗 Copy Link"}
+              </button>
+            )}
 
             {!readOnly && (isAdmin || isArchitect) && (
               <button
