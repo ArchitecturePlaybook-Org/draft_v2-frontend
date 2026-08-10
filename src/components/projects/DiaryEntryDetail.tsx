@@ -24,6 +24,17 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   const [newDelay, setNewDelay] = useState({ delay_type: "weather", duration_hours: "", impacted_path: "" });
   const [uploadingReceiptId, setUploadingReceiptId] = useState<number | null>(null);
 
+  // Local temperature state — buffered so we only PATCH on blur, not on every keystroke.
+  // Sending intermediate values like "", "-", "2." to the backend DecimalField causes 400 errors.
+  const [tempHigh, setTempHigh] = useState<string>(entry.temperature_high != null ? String(entry.temperature_high) : "");
+  const [tempLow, setTempLow] = useState<string>(entry.temperature_low != null ? String(entry.temperature_low) : "");
+
+  // Keep local temp state in sync when the parent entry prop changes (e.g. after onUpdate refresh)
+  React.useEffect(() => {
+    setTempHigh(entry.temperature_high != null ? String(entry.temperature_high) : "");
+    setTempLow(entry.temperature_low != null ? String(entry.temperature_low) : "");
+  }, [entry.temperature_high, entry.temperature_low]);
+
   // Accordion state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     metadata: true,
@@ -216,11 +227,35 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase mb-2">Temp High (°C)</label>
-                    <input type="number" disabled={isLocked} className="w-full h-10 px-3 rounded-lg border border-surface-200" value={entry.temperature_high || ""} onChange={e => handleMetadataUpdate("temperature_high", e.target.value)} />
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      className="w-full h-10 px-3 rounded-lg border border-surface-200"
+                      value={tempHigh}
+                      onChange={e => setTempHigh(e.target.value)}
+                      onBlur={() => {
+                        const parsed = tempHigh === "" ? null : parseFloat(tempHigh);
+                        if (!isNaN(parsed as number) || parsed === null) {
+                          handleMetadataUpdate("temperature_high", parsed);
+                        }
+                      }}
+                    />
                   </div>
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase mb-2">Temp Low (°C)</label>
-                    <input type="number" disabled={isLocked} className="w-full h-10 px-3 rounded-lg border border-surface-200" value={entry.temperature_low || ""} onChange={e => handleMetadataUpdate("temperature_low", e.target.value)} />
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      className="w-full h-10 px-3 rounded-lg border border-surface-200"
+                      value={tempLow}
+                      onChange={e => setTempLow(e.target.value)}
+                      onBlur={() => {
+                        const parsed = tempLow === "" ? null : parseFloat(tempLow);
+                        if (!isNaN(parsed as number) || parsed === null) {
+                          handleMetadataUpdate("temperature_low", parsed);
+                        }
+                      }}
+                    />
                   </div>
                 </div>
 
