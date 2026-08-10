@@ -54,6 +54,19 @@ export const API_ROUTES: ApiRouteConfig[] = [
     auth: false,
   },
   {
+    prefix: "v1/auth/magic-link/request",
+    target: "/api/v1/users/auth/magic-link/request/",
+    methods: ["POST"],
+    auth: false,
+  },
+  {
+    prefix: "v1/auth/magic-link/verify",
+    target: "/api/v1/users/auth/magic-link/verify/",
+    methods: ["POST"],
+    auth: false,
+    cookieStrategy: "set-auth",
+  },
+  {
     prefix: "v1/auth/resend-verification",
     target: "/api/v1/users/auth/resend-verification/",
     methods: ["POST"],
