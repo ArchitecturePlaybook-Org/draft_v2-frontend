@@ -11,8 +11,37 @@ import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 import "@excalidraw/excalidraw/index.css";
 
-const Excalidraw = dynamic(
-  () => import("@excalidraw/excalidraw").then((mod) => mod.Excalidraw),
+const ExcalidrawCanvas = dynamic(
+  () =>
+    import("@excalidraw/excalidraw").then((mod) => {
+      const CanvasComponent = ({
+        editorKey,
+        theme,
+        viewModeEnabled,
+        excalidrawAPI,
+        initialData,
+        UIOptions,
+      }: any) => {
+        const { Excalidraw, MainMenu } = mod;
+        return (
+          <Excalidraw
+            key={editorKey}
+            theme={theme}
+            viewModeEnabled={viewModeEnabled}
+            excalidrawAPI={excalidrawAPI}
+            initialData={initialData}
+            UIOptions={UIOptions}
+          >
+            <MainMenu>
+              <MainMenu.DefaultItems.ClearCanvas />
+              <MainMenu.DefaultItems.ChangeCanvasBackground />
+              <MainMenu.DefaultItems.ToggleTheme />
+            </MainMenu>
+          </Excalidraw>
+        );
+      };
+      return CanvasComponent;
+    }),
   {
     ssr: false,
     loading: () => (
@@ -185,6 +214,39 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
     }
   };
 
+  const handleExportImage = async () => {
+    if (!excalidrawAPI || !exportToBlob) {
+      toast.error("Sketching engine not ready");
+      return;
+    }
+    const elements = excalidrawAPI.getSceneElements();
+    if (!elements || elements.length === 0) {
+      toast.error("Nothing to export — draw something first");
+      return;
+    }
+    try {
+      const blob = await exportToBlob({
+        elements,
+        mimeType: "image/png",
+        appState: {
+          ...excalidrawAPI.getAppState(),
+          exportWithBlurryBackground: false,
+          exportBackground: true,
+        },
+        files: excalidrawAPI.getFiles(),
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title.replace(/[^a-z0-9]/gi, "_") || "sketch"}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Image exported");
+    } catch (err: any) {
+      toast.error(err?.message || "Export failed");
+    }
+  };
+
   const showReadOnlyBanner = !isLatestVersion;
 
   return (
@@ -226,6 +288,17 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
               Versions
             </Button>
           )}
+          <Button
+            variant="outline"
+            onClick={handleExportImage}
+            title="Export current canvas as PNG"
+            className="h-9 text-[9px] uppercase font-bold tracking-widest gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export Image
+          </Button>
           <Button
             variant="outline"
             onClick={onClose}
@@ -312,8 +385,8 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
       )}
 
       <div className="flex-1 bg-muted/20 dark:bg-muted/10 relative overflow-hidden min-h-0">
-        <Excalidraw
-          key={editorInstanceKey}
+        <ExcalidrawCanvas
+          editorKey={editorInstanceKey}
           theme={appTheme}
           viewModeEnabled={showReadOnlyBanner}
           excalidrawAPI={(api: any) => setExcalidrawAPI(api)}
@@ -323,6 +396,8 @@ export const SketchBoard: React.FC<SketchBoardProps> = ({
               toggleTheme: false,
               export: { saveFileToDisk: false },
               loadScene: false,
+              saveToActiveFile: false,
+              saveAsImage: false,
             },
           }}
         />
