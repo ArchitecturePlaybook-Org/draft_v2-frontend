@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/QueryProvider";
@@ -7,15 +8,9 @@ import Navbar from "@/components/shared/Navbar";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { Toaster } from "sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Use local geist package — avoids Google Fonts network fetch at build time
+const geistSans = GeistSans;
+const geistMono = GeistMono;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173';
 
