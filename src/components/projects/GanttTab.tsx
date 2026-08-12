@@ -160,12 +160,12 @@ export const GanttTab: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="w-full overflow-x-auto bg-surface-50/40 dark:bg-surface-900/40 backdrop-blur-3xl p-10 rounded-[2.5rem] border border-white/10 shadow-2xl shadow-black/5"
+      className="w-full overflow-x-auto bg-surface-50/40 dark:bg-surface-900/40 backdrop-blur-3xl p-4 rounded-2xl border border-white/10 shadow-xl shadow-black/5"
     >
-      <div className="min-w-[1200px] relative z-10">
+      <div className="min-w-[1000px] relative z-10">
         {/* Full Height Grid Overlay */}
-        <div className="absolute inset-0 top-16 pointer-events-none flex z-0 opacity-20">
-          <div className="w-1/4 pr-10" /> {/* Spacer for titles */}
+        <div className="absolute inset-0 top-12 pointer-events-none flex z-0 opacity-20">
+          <div className="w-1/4 pr-6" /> {/* Spacer for titles */}
           <div className="flex-1 flex justify-between px-2">
             {[0, 0.25, 0.5, 0.75, 1].map(p => (
               <div key={p} className="w-px h-full bg-surface-300 dark:bg-surface-600" />
@@ -174,21 +174,21 @@ export const GanttTab: React.FC = () => {
         </div>
 
         {/* Timeline Header */}
-        <div className="flex border-b border-surface-200/50 pb-6 mb-8 relative z-10">
-          <div className="w-1/4 pr-10">
-            <h3 className="text-xl font-bold text-primary tracking-tight">Project Phases</h3>
-            <p className="text-[10px] font-bold text-surface-400 uppercase tracking-[0.2em] mt-1">Timeline Orchestration</p>
+        <div className="flex border-b border-surface-200/50 pb-3 mb-4 relative z-10">
+          <div className="w-1/4 pr-6">
+            <h3 className="text-base font-bold text-primary tracking-tight">Project Phases</h3>
+            <p className="text-[9px] font-bold text-surface-400 uppercase tracking-wider mt-0.5">Timeline Orchestration</p>
           </div>
-          <div className="flex-1 relative h-10">
+          <div className="flex-1 relative h-8">
             <div className="absolute inset-0 flex justify-between px-2">
               {[0, 0.25, 0.5, 0.75, 1].map(p => {
                 const d = new Date(minDate.getTime() + (maxDate.getTime() - minDate.getTime()) * p);
                 return (
                   <div key={p} className="flex flex-col items-center">
-                    <span className="text-[9px] font-extrabold text-surface-400 uppercase tracking-widest px-2 py-1 bg-surface-100/50 rounded-md backdrop-blur-md">
+                    <span className="text-[8px] font-extrabold text-surface-400 uppercase tracking-wider px-1.5 py-0.5 bg-surface-100/50 rounded backdrop-blur-md">
                       {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
-                    <div className="w-px h-3 bg-surface-300 dark:bg-surface-600 mt-2" />
+                    <div className="w-px h-2 bg-surface-300 dark:bg-surface-600 mt-1" />
                   </div>
                 );
               })}
@@ -197,22 +197,22 @@ export const GanttTab: React.FC = () => {
         </div>
 
         {/* Task Rows Grouped by Phase */}
-        <div className="space-y-12 relative z-10">
+        <div className="space-y-6 relative z-10">
           {groupedPhases.map(([phaseName, phaseTasks], phaseIdx) => (
             <motion.div
               key={phaseName}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: phaseIdx * 0.1 }}
-              className="space-y-4"
+              className="space-y-2"
             >
               <div className="sticky left-0 w-max z-20">
-                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-surface-500 bg-surface-100/80 backdrop-blur-xl px-4 py-2 rounded-xl border border-surface-200/50 shadow-sm inline-block">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-surface-500 bg-surface-100/80 backdrop-blur-xl px-3 py-1 rounded-lg border border-surface-200/50 shadow-sm inline-block">
                   {phaseName}
                 </h4>
               </div>
 
-              <div className="space-y-6 mt-4">
+              <div className="space-y-3 mt-2">
                 {phaseTasks.map((task) => (
                   <div key={task.uid} className="flex items-center group relative z-10">
                     <div className="w-1/4 pr-10 py-2">

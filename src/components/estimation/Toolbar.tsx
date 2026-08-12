@@ -58,7 +58,7 @@ export const Toolbar = () => {
   ] as const;
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 dark:bg-surface-100/90 backdrop-blur-md p-1.5 rounded-2xl border border-surface-200 shadow-xl flex items-center gap-1">
+    <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-40 bg-white/95 dark:bg-surface-100/95 backdrop-blur-md p-1 rounded-xl border border-surface-200 shadow-lg flex items-center gap-1 max-w-[95vw] overflow-x-auto no-scrollbar">
       {tools.map((tool) => (
         <button
           key={tool.id}

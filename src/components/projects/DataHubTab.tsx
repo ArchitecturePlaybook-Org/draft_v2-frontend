@@ -126,13 +126,13 @@ export const DataHubTab: React.FC = () => {
             <button 
               key={cat.id}
               onClick={() => setActiveHubCategory(cat.id as any)}
-              className={`w-full text-left px-5 py-4 rounded-2xl font-extrabold text-[10px] uppercase tracking-widest transition-all duration-300 border ${
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl font-extrabold text-[9px] uppercase tracking-wider transition-all duration-300 border ${
                 activeHubCategory === cat.id 
-                ? "bg-accent/10 text-accent shadow-[0_0_20px_var(--accent-glow)] scale-[1.02] border-accent/50 backdrop-blur-md" 
-                : "bg-surface-50/50 backdrop-blur-sm border-surface-200/50 text-surface-400 hover:bg-surface-100 hover:text-primary hover:-translate-y-0.5"
+                ? "bg-accent/10 text-accent shadow-sm border-accent/50 backdrop-blur-md" 
+                : "bg-surface-50/50 backdrop-blur-sm border-surface-200/50 text-surface-400 hover:bg-surface-100 hover:text-primary"
               }`}
             >
-              <span className="mr-3 text-base">{cat.icon}</span> {cat.label}
+              <span className="mr-2 text-sm">{cat.icon}</span> {cat.label}
             </button>
           ))}
         </motion.div>
@@ -142,16 +142,16 @@ export const DataHubTab: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="col-span-1 md:col-span-3"
         >
-          <div className="bg-surface-50/40 dark:bg-surface-900/40 backdrop-blur-3xl border-white/10 p-8 rounded-[2.5rem] border shadow-2xl shadow-black/5 min-h-[400px]">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 border-b border-surface-100 pb-4 min-w-0">
-              <h3 className="text-lg sm:text-xl font-extrabold text-primary tracking-tight truncate min-w-0">
+          <div className="bg-surface-50/40 dark:bg-surface-900/40 backdrop-blur-3xl border-white/10 p-5 rounded-2xl border shadow-xl shadow-black/5 min-h-[350px]">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4 border-b border-surface-100 pb-3 min-w-0">
+              <h3 className="text-base font-extrabold text-primary tracking-tight truncate min-w-0">
                 {activeHubCategory.replace('_', ' ').toUpperCase()}
               </h3>
-              <div className="flex flex-wrap gap-2 sm:gap-3 shrink-0">
+              <div className="flex flex-wrap gap-2 shrink-0">
                 {activeHubCategory === "sketch" && (
                   <button 
                     onClick={() => setIsCreateSketchModalOpen(true)}
-                    className="px-6 py-2 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-lg hover:opacity-90 transition-all shadow-lg shadow-accent/20"
+                    className="px-4 py-1.5 bg-accent text-background font-bold text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all shadow-md shadow-accent/20"
                   >
                     New Design Sketch
                   </button>
@@ -159,7 +159,7 @@ export const DataHubTab: React.FC = () => {
                 {activeHubCategory === "3d_model" && (
                   <button 
                     onClick={() => setIsCreate3DModalOpen(true)}
-                    className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all duration-200 border border-emerald-500/30 flex items-center gap-2 shadow-sm"
+                    className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all duration-200 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm"
                   >
                     <span>🏠</span> Create SH3D Model
                   </button>
@@ -205,7 +205,7 @@ export const DataHubTab: React.FC = () => {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  className={`px-6 py-2 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all duration-300 ${
+                  className={`px-4 py-1.5 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all duration-300 ${
                     isUploading 
                       ? "bg-accent text-white shadow-[0_0_20px_var(--accent-glow)] animate-pulse" 
                       : "bg-surface-200/50 backdrop-blur-md text-primary border border-surface-300/50 hover:bg-surface-300 hover:shadow-lg"
@@ -216,7 +216,7 @@ export const DataHubTab: React.FC = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {filteredAssets.length ? (
                 visibleAssets.map((asset, idx) => (
                   <motion.div 

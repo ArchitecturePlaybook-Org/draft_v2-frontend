@@ -204,7 +204,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
       />
 
 
-      <div className="flex flex-wrap gap-2 p-1.5 bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl w-full shadow-inner relative mb-8">
+      <div className="flex overflow-x-auto no-scrollbar gap-1.5 p-1 bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-xl w-full shadow-inner relative mb-4 max-w-full scroll-smooth">
         {[
           { id: "data_hub", label: "Master Data Hub" },
           { id: "matrix", label: "Construction Matrix" },
@@ -224,7 +224,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
                 setActiveTab(tab.id as any);
                 router.push(`?tab=${tab.id}`, { scroll: false });
               }}
-              className={`relative px-3 sm:px-6 py-2.5 font-black text-[10px] uppercase tracking-widest rounded-xl transition-colors z-10 whitespace-nowrap shrink-0 ${
+              className={`relative px-3 sm:px-4 py-2 font-black text-[9px] sm:text-[10px] uppercase tracking-wider rounded-lg transition-colors z-10 whitespace-nowrap shrink-0 ${
                 isActive ? "text-primary" : "text-surface-400 hover:text-primary hover:bg-white/5"
               }`}
             >
@@ -259,16 +259,16 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
 
         {activeTab === "matrix" && (
           <div className="w-full min-w-0">
-            <div className="flex flex-wrap gap-2 mb-6 bg-surface-50 p-2 rounded-xl border border-surface-200 w-full">
+            <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 bg-surface-50 p-1 rounded-xl border border-surface-200 w-full shrink-0">
               <button 
                 onClick={() => setMatrixView('grid')} 
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${matrixView === 'grid' ? 'bg-surface-200 text-primary shadow-md border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
+                className={`px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap shrink-0 ${matrixView === 'grid' ? 'bg-surface-200 text-primary shadow-sm border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
               >
                 Master Gate Matrix
               </button>
               <button 
                 onClick={() => setMatrixView('feed')} 
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${matrixView === 'feed' ? 'bg-surface-200 text-primary shadow-md border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
+                className={`px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap shrink-0 ${matrixView === 'feed' ? 'bg-surface-200 text-primary shadow-sm border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
               >
                 Expanded Milestone Feed
               </button>

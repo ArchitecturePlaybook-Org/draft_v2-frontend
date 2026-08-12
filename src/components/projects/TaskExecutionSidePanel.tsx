@@ -431,17 +431,21 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
   const slideX = "100%";
 
-  const panelStyle = isSubtaskPanel
-    ? { right: 0, width: effectiveWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
-    : splitMode
-      ? { left: leftOffset, width: effectiveWidth, transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)" }
-      : { right: 0, width: panelWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" };
+  const isMobileScreen = typeof window !== "undefined" && window.innerWidth < 768;
+
+  const panelStyle = isMobileScreen
+    ? { left: 0, right: 0, width: "100%", transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
+    : isSubtaskPanel
+      ? { right: 0, width: effectiveWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
+      : splitMode
+        ? { left: leftOffset, width: effectiveWidth, transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)" }
+        : { right: 0, width: panelWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" };
 
   const panelClass = isSubtaskPanel
-    ? "fixed top-0 right-0 bottom-0 z-[70] bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden"
+    ? "fixed top-0 right-0 bottom-0 z-[70] bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden w-full md:w-auto"
     : splitMode
-      ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden"
-      : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden";
+      ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden w-full md:w-auto"
+      : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden w-full md:w-auto";
 
   return (
     <>

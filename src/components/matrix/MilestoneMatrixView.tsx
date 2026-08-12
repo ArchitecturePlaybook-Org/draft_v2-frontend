@@ -460,9 +460,9 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   }
 
   const { zones, phases } = payload!;
-  const ZONE_COL_W = 128; // px per zone column
-  const PHASE_ROW_H = 110; // px per phase row
-  const HEADER_W = 180;   // px for phase label column
+  const ZONE_COL_W = 104; // px per zone column (was 128px)
+  const PHASE_ROW_H = 72;  // px per phase row (was 110px)
+  const HEADER_W = 140;    // px for phase label column (was 180px)
 
   return (
     <>
@@ -470,8 +470,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
       <div className="relative">
         <div
           ref={scrollRef}
-          className="overflow-auto rounded-2xl border border-surface-200 border-surface-200 bg-surface-100 shadow-sm"
-          style={{ maxHeight: "70vh" }}
+          className="overflow-auto rounded-xl border border-surface-200 bg-surface-100 shadow-sm"
+          style={{ maxHeight: "75vh" }}
         >
           <table className="border-collapse" style={{ minWidth: HEADER_W + zones.length * ZONE_COL_W }}>
             <thead className="sticky top-0 z-20 bg-surface-100 shadow-sm">

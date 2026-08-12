@@ -53,12 +53,12 @@ export const Sidebar: React.FC = () => {
           <path d="m15 18-6-6 6-6"/>
         </svg>
       </button>
-      <div className="flex items-center justify-between mb-8 px-2 min-w-0 gap-2">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 shrink-0 rounded-xl bg-surface-100 flex items-center justify-center text-xl shadow-none border border-surface-200">
+      <div className="flex items-center justify-between mb-4 px-1 min-w-0 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 shrink-0 rounded-lg bg-surface-100 flex items-center justify-center text-sm shadow-none border border-surface-200">
             🏗
           </div>
-          {!isSidebarCollapsed && <span className="text-xl font-bold tracking-tight text-foreground truncate">Playbook</span>}
+          {!isSidebarCollapsed && <span className="text-sm font-extrabold tracking-tight text-foreground truncate">Playbook</span>}
         </div>
         {!isSidebarCollapsed && (
           <div className="ml-auto shrink-0">
@@ -67,30 +67,28 @@ export const Sidebar: React.FC = () => {
         )}
       </div>
 
-      <div className="px-2 mb-6 flex gap-2 min-w-0">
+      <div className="px-1 mb-4 flex gap-2 min-w-0">
         <button 
           onClick={() => setIsCommandPaletteOpen(true)}
-          className={`flex items-center min-w-0 ${isSidebarCollapsed ? 'justify-center w-10 h-10 p-0 shrink-0' : 'w-full px-3 py-2 justify-between'} bg-surface-100 hover:bg-surface-200 border border-surface-200 rounded-lg transition-all text-sm text-text-secondary shadow-none shrink-0`}
+          className={`flex items-center min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 p-0 shrink-0' : 'w-full px-2.5 py-1.5 justify-between'} bg-surface-100 hover:bg-surface-200 border border-surface-200 rounded-lg transition-all text-xs text-text-secondary shadow-none shrink-0`}
         >
           {isSidebarCollapsed ? (
-            <span className="opacity-70">🔍</span>
+            <span className="opacity-70 text-xs">🔍</span>
           ) : (
             <>
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="opacity-70 text-text-secondary shrink-0">🔍</span>
-                <span className="font-semibold text-text-secondary truncate">Search...</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="opacity-70 text-text-secondary shrink-0 text-xs">🔍</span>
+                <span className="font-semibold text-text-secondary truncate text-xs">Search...</span>
               </div>
               <div className="flex items-center gap-1 opacity-70 shrink-0">
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-surface-200 border border-surface-300 rounded text-text-secondary">Cmd</kbd>
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-surface-200 border border-surface-300 rounded text-text-secondary">K</kbd>
+                <kbd className="px-1 py-0.2 text-[9px] font-mono font-bold bg-surface-200 border border-surface-300 rounded text-text-secondary">⌘K</kbd>
               </div>
             </>
           )}
         </button>
-        
       </div>
 
-      <nav className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 min-h-0 flex flex-col gap-3.5 overflow-y-auto overflow-x-hidden">
         <div>
           {!isSidebarCollapsed && (
             <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-bold">
