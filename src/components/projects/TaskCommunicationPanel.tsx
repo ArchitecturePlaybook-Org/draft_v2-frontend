@@ -66,30 +66,30 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface-50 rounded-2xl border border-surface-200 overflow-hidden shadow-sm">
-      <div className="p-4 border-b border-surface-200 bg-surface-100 border-surface-200 shrink-0">
-        <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Communication & Audit Log</h4>
+    <div className="flex flex-col h-full bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-800 overflow-hidden shadow-xs">
+      <div className="px-3.5 py-2.5 border-b border-surface-200 dark:border-surface-800 bg-surface-100 dark:bg-surface-850 shrink-0">
+        <h4 className="text-[11px] font-bold text-primary dark:text-white uppercase tracking-wider">Communication & Audit Log</h4>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar">
         {isLoading ? (
-          <div className="text-center text-sm text-surface-400 py-8 font-medium">
+          <div className="text-center text-xs text-surface-400 dark:text-surface-500 py-6 font-medium">
             Loading messages...
           </div>
         ) : comments.length === 0 ? (
-          <div className="text-center text-sm text-surface-400 py-8 font-medium">
+          <div className="text-center text-xs text-surface-400 dark:text-surface-500 py-6 font-medium">
             No messages yet. Start the conversation!
           </div>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="bg-surface-100 border-surface-200 p-3 rounded-xl border border-surface-200 shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-xs font-bold text-primary">{comment.user?.name || comment.user?.email || "User"}</span>
-                <span className="text-[9px] font-medium text-surface-400">
+            <div key={comment.id} className="bg-surface-100 dark:bg-surface-800/80 p-2.5 rounded-lg border border-surface-200 dark:border-surface-700/80 shadow-xs">
+              <div className="flex justify-between items-start mb-1">
+                <span className="text-[11px] font-bold text-primary dark:text-white">{comment.user?.name || comment.user?.email || "User"}</span>
+                <span className="text-[9px] font-medium text-surface-400 dark:text-surface-500">
                   {formatTimeAgo(comment.created_at)}
                 </span>
               </div>
-              <p className="text-sm text-surface-600 text-surface-300 whitespace-pre-wrap">{comment.content}</p>
+              <p className="text-xs text-surface-700 dark:text-surface-200 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
             </div>
           ))
         )}
@@ -98,13 +98,13 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
       </div>
 
       {!readOnly ? (
-        <div className="p-4 border-t border-surface-200 bg-surface-100 border-surface-200 shrink-0">
+        <div className="p-3 border-t border-surface-200 dark:border-surface-800 bg-surface-100 dark:bg-surface-850 shrink-0">
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Type your message..."
-              className="w-full h-20 bg-surface-50 border border-surface-200 rounded-xl p-3 outline-none focus:border-accent font-medium text-sm text-primary resize-none transition-colors"
+              className="w-full h-16 bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg p-2.5 outline-none focus:border-accent font-medium text-xs text-primary dark:text-white placeholder:text-surface-400 resize-none transition-colors"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -113,11 +113,11 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
               }}
             />
             <div className="flex justify-between items-center">
-              <span className="text-[10px] text-surface-400">Press Enter to send</span>
+              <span className="text-[9px] text-surface-400 dark:text-surface-500">Press Enter to send</span>
               <button
                 type="submit"
                 disabled={isSubmitting || !newComment.trim()}
-                className="h-9 px-5 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40"
+                className="h-7 px-3 bg-accent text-background font-bold text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all disabled:opacity-40"
               >
                 {isSubmitting ? "Sending..." : "Send"}
               </button>
@@ -125,8 +125,8 @@ export const TaskCommunicationPanel: React.FC<TaskCommunicationPanelProps> = ({ 
           </form>
         </div>
       ) : (
-        <div className="p-4 border-t border-surface-200 bg-surface-100 text-xs font-bold text-surface-400 text-center shrink-0">
-          🔒 Audit Log is view-only in template preview
+        <div className="p-3 border-t border-surface-200 dark:border-surface-800 bg-surface-100 dark:bg-surface-850 text-[11px] font-bold text-surface-400 text-center shrink-0">
+          🔒 Audit Log is view-only
         </div>
       )}
     </div>

@@ -11,5 +11,5 @@ export function useIsAdmin(): boolean {
     return false;
   }
   
-  return user.role === "admin";
+  return user.role?.toUpperCase() === "ADMIN";
 }

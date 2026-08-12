@@ -174,15 +174,15 @@ export const TaskItem: React.FC<TaskItemProps> = ({
       onClick={onClick}
       title={isLocked ? "This zone is locked" : task.title}
       className={`
-        relative group bg-surface-100 border rounded-md p-3.5 transition-[box-shadow,border-color,background-color,opacity] duration-300
+        relative group bg-surface-100 border rounded-lg p-2 text-xs transition-[box-shadow,border-color,background-color,opacity] duration-200
         ${isLocked
           ? "opacity-60 cursor-not-allowed border-surface-200"
           : readOnly
-            ? "cursor-default border-surface-200"
-            : "cursor-pointer hover:border-semantic-blue"
+          ? "cursor-pointer hover:border-accent hover:shadow-sm"
+          : "cursor-grab active:cursor-grabbing hover:border-accent hover:shadow-sm"
         }
-        ${task.has_active_blocker ? "border-semantic-red bg-semantic-red/10" : "border-surface-200"}
-        ${isDragging ? 'shadow-2xl opacity-95 z-50 border-semantic-blue' : ''}
+        ${isSelected ? "ring-2 ring-accent border-accent" : "border-surface-200"}
+        ${isDragging ? "shadow-lg border-accent scale-102" : ""}
       `}
     >
       {/* Needs Response Indicator */}

@@ -66,6 +66,9 @@ const EditableCell = ({ getValue, row: { index, original }, column: { id }, tabl
 export const EstimationGrid = () => {
   const { items, updateItem, deleteItem, setHover, setSelection, selectedItemId, hoveredItemId } = useEstimationStore();
 
+  const totalQuantitySum = items.reduce((acc, item) => acc + (Number(item.net_qty) || 0), 0);
+  const totalCostSum = items.reduce((acc, item) => acc + (Number(item.total_cost) || 0), 0);
+
   const columns: ColumnDef<TakeoffItem>[] = [
     {
       header: 'Code',
@@ -87,7 +90,7 @@ export const EstimationGrid = () => {
       accessorKey: 'net_qty',
       aggregationFn: 'sum',
       cell: (info) => (
-        <div className={`px-1 font-mono text-xs text-primary ${info.row.getIsGrouped() ? 'font-bold' : ''}`}>
+        <div className={`px-1 font-mono text-[11px] text-primary ${info.row.getIsGrouped() ? 'font-black text-accent' : 'font-bold'}`}>
           {Number(info.getValue()).toFixed(2)}
         </div>
       )
@@ -107,7 +110,7 @@ export const EstimationGrid = () => {
       accessorKey: 'total_cost',
       aggregationFn: 'sum',
       cell: (info) => (
-        <div className={`px-1 font-mono text-xs text-semantic-green ${info.row.getIsGrouped() ? 'font-black' : 'font-bold'}`}>
+        <div className={`px-1 font-mono text-[11px] text-emerald-600 dark:text-emerald-400 ${info.row.getIsGrouped() ? 'font-black' : 'font-bold'}`}>
           ${Number(info.getValue()).toFixed(2)}
         </div>
       )
@@ -120,9 +123,10 @@ export const EstimationGrid = () => {
             e.stopPropagation();
             deleteItem(row.original.id);
           }} 
-          className="text-red-500 hover:bg-red-100 p-1 rounded transition-colors opacity-0 group-hover:opacity-100"
+          className="text-red-500 hover:bg-red-500/10 p-1 rounded-md transition-all opacity-0 group-hover:opacity-100"
+          title="Delete item"
         >
-          <Trash2 size={14} />
+          <Trash2 size={13} />
         </button>
       )
     }
@@ -148,28 +152,36 @@ export const EstimationGrid = () => {
   });
 
   return (
-    <div className="w-full h-full flex flex-col bg-background overflow-hidden font-sans">
-      <div className="h-10 border-b border-surface-200 bg-surface-100 flex items-center justify-between px-4 shrink-0">
-        <span className="text-xs font-bold uppercase tracking-widest text-surface-500">Spreadsheet Mode</span>
-        <div className="flex items-center gap-2">
-          <label className="text-[10px] font-bold uppercase text-surface-400">Group By Item Code</label>
+    <div className="w-full h-full flex flex-col bg-surface-card overflow-hidden font-sans border border-surface-200 rounded-xl shadow-xs">
+      
+      {/* Control Bar */}
+      <div className="h-9 border-b border-surface-200 bg-surface-100/80 px-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs">📊</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-surface-700">Spreadsheet Grid</span>
+          <span className="text-[9px] bg-surface-200 px-1.5 py-0.5 rounded font-bold text-surface-500">{items.length} items</span>
+        </div>
+
+        <label className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-wider text-text-secondary cursor-pointer select-none">
           <input 
             type="checkbox" 
             checked={grouping.length > 0} 
             onChange={e => setGrouping(e.target.checked ? ['item_code'] : [])} 
-            className="w-3 h-3 accent-accent"
+            className="w-3.5 h-3.5 rounded accent-accent cursor-pointer"
           />
-        </div>
+          Group By Code
+        </label>
       </div>
       
-      <div className="flex-1 overflow-auto">
-        <table className="w-full text-sm border-collapse excel-table">
-          <thead className="bg-surface-50 border-b-2 border-surface-200 sticky top-0 z-20">
+      {/* Table Body */}
+      <div className="flex-1 overflow-auto no-scrollbar">
+        <table className="w-full text-xs border-collapse">
+          <thead className="bg-surface-100 border-b border-surface-200 sticky top-0 z-20 shadow-2xs">
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id}>
-                <th className="w-8 border-r border-b border-surface-200 bg-surface-100"></th>
+                <th className="w-7 border-r border-surface-200 bg-surface-100 text-[9px] font-black text-text-secondary text-center uppercase">#</th>
                 {hg.headers.map(header => (
-                  <th key={header.id} className="p-2 border-r border-b border-surface-200 text-left font-bold text-primary text-xs bg-surface-100 whitespace-nowrap">
+                  <th key={header.id} className="p-1.5 border-r border-surface-200 text-left font-black text-foreground text-[10px] uppercase tracking-wider bg-surface-100 whitespace-nowrap">
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
@@ -177,25 +189,25 @@ export const EstimationGrid = () => {
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row, i) => {
+            {table.getRowModel().rows.map((row) => {
               const isGroupRow = row.getIsGrouped();
               return (
                 <tr 
                   key={row.id}
-                  className={`group border-b border-surface-200 transition-colors ${
-                    isGroupRow ? 'bg-surface-200 text-primary' :
-                    selectedItemId === row.original?.id ? 'bg-accent/10 border-l-2 border-l-accent text-primary' : 
-                    hoveredItemId === row.original?.id ? 'bg-surface-300 text-primary' : 'bg-surface-50 text-primary'
+                  className={`group border-b border-surface-200/80 transition-all ${
+                    isGroupRow ? 'bg-accent/10 font-bold text-foreground' :
+                    selectedItemId === row.original?.id ? 'bg-accent/15 border-l-4 border-l-accent text-foreground font-semibold' : 
+                    hoveredItemId === row.original?.id ? 'bg-surface-100 text-foreground' : 'bg-surface-card hover:bg-surface-50 text-foreground'
                   }`}
                   onMouseEnter={() => !isGroupRow && setHover(row.original.id)}
                   onMouseLeave={() => !isGroupRow && setHover(null)}
                   onClick={() => !isGroupRow && setSelection(row.original.id)}
                 >
-                  <td className={`border-r border-surface-200 text-center text-[10px] font-mono select-none ${isGroupRow ? 'bg-surface-200 text-transparent' : 'bg-surface-100 text-primary'}`}>
+                  <td className={`border-r border-surface-200/80 text-center text-[9px] font-mono select-none ${isGroupRow ? 'bg-accent/10 text-transparent' : 'bg-surface-100/50 text-text-secondary'}`}>
                     {isGroupRow ? '' : row.index + 1}
                   </td>
                   {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="p-1 border-r border-surface-200 relative">
+                    <td key={cell.id} className="p-1 border-r border-surface-200/80 relative text-[11px]">
                       {cell.getIsGrouped() ? (
                          flexRender(cell.column.columnDef.cell, cell.getContext())
                       ) : cell.getIsAggregated() ? (
@@ -212,13 +224,24 @@ export const EstimationGrid = () => {
         </table>
         
         {items.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-48 text-surface-400">
-            <span className="text-3xl mb-2 opacity-50">📋</span>
-            <p className="text-xs font-bold uppercase tracking-widest">No Takeoffs Found</p>
-            <p className="text-[10px] mt-1">Use the tools on the canvas to start drawing</p>
+          <div className="flex flex-col items-center justify-center h-40 text-surface-400 p-4 text-center">
+            <span className="text-2xl mb-1 opacity-40">📐</span>
+            <p className="text-xs font-black uppercase tracking-wider text-surface-600">No Takeoffs Measured Yet</p>
+            <p className="text-[10px] text-surface-400 mt-0.5">Use the drawing tools above to measure lengths, areas, & counts</p>
           </div>
         )}
       </div>
+
+      {/* Sticky Bottom Totals Bar */}
+      {items.length > 0 && (
+        <div className="h-8 border-t border-surface-200 bg-surface-100/90 px-3 flex items-center justify-between shrink-0 text-[10px] font-black uppercase tracking-wider text-foreground">
+          <span>Total Takeoffs</span>
+          <div className="flex items-center gap-3">
+            <span>Qty: <strong className="font-mono text-accent">{totalQuantitySum.toFixed(2)}</strong></span>
+            <span>Cost: <strong className="font-mono text-emerald-600 dark:text-emerald-400">${totalCostSum.toFixed(2)}</strong></span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

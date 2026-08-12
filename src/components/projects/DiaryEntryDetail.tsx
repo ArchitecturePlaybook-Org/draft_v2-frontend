@@ -146,47 +146,47 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   const siteConditionOptions = ["Dry", "Muddy", "Work Suspended"];
 
   return (
-    <div className="bg-surface-100 border-surface-200 rounded-2xl border shadow-xl flex flex-col">
+    <div className="bg-surface-100 border-surface-200 rounded-xl border shadow-sm flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="p-5 border-b border-surface-200 bg-surface-100 rounded-t-2xl flex justify-between items-center shadow-sm">
+      <div className="px-3.5 py-2 border-b border-surface-200 bg-surface-100 rounded-t-xl flex justify-between items-center shadow-xs">
         <div>
-          <h2 className="text-xl font-bold text-primary">Diary: {entry.entry_date}</h2>
-          <div className="flex gap-2 items-center mt-1">
-            <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase ${entry.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+          <h2 className="text-sm font-black text-primary">Diary: {entry.entry_date}</h2>
+          <div className="flex gap-1.5 items-center mt-0.5">
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-extrabold uppercase ${entry.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
               {entry.status}
             </span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           {!isLocked && (
-            <Button variant="primary" onClick={handleSign}>Sign & Lock</Button>
+            <Button variant="primary" size="sm" onClick={handleSign}>Sign & Lock</Button>
           )}
-          {onClose && <Button variant="outline" onClick={onClose}>Close</Button>}
+          {onClose && <Button variant="outline" size="sm" onClick={onClose}>Close</Button>}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-50">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-surface-50 no-scrollbar">
 
         {/* 1. Metadata & Weather */}
-        <div className="bg-surface-100 border-surface-200 border border-surface-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-surface-100 border-surface-200 border rounded-lg overflow-hidden shadow-xs">
           <div 
-            className="p-4 flex justify-between items-center cursor-pointer hover:bg-surface-50 select-none"
+            className="p-2.5 flex justify-between items-center cursor-pointer hover:bg-surface-50 select-none"
             onClick={() => toggleSection('metadata')}
           >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Sun className="w-5 h-5" /></div>
-              <h3 className="font-bold text-lg text-surface-800">Weather & Conditions</h3>
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-blue-100 text-blue-600 rounded-md"><Sun className="w-4 h-4" /></div>
+              <h3 className="font-bold text-xs text-surface-800">Weather & Conditions</h3>
               {!expandedSections.metadata && (
-                <span className="text-sm font-medium text-surface-500 text-surface-400 ml-4">
+                <span className="text-[11px] font-medium text-surface-400 ml-2">
                   {entry.sky_conditions || 'Not set'} • {entry.temperature_high ? `${entry.temperature_high}°C` : '-'}
                 </span>
               )}
             </div>
-            {expandedSections.metadata ? <ChevronUp className="w-5 h-5 text-surface-400" /> : <ChevronDown className="w-5 h-5 text-surface-400" />}
+            {expandedSections.metadata ? <ChevronUp className="w-4 h-4 text-surface-400" /> : <ChevronDown className="w-4 h-4 text-surface-400" />}
           </div>
           
           {expandedSections.metadata && (
-            <div className="p-5 border-t border-surface-100 bg-surface-100 border-surface-200 space-y-6">
+            <div className="p-3 border-t border-surface-100 bg-surface-100 space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase mb-2">Sky Conditions</label>

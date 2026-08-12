@@ -12,23 +12,24 @@ const SidebarSpacer = () => (
 );
 
 export const SidebarShell: React.FC = () => {
-  const { isInsideProject, setProjectContext } = useProjectNavStore();
+  const { isInsideProject, setProjectContext, isSidebarCollapsed, toggleSidebar } = useProjectNavStore();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      if (!isSidebarCollapsed) {
+        toggleSidebar();
+      }
+    }
   }, []);
 
   // Sync isInsideProject based on URL to handle direct links and refreshes
   useEffect(() => {
-    // Basic regex to check if we are deeply inside a project view
     const projectMatch = pathname.match(/^\/dashboard\/projects\/([a-zA-Z0-9-]+)(?:\/|$)/);
     
-    // Check if the id is literally "page" (Next.js route file error fallback) or "null"
     if (projectMatch && projectMatch[1] && projectMatch[1] !== "page") {
-      // Pass undefined so the store preserves the existing project title
-      // (title is set by ProjectDetailView once the project data loads)
       setProjectContext(projectMatch[1], undefined);
     } else {
       setProjectContext(null);
@@ -47,6 +48,14 @@ export const SidebarShell: React.FC = () => {
   return (
     <>
       <SidebarSpacer />
+      {/* Mobile Drawer Backdrop Overlay */}
+      {!isSidebarCollapsed && (
+        <div
+          onClick={toggleSidebar}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs md:hidden animate-fade-in"
+          aria-hidden="true"
+        />
+      )}
       {isInsideProject ? <ProjectSidebar /> : <Sidebar />}
     </>
   );

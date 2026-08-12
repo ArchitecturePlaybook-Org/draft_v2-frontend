@@ -175,7 +175,10 @@ export const projectsApi = {
   },
 
   createTask: async (data: { project?: number | string; title: string; [key: string]: any }) => {
-    return fetchFromBff<any>("/api/v1/projects/tasks/", { method: "POST", body: JSON.stringify(data) });
+    console.log("[FRONTEND_API] createTask called with payload:", data);
+    const res = await fetchFromBff<any>("/api/v1/projects/tasks/", { method: "POST", body: JSON.stringify(data) });
+    console.log("[FRONTEND_API] createTask response:", res);
+    return res;
   },
 
   updateTask: async (taskId: string, data: Partial<any>) => {
@@ -211,6 +214,12 @@ export const projectsApi = {
     return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
       method: "PATCH",
       body: formData
+    });
+  },
+
+  deleteChecklistItem: async (itemId: number) => {
+    return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
+      method: "DELETE"
     });
   },
 
@@ -467,7 +476,8 @@ export const projectsApi = {
           method: "PUT",
           headers: {
             "Content-Type": file.type || "application/octet-stream"
-          },
+           },
+
           body: file
         });
 
@@ -636,6 +646,7 @@ export const projectsApi = {
     longitude?: number;
     gps_accuracy_m?: number;
     gps_source: 'browser' | 'exif' | 'none';
+    captured_at?: string;
   }) => {
     const formData = new FormData();
     formData.append("floor_plan", data.floor_plan.toString());
@@ -646,6 +657,7 @@ export const projectsApi = {
     if (data.latitude) formData.append("latitude", data.latitude.toString());
     if (data.longitude) formData.append("longitude", data.longitude.toString());
     if (data.gps_accuracy_m) formData.append("gps_accuracy_m", data.gps_accuracy_m.toString());
+    if (data.captured_at) formData.append("captured_at", data.captured_at);
     formData.append("gps_source", data.gps_source);
     
     return fetchFromBff<SitePhoto>("/api/v1/projects/site-photos/", { 
@@ -745,6 +757,26 @@ export const projectsApi = {
 
   getTaskTemplates: async () => {
     return fetchFromBff<any>("/api/v1/projects/task-templates/", { method: "GET" });
+  },
+
+  createTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: string[] }) => {
+    return fetchFromBff<any>("/api/v1/projects/task-templates/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: string[] }>) => {
+    return fetchFromBff<any>(`/api/v1/projects/task-templates/${templateId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteTaskTemplate: async (templateId: number) => {
+    return fetchFromBff<void>(`/api/v1/projects/task-templates/${templateId}/`, {
+      method: "DELETE"
+    });
   },
 
   getInventoryItems: async () => {

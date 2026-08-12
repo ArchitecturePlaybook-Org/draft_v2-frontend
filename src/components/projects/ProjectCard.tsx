@@ -37,12 +37,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChang
 
   return (
     <motion.div 
-      whileHover={{ rotateY: 2, rotateX: -2, y: -5, z: 20 }}
+      whileHover={{ rotateY: 2, rotateX: -2, y: -4, z: 15 }}
       style={{ transformStyle: "preserve-3d", perspective: 1000 }}
-      className="bg-surface-50/50 backdrop-blur-xl p-8 rounded-[2rem] border border-white/10 dark:border-white/5 hover:border-accent/50 shadow-xl shadow-primary/5 hover:shadow-2xl hover:shadow-accent/10 transition-all duration-500 h-full flex flex-col relative overflow-hidden group"
+      className="bg-surface-50/50 backdrop-blur-xl p-4 sm:p-4.5 rounded-xl border border-white/10 dark:border-white/5 hover:border-accent/50 shadow-md shadow-primary/5 hover:shadow-xl hover:shadow-accent/10 transition-all duration-300 h-full flex flex-col relative overflow-hidden group"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[300px] h-full bg-primary/5 arch-grid opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none mix-blend-overlay" />
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[200px] h-full bg-primary/5 arch-grid opacity-10 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none mix-blend-overlay" />
       
       {/* ── CARD NAVIGATOR LINK OVERLAY (z-0) ── */}
       <div 
@@ -52,17 +52,17 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onStatusChang
       />
       
       {/* ── TOP HEADER SECTION (z-20) ── */}
-      <div className="flex justify-between items-start mb-4 relative z-20 pointer-events-none">
-        <div className="space-y-1 pointer-events-auto cursor-pointer" onClick={navigateToProject}>
-          <h3 className="font-bold text-xl text-primary tracking-tight group-hover:text-accent transition-colors drop-shadow-sm">
+      <div className="flex justify-between items-start mb-3 relative z-20 pointer-events-none">
+        <div className="space-y-0.5 pointer-events-auto cursor-pointer min-w-0" onClick={navigateToProject}>
+          <h3 className="font-extrabold text-sm sm:text-base text-primary tracking-tight group-hover:text-accent transition-colors drop-shadow-sm truncate">
             {project.title}
           </h3>
-          <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-surface-400">
+          <p className="text-[9px] uppercase tracking-wider font-bold text-surface-400 truncate">
             {project.project_code || project.uid.substring(0, 8)} <span className="opacity-50 mx-1">•</span> {project.account.name}
           </p>
           {project.client_name && (
-            <p className="text-xs font-medium text-surface-400 mt-2 flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            <p className="text-[11px] font-medium text-surface-400 mt-1 flex items-center gap-1 truncate">
+              <svg className="w-3 h-3 opacity-70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
               {project.client_name}
             </p>
           )}

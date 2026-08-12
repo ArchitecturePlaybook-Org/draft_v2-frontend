@@ -1,5 +1,6 @@
 import React from "react";
 import { Task, TaskChecklistItem } from "@/types/projects";
+import { CheckCircle2, Circle, Trash2, Plus, Sparkles, Image, Camera } from "lucide-react";
 
 interface ChecklistTemplate {
   id: number;
@@ -14,6 +15,7 @@ interface TaskChecklistTabProps {
   setNewChecklistDesc: (val: string) => void;
   handleAddChecklistItem: () => void;
   handleToggleChecklist: (item: TaskChecklistItem) => void;
+  handleDeleteChecklist?: (item: TaskChecklistItem) => void;
   isContractor: boolean;
   isUpdating: boolean;
   isAdmin: boolean;
@@ -34,6 +36,7 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
   setNewChecklistDesc,
   handleAddChecklistItem,
   handleToggleChecklist,
+  handleDeleteChecklist,
   isContractor,
   isUpdating,
   isAdmin,
@@ -46,115 +49,178 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
   setLightboxImageUrl,
   readOnly = false,
 }) => {
+  const total = checklists.length;
+  const completed = checklists.filter(i => i.is_completed).length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
   return (
-    <div className="max-w-4xl space-y-4">
-      <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 overflow-hidden shadow-sm">
+    <div className="space-y-3">
+      {/* Progress Bar & Summary */}
+      {total > 0 && (
+        <div className="bg-surface-100 border border-surface-300 rounded-xl p-3 shadow-xs">
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="font-bold text-foreground flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              Checklist Progress
+            </span>
+            <span className="text-[11px] font-black text-accent tabular-nums">
+              {completed} of {total} completed ({percent}%)
+            </span>
+          </div>
+          <div className="w-full h-1.5 bg-surface-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-linear-to-r from-accent to-emerald-500 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Checklist Items List */}
+      <div className="bg-surface-100 border border-surface-300 rounded-xl overflow-hidden shadow-xs divide-y divide-surface-200">
         {checklists.length === 0 ? (
-          <div className="p-8 text-center text-surface-400">
-            <p className="text-3xl mb-2">📋</p>
-            <p className="text-sm font-bold">No checklist items yet</p>
+          <div className="p-6 text-center">
+            <p className="text-xl mb-1">📋</p>
+            <p className="text-xs font-bold text-foreground">No checklist items yet</p>
+            <p className="text-[10px] text-surface-500 mt-0.5">Add checkpoints below or import a template.</p>
           </div>
         ) : (
-          <div className="divide-y divide-surface-100">
-            {checklists.map((item) => (
-              <div key={item.id} className="flex flex-col gap-2 p-4 hover:bg-surface-50 transition-colors group border-b border-surface-100 last:border-0">
-                <label className={`flex items-start gap-4 ${readOnly ? "cursor-default" : "cursor-pointer"}`}>
-                  <input
-                    type="checkbox"
-                    checked={item.is_completed}
-                    onChange={() => !readOnly && handleToggleChecklist(item)}
-                    disabled={(isContractor && task.status !== "WIP") || isUpdating || readOnly}
-                    className="w-5 h-5 mt-0.5 rounded border-surface-300 accent-accent shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className={`text-sm font-semibold transition-colors ${item.is_completed ? "line-through text-surface-400" : "text-primary group-hover:text-accent"}`}>
-                        {item.title}
-                      </p>
-                      {item.requires_visual_proof && (
-                        <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">📸 Proof Req.</span>
-                      )}
-                    </div>
-                    {item.is_completed && item.completed_by && (
-                      <p className="text-[10px] text-surface-400 mt-1">Completed by {item.completed_by.email}</p>
-                    )}
-                  </div>
-                  {item.is_completed && (
-                    <svg className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
+          checklists.map((item, idx) => (
+            <div
+              key={item.id || idx}
+              className={`flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-surface-200/50 transition-colors group ${
+                item.is_completed ? "bg-surface-50/50" : ""
+              }`}
+            >
+              {/* Checkbox Button */}
+              <button
+                type="button"
+                onClick={() => !readOnly && handleToggleChecklist(item)}
+                disabled={(isContractor && task.status !== "WIP") || isUpdating || readOnly}
+                className="mt-0.5 shrink-0 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={item.is_completed ? "Mark incomplete" : "Mark complete"}
+              >
+                {item.is_completed ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 fill-emerald-500/20" />
+                ) : (
+                  <Circle className="w-4 h-4 text-surface-400 group-hover:text-accent transition-colors" />
+                )}
+              </button>
+
+              {/* Title & Metadata */}
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    onClick={() => !readOnly && handleToggleChecklist(item)}
+                    className={`text-xs font-medium cursor-pointer transition-colors leading-snug ${
+                      item.is_completed
+                        ? "line-through text-surface-500 opacity-75"
+                        : "text-foreground group-hover:text-accent font-semibold"
+                    }`}
+                  >
+                    {item.title}
+                  </span>
+
+                  {item.requires_visual_proof && (
+                    <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
+                      <Camera className="w-2.5 h-2.5" /> Proof Req.
+                    </span>
                   )}
-                </label>
+                </div>
+
+                {/* Subtext info */}
+                {item.is_completed && item.completed_by && (
+                  <span className="text-[9px] text-surface-500">
+                    Completed by {item.completed_by.email || item.completed_by.name}
+                  </span>
+                )}
+
+                {/* Attachments preview */}
                 {item.attachments && item.attachments.length > 0 && (
-                  <div className="flex gap-2 ml-9 mt-1">
-                    {item.attachments.map((att) => (
-                      <button 
-                        key={att.id} 
+                  <div className="flex gap-1.5 mt-1">
+                    {item.attachments.map((att: any) => (
+                      <button
+                        key={att.id}
+                        type="button"
                         onClick={() => setLightboxImageUrl(att.file)}
-                        className="w-12 h-12 rounded overflow-hidden border border-surface-200 block hover:opacity-80 transition-opacity cursor-pointer focus:outline-none shrink-0"
+                        className="w-8 h-8 rounded-lg overflow-hidden border border-surface-300 hover:border-accent block transition-opacity cursor-pointer focus:outline-none shrink-0"
                       >
-                        <img src={att.file} className="w-full h-full object-cover" />
+                        <img src={att.file} alt="Proof" className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
                 )}
               </div>
-            ))}
-          </div>
+
+              {/* Delete button on hover */}
+              {!readOnly && handleDeleteChecklist && (isAdmin || isArchitect) && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteChecklist(item)}
+                  disabled={isUpdating}
+                  className="opacity-0 group-hover:opacity-100 p-1 text-surface-400 hover:text-red-400 transition-all rounded hover:bg-red-500/10 shrink-0"
+                  title="Remove checkpoint"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))
         )}
       </div>
 
+      {/* Add Checkpoint & Import Row */}
       {!readOnly && (isAdmin || isArchitect || isQA) && (
-        <div className="bg-surface-100 border-surface-200 rounded-2xl border border-surface-200 p-4 shadow-sm">
-          <div className="flex gap-3">
+        <div className="bg-surface-100 border border-surface-300 rounded-xl p-2.5 shadow-xs space-y-2">
+          {/* Quick Add Row */}
+          <div className="flex gap-2">
             <input
               type="text"
               value={newChecklistDesc}
               onChange={e => setNewChecklistDesc(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !isUpdating && handleAddChecklistItem()}
-              placeholder="Add verification checkpoint..."
+              placeholder="Add checkpoint description (Press Enter)..."
               disabled={isUpdating}
-              className="flex-1 h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-medium text-primary disabled:opacity-50"
+              className="flex-1 h-8.5 bg-surface-50 border border-surface-300 rounded-lg px-3 outline-none focus:border-accent text-xs font-medium text-foreground placeholder:text-surface-400 transition-colors disabled:opacity-50"
             />
             <button
+              type="button"
               onClick={handleAddChecklistItem}
               disabled={!newChecklistDesc.trim() || isUpdating}
-              className="h-10 px-4 bg-accent text-background font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-accent transition-all disabled:opacity-40 flex items-center gap-2 shrink-0"
+              className="h-8.5 px-3 bg-accent text-background font-bold text-[10px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all disabled:opacity-40 flex items-center gap-1.5 shrink-0 shadow-xs"
             >
               {isUpdating ? (
-                <>
-                  <svg className="w-3.5 h-3.5 animate-spin text-current" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span>Adding...</span>
-                </>
+                <span className="animate-spin text-xs">⟳</span>
               ) : (
-                "+ Add"
+                <Plus className="w-3.5 h-3.5" />
               )}
+              <span>Add</span>
             </button>
           </div>
-          
-          {/* Import Template Section */}
-          <div className="mt-4 pt-4 border-t border-surface-200 flex gap-3 items-center">
-            <select
-              value={selectedTemplateId}
-              onChange={(e) => setSelectedTemplateId(e.target.value)}
-              className="flex-1 h-10 bg-surface-50 border border-surface-200 rounded-xl px-3 outline-none focus:border-accent text-sm font-medium text-primary appearance-none"
-            >
-              <option value="" disabled>Import from global template...</option>
-              {checklistTemplates.map(t => (
-                <option key={t.id} value={t.id}>{t.name} ({t.items?.length || 0} items)</option>
-              ))}
-            </select>
-            <button
-              onClick={handleImportTemplate}
-              disabled={!selectedTemplateId || isUpdating}
-              className="h-10 px-4 bg-surface-200 text-surface-700 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-surface-300 transition-all disabled:opacity-40 whitespace-nowrap"
-            >
-              {isUpdating ? "Importing..." : "Import"}
-            </button>
-          </div>
+
+          {/* Import Template Dropdown */}
+          {checklistTemplates && checklistTemplates.length > 0 && (
+            <div className="pt-2 border-t border-surface-200 flex gap-2 items-center">
+              <select
+                value={selectedTemplateId}
+                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                className="flex-1 h-8 bg-surface-50 border border-surface-300 rounded-lg px-2.5 outline-none focus:border-accent text-[11px] font-medium text-foreground appearance-none"
+              >
+                <option value="" disabled className="bg-surface-100 text-foreground">Import from global checklist template...</option>
+                {checklistTemplates.map(t => (
+                  <option key={t.id} value={t.id} className="bg-surface-100 text-foreground">{t.name} ({t.items?.length || 0} items)</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleImportTemplate}
+                disabled={!selectedTemplateId || isUpdating}
+                className="h-8 px-3 bg-surface-200 text-foreground font-bold text-[10px] uppercase tracking-wider rounded-lg hover:bg-surface-300 transition-all disabled:opacity-40 whitespace-nowrap"
+              >
+                Import
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

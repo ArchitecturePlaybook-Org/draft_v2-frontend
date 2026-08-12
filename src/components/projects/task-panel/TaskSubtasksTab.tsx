@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Task, TaskChecklistItem } from "@/types/projects";
-import { Plus, X, Layers, CheckSquare, ListChecks } from "lucide-react";
+import { Plus, X, Layers, CheckSquare, ListChecks, Trash2 } from "lucide-react";
 import { TaskChecklistTab } from "./TaskChecklistTab";
 
 interface ChecklistTemplate {
@@ -28,6 +28,7 @@ interface TaskSubtasksTabProps {
   setNewChecklistDesc?: (val: string) => void;
   handleAddChecklistItem?: () => void;
   handleToggleChecklist?: (item: TaskChecklistItem) => void;
+  handleDeleteChecklist?: (item: TaskChecklistItem) => void;
   checklistTemplates?: ChecklistTemplate[];
   selectedTemplateId?: string;
   setSelectedTemplateId?: (val: string) => void;
@@ -52,6 +53,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
   setNewChecklistDesc = () => {},
   handleAddChecklistItem = () => {},
   handleToggleChecklist = () => {},
+  handleDeleteChecklist = () => {},
   checklistTemplates = [],
   selectedTemplateId = "",
   setSelectedTemplateId = () => {},
@@ -62,56 +64,56 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
   const completedChecklistsCount = checklists.filter(i => i.is_completed).length;
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto h-[calc(100vh-280px)] p-2">
-      {/* Header Banner */}
-      <div className="flex items-center justify-between bg-surface-100 dark:bg-surface-800/80 border-surface-200 dark:border-surface-700 p-6 rounded-2xl border shadow-sm backdrop-blur-md">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="p-1.5 rounded-lg bg-accent/10 text-accent">
-              <ListChecks className="w-5 h-5" />
-            </span>
-            <h3 className="text-xl font-extrabold text-primary dark:text-white tracking-tight">Tasks & Checklists</h3>
+    <div className="flex flex-col gap-4 max-w-5xl mx-auto p-1">
+      {/* Top Action Bar */}
+      <div className="flex items-center justify-between bg-surface-100 border border-surface-300 px-4 py-3 rounded-xl shadow-xs">
+        <div className="flex items-center gap-2">
+          <span className="p-1.5 rounded-lg bg-accent/15 text-accent">
+            <ListChecks className="w-4 h-4" />
+          </span>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Subtasks & Quality Checklists</h3>
+            <p className="text-[10px] text-surface-500">
+              Manage operational action items and quality verification checkpoints.
+            </p>
           </div>
-          <p className="text-xs text-surface-500 dark:text-surface-400 font-medium ml-8">
-            Manage subtasks, action items, and quality verification checklists together in one place.
-          </p>
         </div>
 
         {!readOnly && (isAdmin || isArchitect) && (
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="px-5 py-2.5 bg-accent hover:bg-accent/90 text-background text-xs font-extrabold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-accent/20 hover:scale-105 flex items-center gap-2 shrink-0"
+            className="px-3 py-1.5 bg-accent hover:opacity-90 text-background text-[10px] font-black uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center gap-1.5 shrink-0"
           >
-            <Plus className="w-4 h-4" />
-            Create Subtask
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Subtask</span>
           </button>
         )}
       </div>
 
-      {/* Main Unified Content Area */}
-      <div className="flex-1 overflow-y-auto p-2 pb-8 space-y-8 custom-scrollbar">
-        {/* Section 1: Subtasks & Breakdown Items */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-surface-200 dark:border-surface-700 pb-2">
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-500" />
-              <h4 className="text-sm font-extrabold uppercase tracking-wider text-primary dark:text-white">
+      {/* Main Content Sections */}
+      <div className="space-y-4">
+        {/* Section 1: Subtasks */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
                 Subtasks ({task.subtasks?.length || 0})
               </h4>
             </div>
             {task.subtasks && task.subtasks.length > 0 && (
-              <span className="text-[10px] font-bold text-surface-400">
-                Click item to {readOnly ? "view details" : "update status or view details"}
+              <span className="text-[9px] font-bold text-surface-500">
+                Click status pill to toggle • Click card for details
               </span>
             )}
           </div>
 
           {task.subtasks && task.subtasks.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
               {task.subtasks.map((subtask: any) => (
-                <div 
-                  key={subtask.uid} 
+                <div
+                  key={subtask.uid}
                   onClick={() => {
                     if (onSelectSubtask) {
                       onSelectSubtask(subtask);
@@ -120,18 +122,20 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                       handleUpdateSubtask(subtask.uid, { status: nextStatus });
                     }
                   }}
-                  className={`group p-6 rounded-2xl border-l-4 border-r border-t border-b border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-800/90 shadow-sm cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:border-accent relative z-10 flex flex-col justify-between min-h-[175px] ${
-                    subtask.status === "DONE" ? "border-l-emerald-500" :
-                    subtask.status === "ON_HOLD" ? "border-l-amber-500" :
-                    subtask.status === "WIP" ? "border-l-blue-500" :
-                    subtask.status === "QA" ? "border-l-purple-500" :
-                    "border-l-slate-400"
+                  className={`group p-3 rounded-xl border border-surface-300 bg-surface-100 shadow-xs cursor-pointer transition-all hover:border-accent hover:shadow-sm flex flex-col justify-between min-h-[95px] ${
+                    subtask.status === "DONE" ? "border-l-4 border-l-emerald-500" :
+                    subtask.status === "ON_HOLD" ? "border-l-4 border-l-amber-500" :
+                    subtask.status === "WIP" ? "border-l-4 border-l-blue-500" :
+                    subtask.status === "QA" ? "border-l-4 border-l-purple-500" :
+                    "border-l-4 border-l-surface-400"
                   }`}
                 >
                   <div>
-                    <div className="flex justify-between items-start mb-3 gap-3">
-                      <h4 className={`text-sm font-extrabold tracking-tight line-clamp-2 ${subtask.status === "DONE" ? "text-surface-500 dark:text-surface-400 line-through" : "text-primary dark:text-white"}`}>{subtask.title}</h4>
-                      <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex justify-between items-start gap-2 mb-1">
+                      <h5 className={`text-xs font-bold line-clamp-1 ${subtask.status === "DONE" ? "text-surface-500 line-through opacity-70" : "text-foreground"}`}>
+                        {subtask.title}
+                      </h5>
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
                           disabled={readOnly}
@@ -141,16 +145,15 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                             const nextStatus = subtask.status === "TODO" ? "ON_HOLD" : subtask.status === "ON_HOLD" ? "WIP" : subtask.status === "WIP" ? "DONE" : "TODO";
                             handleUpdateSubtask(subtask.uid, { status: nextStatus });
                           }}
-                          className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all shadow-sm ${
-                            subtask.status === "DONE" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" :
-                            subtask.status === "ON_HOLD" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" :
-                            subtask.status === "WIP" ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" :
-                            subtask.status === "QA" ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30" :
-                            "bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300 border-surface-300 dark:border-surface-600"
-                          } disabled:opacity-80 disabled:cursor-default`}
-                          title={readOnly ? subtask.status : "Click to toggle status"}
+                          className={`px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded border transition-all ${
+                            subtask.status === "DONE" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
+                            subtask.status === "ON_HOLD" ? "bg-amber-500/20 text-amber-400 border-amber-500/40" :
+                            subtask.status === "WIP" ? "bg-blue-500/20 text-blue-400 border-blue-500/40" :
+                            subtask.status === "QA" ? "bg-purple-500/20 text-purple-400 border-purple-500/40" :
+                            "bg-surface-200 text-foreground border-surface-300"
+                          }`}
                         >
-                          {subtask.status === "ON_HOLD" ? "ON HOLD" : subtask.status}
+                          {subtask.status === "ON_HOLD" ? "HOLD" : subtask.status}
                         </button>
 
                         {!readOnly && handleDeleteSubtask && (isAdmin || isArchitect) && (
@@ -158,35 +161,37 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (confirm(`Are you sure you want to delete subtask "${subtask.title}"?`)) {
+                              if (confirm(`Delete subtask "${subtask.title}"?`)) {
                                 handleDeleteSubtask(subtask.uid);
                               }
                             }}
-                            className="p-1 text-xs hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                            className="p-1 text-surface-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                             title="Delete Subtask"
                           >
-                            🗑️
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         )}
                       </div>
                     </div>
                     {subtask.description && (
-                      <p className={`text-xs mt-2 line-clamp-3 leading-relaxed ${subtask.status === "DONE" ? "text-emerald-700/60 dark:text-emerald-400/60" : "text-surface-500 dark:text-surface-400"}`}>{subtask.description}</p>
+                      <p className={`text-[11px] line-clamp-2 leading-relaxed ${subtask.status === "DONE" ? "text-surface-500 opacity-70" : "text-surface-600"}`}>
+                        {subtask.description}
+                      </p>
                     )}
                   </div>
 
-                  <div className="mt-5 pt-3.5 border-t border-surface-200/60 dark:border-surface-700/60 flex items-center justify-between">
+                  <div className="mt-2 pt-2 border-t border-surface-200 flex items-center justify-between text-[10px]">
                     {subtask.assigned_to ? (
-                      <Link href={`/dashboard/team/${subtask.assigned_to.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <div className="w-5 h-5 rounded-full bg-accent text-background flex items-center justify-center text-[8px] font-bold uppercase">
-                          {subtask.assigned_to.name.charAt(0)}
-                        </div>
-                        <span className={`text-[10px] font-bold hover:underline ${subtask.status === "DONE" ? "text-emerald-700/60 dark:text-emerald-400/60" : "text-surface-500 dark:text-surface-400"}`}>{subtask.assigned_to.name}</span>
-                      </Link>
+                      <span className="flex items-center gap-1.5 text-foreground font-medium">
+                        <span className="w-4 h-4 rounded-full bg-accent text-background flex items-center justify-center text-[7px] font-bold uppercase">
+                          {subtask.assigned_to.name?.charAt(0) || "U"}
+                        </span>
+                        <span className="truncate max-w-[120px]">{subtask.assigned_to.name}</span>
+                      </span>
                     ) : (
-                      <span className="text-[10px] font-bold text-surface-400 dark:text-surface-500">Unassigned</span>
+                      <span className="text-[9px] text-surface-500">Unassigned</span>
                     )}
-                    <span className="text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    <span className="text-[9px] font-bold text-accent group-hover:translate-x-0.5 transition-transform">
                       Details →
                     </span>
                   </div>
@@ -194,17 +199,16 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-36 bg-surface-50 dark:bg-surface-800/40 rounded-2xl border-2 border-dashed border-surface-200 dark:border-surface-700 p-6 text-center">
-              <Layers className="w-8 h-8 text-surface-300 dark:text-surface-600 mb-2" />
-              <p className="text-surface-600 dark:text-surface-300 font-extrabold text-sm mb-1">No subtasks added yet.</p>
+            <div className="flex flex-col items-center justify-center h-24 bg-surface-100/50 rounded-xl border border-dashed border-surface-300 p-4 text-center">
+              <p className="text-foreground text-xs font-bold mb-1">No subtasks added yet.</p>
               {!readOnly && (isAdmin || isArchitect) && (
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
-                  className="mt-1 px-3.5 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                  className="px-2.5 py-1 bg-accent/15 hover:bg-accent/25 text-accent text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 border border-accent/30"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add First Subtask
+                  <Plus className="w-3 h-3" />
+                  <span>Add First Subtask</span>
                 </button>
               )}
             </div>
@@ -212,11 +216,11 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
         </div>
 
         {/* Section 2: Quality & Inspection Checklists */}
-        <div className="space-y-4 pt-4 border-t border-surface-200 dark:border-surface-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckSquare className="w-4 h-4 text-emerald-500" />
-              <h4 className="text-sm font-extrabold uppercase tracking-wider text-primary dark:text-white">
+        <div className="space-y-2 pt-3 border-t border-surface-300">
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-center gap-1.5">
+              <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+              <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
                 Quality & Inspection Checklists ({completedChecklistsCount}/{checklists.length} Completed)
               </h4>
             </div>
@@ -229,6 +233,7 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
             setNewChecklistDesc={setNewChecklistDesc}
             handleAddChecklistItem={handleAddChecklistItem}
             handleToggleChecklist={handleToggleChecklist}
+            handleDeleteChecklist={handleDeleteChecklist}
             isContractor={isContractor}
             isUpdating={isUpdating}
             isAdmin={isAdmin}
@@ -246,24 +251,21 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
 
       {/* Create Subtask Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-background border border-surface-200 dark:border-surface-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-surface-200 dark:border-surface-700 pb-4">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-fade-in">
+          <div className="bg-surface-50 border border-surface-300 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-surface-200 pb-3">
               <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-accent/10 text-accent">
-                  <Plus className="w-5 h-5" />
+                <span className="p-1.5 rounded-lg bg-accent/15 text-accent">
+                  <Plus className="w-4 h-4" />
                 </span>
-                <div>
-                  <h3 className="text-lg font-extrabold text-primary dark:text-white">Create New Subtask</h3>
-                  <p className="text-xs text-surface-500 dark:text-surface-400 font-medium">Add a new action item under this task.</p>
-                </div>
+                <h3 className="text-sm font-bold text-foreground">Create Subtask</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="w-8 h-8 rounded-lg bg-surface-100 dark:bg-surface-800 text-surface-500 hover:text-primary transition-colors flex items-center justify-center"
+                className="w-7 h-7 rounded-lg bg-surface-200 text-foreground hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center text-xs font-bold"
               >
-                <X className="w-4 h-4" />
+                ✕
               </button>
             </div>
 
@@ -278,48 +280,48 @@ export const TaskSubtasksTab: React.FC<TaskSubtasksTabProps> = ({
                   setShowCreateModal(false);
                 }
               }}
-              className="space-y-4"
+              className="space-y-3"
             >
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-extrabold uppercase tracking-widest text-surface-500 dark:text-surface-400">Subtask Title *</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-surface-600">Title *</label>
                 <input
                   type="text"
                   name="title"
                   placeholder="e.g. Inspect foundation rebar spacing"
-                  className="w-full bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 text-sm font-bold text-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder:text-surface-400 transition-all"
+                  className="w-full bg-surface-100 border border-surface-300 rounded-xl px-3 py-2 text-xs font-bold text-foreground focus:outline-none focus:border-accent placeholder:text-surface-400 transition-all"
                   required
                   autoFocus
                   disabled={isUpdating}
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-extrabold uppercase tracking-widest text-surface-500 dark:text-surface-400">Description (Optional)</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-surface-600">Description (Optional)</label>
                 <textarea
                   name="description"
-                  placeholder="Provide additional details or specifications for this subtask..."
-                  rows={3}
-                  className="w-full bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 text-xs font-medium text-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder:text-surface-400 transition-all resize-none leading-relaxed"
+                  placeholder="Specifications or notes..."
+                  rows={2}
+                  className="w-full bg-surface-100 border border-surface-300 rounded-xl px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:border-accent placeholder:text-surface-400 transition-all resize-none leading-relaxed"
                   disabled={isUpdating}
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-surface-200 dark:border-surface-700">
+              <div className="flex justify-end gap-2 pt-2 border-t border-surface-200">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
                   disabled={isUpdating}
-                  className="px-5 py-2.5 rounded-xl border border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 text-xs font-bold transition-colors"
+                  className="px-3.5 py-1.5 rounded-lg border border-surface-300 text-foreground hover:bg-surface-200 text-xs font-bold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUpdating}
-                  className="px-6 py-2.5 bg-accent hover:bg-accent/90 text-background text-xs font-extrabold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-accent/20 flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-1.5 bg-accent hover:opacity-90 text-background text-xs font-black uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  <Plus className="w-4 h-4" />
-                  {isUpdating ? "Creating..." : "Create Subtask"}
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{isUpdating ? "Saving..." : "Create"}</span>
                 </button>
               </div>
             </form>

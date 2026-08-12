@@ -129,23 +129,23 @@ export function ProjectsRegistryView() {
   });
 
   return (
-    <div className="space-y-10 animate-fade-in pb-12">
+    <div className="space-y-4 animate-fade-in pb-8">
       <Suspense fallback={null}>
         <SearchParamsReader onParams={handleSearchParams} />
       </Suspense>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-surface-50/40 backdrop-blur-2xl p-10 border border-white/20 dark:border-white/5 rounded-[2rem] shadow-2xl shadow-primary/5 relative overflow-hidden group">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-50/40 backdrop-blur-2xl p-4 sm:p-5 border border-white/20 dark:border-white/5 rounded-xl shadow-xl shadow-primary/5 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
-        <div className="absolute top-0 right-0 w-[500px] h-full arch-grid opacity-[0.05] pointer-events-none mix-blend-overlay" />
+        <div className="absolute top-0 right-0 w-[300px] h-full arch-grid opacity-[0.05] pointer-events-none mix-blend-overlay" />
         <div className="relative z-10">
-          <h1 className="text-5xl font-black text-primary mb-3 tracking-tight drop-shadow-sm">Project Registry</h1>
-          <p className="text-sm text-surface-400 font-medium max-w-2xl leading-relaxed">
+          <h1 className="text-xl sm:text-2xl font-black text-primary mb-1 tracking-tight drop-shadow-sm">Project Registry</h1>
+          <p className="text-xs text-surface-400 font-medium max-w-2xl leading-relaxed">
             {isAdmin 
-              ? "System-wide overview of all active architectural projects, accounts, and cross-tenant collaborations across the platform." 
-              : "Manage and oversee your active architectural designs, construction workflows, and collaborative project data mapped to your professional entities."}
+              ? "Overview of active architectural projects, accounts, and cross-tenant collaborations across the platform." 
+              : "Manage and oversee active architectural designs and collaborative project data."}
           </p>
         </div>
-        <div className="flex items-center gap-4 relative z-10">
+        <div className="flex items-center gap-2 relative z-10 shrink-0 w-full sm:w-auto">
           <button 
             onClick={() => {
               if (!planLimits.isLoading && !planLimits.canCreateProject) {
@@ -154,35 +154,35 @@ export function ProjectsRegistryView() {
                 setShowCreateModal(true);
               }
             }}
-            className="h-12 px-6 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all flex items-center gap-3 shadow-[0_0_20px_rgba(var(--color-accent),0.4)]"
+            className="h-9 px-4 bg-accent text-background font-bold text-[10px] uppercase tracking-wider rounded-lg hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-sm shadow-accent/30 w-full sm:w-auto whitespace-nowrap"
           >
-            <span className="text-lg leading-none mb-0.5">+</span> Establish Blueprint
+            <span className="text-sm leading-none mb-0.5">+</span> Establish Blueprint
           </button>
         </div>
       </div>
 
       {/* Filter and Sort Bar */}
-      <div className="flex flex-col md:flex-row gap-4 bg-surface-50/40 backdrop-blur-xl p-4 rounded-[1.5rem] border border-white/20 dark:border-white/5 shadow-xl shadow-primary/5 relative z-10">
-        <div className="flex-1 flex items-center gap-3 bg-surface-100/50 backdrop-blur-md px-5 rounded-xl border border-white/10 dark:border-white/5 focus-within:border-accent/50 focus-within:ring-4 focus-within:ring-accent/10 transition-all shadow-inner">
-          <span className="text-surface-400 drop-shadow-sm">🔍</span>
+      <div className="flex flex-col sm:flex-row gap-2.5 bg-surface-50/40 backdrop-blur-xl p-2.5 rounded-xl border border-white/20 dark:border-white/5 shadow-md shadow-primary/5 relative z-10">
+        <div className="flex-1 flex items-center gap-2 bg-surface-100/50 backdrop-blur-md px-3 rounded-lg border border-white/10 dark:border-white/5 focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/10 transition-all shadow-inner min-w-0">
+          <span className="text-surface-400 text-xs shrink-0">🔍</span>
           <input 
             type="text"
             placeholder="Search projects by title or client..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="flex-1 h-12 bg-transparent outline-none text-sm font-bold text-primary placeholder:text-surface-400/70 placeholder:font-medium"
+            className="flex-1 h-9 bg-transparent outline-none text-xs font-bold text-primary placeholder:text-surface-400/70 placeholder:font-normal min-w-0"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="text-surface-400 hover:text-primary pr-2 transition-colors">✕</button>
+            <button onClick={() => setSearchQuery("")} className="text-surface-400 hover:text-primary pr-1 text-xs transition-colors shrink-0">✕</button>
           )}
         </div>
         
-        <div className="flex items-center gap-4 w-full md:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
           <select 
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="flex-1 md:flex-none h-12 px-5 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl text-xs font-bold text-primary outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all cursor-pointer shadow-inner appearance-none"
-            style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
+            className="flex-1 sm:flex-none h-9 px-3 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-lg text-[10px] font-bold text-primary outline-none focus:border-accent transition-all cursor-pointer shadow-inner appearance-none pr-8"
+            style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.6rem center', backgroundSize: '0.9em' }}
           >
             <option value="ALL">All Statuses</option>
             <option value="To Start">To Start</option>
@@ -193,8 +193,8 @@ export function ProjectsRegistryView() {
           <select 
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
-            className="flex-1 md:flex-none h-12 px-5 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-xl text-xs font-bold text-primary outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all cursor-pointer shadow-inner appearance-none pr-10"
-            style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
+            className="flex-1 sm:flex-none h-9 px-3 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-lg text-[10px] font-bold text-primary outline-none focus:border-accent transition-all cursor-pointer shadow-inner appearance-none pr-8"
+            style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.6rem center', backgroundSize: '0.9em' }}
           >
             <option value="NEWEST">Newest First</option>
             <option value="OLDEST">Oldest First</option>
@@ -204,8 +204,8 @@ export function ProjectsRegistryView() {
       </div>
 
       {isLoading || !isMounted ? (
-        <div className="flex flex-col items-center justify-center py-32 bg-surface-100 border border-surface-200 rounded-2xl">
-          <Spinner size="lg" label="Retrieving architectural nodes..." />
+        <div className="flex flex-col items-center justify-center py-20 bg-surface-100 border border-surface-200 rounded-xl">
+          <Spinner size="md" label="Retrieving architectural nodes..." />
         </div>
       ) : filteredProjects.length > 0 ? (
         <motion.div 
@@ -215,13 +215,13 @@ export function ProjectsRegistryView() {
             hidden: { opacity: 0 },
             show: {
               opacity: 1,
-              transition: { staggerChildren: 0.1 }
+              transition: { staggerChildren: 0.05 }
             }
           }}
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
         >
           {filteredProjects.map((project) => (
-            <motion.div key={project.uid} variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }} className="h-full">
+            <motion.div key={project.uid} variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }} className="h-full">
               <ProjectCard
                 project={project}
                 onStatusChange={handleStatusChange}

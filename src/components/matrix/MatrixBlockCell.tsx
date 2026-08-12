@@ -84,10 +84,10 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({
     return (
       <button
         onClick={onClick}
-        className="w-full h-[88px] border border-dashed border-surface-200 rounded-md bg-surface-100/50 hover:bg-surface-200 hover:border-accent hover:text-accent transition-all flex flex-col items-center justify-center group"
+        className="w-full h-[60px] border border-dashed border-surface-200 rounded-md bg-surface-100/50 hover:bg-surface-200 hover:border-accent hover:text-accent transition-all flex flex-col items-center justify-center group"
       >
-        <span className="text-[14px] text-surface-300 group-hover:text-accent font-black transition-colors leading-none">+</span>
-        <span className="text-[8px] text-surface-300 group-hover:text-accent font-bold uppercase tracking-widest transition-colors mt-0.5">Plan Tasks</span>
+        <span className="text-[12px] text-surface-300 group-hover:text-accent font-black transition-colors leading-none">+</span>
+        <span className="text-[7px] text-surface-300 group-hover:text-accent font-bold uppercase tracking-widest transition-colors mt-0.5">Plan Tasks</span>
       </button>
     );
   }
@@ -158,7 +158,7 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({
         onClick={onClick}
         title={auditTitle}
         className={`
-          w-full h-[88px] border rounded-md p-3 text-left transition-all duration-200 relative overflow-hidden
+          w-full h-[60px] border rounded-md p-2 text-left transition-all duration-200 relative overflow-hidden
           ${cfg.bg} ${cfg.border} ${cfg.text}
           hover:border-[#D4AF37] cursor-pointer
           ${block.status === "LOCKED" ? "opacity-75 hover:opacity-100" : ""}
