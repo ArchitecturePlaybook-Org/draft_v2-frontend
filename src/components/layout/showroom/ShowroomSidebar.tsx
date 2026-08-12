@@ -2,98 +2,266 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
-const NAV_SECTIONS = [
-  {
-    title: "Discover",
-    links: [
-      { label: "All Products", href: "/showroom", icon: "🛍️", exact: true },
-      { label: "My Orders", href: "/showroom/orders", icon: "📦", exact: false },
-    ],
-  },
-  {
-    title: "Categories",
-    links: [
-      { label: "Furniture", href: "/showroom?category=Furniture", icon: "🪑", exact: false },
-      { label: "Lighting", href: "/showroom?category=Lighting", icon: "💡", exact: false },
-      { label: "Finishes", href: "/showroom?category=Finishes", icon: "🪨", exact: false },
-      { label: "Fixtures", href: "/showroom?category=Fixtures", icon: "🚿", exact: false },
-      { label: "Acoustics", href: "/showroom?category=Acoustics", icon: "🔇", exact: false },
-      { label: "Outdoor", href: "/showroom?category=Outdoor", icon: "🌿", exact: false },
-      { label: "MEP", href: "/showroom?category=MEP", icon: "⚙️", exact: false },
-      { label: "Technology", href: "/showroom?category=Technology", icon: "📱", exact: false },
-    ],
-  },
-  {
-    title: "Vendor",
-    links: [
-      { label: "Vendor Dashboard", href: "/showroom/dashboard", icon: "🏪", exact: true },
-      { label: "My Listings", href: "/showroom/dashboard", icon: "📋", exact: false },
-      { label: "Add Product", href: "/showroom/dashboard/listings/new", icon: "➕", exact: true },
-    ],
-  },
+const CATEGORY_LINKS = [
+  { label: "All Products", category: "All", icon: "✨" },
+  { label: "Furniture", category: "Furniture", icon: "🪑" },
+  { label: "Lighting", category: "Lighting", icon: "💡" },
+  { label: "Finishes", category: "Finishes", icon: "🪨" },
+  { label: "Fixtures", category: "Fixtures", icon: "🚿" },
+  { label: "Acoustics", category: "Acoustics", icon: "🔇" },
+  { label: "Outdoor", category: "Outdoor", icon: "🌳" },
+  { label: "Structural", category: "Structural", icon: "🏛️" },
+  { label: "MEP", category: "MEP", icon: "⚙️" },
+  { label: "Technology", category: "Technology", icon: "🖥️" },
+  { label: "Soft Furnishings", category: "Soft Furnishings", icon: "🛋️" },
+];
+
+const ORIGIN_LINKS = [
+  { label: "Indiranagar", value: "Indiranagar, Bangalore", flag: "📍" },
+  { label: "Whitefield", value: "Whitefield, Bangalore", flag: "📍" },
+  { label: "Koramangala", value: "Koramangala, Bangalore", flag: "📍" },
+  { label: "Jayanagar", value: "Jayanagar, Bangalore", flag: "📍" },
+];
+
+const BUDGET_LINKS = [
+  { label: "Under ₹75,000", min: null, max: "75000", icon: "💵" },
+  { label: "₹75,000 – ₹1,50,000", min: "75000", max: "150000", icon: "💳" },
+  { label: "Over ₹1,50,000", min: "150000", max: null, icon: "💎" },
+];
+
+const LEAD_TIME_LINKS = [
+  { label: "Fast (< 14 days)", max_lead: 14, icon: "⚡" },
+  { label: "Standard (< 30 days)", max_lead: 30, icon: "⏱️" },
 ];
 
 export const ShowroomSidebar: React.FC = () => {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentCategory = searchParams.get("category") || "All";
+  const currentOrigin = searchParams.get("origin") || "";
+  const currentMaxLead = searchParams.get("max_lead_time") || "";
+  const currentMinPrice = searchParams.get("min_price") || "";
+  const currentMaxPrice = searchParams.get("max_price") || "";
 
-  const isActive = (href: string, exact: boolean) => {
-    if (exact) return pathname === href;
-    return pathname.startsWith(href.split("?")[0]);
+  const isDiscoverActive = pathname === "/showroom" && currentCategory === "All" && !currentOrigin && !currentMaxLead && !currentMinPrice && !currentMaxPrice;
+  const isOrdersActive = pathname.startsWith("/showroom/my-orders") || pathname.startsWith("/showroom/orders");
+  const isDashboardActive = pathname.startsWith("/showroom/dashboard");
+
+  const buildQueryUrl = (paramsToUpdate: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(paramsToUpdate).forEach(([k, v]) => {
+      if (v === null || v === "") {
+        params.delete(k);
+      } else {
+        params.set(k, v);
+      }
+    });
+    const qs = params.toString();
+    return `/showroom${qs ? `?${qs}` : ""}`;
   };
 
   return (
-    <aside className="w-60 border-r border-surface-200 bg-surface-card h-[calc(100vh-var(--topbar-height))] overflow-y-auto hidden lg:flex flex-col shrink-0">
-      <div className="p-5 flex-1">
-        {/* Brand */}
-        <div className="flex items-center gap-2.5 mb-7 px-1">
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-sm">🏪</div>
-          <span className="text-base font-black text-primary tracking-tight">Showroom</span>
+    <aside className="w-64 border-r border-surface-200 bg-surface-card h-[calc(100vh-var(--topbar-height))] overflow-y-auto hidden lg:flex flex-col shrink-0 transition-colors">
+      <div className="p-5 flex-1 space-y-6">
+        
+        {/* Brand Title */}
+        <div className="flex items-center gap-3 px-1">
+          <div className="w-9 h-9 rounded-xl bg-accent/20 text-accent border border-accent/30 flex items-center justify-center font-black text-base shadow-sm">
+            🏛️
+          </div>
+          <div>
+            <span className="text-base font-black text-primary tracking-tight block leading-none">Showroom</span>
+            <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mt-1 block">Architecture Hub</span>
+          </div>
         </div>
 
-        <nav className="space-y-6">
-          {NAV_SECTIONS.map((section) => (
-            <div key={section.title}>
-              <h4 className="text-[10px] uppercase tracking-widest text-surface-400 font-bold mb-2 px-3">
-                {section.title}
-              </h4>
-              <div className="flex flex-col gap-0.5">
-                {section.links.map((link) => {
-                  const active = isActive(link.href, link.exact);
-                  return (
-                    <Link
-                      key={`${link.href}-${link.label}`}
-                      href={link.href}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                        active
-                          ? "bg-primary text-background shadow-sm"
-                          : "text-surface-600 hover:bg-surface-100 hover:text-primary"
-                      }`}
-                    >
-                      <span className={active ? "" : "opacity-60"}>{link.icon}</span>
-                      {link.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
+        {/* 1. Main Navigation */}
+        <div>
+          <h4 className="text-[10px] uppercase tracking-widest text-surface-500 font-extrabold mb-2 px-2">
+            Navigation
+          </h4>
+          <div className="flex flex-col gap-1">
+            <Link
+              href="/showroom"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                isDiscoverActive
+                  ? "bg-accent text-background shadow-sm"
+                  : "text-surface-600 hover:bg-surface-100 hover:text-primary"
+              }`}
+            >
+              <span>🛍️</span>
+              <span>Discover Catalog</span>
+            </Link>
+            <Link
+              href="/showroom/my-orders"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                isOrdersActive
+                  ? "bg-accent text-background shadow-sm"
+                  : "text-surface-600 hover:bg-surface-100 hover:text-primary"
+              }`}
+            >
+              <span>📦</span>
+              <span>My Inquiries / Orders</span>
+            </Link>
+            <Link
+              href="/showroom/dashboard"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                isDashboardActive
+                  ? "bg-accent text-background shadow-sm"
+                  : "text-surface-600 hover:bg-surface-100 hover:text-primary"
+              }`}
+            >
+              <span>🏪</span>
+              <span>Vendor Dashboard</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* 2. Trade Budget Filter */}
+        <div>
+          <h4 className="text-[10px] uppercase tracking-widest text-surface-500 font-extrabold mb-2 px-2">
+            Trade Budget (INR)
+          </h4>
+          <div className="flex flex-col gap-0.5">
+            {BUDGET_LINKS.map((item) => {
+              const active = (item.min === null || currentMinPrice === item.min) && (item.max === null || currentMaxPrice === item.max);
+              const href = buildQueryUrl({
+                min_price: active ? null : item.min,
+                max_price: active ? null : item.max,
+              });
+
+              return (
+                <Link
+                  key={item.label}
+                  href={href}
+                  className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    active
+                      ? "bg-surface-100 text-accent font-bold border-l-2 border-accent shadow-sm"
+                      : "text-surface-600 hover:bg-surface-100 hover:text-primary"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </div>
+                  {active && <span className="text-xs">✓</span>}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 3. Categories Filter Menu */}
+        <div>
+          <h4 className="text-[10px] uppercase tracking-widest text-surface-500 font-extrabold mb-2 px-2">
+            Categories
+          </h4>
+          <div className="flex flex-col gap-0.5">
+            {CATEGORY_LINKS.map((item) => {
+              const active = pathname === "/showroom" && (
+                item.category === "All" ? currentCategory === "All" : currentCategory === item.category
+              );
+              const href = buildQueryUrl({ category: item.category === "All" ? null : item.category });
+
+              return (
+                <Link
+                  key={item.category}
+                  href={href}
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    active
+                      ? "bg-surface-100 text-accent font-bold border-l-2 border-accent shadow-sm"
+                      : "text-surface-600 hover:bg-surface-100 hover:text-primary"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </div>
+                  {active && <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 4. Bangalore Location Hub Filter */}
+        <div>
+          <h4 className="text-[10px] uppercase tracking-widest text-surface-500 font-extrabold mb-2 px-2">
+            Bangalore Hubs
+          </h4>
+          <div className="flex flex-col gap-0.5">
+            {ORIGIN_LINKS.map((item) => {
+              const active = currentOrigin === item.value;
+              const href = buildQueryUrl({ origin: active ? null : item.value });
+
+              return (
+                <Link
+                  key={item.value}
+                  href={href}
+                  className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    active
+                      ? "bg-surface-100 text-accent font-bold border-l-2 border-accent shadow-sm"
+                      : "text-surface-600 hover:bg-surface-100 hover:text-primary"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{item.flag}</span>
+                    <span>{item.label}</span>
+                  </div>
+                  {active && <span className="text-xs">✓</span>}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 5. Lead Time Filter */}
+        <div>
+          <h4 className="text-[10px] uppercase tracking-widest text-surface-500 font-extrabold mb-2 px-2">
+            Max Lead Time
+          </h4>
+          <div className="flex flex-col gap-0.5">
+            {LEAD_TIME_LINKS.map((item) => {
+              const active = currentMaxLead === String(item.max_lead);
+              const href = buildQueryUrl({ max_lead_time: active ? null : String(item.max_lead) });
+
+              return (
+                <Link
+                  key={item.max_lead}
+                  href={href}
+                  className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    active
+                      ? "bg-surface-100 text-accent font-bold border-l-2 border-accent shadow-sm"
+                      : "text-surface-600 hover:bg-surface-100 hover:text-primary"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </div>
+                  {active && <span className="text-xs">✓</span>}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
       </div>
 
-      {/* Vendor CTA */}
-      <div className="p-4 border-t border-surface-100">
-        <div className="bg-gradient-to-br from-primary to-primary/80 rounded-xl p-4 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">For Vendors</p>
-          <p className="text-xs text-white/70 mb-3 leading-relaxed">
-            Showcase your products to architects &amp; designers globally.
+      {/* Vendor Listing CTA Box */}
+      <div className="p-4 border-t border-surface-200">
+        <div className="bg-surface-100 border border-surface-200 rounded-2xl p-4 text-center space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-accent">For Product Vendors</p>
+          <p className="text-xs text-surface-500 leading-relaxed font-medium">
+            Publish products &amp; receive quotation leads from architects.
           </p>
           <Link
             href="/showroom/dashboard/listings/new"
-            className="block w-full text-center bg-accent text-primary text-[10px] font-bold uppercase tracking-widest py-2 rounded-lg hover:opacity-90 transition-opacity"
+            className="block w-full text-center bg-primary text-background text-[11px] font-extrabold uppercase tracking-widest py-2.5 rounded-xl hover:bg-accent hover:text-background transition-all shadow-sm"
           >
-            List a Product
+            + Add New Product
           </Link>
         </div>
       </div>

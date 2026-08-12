@@ -27,7 +27,9 @@ export interface Product {
   price_unit: string;
   cover_image_url: string;
   has_3d_model: boolean;
+  model_3d_url?: string;
   has_bim_file: boolean;
+  bim_file_url?: string;
   status: ProductStatus;
   is_featured: boolean;
   views_count: number;
@@ -84,8 +86,13 @@ export async function fetchProducts(params?: {
   sort?: string;
   has_3d?: boolean;
   has_bim?: boolean;
+  has_spec?: boolean;
   featured?: boolean;
   vendor?: string;
+  origin?: string;
+  max_lead_time?: number;
+  min_price?: number;
+  max_price?: number;
   page?: number;
 }): Promise<PaginatedResponse<Product>> {
   const q = new URLSearchParams();
@@ -94,8 +101,13 @@ export async function fetchProducts(params?: {
   if (params?.sort) q.set("sort", params.sort);
   if (params?.has_3d) q.set("has_3d", "true");
   if (params?.has_bim) q.set("has_bim", "true");
+  if (params?.has_spec) q.set("has_spec", "true");
   if (params?.featured) q.set("featured", "true");
   if (params?.vendor) q.set("vendor", params.vendor);
+  if (params?.origin) q.set("origin", params.origin);
+  if (params?.max_lead_time) q.set("max_lead_time", String(params.max_lead_time));
+  if (params?.min_price) q.set("min_price", String(params.min_price));
+  if (params?.max_price) q.set("max_price", String(params.max_price));
   if (params?.page) q.set("page", String(params.page));
   const qs = q.toString() ? `?${q.toString()}` : "";
   return fetchFromBff<PaginatedResponse<Product>>(`/api/v1/showroom/products/${qs}`);

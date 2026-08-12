@@ -2,15 +2,16 @@ import { fetchFromBff } from "@/shared/api/fetchFromBff";
 
 export interface Message {
   id: number;
-  sender: number;
-  sender_name: string;
-  recipient: number;
-  recipient_name: string;
-  role: string;
+  sender: number | { id: number; name: string; email: string };
+  sender_name?: string;
+  recipient: number | { id: number; name: string; email: string };
+  recipient_name?: string;
+  role?: string;
   subject: string;
   body: string;
   is_read: boolean;
   created_at: string;
+  assets?: Array<{ id: number; title: string; file: string }>;
 }
 
 function unpackArray<T>(res: any): T[] {
@@ -63,14 +64,21 @@ export const communicationsApi = {
     const res = await fetchFromBff<any>("/api/v1/communications/inbox/conversations/", { method: "GET" });
     return unpackArray<ConversationSummary>(res);
   },
-  getThread: async (otherUserId: number, search?: string) => {
+  getThread: async (otherUserId: number | string, search?: string) => {
     const url = search 
       ? `/api/v1/communications/inbox/thread/${otherUserId}/?search=${encodeURIComponent(search)}` 
       : `/api/v1/communications/inbox/thread/${otherUserId}/`;
     const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<Message>(res);
   },
-  sendMessage: async (data: { recipient?: number; channel?: number; body: string; subject: string; lead?: number; project?: number; files?: File[] }) => {
+  getLeadThread: async (leadId: number, search?: string) => {
+    const url = search 
+      ? `/api/v1/communications/inbox/thread/lead/${leadId}/?search=${encodeURIComponent(search)}` 
+      : `/api/v1/communications/inbox/thread/lead/${leadId}/`;
+    const res = await fetchFromBff<any>(url, { method: "GET" });
+    return unpackArray<Message>(res);
+  },
+  sendMessage: async (data: { recipient?: number | string; channel?: number; body: string; subject: string; lead?: number; project?: number; files?: File[] }) => {
     if (data.files && data.files.length > 0) {
       const formData = new FormData();
       if (data.recipient) formData.append("recipient", data.recipient.toString());
