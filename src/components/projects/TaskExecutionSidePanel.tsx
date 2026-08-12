@@ -606,6 +606,32 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
             <div className="flex items-center gap-2 shrink-0 ml-auto">
               <span className="text-[9px] font-mono text-surface-500">ID: {task.task_code || task.uid}</span>
+
+              {!isSubtaskPanel && (
+                <button
+                  onClick={handleCopyLink}
+                  className={`${splitMode ? "h-9 px-3" : "h-10 sm:h-11 px-3 sm:px-6"} font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap shrink-0 ${isCopied
+                      ? "bg-emerald-600 text-white shadow-emerald-500/20 scale-[1.02]"
+                      : "bg-accent text-background hover:opacity-90"
+                    }`}
+                >
+                  {isCopied ? "✓" : splitMode ? "🔗" : "🔗 Copy Link"}
+                </button>
+              )}
+
+              {!readOnly && (isAdmin || isArchitect) && (
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  title="Soft Delete Task"
+                  className={`${splitMode ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"} rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm shrink-0 border border-red-200 dark:border-red-800/30`}
+                >
+                  🗑️
+                </button>
+              )}
+
+              <button onClick={onClose} className={`${splitMode ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"} rounded-xl bg-surface-200 text-surface-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm shrink-0`}>
+                ✕
+              </button>
             </div>
           </div>
 
