@@ -13,6 +13,8 @@ import { RevisionHistoryModal } from "./RevisionHistoryModal";
 import { FloorPlanGridViewer } from "./FloorPlanGridViewer";
 import { Create3DModelModal } from "./Create3DModelModal";
 import { CreateSketchModal } from "./CreateSketchModal";
+import { convertPdfToJpegSheets, ExtractedPdfSheet } from "@/lib/pdf/pdfToJpeg";
+import { PdfMultiSheetModal } from "./PdfMultiSheetModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const DataHubTab: React.FC = () => {
@@ -32,6 +34,38 @@ export const DataHubTab: React.FC = () => {
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
   const [isCreate3DModalOpen, setIsCreate3DModalOpen] = useState(false);
   const [isCreateSketchModalOpen, setIsCreateSketchModalOpen] = useState(false);
+
+  // PDF Multi-Sheet Extractor Modal State
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pendingPdfFileName, setPendingPdfFileName] = useState("");
+  const [extractedSheets, setExtractedSheets] = useState<ExtractedPdfSheet[]>([]);
+  const [isPdfProcessing, setIsPdfProcessing] = useState(false);
+
+  const handleUploadExtractedSheets = async (
+    sheetsToUpload: { title: string; blob: Blob; filename: string }[]
+  ) => {
+    if (!project?.id) return;
+    setIsUploading(true);
+    setUploadProgress(`0 / ${sheetsToUpload.length}`);
+    let successCount = 0;
+    try {
+      for (let i = 0; i < sheetsToUpload.length; i++) {
+        const sheet = sheetsToUpload[i];
+        const file = new File([sheet.blob], sheet.filename, { type: "image/jpeg" });
+        await projectsApi.uploadProjectAsset(project.id, "2d_plan", file, sheet.title);
+        successCount++;
+        setUploadProgress(`${successCount} / ${sheetsToUpload.length}`);
+      }
+      setPdfModalOpen(false);
+      setExtractedSheets([]);
+      fetchProject(project.uid);
+    } catch (err: any) {
+      alert(`Upload failed on sheet ${successCount + 1}: ${err.message}`);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress("");
+    }
+  };
 
   const filteredAssets = useMemo(() => {
     if (!project?.assets) return [];
@@ -115,7 +149,7 @@ export const DataHubTab: React.FC = () => {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="col-span-1 space-y-3"
+          className="col-span-1 md:sticky md:top-[25vh] self-start space-y-3 z-10"
         >
           {[
             { id: "sketch", label: "Creative Sketches", icon: "✏️" },
@@ -142,16 +176,16 @@ export const DataHubTab: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="col-span-1 md:col-span-3"
         >
-          <div className="bg-surface-50/40 dark:bg-surface-900/40 backdrop-blur-3xl border-white/10 p-5 rounded-2xl border shadow-xl shadow-black/5 min-h-[350px]">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4 border-b border-surface-100 pb-3 min-w-0">
-              <h3 className="text-base font-extrabold text-primary tracking-tight truncate min-w-0">
-                {activeHubCategory.replace('_', ' ').toUpperCase()}
+          <div className="bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-2xl border border-surface-200/80 dark:border-surface-800 p-3.5 sm:p-4 rounded-xl shadow-lg min-h-[300px]">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3 border-b border-surface-200/60 dark:border-surface-800 pb-2.5 min-w-0">
+              <h3 className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider truncate min-w-0">
+                {activeHubCategory.replace('_', ' ')} Assets
               </h3>
               <div className="flex flex-wrap gap-2 shrink-0">
                 {activeHubCategory === "sketch" && (
                   <button 
                     onClick={() => setIsCreateSketchModalOpen(true)}
-                    className="px-4 py-1.5 bg-accent text-background font-bold text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all shadow-md shadow-accent/20"
+                    className="px-3 py-1 bg-accent text-background font-black text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all shadow-xs"
                   >
                     New Design Sketch
                   </button>
@@ -159,7 +193,7 @@ export const DataHubTab: React.FC = () => {
                 {activeHubCategory === "3d_model" && (
                   <button 
                     onClick={() => setIsCreate3DModalOpen(true)}
-                    className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all duration-200 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm"
+                    className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all duration-200 border border-emerald-500/30 flex items-center gap-1 shadow-xs"
                   >
                     <span>🏠</span> Create SH3D Model
                   </button>
@@ -172,7 +206,7 @@ export const DataHubTab: React.FC = () => {
                     activeHubCategory === "3d_model" 
                       ? ".obj,.stl,.fbx,.gltf,.glb" 
                       : activeHubCategory === "2d_plan" 
-                      ? "image/png,image/jpeg,image/jpg,image/webp,.pdf" 
+                      ? "image/png,image/jpeg,image/jpg,image/webp,.pdf,.dwg,.dxf" 
                       : activeHubCategory === "document" 
                       ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" 
                       : "image/png,image/jpeg,image/jpg,image/webp,image/gif,.excalidraw,.json"
@@ -181,6 +215,27 @@ export const DataHubTab: React.FC = () => {
                   onChange={async (e) => {
                     const files = Array.from(e.target.files || []);
                     if (!files.length || !project.id) return;
+
+                    // Handle 2D Floor Plan PDF Upload with PDF -> JPEG conversion & Naming Modal
+                    if (activeHubCategory === "2d_plan") {
+                      const pdfFile = files.find((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+                      if (pdfFile) {
+                        try {
+                          setIsPdfProcessing(true);
+                          const sheets = await convertPdfToJpegSheets(pdfFile);
+                          setPendingPdfFileName(pdfFile.name);
+                          setExtractedSheets(sheets);
+                          setPdfModalOpen(true);
+                        } catch (err: any) {
+                          alert(`Failed to convert PDF pages to JPEG: ${err.message}`);
+                        } finally {
+                          setIsPdfProcessing(false);
+                          e.target.value = "";
+                        }
+                        return;
+                      }
+                    }
+
                     setIsUploading(true);
                     setUploadProgress(`0 / ${files.length}`);
                     let successCount = 0;
@@ -204,32 +259,32 @@ export const DataHubTab: React.FC = () => {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className={`px-4 py-1.5 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all duration-300 ${
-                    isUploading 
-                      ? "bg-accent text-white shadow-[0_0_20px_var(--accent-glow)] animate-pulse" 
-                      : "bg-surface-200/50 backdrop-blur-md text-primary border border-surface-300/50 hover:bg-surface-300 hover:shadow-lg"
+                  disabled={isUploading || isPdfProcessing}
+                  className={`px-3 py-1 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all ${
+                    isUploading || isPdfProcessing
+                      ? "bg-accent text-background shadow-xs animate-pulse" 
+                      : "bg-surface-200/70 hover:bg-accent hover:text-background text-foreground border border-surface-300/60"
                   } disabled:opacity-80`}
                 >
-                  {isUploading ? `Uploading ${uploadProgress}...` : "Upload File"}
+                  {isPdfProcessing ? "Converting PDF..." : isUploading ? `Uploading ${uploadProgress}...` : "Upload File"}
                 </button>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {filteredAssets.length ? (
                 visibleAssets.map((asset, idx) => (
                   <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    initial={{ opacity: 0, scale: 0.95, y: 8 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
+                    transition={{ delay: idx * 0.04 }}
                     key={asset.id} 
-                    className="p-5 rounded-[1.5rem] transition-all duration-300 bg-surface-100/50 backdrop-blur-md border border-surface-200/50 hover:border-accent/50 hover:-translate-y-2 hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.1),0_0_15px_var(--accent-glow)] group relative"
+                    className="p-3 rounded-xl transition-all duration-300 bg-surface-card border border-surface-200/80 dark:border-surface-800 hover:border-accent/60 hover:-translate-y-1 hover:shadow-md group relative flex flex-col justify-between"
                   >
-                    <div className="absolute top-3 left-3 z-10">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider ${
                         asset.is_latest 
-                          ? "bg-emerald-100 text-emerald-700" 
+                          ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" 
                           : "bg-surface-100 text-surface-400"
                       }`}>
                         V{asset.version_number}
@@ -238,69 +293,78 @@ export const DataHubTab: React.FC = () => {
 
                     <div 
                       onClick={() => handleOpenAsset(asset)}
-                      className={`h-32 rounded-lg mb-3 flex items-center justify-center overflow-hidden border cursor-pointer transition-colors ${['3d_model', 'sh3d'].includes(asset.category) ? 'border-transparent bg-opacity-50 ' + (asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-50 dark:bg-emerald-900/20' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-50 dark:bg-amber-900/20' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-indigo-50') : 'bg-surface-50 border-surface-100'}`}
+                      className={`h-24 sm:h-26 rounded-lg mb-2 flex items-center justify-center overflow-hidden border cursor-pointer transition-colors ${['3d_model', 'sh3d'].includes(asset.category) ? 'border-transparent bg-opacity-50 ' + (asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-50 dark:bg-emerald-900/20' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-50 dark:bg-amber-900/20' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-indigo-50') : 'bg-surface-100/50 border-surface-200/50'}`}
                     >
                       {['3d_model', 'sh3d'].includes(asset.category) ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center transition-transform duration-500 group-hover:scale-105">
-                          <div className={`w-14 h-14 flex items-center justify-center rounded-2xl text-3xl mb-2 transition-transform duration-500 group-hover:-translate-y-1 shadow-inner ${asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 dark:border-emerald-800/30 shadow-emerald-500/10' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-100 text-amber-600 border border-amber-200 dark:border-amber-800/30 shadow-amber-500/10' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-100 text-blue-600 border border-blue-200 dark:border-blue-800/30 shadow-blue-500/10' : 'bg-indigo-100 text-indigo-600 border border-indigo-200 shadow-indigo-500/10'}`}>
+                        <div className="w-full h-full flex flex-col items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                          <div className={`w-10 h-10 flex items-center justify-center rounded-xl text-xl mb-1 shadow-inner ${asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-100 text-emerald-600 border border-emerald-200 dark:border-emerald-800/30' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-100 text-amber-600 border border-amber-200 dark:border-amber-800/30' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-100 text-blue-600 border border-blue-200 dark:border-blue-800/30' : 'bg-indigo-100 text-indigo-600 border border-indigo-200'}`}>
                             🧊
                           </div>
-                          <span className={`text-[9px] font-black tracking-widest ${asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'text-emerald-700' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'text-amber-700' : asset.file?.toLowerCase().endsWith('obj') ? 'text-blue-700' : 'text-indigo-700'}`}>
-                            {asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'SH3D PROJECT' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'GLB MODEL' : asset.file?.toLowerCase().endsWith('obj') ? 'OBJ MODEL' : '3D MODEL'}
+                          <span className={`text-[8px] font-black tracking-wider ${asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'text-emerald-700' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'text-amber-700' : asset.file?.toLowerCase().endsWith('obj') ? 'text-blue-700' : 'text-indigo-700'}`}>
+                            {asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'SH3D' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'GLB' : asset.file?.toLowerCase().endsWith('obj') ? 'OBJ' : '3D'}
+                          </span>
+                        </div>
+                      ) : (asset.file?.toLowerCase().endsWith('.dwg') || asset.file?.toLowerCase().endsWith('.dxf') || asset.title?.toLowerCase().includes('dwg')) ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-amber-500/5 dark:bg-amber-500/10">
+                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center text-xl mb-1 shadow-xs">
+                            📐
+                          </div>
+                          <span className="text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                            DWG CAD
                           </span>
                         </div>
                       ) : asset.thumbnail ? (
-                        <img src={asset.thumbnail} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        <img src={asset.thumbnail} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       ) : isImageUrl(asset.file) ? (
-                        <img src={asset.file} loading="lazy" decoding="async" className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                        <img src={asset.file} loading="lazy" decoding="async" className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
                       ) : asset.category === "sketch" ? (
-                        <div className="flex flex-col items-center gap-2">
-                          <span className="text-4xl">✏️</span>
-                          <span className="text-[8px] font-bold text-accent uppercase tracking-widest">Editable Design</span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-3xl">✏️</span>
+                          <span className="text-[7px] font-bold text-accent uppercase tracking-widest">Design</span>
                         </div>
                       ) : (
-                        <span className="text-4xl opacity-20">{activeHubCategory === '2d_plan' ? '📐' : '📄'}</span>
+                        <span className="text-3xl opacity-20">{activeHubCategory === '2d_plan' ? '📐' : '📄'}</span>
                       )}
                     </div>
                     
                     {renamingAssetId === asset.id ? (
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-1.5 items-center">
                         <input 
                           type="text" 
                           value={newAssetTitle}
                           onChange={(e) => setNewAssetTitle(e.target.value)}
                           autoFocus
-                          className="flex-1 bg-surface-50 border border-surface-200 rounded px-2 py-1 text-sm font-bold outline-none focus:border-accent"
+                          className="flex-1 bg-surface-100 border border-surface-200 rounded px-2 py-0.5 text-xs font-bold outline-none focus:border-accent"
                         />
-                        <button onClick={() => handleRenameAsset(asset.id)} className="text-emerald-500 text-xs font-bold">Save</button>
-                        <button onClick={() => setRenamingAssetId(null)} className="text-surface-400 text-xs font-bold">✕</button>
+                        <button onClick={() => handleRenameAsset(asset.id)} className="text-emerald-500 text-[10px] font-bold">Save</button>
+                        <button onClick={() => setRenamingAssetId(null)} className="text-surface-400 text-[10px] font-bold">✕</button>
                       </div>
                     ) : (
                       <div>
                         <div className="flex justify-between items-start">
-                          <div className="flex-1 min-w-0" onClick={() => handleOpenAsset(asset)}>
-                            <p className="font-bold text-sm truncate text-primary cursor-pointer hover:text-accent transition-colors">{asset.title}</p>
-                            <p className="text-[10px] text-surface-400 font-bold uppercase tracking-widest mt-0.5">{(asset.size / 1024).toFixed(1)} KB</p>
+                          <div className="flex-1 min-w-0 pr-1" onClick={() => handleOpenAsset(asset)}>
+                            <p className="font-bold text-xs truncate text-foreground cursor-pointer hover:text-accent transition-colors">{asset.title}</p>
+                            <p className="text-[9px] text-text-secondary font-semibold uppercase tracking-wider mt-0.5">{(asset.size / 1024).toFixed(1)} KB</p>
                           </div>
                           
-                          <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
                               onClick={(e) => { e.stopPropagation(); setHistoryAsset(asset); }}
-                              className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-100 text-xs"
+                              className="w-5.5 h-5.5 flex items-center justify-center rounded hover:bg-surface-200 text-[10px]"
                               title="Revision History"
                             >
                               🕐
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); setRenamingAssetId(asset.id); setNewAssetTitle(asset.title); }}
-                              className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-100 text-xs grayscale hover:grayscale-0"
+                              className="w-5.5 h-5.5 flex items-center justify-center rounded hover:bg-surface-200 text-[10px]"
                               title="Rename"
                             >
                               📝
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); handleDeleteAsset(asset.id); }}
-                              className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-red-50 dark:bg-red-900/20 text-xs grayscale hover:grayscale-0"
+                              className="w-5.5 h-5.5 flex items-center justify-center rounded hover:bg-red-500/10 hover:text-red-500 text-[10px]"
                               title="Delete"
                             >
                               🗑️
@@ -311,14 +375,14 @@ export const DataHubTab: React.FC = () => {
                         {asset.category === "sh3d" && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleOpenAsset(asset); }}
-                            className="mt-3 w-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-lg px-2 py-2 uppercase tracking-widest hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
+                            className="mt-2 w-full text-[9px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md px-2 py-1 uppercase tracking-wider hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-1"
                           >
                             <span>✏️</span> Open in Editor
                           </button>
                         )}
-
+                        
                         {(activeHubCategory === "2d_plan" || activeHubCategory === "3d_model") && (
-                          <div className="mt-2.5 pt-2.5 border-t border-surface-100 flex flex-col gap-2">
+                          <div className="mt-2 pt-2 border-t border-surface-200/50">
                             {(() => {
                               const linkedTasksCount = project.tasks.filter(t => t.asset_links?.some(l => String(l.canonical_uid) === String(asset.canonical_uid))).length;
                               return (
@@ -481,6 +545,19 @@ export const DataHubTab: React.FC = () => {
           onClose={() => setIsCreateSketchModalOpen(false)}
           projectUid={project.uid}
           onSuccess={() => fetchProject(project.uid)}
+        />
+      )}
+      {pdfModalOpen && (
+        <PdfMultiSheetModal
+          isOpen={pdfModalOpen}
+          pdfFileName={pendingPdfFileName}
+          initialSheets={extractedSheets}
+          isUploading={isUploading}
+          onClose={() => {
+            setPdfModalOpen(false);
+            setExtractedSheets([]);
+          }}
+          onConfirmUpload={handleUploadExtractedSheets}
         />
       )}
     </>
