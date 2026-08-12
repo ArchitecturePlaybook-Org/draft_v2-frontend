@@ -175,7 +175,10 @@ export const projectsApi = {
   },
 
   createTask: async (data: { project?: number | string; title: string; [key: string]: any }) => {
-    return fetchFromBff<any>("/api/v1/projects/tasks/", { method: "POST", body: JSON.stringify(data) });
+    console.log("[FRONTEND_API] createTask called with payload:", data);
+    const res = await fetchFromBff<any>("/api/v1/projects/tasks/", { method: "POST", body: JSON.stringify(data) });
+    console.log("[FRONTEND_API] createTask response:", res);
+    return res;
   },
 
   updateTask: async (taskId: string, data: Partial<any>) => {
@@ -211,6 +214,12 @@ export const projectsApi = {
     return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
       method: "PATCH",
       body: formData
+    });
+  },
+
+  deleteChecklistItem: async (itemId: number) => {
+    return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
+      method: "DELETE"
     });
   },
 
@@ -459,7 +468,8 @@ export const projectsApi = {
           method: "PUT",
           headers: {
             "Content-Type": file.type || "application/octet-stream"
-          },
+           },
+
           body: file
         });
 
@@ -739,6 +749,26 @@ export const projectsApi = {
 
   getTaskTemplates: async () => {
     return fetchFromBff<any>("/api/v1/projects/task-templates/", { method: "GET" });
+  },
+
+  createTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: string[] }) => {
+    return fetchFromBff<any>("/api/v1/projects/task-templates/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: string[] }>) => {
+    return fetchFromBff<any>(`/api/v1/projects/task-templates/${templateId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteTaskTemplate: async (templateId: number) => {
+    return fetchFromBff<void>(`/api/v1/projects/task-templates/${templateId}/`, {
+      method: "DELETE"
+    });
   },
 
   getInventoryItems: async () => {

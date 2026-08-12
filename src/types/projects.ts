@@ -155,12 +155,20 @@ export interface TaskTag {
   account: number;
 }
 
+export interface SubtaskTemplateItem {
+  id?: string;
+  title: string;
+  description?: string;
+  checklists?: string[];
+}
+
 export interface TaskTemplate {
   id: number;
   name: string;
   description: string;
   default_duration_days: number;
-  default_checklists: any[];
+  default_checklists: string[];
+  default_subtasks?: SubtaskTemplateItem[];
 }
 
 export interface ProjectMembership {

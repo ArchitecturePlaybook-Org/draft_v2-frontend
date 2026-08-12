@@ -131,7 +131,14 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   React.useEffect(() => {
     setTask(initialTask);
     setCurrentStatus(initialTask.status);
-  }, [initialTask]);
+    if (initialTask?.uid) {
+      projectsApi.getTask(initialTask.uid).then(t => {
+        if (t && t.uid === initialTask.uid) {
+          setTask(t);
+        }
+      }).catch(() => {});
+    }
+  }, [initialTask?.uid]);
 
   React.useEffect(() => {
     if (projectUid) {
@@ -259,6 +266,20 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
       toast.success("Checklist item added.");
     } catch (err: any) {
       toast.error(err.message || "Failed to add item.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteChecklist = async (item: TaskChecklistItem) => {
+    if (!confirm(`Remove checkpoint "${item.title}"?`)) return;
+    setIsUpdating(true);
+    try {
+      await projectsApi.deleteChecklistItem(item.id);
+      await refreshTask();
+      toast.success("Checklist item removed.");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to remove checklist item.");
     } finally {
       setIsUpdating(false);
     }
@@ -489,121 +510,150 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
           />
         )}
 
-        {/* Header */}
-        <div className={`sticky top-0 z-50 border-b border-surface-200 bg-surface-50/80 bg-background/80 backdrop-blur-2xl flex flex-col gap-4 shrink-0 relative min-w-0 w-full shadow-sm ${splitMode ? "px-4 py-4" : "px-4 sm:px-8 py-5 sm:py-6"}`}>
-          <div className="absolute -top-20 -right-20 w-64 h-64 arch-grid opacity-5 pointer-events-none" />
-
-          <div className="relative z-10 min-w-0 w-full">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+        {/* Header — Clean 2-Row Compact Layout */}
+        <div className={`sticky top-0 z-50 border-b border-surface-200 bg-surface-50/95 backdrop-blur-md flex flex-col gap-2 shrink-0 relative min-w-0 w-full shadow-xs ${splitMode ? "px-3 py-2.5" : "px-4 sm:px-6 py-2.5"}`}>
+          {/* Row 1: Title, Subtask badge, Trade, and Action buttons */}
+          <div className="flex items-center justify-between gap-3 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               {isSubtaskPanel && (
-                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 shrink-0 shadow-sm">
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
                   ↳ Subtask
                 </span>
               )}
-              <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md border shrink-0 ${currentStatus === "DONE" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-800/30" :
-                  currentStatus === "ON_HOLD" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800/30" :
-                    currentStatus === "WIP" ? "bg-accent/10 text-accent border-accent/20" :
-                      currentStatus === "QA" ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 border-purple-200 dark:border-purple-800/30" :
-                        "bg-surface-200 text-surface-600 text-surface-300 border-surface-300"
-                }`}>
-                {currentStatus === "ON_HOLD" ? "ON HOLD" : currentStatus}
-              </span>
+              <h2 className={`font-black text-foreground tracking-tight truncate ${splitMode || isSubtaskPanel ? "text-base sm:text-lg" : "text-base sm:text-lg"}`} title={task.title}>
+                {task.title}
+              </h2>
               {task.trade && (
-                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white shrink-0 max-w-full truncate"
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider text-white shrink-0"
                   style={{ backgroundColor: task.trade.color_hex }}>
                   {task.trade.name}
                 </span>
               )}
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={handleCopyLink}
+                className={`h-7 px-2.5 font-bold text-[9px] uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 whitespace-nowrap shrink-0 ${isCopied
+                    ? "bg-emerald-600 text-white"
+                    : "bg-accent text-background hover:opacity-90 shadow-xs"
+                  }`}
+              >
+                {isCopied ? "✓" : "🔗"} <span className="hidden sm:inline">{isCopied ? "Copied" : "Link"}</span>
+              </button>
+
+              {!readOnly && (isAdmin || isArchitect) && (
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  title="Soft Delete Task"
+                  className="w-7 h-7 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-xs shrink-0 border border-red-500/30 text-xs"
+                >
+                  🗑️
+                </button>
+              )}
+
+              <button onClick={onClose} className="w-7 h-7 rounded-lg bg-surface-200 text-foreground hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-xs shrink-0 text-xs ml-1">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Row 2: Status Selector, Blocker, Trade (mobile), and Task ID */}
+          <div className="flex items-center justify-between gap-2 flex-wrap min-w-0">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              {/* Status Dropdown Select */}
+              <div className="relative inline-flex items-center">
+                <select
+                  value={currentStatus}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  disabled={isUpdating || readOnly}
+                  className={`h-7 pl-2.5 pr-6 text-[10px] font-black uppercase tracking-wider rounded-lg border appearance-none cursor-pointer outline-none transition-all shadow-xs ${
+                    currentStatus === "DONE"
+                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 focus:border-emerald-500"
+                      : currentStatus === "ON_HOLD"
+                      ? "bg-amber-500/20 text-amber-400 border-amber-500/40 focus:border-amber-500"
+                      : currentStatus === "WIP"
+                      ? "bg-blue-500/20 text-blue-400 border-blue-500/40 focus:border-blue-500"
+                      : currentStatus === "QA"
+                      ? "bg-purple-500/20 text-purple-400 border-purple-500/40 focus:border-purple-500"
+                      : "bg-surface-200 text-foreground border-surface-300 focus:border-accent"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <option value="TODO" className="bg-surface-100 text-foreground">To Do</option>
+                  <option value="ON_HOLD" className="bg-surface-100 text-foreground">On Hold</option>
+                  <option value="WIP" className="bg-surface-100 text-foreground">In Progress</option>
+                  <option value="QA" className="bg-surface-100 text-foreground">Inspection (QA)</option>
+                  <option value="DONE" className="bg-surface-100 text-foreground">Completed</option>
+                </select>
+                <div className="pointer-events-none absolute right-2 text-[8px] opacity-70">
+                  ▼
+                </div>
+              </div>
+
               {task.has_active_blocker && (
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[9px] font-black uppercase tracking-widest animate-pulse shrink-0">
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500/20 text-red-400 rounded-md text-[8px] font-black uppercase tracking-wider animate-pulse shrink-0 border border-red-500/40">
                   🚨 Blocker
                 </span>
               )}
-              <span className="text-[10px] font-mono text-surface-400 truncate max-w-full">ID: {task.task_code || task.uid}</span>
-            </div>
-            <h2 className={`font-extrabold text-primary tracking-tight truncate ${splitMode || isSubtaskPanel ? "text-lg sm:text-xl" : "text-xl sm:text-2xl md:text-3xl"}`} title={task.title}>{task.title}</h2>
-            {currentStatus === "ON_HOLD" && task.on_hold_reason && (
-              <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-start gap-2.5 mt-2.5">
-                <span className="text-sm shrink-0 mt-0.5">⏸️</span>
-                <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300">On Hold Reason</h4>
-                  <p className="text-xs text-amber-900 dark:text-amber-200 font-semibold mt-0.5 leading-relaxed">{task.on_hold_reason}</p>
-                </div>
-              </div>
-            )}
-          </div>
 
-          <div className="relative z-10 flex flex-wrap items-center gap-2 w-full">
-            <div className="flex bg-surface-200/50 p-1 rounded-xl border border-surface-200 shrink-0">
-              {["TODO", "ON_HOLD", "WIP", "QA", "DONE"].map(s => (
-                <button
-                  key={s}
-                  onClick={() => handleStatusChange(s)}
-                  disabled={isUpdating || readOnly}
-                  className={`${splitMode ? "px-2 py-1.5" : "px-2.5 sm:px-4 py-2"} text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all whitespace-nowrap ${currentStatus === s ? "bg-surface-100 border-surface-200 shadow-xl text-primary" : "text-surface-500 text-surface-400 hover:text-primary"
-                    } disabled:opacity-60 disabled:cursor-not-allowed`}
-                >
-                  {s === "ON_HOLD" ? "ON HOLD" : s}
-                </button>
-              ))}
+              {task.trade && (
+                <span className="sm:hidden flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-white shrink-0"
+                  style={{ backgroundColor: task.trade.color_hex }}>
+                  {task.trade.name}
+                </span>
+              )}
             </div>
 
-            <button
-              onClick={handleCopyLink}
-              className={`${splitMode ? "h-9 px-3" : "h-10 sm:h-11 px-3 sm:px-6"} font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap shrink-0 ${isCopied
-                  ? "bg-emerald-600 text-white shadow-emerald-500/20 scale-[1.02]"
-                  : "bg-accent text-background hover:opacity-90"
-                }`}
-            >
-              {isCopied ? "✓" : splitMode ? "🔗" : "🔗 Copy Link"}
-            </button>
-
-            {!readOnly && (isAdmin || isArchitect) && (
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                title="Soft Delete Task"
-                className={`${splitMode ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"} rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm shrink-0 border border-red-200 dark:border-red-800/30`}
-              >
-                🗑️
-              </button>
-            )}
-
-            <button onClick={onClose} className={`${splitMode ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"} rounded-xl bg-surface-200 text-surface-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm shrink-0`}>
-              ✕
-            </button>
+            <div className="flex items-center gap-2 shrink-0 ml-auto">
+              <span className="text-[9px] font-mono text-surface-500">ID: {task.task_code || task.uid}</span>
+            </div>
           </div>
+
+          {/* Optional: On Hold Alert */}
+          {currentStatus === "ON_HOLD" && task.on_hold_reason && (
+            <div className="bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+              <span className="text-[11px] shrink-0">⏸️</span>
+              <p className="text-[10px] text-amber-300 font-medium truncate">
+                <strong>On Hold Reason:</strong> {task.on_hold_reason}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Layout: Main Content */}
         <div className="flex flex-1 overflow-hidden">
           <div className="flex-1 flex flex-col bg-surface-100 border-surface-200 overflow-hidden">
             {/* Tabs */}
-            <div className={`flex border-b border-surface-200 bg-surface-100 pt-4 pb-2 shrink-0 overflow-x-auto gap-2 custom-scrollbar ${splitMode ? "px-4" : "px-8"}`}>
+            <div className={`flex border-b border-surface-200 bg-surface-100 pt-2.5 pb-1.5 shrink-0 overflow-x-auto gap-1.5 custom-scrollbar ${splitMode ? "px-3" : "px-4 sm:px-6"}`}>
               {tabs.filter(t => !t.hidden).map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as TaskTab)}
-                  className={`relative px-5 py-2.5 font-bold text-[10px] tracking-widest uppercase transition-colors whitespace-nowrap flex items-center gap-2 rounded-full z-10 ${activeTab === tab.id ? "text-background" : "text-surface-500 hover:text-primary hover:bg-surface-200/50"
+                  className={`relative px-3.5 py-1.5 font-bold text-[9px] tracking-wider uppercase transition-colors whitespace-nowrap flex items-center gap-1.5 rounded-lg z-10 ${activeTab === tab.id ? "text-background font-black" : "text-surface-500 hover:text-foreground hover:bg-surface-200/50"
                     }`}
                 >
                   {activeTab === tab.id && (
                     <motion.div
                       layoutId="activeTaskTab"
-                      className="absolute inset-0 bg-accent rounded-full -z-10 shadow-md"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      className="absolute inset-0 bg-accent rounded-lg -z-10 shadow-xs"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                     />
                   )}
                   {tab.label}
-                  {tab.id === "checklist" && uncheckedCount > 0 && (
-                    <span className={`w-4 h-4 text-[8px] font-black rounded-full flex items-center justify-center ${activeTab === tab.id ? 'bg-background/20 text-background' : 'bg-amber-400 text-white'}`}>{uncheckedCount}</span>
+                  {tab.id === "subtasks" && checklists.length > 0 && (
+                    <span className={`px-1.5 py-0.2 text-[8px] font-black rounded-full flex items-center justify-center ${activeTab === tab.id ? 'bg-background/20 text-background' : 'bg-accent/20 text-accent border border-accent/30'}`}>
+                      {checklists.filter((i: any) => i.is_completed).length}/{checklists.length}
+                    </span>
                   )}
-
+                  {tab.id === "checklist" && uncheckedCount > 0 && (
+                    <span className={`w-3.5 h-3.5 text-[8px] font-black rounded-full flex items-center justify-center ${activeTab === tab.id ? 'bg-background/20 text-background' : 'bg-amber-400 text-white'}`}>{uncheckedCount}</span>
+                  )}
                 </button>
               ))}
             </div>
 
             {/* Tab Body */}
-            <div className="flex-1 overflow-y-auto p-8 bg-surface-50">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-surface-50">
 
               {/* EXECUTION / PROGRESS TAB */}
               {activeTab === "execution" && (
@@ -638,55 +688,57 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                     {/* Matrix Location */}
                     {!isSubtaskPanel && (
                       <div>
-                        <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Matrix Location</h3>
-                      <div className="bg-surface-100 border-surface-200 p-8 rounded-2xl border border-surface-200 shadow-sm space-y-8">
-                        <div className="grid grid-cols-2 gap-8">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Zone</label>
-                            <select
-                              value={selectedZoneId}
-                              disabled={isUpdating || readOnly}
-                              onChange={(e) => {
-                                setSelectedZoneId(e.target.value);
-                                handleUpdateMatrixLocation(e.target.value, selectedPhaseId);
-                              }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                              <option value="" disabled>Select Zone...</option>
-                              {zones.map(z => (
-                                <option key={z.id} value={z.id}>{z.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Phase</label>
-                            <select
-                              value={selectedPhaseId}
-                              disabled={isUpdating || readOnly}
-                              onChange={(e) => {
-                                setSelectedPhaseId(e.target.value);
-                                handleUpdateMatrixLocation(selectedZoneId, e.target.value);
-                              }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                              <option value="" disabled>Select Phase...</option>
-                              {phases.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                              ))}
-                            </select>
+                        <h3 className="text-xs font-bold text-surface-400 dark:text-surface-500 uppercase tracking-wider mb-2">Matrix Location</h3>
+                        <div className="bg-surface-100/90 dark:bg-surface-800/60 border border-surface-200 dark:border-surface-700/80 p-3 rounded-xl shadow-xs">
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-surface-500 uppercase tracking-wider">Zone</label>
+                              <select
+                                value={selectedZoneId}
+                                disabled={isUpdating || readOnly}
+                                onChange={(e) => {
+                                  setSelectedZoneId(e.target.value);
+                                  handleUpdateMatrixLocation(e.target.value, selectedPhaseId);
+                                }}
+                                className="w-full h-8.5 bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-primary dark:text-white transition-colors appearance-none disabled:opacity-50"
+                              >
+                                <option value="" disabled>Select Zone...</option>
+                                {zones.map(z => (
+                                  <option key={z.id} value={z.id}>{z.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-surface-500 uppercase tracking-wider">Phase</label>
+                              <select
+                                value={selectedPhaseId}
+                                disabled={isUpdating || readOnly}
+                                onChange={(e) => {
+                                  setSelectedPhaseId(e.target.value);
+                                  handleUpdateMatrixLocation(selectedZoneId, e.target.value);
+                                }}
+                                className="w-full h-8.5 bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-primary dark:text-white transition-colors appearance-none disabled:opacity-50"
+                              >
+                                <option value="" disabled>Select Phase...</option>
+                                {phases.map(p => (
+                                  <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                     {/* Standard Directives & Timeline */}
                     <div>
-                      <h3 className="text-sm font-bold text-surface-400 uppercase tracking-widest mb-4">Timeline & Directives</h3>
-                      <div className="bg-surface-100 border-surface-200 p-8 rounded-2xl border border-surface-200 shadow-sm space-y-8">
-                        <div className="grid grid-cols-2 gap-8">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Start Date</label>
+                      <h3 className="text-xs font-bold text-surface-600 uppercase tracking-wider mb-2">
+                        Timeline & Directives
+                      </h3>
+                      <div className="bg-surface-100 border border-surface-300 p-4 rounded-xl shadow-xs space-y-3.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-surface-600 uppercase tracking-wider">Start Date</label>
                             <input
                               type="date"
                               value={task.start_date || ""}
@@ -702,11 +754,11 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                   toast.error(err?.message || "Failed to update start date.");
                                 }
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                              className="w-full h-8.5 bg-surface-50 border border-surface-300 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-foreground transition-colors disabled:opacity-50"
                             />
                           </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Due Date</label>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-surface-600 uppercase tracking-wider">Due Date</label>
                             <input
                               type="date"
                               value={task.end_date || task.due_date || ""}
@@ -722,11 +774,11 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                 }
                               }}
                               disabled={isUpdating || readOnly}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                              className="w-full h-8.5 bg-surface-50 border border-surface-300 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-foreground transition-colors disabled:opacity-50"
                             />
                           </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Priority</label>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-surface-600 uppercase tracking-wider">Priority</label>
                             <select
                               value={task.priority || "MEDIUM"}
                               disabled={isUpdating || readOnly}
@@ -741,18 +793,18 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                   toast.error(err?.message || "Failed to update priority.");
                                 }
                               }}
-                              className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                              className="w-full h-8.5 bg-surface-50 border border-surface-300 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-foreground transition-colors disabled:opacity-50 appearance-none"
                             >
-                              <option value="HIGH">High Priority</option>
-                              <option value="MEDIUM">Medium Priority</option>
-                              <option value="LOW">Low Priority</option>
+                              <option value="HIGH" className="bg-surface-100 text-foreground">High Priority</option>
+                              <option value="MEDIUM" className="bg-surface-100 text-foreground">Medium Priority</option>
+                              <option value="LOW" className="bg-surface-100 text-foreground">Low Priority</option>
                             </select>
                           </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Tags</label>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-surface-600 uppercase tracking-wider">Tags</label>
                             <div className="flex flex-wrap gap-1 mb-1">
                               {task.tags?.map(tag => (
-                                <span key={tag.id} className="text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-widest flex items-center gap-1" style={{ borderColor: tag.color, backgroundColor: `${tag.color}10`, color: tag.color }}>
+                                <span key={tag.id} className="text-[8px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-wider flex items-center gap-1" style={{ borderColor: tag.color, backgroundColor: `${tag.color}20`, color: tag.color }}>
                                   {tag.name}
                                   {!readOnly && (
                                     <button onClick={async () => {
@@ -764,7 +816,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                       } catch (err: any) {
                                         toast.error(err?.message || "Failed to remove tag.");
                                       }
-                                    }} className="hover:text-red-500">✕</button>
+                                    }} className="hover:text-red-400">✕</button>
                                   )}
                                 </span>
                               ))}
@@ -785,20 +837,21 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                                     toast.error(err?.message || "Failed to add tag.");
                                   }
                                 }}
-                                className="w-full h-11 bg-surface-50 border border-surface-200 px-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-primary transition-colors"
+                                className="w-full h-8.5 bg-surface-50 border border-surface-300 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-foreground transition-colors appearance-none"
                               >
-                                <option value="" disabled>Add a tag...</option>
+                                <option value="" disabled className="bg-surface-100 text-foreground">Add a tag...</option>
                                 {taskTags?.filter(t => !task.tags?.some(tt => tt.id === t.id)).map(t => (
-                                  <option key={t.id} value={t.id}>{t.name}</option>
+                                  <option key={t.id} value={t.id} className="bg-surface-100 text-foreground">{t.name}</option>
                                 ))}
                               </select>
                             )}
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Execution Directives</label>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-surface-600 uppercase tracking-wider">Execution Directives / Requirements</label>
                           <textarea
-                            rows={4}
+                            rows={2}
                             value={task.description || ""}
                             disabled={isUpdating || readOnly}
                             onChange={(e) => {
@@ -810,21 +863,63 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                               try {
                                 await projectsApi.updateTask(task.uid, { description: val });
                                 await refreshTask();
-                                toast.success("Execution directives saved.");
+                                toast.success("Directives saved.");
                               } catch (err: any) {
-                                toast.error(err?.message || "Failed to save execution directives.");
+                                toast.error(err?.message || "Failed to save directives.");
                               }
                             }}
-                            placeholder="Add architectural requirements..."
-                            className="w-full p-4 bg-surface-50 border border-surface-200 rounded-2xl outline-none focus:border-accent font-medium text-sm text-primary resize-none transition-colors leading-relaxed"
+                            placeholder="Add architectural specifications or notes..."
+                            className="w-full p-2.5 bg-surface-50 border border-surface-300 rounded-xl outline-none focus:border-accent font-medium text-xs text-foreground resize-none transition-colors leading-relaxed placeholder:text-surface-400"
                           />
                         </div>
                       </div>
                     </div>
+
+                    {/* Quality & Inspection Checklists on Primary Tab */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xs font-bold text-surface-600 uppercase tracking-wider flex items-center gap-1.5">
+                          <span>✓</span> Quality & Inspection Checklists
+                          {checklists.length > 0 && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-accent/20 text-accent font-bold normal-case border border-accent/30">
+                              {checklists.filter((i: any) => i.is_completed).length}/{checklists.length} Completed
+                            </span>
+                          )}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("subtasks")}
+                          className="text-[11px] font-bold text-accent hover:underline flex items-center gap-1"
+                        >
+                          Manage Subtasks & Full Checklists →
+                        </button>
+                      </div>
+
+                      <TaskChecklistTab
+                        task={task}
+                        checklists={checklists}
+                        newChecklistDesc={newChecklistDesc}
+                        setNewChecklistDesc={setNewChecklistDesc}
+                        handleAddChecklistItem={handleAddChecklistItem}
+                        handleToggleChecklist={handleToggleChecklist}
+                        handleDeleteChecklist={handleDeleteChecklist}
+                        isContractor={isContractor}
+                        isUpdating={isUpdating}
+                        isAdmin={isAdmin}
+                        isArchitect={isArchitect}
+                        isQA={isQA}
+                        checklistTemplates={checklistTemplates}
+                        selectedTemplateId={selectedTemplateId}
+                        setSelectedTemplateId={setSelectedTemplateId}
+                        handleImportTemplate={handleImportTemplate}
+                        setLightboxImageUrl={setLightboxImageUrl}
+                        readOnly={readOnly}
+                      />
+                    </div>
                   </div>
 
                   {/* Communication Side Panel */}
-                  <div className="w-[380px] shrink-0 border-l border-surface-200 pl-8 hidden lg:flex flex-col h-full">
+                  <div className="w-[340px] shrink-0 border-l border-surface-200 dark:border-surface-800 pl-4 hidden lg:flex flex-col h-full">
                     <TaskCommunicationPanel task={task} onCommentAdded={refreshTask} readOnly={readOnly} />
                   </div>
                 </div>
@@ -839,6 +934,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                   setNewChecklistDesc={setNewChecklistDesc}
                   handleAddChecklistItem={handleAddChecklistItem}
                   handleToggleChecklist={handleToggleChecklist}
+                  handleDeleteChecklist={handleDeleteChecklist}
                   isContractor={isContractor}
                   isUpdating={isUpdating}
                   isAdmin={isAdmin}
@@ -876,6 +972,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                   setNewChecklistDesc={setNewChecklistDesc}
                   handleAddChecklistItem={handleAddChecklistItem}
                   handleToggleChecklist={handleToggleChecklist}
+                  handleDeleteChecklist={handleDeleteChecklist}
                   checklistTemplates={checklistTemplates}
                   selectedTemplateId={selectedTemplateId}
                   setSelectedTemplateId={setSelectedTemplateId}

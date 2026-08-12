@@ -142,6 +142,20 @@ export const Sidebar: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {/* Admin section — only visible to admins */}
+        {isAdmin && (
+          <div>
+            {!isSidebarCollapsed && (
+              <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-bold">
+                Admin
+              </h4>
+            )}
+            <div className="flex flex-col gap-1">
+              <SidebarLink label="Task Templates" href="/dashboard/admin/task-templates" icon="📋" active={pathname.startsWith("/dashboard/admin/task-templates")} isCollapsed={isSidebarCollapsed} />
+            </div>
+          </div>
+        )}
       </nav>
 
       {!isSidebarCollapsed && <div className="shrink-0"><ProfileBanner /></div>}

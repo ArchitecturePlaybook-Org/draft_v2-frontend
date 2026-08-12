@@ -63,18 +63,27 @@ export const KanbanTab: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    const title = selectedTemplate ? taskTemplates.find((t: any) => t.id.toString() === selectedTemplate)?.name : newTaskTitle;
+    const tpl = selectedTemplate ? taskTemplates.find((t: any) => t.id.toString() === selectedTemplate) : null;
+    const title = tpl ? tpl.name : newTaskTitle.trim();
     if (!title) return;
     
     setIsCreatingTask(true);
     try {
+      const checklists = tpl?.default_checklists || [];
+      const subtasks = tpl?.default_subtasks || [];
       addTaskOptimistically({
         title,
         status: "TODO" as any,
+        description: tpl?.description || "",
       });
       await projectsApi.createTask({ 
         project: project.id, 
         title,
+        description: tpl?.description || "",
+        checklists: checklists,
+        default_checklists: checklists,
+        subtasks: subtasks,
+        default_subtasks: subtasks,
         zone_id: selectedZoneId ? parseInt(selectedZoneId) : undefined,
         phase_id: selectedPhaseId ? parseInt(selectedPhaseId) : undefined
       });
