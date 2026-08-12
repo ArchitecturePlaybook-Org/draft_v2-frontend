@@ -628,6 +628,7 @@ export const projectsApi = {
     longitude?: number;
     gps_accuracy_m?: number;
     gps_source: 'browser' | 'exif' | 'none';
+    captured_at?: string;
   }) => {
     const formData = new FormData();
     formData.append("floor_plan", data.floor_plan.toString());
@@ -638,6 +639,7 @@ export const projectsApi = {
     if (data.latitude) formData.append("latitude", data.latitude.toString());
     if (data.longitude) formData.append("longitude", data.longitude.toString());
     if (data.gps_accuracy_m) formData.append("gps_accuracy_m", data.gps_accuracy_m.toString());
+    if (data.captured_at) formData.append("captured_at", data.captured_at);
     formData.append("gps_source", data.gps_source);
     
     return fetchFromBff<SitePhoto>("/api/v1/projects/site-photos/", { 

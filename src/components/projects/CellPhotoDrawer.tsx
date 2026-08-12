@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import exifr from "exifr";
 import { ProjectAsset, SitePhoto } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { formatDistanceToNow } from "date-fns";
@@ -28,6 +29,78 @@ interface CellPhotoDrawerProps {
   onPhotoDeleted?: () => void;
 }
 
+// Helper to watermark metadata directly INSIDE the uploaded image file
+async function stampMetadataOnImage(
+  file: File,
+  meta: {
+    lat?: number;
+    lng?: number;
+    timestamp: string;
+    uploaderName: string;
+    zoneLabel: string;
+  }
+): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0);
+
+      const bannerH = Math.max(36, Math.round(img.height * 0.055));
+      const fontSz = Math.max(12, Math.round(bannerH * 0.36));
+
+      ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+      ctx.fillRect(0, img.height - bannerH, img.width, bannerH);
+
+      ctx.fillStyle = "#f59e0b";
+      ctx.fillRect(0, img.height - bannerH, img.width, Math.max(2, Math.round(bannerH * 0.05)));
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `bold ${fontSz}px sans-serif`;
+      ctx.textBaseline = "middle";
+
+      const timeStr = `🕒 ${new Date(meta.timestamp).toLocaleString()}`;
+      const gpsStr = meta.lat && meta.lng ? `📍 ${meta.lat.toFixed(5)}, ${meta.lng.toFixed(5)}` : "";
+      const userStr = `👤 ${meta.uploaderName}`;
+      const zoneStr = `Zone ${meta.zoneLabel}`;
+
+      const textLine = [zoneStr, timeStr, gpsStr, userStr].filter(Boolean).join("  •  ");
+      ctx.fillText(textLine, Math.max(12, Math.round(img.width * 0.02)), img.height - (bannerH / 2));
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          resolve(new File([blob], file.name, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        0.92
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+
+    img.src = url;
+  });
+}
+
 export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPhotoAdded, onPhotoDeleted }: CellPhotoDrawerProps) {
   const [photos, setPhotos] = useState<SitePhoto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +111,10 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Extracted EXIF metadata preview state
+  const [exifTimestamp, setExifTimestamp] = useState<string | null>(null);
+  const [extractedGps, setExtractedGps] = useState<{ lat: number; lng: number; source: 'exif' | 'browser' | 'none' } | null>(null);
 
   // Lightbox view state
   const [viewingPhoto, setViewingPhoto] = useState<SitePhoto | null>(null);
@@ -57,10 +134,37 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
   useEffect(() => {
     if (!selectedFile) {
       setPreviewUrl(null);
+      setExifTimestamp(null);
+      setExtractedGps(null);
       return;
     }
     const url = URL.createObjectURL(selectedFile);
     setPreviewUrl(url);
+
+    // Extract EXIF Timestamp and GPS metadata automatically
+    (async () => {
+      try {
+        const exifData = await exifr.parse(selectedFile, {
+          gps: true,
+          pick: ['DateTimeOriginal', 'CreateDate', 'latitude', 'longitude']
+        });
+
+        if (exifData) {
+          if (exifData.DateTimeOriginal) {
+            setExifTimestamp(new Date(exifData.DateTimeOriginal).toISOString());
+          } else if (exifData.CreateDate) {
+            setExifTimestamp(new Date(exifData.CreateDate).toISOString());
+          }
+
+          if (typeof exifData.latitude === 'number' && typeof exifData.longitude === 'number') {
+            setExtractedGps({ lat: exifData.latitude, lng: exifData.longitude, source: 'exif' });
+          }
+        }
+      } catch (e) {
+        console.warn("EXIF extraction skipped:", e);
+      }
+    })();
+
     return () => URL.revokeObjectURL(url);
   }, [selectedFile]);
 
@@ -113,6 +217,8 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
 
   const clearSelectedFile = () => {
     setSelectedFile(null);
+    setExifTimestamp(null);
+    setExtractedGps(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -130,51 +236,62 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
 
     setIsUploading(true);
     
-    let lat: number | undefined = undefined;
-    let lng: number | undefined = undefined;
+    let capturedAt: string = exifTimestamp || new Date().toISOString();
+    let lat: number | undefined = extractedGps?.lat;
+    let lng: number | undefined = extractedGps?.lng;
     let acc: number | undefined = undefined;
-    let source: 'browser' | 'exif' | 'none' = 'none';
+    let source: 'browser' | 'exif' | 'none' = extractedGps?.source || 'none';
 
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error("Geolocation is not supported by your browser."));
-        } else {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
-          });
-        }
-      });
-      
-      lat = position.coords.latitude;
-      lng = position.coords.longitude;
-      acc = position.coords.accuracy;
-      source = 'browser';
-    } catch (err: any) {
-      console.warn("Geolocation failed or denied:", err);
-      toast.warning("Could not attach location to photo.", {
-        description: "Proceeding with upload without GPS coordinates."
-      });
+    // Fallback to browser Geolocation if EXIF GPS missing
+    if (!lat || !lng) {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error("Geolocation is not supported by your browser."));
+          } else {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 4000,
+              maximumAge: 0
+            });
+          }
+        });
+        
+        lat = position.coords.latitude;
+        lng = position.coords.longitude;
+        acc = position.coords.accuracy;
+        source = 'browser';
+      } catch (err: any) {
+        console.warn("Geolocation failed or denied:", err);
+      }
     }
+
+    // Stamp metadata permanently INSIDE the image file before upload
+    const stampedFile = await stampMetadataOnImage(selectedFile, {
+      lat,
+      lng,
+      timestamp: capturedAt,
+      uploaderName: "Site Surveyor",
+      zoneLabel: cellLabel
+    });
 
     try {
       await projectsApi.uploadSitePhoto({
         floor_plan: asset.id,
-        image: selectedFile,
+        image: stampedFile,
         caption,
         grid_col: gridCol,
         grid_row: gridRow,
         gps_source: source,
         latitude: lat,
         longitude: lng,
-        gps_accuracy_m: acc
+        gps_accuracy_m: acc,
+        captured_at: capturedAt
       });
       setCaption("");
       clearSelectedFile();
       await loadPhotos();
-      toast.success("Photo uploaded successfully!");
+      toast.success("Photo uploaded with metadata stamped inside image!");
       if (onPhotoAdded) onPhotoAdded();
     } catch (err) {
       console.error("Failed to upload photo", err);
@@ -204,7 +321,6 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
   return (
     <>
       <div className="fixed inset-y-0 right-0 w-96 sm:w-[420px] bg-surface-100/95 backdrop-blur-xl border-l border-surface-200 shadow-2xl z-[100] flex flex-col animate-in slide-in-from-right duration-300">
-        {/* Header */}
         <div className="p-4 sm:p-5 border-b border-surface-200/80 flex justify-between items-center bg-surface-50/80 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-black text-sm shadow-inner">
@@ -228,7 +344,6 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
-          {/* Enhanced Photo Upload Form */}
           <form onSubmit={handleUpload} className="bg-surface-50/90 border border-surface-200 rounded-2xl p-4 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-widest text-surface-500 flex items-center gap-1.5">
@@ -246,7 +361,6 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
               )}
             </div>
 
-            {/* Drag and Drop Zone / Selected File Preview */}
             <input 
               ref={fileInputRef}
               type="file" 
@@ -275,7 +389,7 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
                     <span className="text-accent underline underline-offset-2">Click to select photo</span> or drag & drop
                   </p>
                   <p className="text-[10px] text-surface-400 font-medium">
-                    Supports PNG, JPG, WEBP (Max 20MB)
+                    Supports PNG, JPG, WEBP (Stamps GPS & Timestamp in Image)
                   </p>
                 </div>
               </div>
@@ -293,61 +407,40 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
                       <FileImage className="w-8 h-8" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button 
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-3 py-1.5 bg-white/90 hover:bg-white text-surface-900 font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-md transition-all active:scale-95"
-                    >
-                      Change Photo
-                    </button>
-                  </div>
                 </div>
 
-                <div className="px-1 flex justify-between items-center text-xs">
-                  <div className="truncate max-w-[220px]">
-                    <p className="font-bold text-surface-800 truncate">{selectedFile.name}</p>
-                    <p className="text-[10px] text-surface-400">{formatFileSize(selectedFile.size)}</p>
+                <div className="p-2 bg-surface-50 rounded-lg border border-surface-200 text-[10px] space-y-1">
+                  <div className="flex items-center justify-between font-bold">
+                    <span className="text-surface-500">Photo Timestamp:</span>
+                    <span className="text-foreground">{exifTimestamp ? new Date(exifTimestamp).toLocaleString() : new Date().toLocaleString()}</span>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                    <CheckCircle2 className="w-3 h-3" /> Ready
-                  </span>
+                  {extractedGps && (
+                    <div className="flex items-center justify-between font-bold text-emerald-600">
+                      <span className="flex items-center gap-1">📍 EXIF GPS:</span>
+                      <span>{extractedGps.lat.toFixed(5)}, {extractedGps.lng.toFixed(5)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Caption Input */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-surface-500 block">
-                Caption / Description
-              </label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  className="w-full bg-surface-100 border border-surface-300 rounded-xl px-3 py-2 text-xs text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
-                  placeholder="E.g., Wall framing inspection, column rebar..."
-                />
-              </div>
-            </div>
+            <input
+              type="text"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Photo caption / inspection note..."
+              className="w-full bg-surface-100 border border-surface-200 rounded-xl px-3 py-2 text-xs font-bold text-foreground outline-none focus:border-accent"
+            />
 
-            {/* Geolocation Notice */}
-            <div className="flex items-center gap-1.5 text-[10px] text-surface-500 bg-surface-100/60 p-2 rounded-lg border border-surface-200/50">
-              <MapPin className="w-3 h-3 text-accent shrink-0" />
-              <span>GPS location will be captured automatically if enabled.</span>
-            </div>
-
-            {/* Upload Button */}
             <button 
               type="submit" 
               disabled={!selectedFile || isUploading}
-              className="w-full h-10 bg-primary text-background font-black text-xs uppercase tracking-wider rounded-xl hover:opacity-95 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+              className="w-full h-10 bg-accent text-background font-black text-xs uppercase tracking-wider rounded-xl hover:opacity-95 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
             >
               {isUploading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Uploading Photo...</span>
+                  <span>Stamping & Uploading...</span>
                 </>
               ) : (
                 <>
@@ -358,7 +451,6 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
             </button>
           </form>
 
-          {/* Photo List Section */}
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b border-surface-200 pb-2">
               <h3 className="text-xs font-black uppercase tracking-wider text-surface-700 flex items-center gap-1.5">
@@ -378,38 +470,38 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
                   <Camera className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-bold text-surface-600">No photos in Zone {cellLabel}</p>
-                <p className="text-[11px] text-surface-400 max-w-xs mx-auto">
-                  Upload photos taken on-site for this specific grid cell to document project progress.
-                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {photos.map(photo => (
                   <div 
                     key={photo.id} 
-                    onClick={() => setViewingPhoto(photo)}
-                    className="bg-surface-50 border border-surface-200/90 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                    className="bg-surface-50 border border-surface-200/90 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group"
                   >
-                    <div className="aspect-video relative bg-surface-200/50 overflow-hidden">
+                    <div className="aspect-video relative bg-surface-200/50 overflow-hidden cursor-pointer" onClick={() => setViewingPhoto(photo)}>
                       <img 
                         src={photo.image} 
                         alt={photo.caption || `Zone ${cellLabel} photo`} 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       
-                      {/* GPS Badge */}
-                      {photo.latitude && photo.longitude && (
-                        <div 
-                          className="absolute top-2.5 left-2.5 bg-surface-900/80 backdrop-blur-md text-white px-2 py-1 rounded-lg flex items-center gap-1.5 text-[10px] font-medium shadow-md" 
-                          title={`Lat: ${Number(photo.latitude).toFixed(6)}, Lng: ${Number(photo.longitude).toFixed(6)}`}
-                        >
-                          <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
-                          <span>{Number(photo.latitude).toFixed(4)}, {Number(photo.longitude).toFixed(4)}</span>
+                      {/* Glassmorphic Data Banner OVERLAID INSIDE THE PHOTO IMAGE */}
+                      <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent text-white text-[9.5px] flex flex-col gap-0.5 pointer-events-none z-10">
+                        <div className="flex items-center justify-between font-black tracking-tight drop-shadow-md">
+                          <span className="flex items-center gap-1 text-emerald-400">
+                            📍 {photo.latitude && photo.longitude ? `${Number(photo.latitude).toFixed(5)}, ${Number(photo.longitude).toFixed(5)}` : 'Zone ' + cellLabel}
+                          </span>
+                          <span className="text-amber-300 flex items-center gap-1">
+                            👤 {photo.uploaded_by?.first_name || photo.uploaded_by?.email ? `${photo.uploaded_by?.first_name || ''} ${photo.uploaded_by?.last_name || ''}`.trim() || photo.uploaded_by?.email : 'Site Inspector'}
+                          </span>
                         </div>
-                      )}
+                        <div className="flex items-center justify-between text-[8.5px] text-surface-200 font-semibold drop-shadow-md">
+                          <span>🕒 {new Date(photo.captured_at || photo.created_at).toLocaleString()}</span>
+                          <span className="uppercase text-amber-400 font-black tracking-widest">Zone {cellLabel}</span>
+                        </div>
+                      </div>
 
-                      {/* Action buttons overlay */}
-                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                         <button
                           onClick={() => setViewingPhoto(photo)}
                           className="w-8 h-8 bg-surface-900/80 hover:bg-surface-900 text-white rounded-full flex items-center justify-center transition-all shadow-md active:scale-95"
@@ -436,17 +528,47 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
                       <p className="text-xs font-bold text-surface-900 leading-snug">
                         {photo.caption || <span className="text-surface-400 italic font-normal">No caption provided</span>}
                       </p>
-                      <div className="flex justify-between items-center text-[10px] text-surface-500 pt-1 border-t border-surface-200/50">
-                        <span className="font-medium truncate max-w-[150px]">
-                          {photo.uploaded_by?.first_name || photo.uploaded_by?.email ? (
-                            `${photo.uploaded_by?.first_name || ''} ${photo.uploaded_by?.last_name || ''}`.trim() || photo.uploaded_by?.email
-                          ) : (
-                            'Project Contributor'
-                          )}
-                        </span>
-                        <span className="text-surface-400 shrink-0">
-                          {formatDistanceToNow(new Date(photo.created_at), { addSuffix: true })}
-                        </span>
+
+                      <div className="flex flex-col gap-1 text-[10px] text-surface-500 pt-1.5 border-t border-surface-200/60">
+                        {/* Uploader User Name Badge */}
+                        <div className="flex items-center justify-between font-extrabold text-foreground">
+                          <span className="flex items-center gap-1 text-accent">
+                            👤 Uploaded by:
+                          </span>
+                          <span className="bg-surface-200/60 dark:bg-surface-800 px-2 py-0.5 rounded-md text-[9px]">
+                            {photo.uploaded_by?.first_name || photo.uploaded_by?.email ? (
+                              `${photo.uploaded_by?.first_name || ''} ${photo.uploaded_by?.last_name || ''}`.trim() || photo.uploaded_by?.email
+                            ) : (
+                              'Site Inspector'
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-0.5">
+                          <span className="font-bold text-foreground flex items-center gap-1">
+                            🕒 {new Date(photo.captured_at || photo.created_at).toLocaleString()}
+                          </span>
+                          <span className="text-surface-400 font-semibold">
+                            ({formatDistanceToNow(new Date(photo.captured_at || photo.created_at), { addSuffix: true })})
+                          </span>
+                        </div>
+
+                        {photo.latitude && photo.longitude && (
+                          <div className="flex justify-between items-center pt-0.5">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                              📍 GPS: {Number(photo.latitude).toFixed(5)}, {Number(photo.longitude).toFixed(5)}
+                            </span>
+                            <a
+                              href={`https://www.google.com/maps?q=${photo.latitude},${photo.longitude}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[9px] font-black uppercase tracking-wider text-accent hover:underline flex items-center gap-0.5"
+                            >
+                              🗺️ Map
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -457,7 +579,6 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
         </div>
       </div>
 
-      {/* Lightbox Photo Viewer Modal */}
       {viewingPhoto && (
         <div 
           className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
