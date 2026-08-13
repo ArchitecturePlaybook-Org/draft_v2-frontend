@@ -27,9 +27,517 @@ interface EstimationViewProps {
   projectUid: string;
 }
 
+function TakeoffCalculator({ item, updateItem }: { item: any, updateItem: any }) {
+  if (!item) {
+    return (
+      <div className="text-center p-8 bg-surface-card rounded-xl border border-dashed border-surface-200">
+        <span className="text-3xl mb-2 block opacity-30">🧱</span>
+        <h4 className="text-xs font-black text-foreground uppercase tracking-wider mb-1">No Item Selected</h4>
+        <p className="text-[10px] font-bold text-text-secondary leading-relaxed">
+          Select a line, polygon, or count point on the floor plan to calculate and view material takeoff details.
+        </p>
+      </div>
+    );
+  }
+
+  const trace = item.trace_data || {};
+  const matType = trace.material_type || "generic";
+  const breakdown = trace.takeoff_breakdown || {};
+
+  const handleMatTypeChange = (newType: string) => {
+    const defaultData: any = { material_type: newType };
+    
+    if (newType === 'brick') {
+      defaultData.wall_height = 3;
+      defaultData.wall_thickness = 0.23;
+      defaultData.brick_length = 0.19;
+      defaultData.brick_width = 0.09;
+      defaultData.brick_height = 0.09;
+      defaultData.mortar_joint = 0.01;
+      defaultData.sand_ratio = 5;
+      defaultData.waste_factor = 5;
+      defaultData.billing_unit = 'vol';
+    } else if (newType === 'tile') {
+      defaultData.tile_length = 0.3;
+      defaultData.tile_width = 0.3;
+      defaultData.grout_width = 0.003;
+      defaultData.grout_depth = 0.006;
+      defaultData.adhesive_thickness = 0.003;
+      defaultData.waste_factor = 10;
+      defaultData.billing_unit = 'area';
+    } else if (newType === 'concrete') {
+      defaultData.slab_thickness = 0.15;
+      defaultData.sand_ratio = 2;
+      defaultData.aggregate_ratio = 4;
+      defaultData.waste_factor = 5;
+    }
+
+    updateItem(item.id, {
+      trace_data: {
+        ...trace,
+        ...defaultData
+      }
+    });
+  };
+
+  const handleParamChange = (key: string, value: any) => {
+    updateItem(item.id, {
+      trace_data: {
+        ...trace,
+        [key]: value
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Item info */}
+      <div className="bg-surface-card p-3 rounded-xl border border-surface-200 shadow-2xs">
+        <div className="flex justify-between items-start">
+          <div className="min-w-0 flex-1 pr-2">
+            <span className="text-[9px] bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded text-accent font-black uppercase tracking-wider">
+              {item.item_code}
+            </span>
+            <h3 className="text-xs font-black text-foreground mt-1 truncate">{item.description}</h3>
+            <p className="text-[9px] font-bold text-text-secondary uppercase tracking-widest mt-0.5">
+              Measurement Type: {item.type}
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-xs font-black text-foreground">
+              {item.gross_qty} <span className="text-[9px] text-text-secondary font-bold uppercase">{item.unit}</span>
+            </div>
+            <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+              ₹{item.total_cost?.toLocaleString()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Material classification selector */}
+      <div className="space-y-1">
+        <label className="text-[9px] font-black text-surface-500 uppercase tracking-widest">Material Classification</label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {item.type === 'length' && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleMatTypeChange('generic')}
+                className={`py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all ${
+                  matType === 'generic' ? 'bg-accent border-accent text-background shadow-xs' : 'bg-surface-card hover:bg-surface-200 border-surface-200 text-foreground'
+                }`}
+              >
+                📏 Generic Wall
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMatTypeChange('brick')}
+                className={`py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all ${
+                  matType === 'brick' ? 'bg-accent border-accent text-background shadow-xs' : 'bg-surface-card hover:bg-surface-200 border-surface-200 text-foreground'
+                }`}
+              >
+                🧱 Brick Wall
+              </button>
+            </>
+          )}
+          {item.type === 'area' && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleMatTypeChange('generic')}
+                className={`py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all ${
+                  matType === 'generic' ? 'bg-accent border-accent text-background shadow-xs' : 'bg-surface-card hover:bg-surface-200 border-surface-200 text-foreground'
+                }`}
+              >
+                🔲 Generic Area
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMatTypeChange('tile')}
+                className={`py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all ${
+                  matType === 'tile' ? 'bg-accent border-accent text-background shadow-xs' : 'bg-surface-card hover:bg-surface-200 border-surface-200 text-foreground'
+                }`}
+              >
+                🧱 Tile Floor
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMatTypeChange('concrete')}
+                className={`py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all ${
+                  matType === 'concrete' ? 'bg-accent border-accent text-background shadow-xs' : 'bg-surface-card hover:bg-surface-200 border-surface-200 text-foreground'
+                }`}
+              >
+                🪨 Concrete Slab
+              </button>
+            </>
+          )}
+          {item.type === 'count' && (
+            <button
+              type="button"
+              className="py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border bg-accent border-accent text-background shadow-xs w-full col-span-2"
+              disabled
+            >
+              📍 Item Count
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Input details form based on selection */}
+      {matType === 'brick' && (
+        <div className="bg-surface-card/60 backdrop-blur-md p-3.5 rounded-xl border border-surface-200 shadow-2xs space-y-3">
+          <div className="border-b border-surface-200 pb-1.5">
+            <h4 className="text-[10px] font-black uppercase tracking-wider text-primary">Brick Wall Parameters</h4>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Wall Height (m)</label>
+              <input
+                type="number"
+                step="0.05"
+                value={trace.wall_height ?? 3}
+                onChange={e => handleParamChange('wall_height', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Wall Thickness (m)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={trace.wall_thickness ?? 0.23}
+                onChange={e => handleParamChange('wall_thickness', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Brick L (m)</label>
+              <input
+                type="number"
+                step="0.001"
+                value={trace.brick_length ?? 0.19}
+                onChange={e => handleParamChange('brick_length', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Brick W (m)</label>
+              <input
+                type="number"
+                step="0.001"
+                value={trace.brick_width ?? 0.09}
+                onChange={e => handleParamChange('brick_width', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Brick H (m)</label>
+              <input
+                type="number"
+                step="0.001"
+                value={trace.brick_height ?? 0.09}
+                onChange={e => handleParamChange('brick_height', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Mortar Joint (m)</label>
+              <input
+                type="number"
+                step="0.001"
+                value={trace.mortar_joint ?? 0.01}
+                onChange={e => handleParamChange('mortar_joint', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Sand Ratio (1:X)</label>
+              <input
+                type="number"
+                step="0.5"
+                value={trace.sand_ratio ?? 5}
+                onChange={e => handleParamChange('sand_ratio', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Waste Factor (%)</label>
+              <input
+                type="number"
+                step="1"
+                value={trace.waste_factor ?? 5}
+                onChange={e => handleParamChange('waste_factor', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-1">Billing Unit</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleParamChange('billing_unit', 'vol')}
+                className={`py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all ${
+                  (trace.billing_unit || 'vol') === 'vol' ? 'bg-primary text-background' : 'bg-surface-50 border-surface-200 text-foreground'
+                }`}
+              >
+                Cubic Volume (m³)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleParamChange('billing_unit', 'pcs')}
+                className={`py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all ${
+                  trace.billing_unit === 'pcs' ? 'bg-primary text-background' : 'bg-surface-50 border-surface-200 text-foreground'
+                }`}
+              >
+                Brick Count (pcs)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {matType === 'tile' && (
+        <div className="bg-surface-card/60 backdrop-blur-md p-3.5 rounded-xl border border-surface-200 shadow-2xs space-y-3">
+          <div className="border-b border-surface-200 pb-1.5">
+            <h4 className="text-[10px] font-black uppercase tracking-wider text-primary">Tile Flooring Parameters</h4>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Tile Length (m)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={trace.tile_length ?? 0.3}
+                onChange={e => handleParamChange('tile_length', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Tile Width (m)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={trace.tile_width ?? 0.3}
+                onChange={e => handleParamChange('tile_width', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Grout Width (m)</label>
+              <input
+                type="number"
+                step="0.001"
+                value={trace.grout_width ?? 0.003}
+                onChange={e => handleParamChange('grout_width', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Grout Depth (m)</label>
+              <input
+                type="number"
+                step="0.001"
+                value={trace.grout_depth ?? 0.006}
+                onChange={e => handleParamChange('grout_depth', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Waste Factor (%)</label>
+              <input
+                type="number"
+                step="1"
+                value={trace.waste_factor ?? 10}
+                onChange={e => handleParamChange('waste_factor', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-1">Billing Unit</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleParamChange('billing_unit', 'area')}
+                className={`py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all ${
+                  (trace.billing_unit || 'area') === 'area' ? 'bg-primary text-background' : 'bg-surface-50 border-surface-200 text-foreground'
+                }`}
+              >
+                Flooring Area (sqft)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleParamChange('billing_unit', 'pcs')}
+                className={`py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition-all ${
+                  trace.billing_unit === 'pcs' ? 'bg-primary text-background' : 'bg-surface-50 border-surface-200 text-foreground'
+                }`}
+              >
+                Tile Count (pcs)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {matType === 'concrete' && (
+        <div className="bg-surface-card/60 backdrop-blur-md p-3.5 rounded-xl border border-surface-200 shadow-2xs space-y-3">
+          <div className="border-b border-surface-200 pb-1.5">
+            <h4 className="text-[10px] font-black uppercase tracking-wider text-primary">Concrete Slab Parameters</h4>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Slab Thickness (m)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={trace.slab_thickness ?? 0.15}
+                onChange={e => handleParamChange('slab_thickness', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Waste Factor (%)</label>
+              <input
+                type="number"
+                step="1"
+                value={trace.waste_factor ?? 5}
+                onChange={e => handleParamChange('waste_factor', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Sand Ratio (1:X)</label>
+              <input
+                type="number"
+                step="0.5"
+                value={trace.sand_ratio ?? 2}
+                onChange={e => handleParamChange('sand_ratio', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-[8px] font-bold text-surface-400 uppercase tracking-widest mb-0.5">Aggregate Ratio (1:X:Y)</label>
+              <input
+                type="number"
+                step="0.5"
+                value={trace.aggregate_ratio ?? 4}
+                onChange={e => handleParamChange('aggregate_ratio', parseFloat(e.target.value) || 0)}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-accent text-primary"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Breakdown Report Output */}
+      {breakdown && Object.keys(breakdown).length > 0 && (
+        <div className="bg-surface-card p-3.5 rounded-xl border border-surface-200 shadow-2xs space-y-2">
+          <div className="border-b border-surface-200 pb-1 flex items-center justify-between">
+            <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              📊 Material Takeoff Breakdown
+            </h4>
+          </div>
+
+          <div className="space-y-1.5 text-xs text-foreground font-mono">
+            {matType === 'brick' && (
+              <>
+                <div className="flex justify-between border-b border-surface-100 py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Wall volume:</span>
+                  <span className="font-bold">{breakdown.wall_volume} m³</span>
+                </div>
+                <div className="flex justify-between border-b border-surface-100 py-1 text-accent font-black">
+                  <span className="text-accent text-[10px] font-sans">Bricks needed:</span>
+                  <span>{breakdown.bricks_count?.toLocaleString()} pcs</span>
+                </div>
+                <div className="flex justify-between border-b border-surface-100 py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Mortar volume:</span>
+                  <span>{breakdown.mortar_volume} m³</span>
+                </div>
+                <div className="flex justify-between border-b border-surface-100 py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Cement bags (50kg):</span>
+                  <span className="font-bold text-primary">{breakdown.cement_bags} bags</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Sand volume:</span>
+                  <span className="font-bold">{breakdown.sand_volume} m³</span>
+                </div>
+              </>
+            )}
+
+            {matType === 'tile' && (
+              <>
+                <div className="flex justify-between border-b border-surface-100 py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Surface area:</span>
+                  <span className="font-bold">{breakdown.surface_area} sqm</span>
+                </div>
+                <div className="flex justify-between border-b border-surface-100 py-1 text-accent font-black">
+                  <span className="text-accent text-[10px] font-sans">Tiles needed:</span>
+                  <span>{breakdown.tiles_count?.toLocaleString()} pcs</span>
+                </div>
+                <div className="flex justify-between border-b border-surface-100 py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Tile Grout Weight:</span>
+                  <span className="font-bold">{breakdown.grout_weight_kg} kg</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Adhesive dry weight:</span>
+                  <span className="font-bold">{breakdown.adhesive_weight_kg} kg</span>
+                </div>
+              </>
+            )}
+
+            {matType === 'concrete' && (
+              <>
+                <div className="flex justify-between border-b border-surface-100 py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Surface area:</span>
+                  <span className="font-bold">{breakdown.surface_area} sqm</span>
+                </div>
+                <div className="flex justify-between border-b border-surface-100 py-1 text-accent font-black">
+                  <span className="text-accent text-[10px] font-sans">Concrete Wet volume:</span>
+                  <span className="font-bold">{breakdown.concrete_volume} m³</span>
+                </div>
+                <div className="flex justify-between border-b border-surface-100 py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Cement bags (50kg):</span>
+                  <span className="font-bold text-primary">{breakdown.cement_bags} bags</span>
+                </div>
+                <div className="flex justify-between border-b border-surface-100 py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Sand volume:</span>
+                  <span className="font-bold">{breakdown.sand_volume} m³</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-text-secondary text-[10px] font-sans">Aggregate volume:</span>
+                  <span className="font-bold">{breakdown.aggregate_volume} m³</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function EstimationView({ projectUid }: EstimationViewProps) {
   const { project, isLoading, fetchProject } = useProjectStore();
-  const { setItems, setLastSavedItems, setFloorPlanId, syncStatus } = useEstimationStore();
+  const { setItems, setLastSavedItems, setFloorPlanId, syncStatus, selectedItemId, items, updateItem } = useEstimationStore();
+  const selectedItem = items.find(item => item.id === selectedItemId);
   
   // Hook up Auto-Save
   useEstimationAutoSave();
@@ -42,6 +550,18 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
   
   const [estimations, setEstimations] = useState<unknown[]>([]);
   const [estimationSummary, setEstimationSummary] = useState<EstimationSummaryType | null>(null);
+
+  const [rightPanelSubTab, setRightPanelSubTab] = useState<"grid" | "summary" | "takeoff">("grid");
+
+  // Auto-switch tabs when selectedItemId changes
+  useEffect(() => {
+    if (selectedItemId) {
+      setRightPanelSubTab("takeoff");
+      setRightPanelOpen(true);
+    } else {
+      setRightPanelSubTab("grid");
+    }
+  }, [selectedItemId]);
 
   useEffect(() => {
     fetchProject(projectUid);
@@ -92,8 +612,6 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
   }, [floorPlans, selectedAssetId]);
 
   if (isLoading || !project) return <div className="flex h-full items-center justify-center"><Spinner size="lg" label="Loading Estimation Workspace..." /></div>;
-
-  const [rightPanelSubTab, setRightPanelSubTab] = useState<"grid" | "summary">("grid");
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-surface-50 animate-fade-in relative">
@@ -249,6 +767,16 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
                     📊 Plan Grid
                   </button>
                   <button
+                    onClick={() => setRightPanelSubTab("takeoff")}
+                    className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-all ${
+                      rightPanelSubTab === "takeoff"
+                        ? "bg-surface-card text-foreground border border-surface-200 shadow-2xs"
+                        : "text-text-secondary hover:text-foreground"
+                    }`}
+                  >
+                    🧱 Takeoff
+                  </button>
+                  <button
                     onClick={() => setRightPanelSubTab("summary")}
                     className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-all ${
                       rightPanelSubTab === "summary"
@@ -256,7 +784,7 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
                         : "text-text-secondary hover:text-foreground"
                     }`}
                   >
-                    📑 Master Summary
+                    📑 Summary
                   </button>
                 </div>
 
@@ -284,12 +812,16 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
                       <EstimationGrid />
                     </div>
                   </motion.div>
+                ) : rightPanelSubTab === "takeoff" ? (
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                    <TakeoffCalculator item={selectedItem} updateItem={updateItem} />
+                  </motion.div>
                 ) : (
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-3">
                     <div className="text-center p-4 bg-gradient-to-br from-accent/10 via-surface-card to-surface-card rounded-xl border border-surface-200 shadow-2xs relative overflow-hidden">
                       <p className="text-[9px] font-black text-accent uppercase tracking-wider mb-1 relative z-10">Project Grand Total Estimate</p>
                       <div className="text-2xl sm:text-3xl font-black text-foreground tracking-tight relative z-10 drop-shadow-2xs">
-                        ${estimationSummary?.grand_total?.toLocaleString() || "0.00"}
+                        ₹{estimationSummary?.grand_total?.toLocaleString() || "0.00"}
                       </div>
                       <p className="text-[9px] font-semibold text-text-secondary mt-1">Aggregated across all 2D floor plans & material takeoffs</p>
                     </div>
@@ -308,7 +840,7 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
                              </div>
                              <div className="text-right shrink-0">
                                <p className="text-xs font-black text-foreground">{item.total_qty} <span className="text-[9px] uppercase tracking-wider text-text-secondary font-bold">{item.unit}</span></p>
-                               <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">${(item.total_cost || 0).toLocaleString()}</p>
+                               <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">₹{(item.total_cost || 0).toLocaleString()}</p>
                              </div>
                            </div>
                         ))

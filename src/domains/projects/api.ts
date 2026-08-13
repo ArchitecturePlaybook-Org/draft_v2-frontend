@@ -806,7 +806,7 @@ export const projectsApi = {
 
   // ── Master Catalog (Global Template Dropdown) ───────────────────────────
   getMasterCatalog: async () => {
-    const res = await fetchFromBff<any>("/api/v1/projects/master-catalog/", { method: "GET" });
+    const res = await fetchFromBff<any>("/api/v1/projects/master-catalog/?page_size=1000", { method: "GET" });
     return unpackArray<any>(res);
   },
 

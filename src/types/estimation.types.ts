@@ -26,4 +26,12 @@ export interface TakeoffItem {
   
   // Hierarchy
   parentId?: string;        // For nested assemblies
+
+  // Database Calculation parameters
+  no_of_items?: number;
+  length?: number;
+  width?: number;
+  depth_height?: number;
+  is_deduction?: boolean;
+  trace_data?: any;
 }
