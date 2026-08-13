@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const DataHubTab: React.FC = () => {
   const { project, activeHubCategory, setActiveHubCategory, fetchProject } = useProjectStore();
-  
+
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,13 +139,13 @@ export const DataHubTab: React.FC = () => {
 
   return (
     <>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="grid grid-cols-1 md:grid-cols-4 gap-8"
       >
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
@@ -157,20 +157,19 @@ export const DataHubTab: React.FC = () => {
             { id: "3d_model", label: "3D Construction Models", icon: "🏛️" },
             { id: "document", label: "Documents", icon: "📄" },
           ].map(cat => (
-            <button 
+            <button
               key={cat.id}
               onClick={() => setActiveHubCategory(cat.id as any)}
-              className={`w-full text-left px-3.5 py-2.5 rounded-xl font-extrabold text-[9px] uppercase tracking-wider transition-all duration-300 border ${
-                activeHubCategory === cat.id 
-                ? "bg-accent/10 text-accent shadow-sm border-accent/50 backdrop-blur-md" 
-                : "bg-surface-50/50 backdrop-blur-sm border-surface-200/50 text-surface-400 hover:bg-surface-100 hover:text-primary"
-              }`}
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl font-extrabold text-[9px] uppercase tracking-wider transition-all duration-300 border ${activeHubCategory === cat.id
+                  ? "bg-accent/10 text-accent shadow-sm border-accent/50 backdrop-blur-md"
+                  : "bg-surface-50/50 backdrop-blur-sm border-surface-200/50 text-surface-400 hover:bg-surface-100 hover:text-primary"
+                }`}
             >
               <span className="mr-2 text-sm">{cat.icon}</span> {cat.label}
             </button>
           ))}
         </motion.div>
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -183,7 +182,7 @@ export const DataHubTab: React.FC = () => {
               </h3>
               <div className="flex flex-wrap gap-2 shrink-0">
                 {activeHubCategory === "sketch" && (
-                  <button 
+                  <button
                     onClick={() => setIsCreateSketchModalOpen(true)}
                     className="px-3 py-1 bg-accent text-background font-black text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all shadow-xs"
                   >
@@ -191,7 +190,7 @@ export const DataHubTab: React.FC = () => {
                   </button>
                 )}
                 {activeHubCategory === "3d_model" && (
-                  <button 
+                  <button
                     onClick={() => setIsCreate3DModalOpen(true)}
                     className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all duration-200 border border-emerald-500/30 flex items-center gap-1 shadow-xs"
                   >
@@ -203,13 +202,13 @@ export const DataHubTab: React.FC = () => {
                   type="file"
                   multiple
                   accept={
-                    activeHubCategory === "3d_model" 
-                      ? ".obj,.stl,.fbx,.gltf,.glb" 
-                      : activeHubCategory === "2d_plan" 
-                      ? "image/png,image/jpeg,image/jpg,image/webp,.pdf,.dwg,.dxf" 
-                      : activeHubCategory === "document" 
-                      ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" 
-                      : "image/png,image/jpeg,image/jpg,image/webp,image/gif,.excalidraw,.json"
+                    activeHubCategory === "3d_model"
+                      ? ".obj,.stl,.fbx,.gltf,.glb"
+                      : activeHubCategory === "2d_plan"
+                        ? "image/png,image/jpeg,image/jpg,image/webp,.pdf,.dwg,.dxf"
+                        : activeHubCategory === "document"
+                          ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                          : "image/png,image/jpeg,image/jpg,image/webp,image/gif,.excalidraw,.json"
                   }
                   className="hidden"
                   onChange={async (e) => {
@@ -260,50 +259,47 @@ export const DataHubTab: React.FC = () => {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading || isPdfProcessing}
-                  className={`px-3 py-1 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all ${
-                    isUploading || isPdfProcessing
-                      ? "bg-accent text-background shadow-xs animate-pulse" 
+                  className={`px-3 py-1 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all ${isUploading || isPdfProcessing
+                      ? "bg-accent text-background shadow-xs animate-pulse"
                       : "bg-surface-200/70 hover:bg-accent hover:text-background text-foreground border border-surface-300/60"
-                  } disabled:opacity-80`}
+                    } disabled:opacity-80`}
                 >
                   {isPdfProcessing ? "Converting PDF..." : isUploading ? `Uploading ${uploadProgress}...` : "Upload File"}
                 </button>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {filteredAssets.length ? (
                 visibleAssets.map((asset, idx) => (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 8 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ delay: idx * 0.04 }}
-                    key={asset.id} 
+                    key={asset.id}
                     className="p-3 rounded-xl transition-all duration-300 bg-surface-card border border-surface-200/80 dark:border-surface-800 hover:border-accent/60 hover:-translate-y-1 hover:shadow-md group relative flex flex-col justify-between"
                   >
                     <div className="absolute top-2 left-2 z-10">
-                      <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider ${
-                        asset.is_latest 
-                          ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" 
+                      <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider ${asset.is_latest
+                          ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
                           : "bg-surface-100 text-surface-400"
-                      }`}>
+                        }`}>
                         V{asset.version_number}
                       </span>
                     </div>
 
                     {asset.category === "2d_plan" && asset.drawing_tag && asset.drawing_tag !== "none" && (
                       <div className="absolute top-2 right-2 z-10">
-                        <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border shadow-sm ${
-                          asset.drawing_tag === "gfc"
+                        <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border shadow-sm ${asset.drawing_tag === "gfc"
                             ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25 shadow-blue-500/5"
                             : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25 shadow-purple-500/5"
-                        }`} title={asset.drawing_tag === "gfc" ? "Good For Construction" : "As Built Drawing"}>
+                          }`} title={asset.drawing_tag === "gfc" ? "Good For Construction" : "As Built Drawing"}>
                           {asset.drawing_tag.toUpperCase()}
                         </span>
                       </div>
                     )}
 
-                    <div 
+                    <div
                       onClick={() => handleOpenAsset(asset)}
                       className={`h-24 sm:h-26 rounded-lg mb-2 flex items-center justify-center overflow-hidden border cursor-pointer transition-colors ${['3d_model', 'sh3d'].includes(asset.category) ? 'border-transparent bg-opacity-50 ' + (asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-50 dark:bg-emerald-900/20' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-50 dark:bg-amber-900/20' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-indigo-50') : 'bg-surface-100/50 border-surface-200/50'}`}
                     >
@@ -338,11 +334,11 @@ export const DataHubTab: React.FC = () => {
                         <span className="text-3xl opacity-20">{activeHubCategory === '2d_plan' ? '📐' : '📄'}</span>
                       )}
                     </div>
-                    
+
                     {renamingAssetId === asset.id ? (
                       <div className="flex gap-1.5 items-center">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={newAssetTitle}
                           onChange={(e) => setNewAssetTitle(e.target.value)}
                           autoFocus
@@ -358,23 +354,23 @@ export const DataHubTab: React.FC = () => {
                             <p className="font-bold text-xs truncate text-foreground cursor-pointer hover:text-accent transition-colors">{asset.title}</p>
                             <p className="text-[9px] text-text-secondary font-semibold uppercase tracking-wider mt-0.5">{(asset.size / 1024).toFixed(1)} KB</p>
                           </div>
-                          
+
                           <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button 
+                            <button
                               onClick={(e) => { e.stopPropagation(); setHistoryAsset(asset); }}
                               className="w-5.5 h-5.5 flex items-center justify-center rounded hover:bg-surface-200 text-[10px]"
                               title="Revision History"
                             >
                               🕐
                             </button>
-                            <button 
+                            <button
                               onClick={(e) => { e.stopPropagation(); setRenamingAssetId(asset.id); setNewAssetTitle(asset.title); }}
                               className="w-5.5 h-5.5 flex items-center justify-center rounded hover:bg-surface-200 text-[10px]"
                               title="Rename"
                             >
                               📝
                             </button>
-                            <button 
+                            <button
                               onClick={(e) => { e.stopPropagation(); handleDeleteAsset(asset.id); }}
                               className="w-5.5 h-5.5 flex items-center justify-center rounded hover:bg-red-500/10 hover:text-red-500 text-[10px]"
                               title="Delete"
@@ -392,7 +388,7 @@ export const DataHubTab: React.FC = () => {
                             <span>✏️</span> Open in Editor
                           </button>
                         )}
-                        
+
                         {(activeHubCategory === "2d_plan" || activeHubCategory === "3d_model") && (
                           <div className="mt-2 pt-2 border-t border-surface-200/50">
                             {(() => {
@@ -466,25 +462,25 @@ export const DataHubTab: React.FC = () => {
       {viewerAsset && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-2xl animate-in fade-in duration-300">
           <div className="bg-surface-50/80 backdrop-blur-3xl border border-white/10 w-full max-w-6xl h-[80vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] relative scale-in-center">
-            <button 
+            <button
               onClick={() => setViewerAsset(null)}
               className="absolute top-6 right-6 z-10 w-12 h-12 bg-surface-200/50 hover:bg-red-500 hover:text-white backdrop-blur-md border border-surface-300/50 rounded-full flex items-center justify-center text-lg shadow-lg transition-all duration-300 text-surface-900 font-bold"
             >
               ✕
             </button>
             <div className="flex-1 w-full h-full bg-slate-50/50">
-              <ModelViewer 
-                url={viewerAsset.file} 
-                format={viewerAsset.file?.toLowerCase().includes('.obj') ? 'obj' : viewerAsset.file?.toLowerCase().includes('.sh3d') ? 'sh3d' : 'glb'} 
+              <ModelViewer
+                url={viewerAsset.file}
+                format={viewerAsset.file?.toLowerCase().includes('.obj') ? 'obj' : viewerAsset.file?.toLowerCase().includes('.sh3d') ? 'sh3d' : 'glb'}
               />
             </div>
           </div>
         </div>
       )}
       {lightboxImageUrl && (
-        <ImageLightbox 
-          imageUrl={lightboxImageUrl} 
-          onClose={() => setLightboxImageUrl(null)} 
+        <ImageLightbox
+          imageUrl={lightboxImageUrl}
+          onClose={() => setLightboxImageUrl(null)}
         />
       )}
       {manageLinksAsset && (
@@ -497,13 +493,13 @@ export const DataHubTab: React.FC = () => {
               </div>
               <button onClick={() => setManageLinksAsset(null)} className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-200/50 backdrop-blur-md border border-surface-300/50 text-surface-500 hover:bg-red-500 hover:text-white transition-all shadow-sm text-lg">✕</button>
             </div>
-            
+
             <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
               {project.tasks.length === 0 ? (
                 <div className="p-12 flex flex-col items-center justify-center text-center bg-surface-100/30 dark:bg-surface-800/30 rounded-3xl border border-surface-200/50 dark:border-white/5 m-4">
-                   <div className="w-16 h-16 bg-surface-200/50 dark:bg-surface-700/50 rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-inner border border-surface-300/50 dark:border-white/10">📋</div>
-                   <div className="text-primary font-black tracking-tight text-lg mb-1">No Tasks Available</div>
-                   <div className="text-surface-400 text-[10px] uppercase tracking-widest font-bold">Create tasks to link them to this asset.</div>
+                  <div className="w-16 h-16 bg-surface-200/50 dark:bg-surface-700/50 rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-inner border border-surface-300/50 dark:border-white/10">📋</div>
+                  <div className="text-primary font-black tracking-tight text-lg mb-1">No Tasks Available</div>
+                  <div className="text-surface-400 text-[10px] uppercase tracking-widest font-bold">Create tasks to link them to this asset.</div>
                 </div>
               ) : (
                 <div className="space-y-2 p-2">
@@ -517,7 +513,7 @@ export const DataHubTab: React.FC = () => {
                           <p className="text-sm font-bold text-primary">{task.title}</p>
                           <p className="text-[10px] uppercase tracking-widest text-surface-400 font-bold">{task.status}</p>
                         </div>
-                        <button 
+                        <button
                           onClick={async () => {
                             try {
                               if (isLinked) {
@@ -526,7 +522,7 @@ export const DataHubTab: React.FC = () => {
                                 await projectsApi.linkAssetToTask(task.uid, manageLinksAsset.canonical_uid);
                               }
                               fetchProject(project.uid);
-                            } catch(err) {
+                            } catch (err) {
                               alert("Failed to toggle link.");
                             }
                           }}

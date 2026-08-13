@@ -31,6 +31,9 @@ export interface Project {
   is_template?: boolean;
   template_scope?: "GLOBAL" | "ORG" | "USER";
   share_token?: string | null;
+  visibility?: "PUBLIC" | "PRIVATE";
+  shared_roles?: number[];
+  shared_users?: number[];
   created_by: User;
   memberships_count: number;
   tasks_count: number;
@@ -61,6 +64,13 @@ export interface SitePhoto {
   uploaded_by: User | null;
   created_at: string;
 }
+
+export interface Role {
+  id: number;
+  name: string;
+  description?: string;
+}
+
 
 export interface ProjectAsset {
   id: number;

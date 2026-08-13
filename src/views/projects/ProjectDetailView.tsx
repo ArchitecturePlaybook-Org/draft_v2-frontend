@@ -9,9 +9,10 @@ import { TaskExecutionSidePanel } from "@/components/projects/TaskExecutionSideP
 import { Spinner } from "@/components/ui/Spinner";
 import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
 import { ExpandedFeedView } from "@/components/matrix/ExpandedFeedView";
+import { CreateMatrixTaskModal } from "@/components/matrix/CreateMatrixTaskModal";
 import { SiteOpsTab } from "@/components/projects/SiteOpsTab";
 import { ProjectHeroHeader } from "@/components/projects/ProjectHeroHeader";
-import { AssignPersonnelModal } from "@/components/projects/AssignPersonnelModal";
+import { ManageProjectAccessModal } from "../../components/projects/ManageProjectAccessModal";
 import { CloneProjectModal } from "@/components/projects/CloneProjectModal";
 import { ProjectSettingsModal } from "@/components/projects/ProjectSettingsModal";
 import { DeleteProjectModal } from "@/components/projects/DeleteProjectModal";
@@ -22,6 +23,8 @@ import { GanttTab } from "@/components/projects/GanttTab";
 import { DataHubTab } from "@/components/projects/DataHubTab";
 import { useProjectStore } from "@/store/project-store";
 import { motion } from "framer-motion";
+import { Plus } from "lucide-react";
+
 
 interface ProjectDetailViewProps {
   projectUid: string;
@@ -49,6 +52,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
   const { setProjectContext, recordProjectAccess } = useProjectNavStore();
   
   const [matrixView, setMatrixView] = useState<"grid" | "feed">("grid");
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showCloneModal, setShowCloneModal] = useState(false);
@@ -259,25 +263,43 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
 
         {activeTab === "matrix" && (
           <div className="w-full min-w-0">
-            <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 bg-surface-50 p-1 rounded-xl border border-surface-200 w-full shrink-0">
-              <button 
-                onClick={() => setMatrixView('grid')} 
-                className={`px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap shrink-0 ${matrixView === 'grid' ? 'bg-surface-200 text-primary shadow-sm border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
-              >
-                Master Gate Matrix
-              </button>
-              <button 
-                onClick={() => setMatrixView('feed')} 
-                className={`px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap shrink-0 ${matrixView === 'feed' ? 'bg-surface-200 text-primary shadow-sm border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
-              >
-                Expanded Milestone Feed
-              </button>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex overflow-x-auto no-scrollbar gap-1.5 bg-surface-50 p-1 rounded-xl border border-surface-200 flex-1 shrink-0">
+                <button 
+                  onClick={() => setMatrixView('grid')} 
+                  className={`px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap shrink-0 ${matrixView === 'grid' ? 'bg-surface-200 text-primary shadow-sm border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
+                >
+                  Master Gate Matrix
+                </button>
+                <button 
+                  onClick={() => setMatrixView('feed')} 
+                  className={`px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap shrink-0 ${matrixView === 'feed' ? 'bg-surface-200 text-primary shadow-sm border-b-2 border-accent' : 'text-surface-400 hover:bg-surface-200'}`}
+                >
+                  Expanded Milestone Feed
+                </button>
+              </div>
+              {matrixView === 'grid' && canManageProject(project) && (
+                <button
+                  id="create-matrix-task-btn"
+                  onClick={() => setShowCreateTaskModal(true)}
+                  className="h-8 px-4 bg-accent text-background font-black text-[10px] uppercase tracking-wider rounded-xl hover:opacity-90 transition-all shadow-md shadow-accent/20 flex items-center gap-1.5 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Create Task
+                </button>
+              )}
             </div>
             {matrixView === 'grid' ? (
               <MilestoneMatrixView projectUid={project.uid} onTaskChange={() => fetchProject(project.uid)} projectTasks={project.tasks} />
             ) : (
               <ExpandedFeedView projectUid={project.uid} />
             )}
+            <CreateMatrixTaskModal
+              isOpen={showCreateTaskModal}
+              onClose={() => setShowCreateTaskModal(false)}
+              projectUid={project.uid}
+              onTaskCreated={() => fetchProject(project.uid)}
+            />
           </div>
         )}
 
@@ -291,44 +313,11 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
       </div>
 
       {showAssignModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div className="bg-surface-50/40 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-white/20 relative group">
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
-            <div className="p-8 border-b border-white/10 flex justify-between items-center relative z-10">
-              <div>
-                <h3 className="text-2xl font-black text-primary tracking-tight">Assign Internal Personnel</h3>
-                <p className="text-[10px] uppercase tracking-[0.2em] font-black text-accent mt-1">From {project.account.name}</p>
-              </div>
-              <button onClick={() => setShowAssignModal(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-red-500/20 flex items-center justify-center text-surface-400 hover:text-red-500 transition-colors">✕</button>
-            </div>
-            
-            <form onSubmit={handleAssign} className="p-8 space-y-8 relative z-10">
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Select Specialist</label>
-                <select 
-                  required
-                  value={selectedUser}
-                  onChange={e => setSelectedUser(e.target.value)}
-                  className="w-full h-14 bg-white/5 backdrop-blur-md border border-white/10 px-5 rounded-xl outline-none focus:border-accent focus:ring-1 focus:ring-accent font-black text-xs text-primary transition-colors appearance-none cursor-pointer hover:bg-white/10"
-                >
-                  <option value="" disabled className="bg-surface-900">Choose firm member...</option>
-                  {firmMembers
-                    .filter(m => !project.memberships.some(pm => pm.user.id === m.user.id))
-                    .map((member, index) => (
-                    <option key={member.id || `${member.user.id}-${index}`} value={member.user.id} className="bg-surface-900">{member.user.name} ({member.role})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="pt-6 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowAssignModal(false)} className="px-6 h-12 rounded-xl font-black text-[10px] uppercase tracking-widest text-surface-400 hover:bg-white/10 transition-colors">Cancel</button>
-                <button type="submit" disabled={isAssigning || !selectedUser} className="px-8 h-12 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] bg-accent hover:bg-accent/90 text-background shadow-[0_0_15px_rgba(var(--color-accent),0.4)] disabled:opacity-50 transition-all hover:scale-105">
-                  {isAssigning ? "Assigning..." : "Assign"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ManageProjectAccessModal
+          project={project}
+          onClose={() => setShowAssignModal(false)}
+          onAccessUpdated={() => fetchProject(project.uid)}
+        />
       )}
 
       {activeTask && (
@@ -449,14 +438,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
         </div>
       )}
       
-      {/* Assign Personnel Modal */}
-      {project && (
-        <AssignPersonnelModal
-          isOpen={showAssignModal}
-          onClose={() => setShowAssignModal(false)}
-          project={project}
-        />
-      )}
+
 
       {/* Settings Modal */}
       {showSettingsModal && (

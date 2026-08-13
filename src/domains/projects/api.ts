@@ -35,9 +35,9 @@ export const projectsApi = {
     return fetchFromBff<any>(`/api/v1/projects/projects/${id}/analytics/`, { method: "GET" });
   },
 
-  createProject: async (data: { 
-    title: string; 
-    description?: string; 
+  createProject: async (data: {
+    title: string;
+    description?: string;
     account_id: number;
     project_code?: string;
     kind?: string;
@@ -50,9 +50,9 @@ export const projectsApi = {
   }) => {
     return fetchFromBff<Project>("/api/v1/projects/projects/", {
       method: "POST",
-      body: JSON.stringify({ 
-        title: data.title, 
-        description: data.description, 
+      body: JSON.stringify({
+        title: data.title,
+        description: data.description,
         account: data.account_id,
         project_code: data.project_code,
         kind: data.kind,
@@ -72,16 +72,16 @@ export const projectsApi = {
 
   cloneProject: async (uid: string, account_id?: number) => {
     const body = account_id ? { account_id } : {};
-    return fetchFromBff<ProjectDetail>(`/api/v1/projects/projects/${uid}/clone/`, { 
-        method: "POST", 
-        body: JSON.stringify(body) 
+    return fetchFromBff<ProjectDetail>(`/api/v1/projects/projects/${uid}/clone/`, {
+      method: "POST",
+      body: JSON.stringify(body)
     });
   },
 
   duplicateProject: async (uid: string) => {
-    return fetchFromBff<ProjectDetail>(`/api/v1/projects/projects/${uid}/duplicate/`, { 
-        method: "POST", 
-        body: JSON.stringify({}) 
+    return fetchFromBff<ProjectDetail>(`/api/v1/projects/projects/${uid}/duplicate/`, {
+      method: "POST",
+      body: JSON.stringify({})
     });
   },
 
@@ -90,9 +90,9 @@ export const projectsApi = {
   },
 
   importTemplate: async (share_token: string, account_id: number) => {
-    return fetchFromBff<ProjectDetail>("/api/v1/projects/projects/import_template/", { 
-      method: "POST", 
-      body: JSON.stringify({ share_token, account_id }) 
+    return fetchFromBff<ProjectDetail>("/api/v1/projects/projects/import_template/", {
+      method: "POST",
+      body: JSON.stringify({ share_token, account_id })
     });
   },
 
@@ -138,14 +138,14 @@ export const projectsApi = {
   },
 
   bulkUpdateTasks: async (task_uids: string[], updates: any) => {
-    return fetchFromBff<{success: boolean, updated_count: number}>("/api/v1/projects/tasks/bulk_update/", {
+    return fetchFromBff<{ success: boolean, updated_count: number }>("/api/v1/projects/tasks/bulk_update/", {
       method: "POST",
       body: JSON.stringify({ task_uids, updates })
     });
   },
 
   bulkDeleteTasks: async (task_uids: string[]) => {
-    return fetchFromBff<{success: boolean, deleted_count: number}>("/api/v1/projects/tasks/bulk_delete/", {
+    return fetchFromBff<{ success: boolean, deleted_count: number }>("/api/v1/projects/tasks/bulk_delete/", {
       method: "DELETE",
       body: JSON.stringify({ task_uids })
     });
@@ -174,7 +174,7 @@ export const projectsApi = {
     return fetchFromBff<any>(`/api/v1/projects/tasks/${taskId}/`, { method: "GET" });
   },
 
-  createTask: async (data: { project?: number | string; title: string; [key: string]: any }) => {
+  createTask: async (data: { project?: number | string; title: string;[key: string]: any }) => {
     console.log("[FRONTEND_API] createTask called with payload:", data);
     const res = await fetchFromBff<any>("/api/v1/projects/tasks/", { method: "POST", body: JSON.stringify(data) });
     console.log("[FRONTEND_API] createTask response:", res);
@@ -270,7 +270,7 @@ export const projectsApi = {
   },
 
   getPendingTaskRequests: async (projectUid?: string) => {
-    const url = projectUid 
+    const url = projectUid
       ? `/api/v1/projects/task-requests/?project_uid=${projectUid}`
       : `/api/v1/projects/task-requests/`;
     const res = await fetchFromBff<any>(url, { method: "GET" });
@@ -476,7 +476,7 @@ export const projectsApi = {
           method: "PUT",
           headers: {
             "Content-Type": file.type || "application/octet-stream"
-           },
+          },
 
           body: file
         });
@@ -586,9 +586,9 @@ export const projectsApi = {
 
   // ── Floor Plan Calibration ─────────────────────────────────────────────
   calibrateAsset: async (assetId: number, scale_pixels_per_meter: number) => {
-    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/calibrate/`, { 
-      method: "PATCH", 
-      body: JSON.stringify({ scale_pixels_per_meter }) 
+    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/calibrate/`, {
+      method: "PATCH",
+      body: JSON.stringify({ scale_pixels_per_meter })
     });
   },
 
@@ -635,7 +635,7 @@ export const projectsApi = {
   },
 
   // ── Site Photos ────────────────────────────────────────────────────────
-  
+
   uploadSitePhoto: async (data: {
     floor_plan: number;
     image: File;
@@ -659,10 +659,10 @@ export const projectsApi = {
     if (data.gps_accuracy_m) formData.append("gps_accuracy_m", data.gps_accuracy_m.toString());
     if (data.captured_at) formData.append("captured_at", data.captured_at);
     formData.append("gps_source", data.gps_source);
-    
-    return fetchFromBff<SitePhoto>("/api/v1/projects/site-photos/", { 
-      method: "POST", 
-      body: formData 
+
+    return fetchFromBff<SitePhoto>("/api/v1/projects/site-photos/", {
+      method: "POST",
+      body: formData
     });
   },
 
@@ -725,21 +725,21 @@ export const projectsApi = {
   },
 
   updateEstimationPricing: async (projectUid: string, itemCode: string, unitCost: number | string) => {
-    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/estimation-pricing/`, { 
-      method: "POST", 
-      body: JSON.stringify({ item_code: itemCode, unit_cost: unitCost }) 
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/estimation-pricing/`, {
+      method: "POST",
+      body: JSON.stringify({ item_code: itemCode, unit_cost: unitCost })
     });
   },
 
   updateEstimationMapping: async (projectUid: string, itemCode: string, compositionMapping: string) => {
-    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/estimation-mapping/`, { 
-      method: "POST", 
-      body: JSON.stringify({ item_code: itemCode, composition_mapping: compositionMapping }) 
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/estimation-mapping/`, {
+      method: "POST",
+      body: JSON.stringify({ item_code: itemCode, composition_mapping: compositionMapping })
     });
   },
 
   pushEstimationToBoq: async (projectUid: string, mappings: Record<string, string> = {}) => {
-    return fetchFromBff<{ success: boolean, pushed_items: number }>(`/api/v1/projects/projects/${projectUid}/push-to-boq/`, { 
+    return fetchFromBff<{ success: boolean, pushed_items: number }>(`/api/v1/projects/projects/${projectUid}/push-to-boq/`, {
       method: "POST",
       body: JSON.stringify({ mappings })
     });
@@ -778,6 +778,38 @@ export const projectsApi = {
       method: "DELETE"
     });
   },
+
+  cloneTaskTemplate: async (templateId: number) => {
+    return fetchFromBff<any>(`/api/v1/projects/task-templates/${templateId}/clone/`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  },
+
+  getOrgTaskTemplates: async () => {
+    return fetchFromBff<any>("/api/v1/projects/org-task-templates/", { method: "GET" });
+  },
+
+  createOrgTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: string[]; default_subtasks?: any[] }) => {
+    return fetchFromBff<any>("/api/v1/projects/org-task-templates/", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateOrgTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: string[]; default_subtasks: any[] }>) => {
+    return fetchFromBff<any>(`/api/v1/projects/org-task-templates/${templateId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteOrgTaskTemplate: async (templateId: number) => {
+    return fetchFromBff<void>(`/api/v1/projects/org-task-templates/${templateId}/`, {
+      method: "DELETE"
+    });
+  },
+
 
   getInventoryItems: async () => {
     return fetchFromBff<any[]>("/api/v1/projects/inventory-items/");
@@ -829,7 +861,7 @@ export const projectsApi = {
       body: JSON.stringify(data)
     });
   },
-  
+
   updateMasterCatalogItem: async (id: number, data: any) => {
     return fetchFromBff<any>(`/api/v1/projects/master-catalog/${id}/`, {
       method: "PATCH",
@@ -1008,7 +1040,7 @@ export const projectsApi = {
   },
 
   publishPortfolio: async (projectUid: string, data?: { category: string; city: string; country: string }) => {
-    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/publish-portfolio/`, { 
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/publish-portfolio/`, {
       method: "POST",
       body: data ? JSON.stringify(data) : undefined
     });
@@ -1142,6 +1174,11 @@ export const projectsApi = {
       `/api/v1/projects/blocks/${blockId}/lock/`,
       { method: "POST" }
     );
+  },
+
+  /** Fetch all available system roles for permission assignments. */
+  getRoles: async () => {
+    return fetchFromBff<import("@/types/projects").Role[]>("/api/v1/users/admin/roles/", { method: "GET" });
   },
 };
 
