@@ -78,6 +78,8 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({
   onLock,
 }) => {
   const [unlockLoading, setUnlockLoading] = useState(false);
+  const [showLockConfirm, setShowLockConfirm] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Empty cell — no block exists for this zone/phase
   if (!block) {
@@ -96,9 +98,6 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({
   const pct = block.progress_percent;
   const wasManuallyUnlocked = !!block.unlocked_by_name;
 
-  // ── State for re-lock confirm dialog ──────────────────────────────────────
-  const [showLockConfirm, setShowLockConfirm] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
 
   // One-click unlock — no popover, no reason input
   const handleLockIconClick = async (e: React.MouseEvent) => {
