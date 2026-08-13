@@ -393,7 +393,7 @@ export default function TaskTemplatesPage() {
             Task Templates
           </h1>
           <p className="text-[11px] text-surface-500 mt-0.5">
-            Global Templates (`projects_tasktemplate`) &amp; Organisation Templates (`projects_orgtasktemplate`).
+            Global Templates &amp; Organisation Templates.
           </p>
         </div>
         <button
@@ -416,7 +416,7 @@ export default function TaskTemplatesPage() {
           }`}
         >
           <Globe className="w-3 h-3 text-blue-400" />
-          Global Templates (`projects_tasktemplate`)
+          Global Templates
           <span className="px-1 py-0.2 bg-blue-500/10 text-blue-400 rounded text-[8px] font-black border border-blue-500/20">
             {globalTemplates.length}
           </span>
@@ -430,7 +430,7 @@ export default function TaskTemplatesPage() {
           }`}
         >
           <Building2 className="w-3 h-3 text-emerald-400" />
-          Organisation Templates (`projects_orgtasktemplate`)
+          Organisation Templates
           <span className="px-1 py-0.2 bg-emerald-500/10 text-emerald-400 rounded text-[8px] font-black border border-emerald-500/20">
             {orgTemplates.length}
           </span>
@@ -441,13 +441,13 @@ export default function TaskTemplatesPage() {
       {activeTab === "global" && (
         <div className="flex items-center gap-2 p-2.5 bg-blue-500/5 border border-blue-500/20 rounded-lg text-[10px] text-blue-300 font-medium">
           <Globe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-          <span>Global templates table. Click <strong>Clone</strong> to copy any item into your organisation&apos;s custom templates table.</span>
+          <span>Global templates are platform standards. Click <strong>Clone</strong> to copy any template into your organisation.</span>
         </div>
       )}
       {activeTab === "my_org" && (
         <div className="flex items-center gap-2 p-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-[10px] text-emerald-300 font-medium">
           <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-          <span>Organisation templates table (`projects_orgtasktemplate`). Add custom templates or clone from Global Templates.</span>
+          <span>Private templates for your organisation. Add custom templates or clone from Global Templates.</span>
         </div>
       )}
 

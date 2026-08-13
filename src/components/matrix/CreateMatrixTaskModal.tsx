@@ -266,7 +266,7 @@ export function CreateMatrixTaskModal({
                   {globalTemplates.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-[8px] font-black uppercase tracking-widest text-surface-400 flex items-center gap-1">
-                        <Globe className="w-2 h-2 text-blue-400" /> Global Table (`projects_tasktemplate`)
+                        <Globe className="w-2 h-2 text-blue-400" /> Global Templates
                       </p>
                       <div className="grid grid-cols-2 gap-1">
                         {globalTemplates.map((tpl) => (
@@ -290,9 +290,10 @@ export function CreateMatrixTaskModal({
                   {orgTemplates.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-[8px] font-black uppercase tracking-widest text-surface-400 flex items-center gap-1">
-                        <Building2 className="w-2 h-2 text-emerald-400" /> Org Table (`projects_orgtasktemplate`)
+                        <Building2 className="w-2 h-2 text-emerald-400" /> Organisation Templates
                       </p>
                       <div className="grid grid-cols-2 gap-1">
+
                         {orgTemplates.map((tpl) => (
                           <button
                             key={`org:${tpl.id}`}
