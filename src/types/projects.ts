@@ -68,6 +68,7 @@ export interface ProjectAsset {
   folder?: number | null;
   title: string;
   category: AssetCategory;
+  drawing_tag?: "none" | "gfc" | "abd";
   file: string; // URL
   thumbnail: string | null;
   size: number;

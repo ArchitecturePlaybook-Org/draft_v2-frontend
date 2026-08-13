@@ -288,6 +288,15 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                                 Current Active
                               </span>
                             )}
+                            {version.category === "2d_plan" && version.drawing_tag && version.drawing_tag !== "none" && (
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                version.drawing_tag === "gfc"
+                                  ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30"
+                                  : "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                              }`}>
+                                {version.drawing_tag.toUpperCase()}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 text-[11px] text-surface-400 flex-wrap">
                             <span className="flex items-center gap-1" title={formatFullDate(version.created_at)}>

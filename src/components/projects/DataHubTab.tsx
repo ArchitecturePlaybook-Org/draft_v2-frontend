@@ -291,6 +291,18 @@ export const DataHubTab: React.FC = () => {
                       </span>
                     </div>
 
+                    {asset.category === "2d_plan" && asset.drawing_tag && asset.drawing_tag !== "none" && (
+                      <div className="absolute top-2 right-2 z-10">
+                        <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border shadow-sm ${
+                          asset.drawing_tag === "gfc"
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25 shadow-blue-500/5"
+                            : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25 shadow-purple-500/5"
+                        }`} title={asset.drawing_tag === "gfc" ? "Good For Construction" : "As Built Drawing"}>
+                          {asset.drawing_tag.toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+
                     <div 
                       onClick={() => handleOpenAsset(asset)}
                       className={`h-24 sm:h-26 rounded-lg mb-2 flex items-center justify-center overflow-hidden border cursor-pointer transition-colors ${['3d_model', 'sh3d'].includes(asset.category) ? 'border-transparent bg-opacity-50 ' + (asset.file?.toLowerCase().endsWith('sh3d') || asset.file?.toLowerCase().endsWith('sh3x') || asset.category === 'sh3d' ? 'bg-emerald-50 dark:bg-emerald-900/20' : asset.file?.toLowerCase().endsWith('glb') || asset.file?.toLowerCase().endsWith('gltf') ? 'bg-amber-50 dark:bg-amber-900/20' : asset.file?.toLowerCase().endsWith('obj') ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-indigo-50') : 'bg-surface-100/50 border-surface-200/50'}`}
