@@ -42,6 +42,7 @@ export interface DiaryMaterial {
   supplier?: string;
   ticket_number?: string;
   status: "good" | "damaged" | "shortage";
+  cost?: number;
   created_at: string;
 }
 

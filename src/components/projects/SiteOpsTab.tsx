@@ -85,11 +85,30 @@ const SiteOpsLaborPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => 
           {entry.labor_entries?.length > 0 && (
             <div className="mb-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">👷 Labour</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {entry.labor_entries.map((l: any) => (
-                  <div key={l.id} className="bg-surface-100 rounded-xl p-3 text-center">
-                    <p className="text-lg font-black text-primary">{l.headcount}</p>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-surface-400">{l.trade_type || "General"}</p>
+                  <div key={l.id} className="bg-surface-100 rounded-xl p-3 border border-surface-200/50 flex flex-col justify-between hover:shadow-xs transition-shadow">
+                    <div>
+                      <p className="font-bold text-xs text-primary truncate" title={l.crew_name || "General Crew"}>
+                        {l.crew_name || "General Crew"}
+                      </p>
+                      <p className="text-[9px] text-surface-400 font-bold uppercase tracking-wider mt-0.5">
+                        {l.trade_type || "General"}
+                      </p>
+                      {l.zone && (
+                        <p className="text-[9px] text-surface-500 mt-1 truncate" title={`Zone: ${l.zone}`}>
+                          📍 {l.zone}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-surface-200/40 flex justify-between items-center text-[10px] font-bold">
+                      <span className="text-orange-600 bg-orange-50 dark:bg-orange-950/20 px-1.5 py-0.5 rounded">
+                        {l.headcount} workers
+                      </span>
+                      <span className="text-surface-500 bg-surface-200/40 px-1.5 py-0.5 rounded">
+                        ⏱️ {l.total_hours} hrs
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

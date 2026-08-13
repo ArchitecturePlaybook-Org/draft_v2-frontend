@@ -17,7 +17,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   
   // Section states for adding new items
   const [newLabor, setNewLabor] = useState({ crew_name: "", trade_type: "", headcount: "", total_hours: "", zone: "" });
-  const [newMaterial, setNewMaterial] = useState({ description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good" });
+  const [newMaterial, setNewMaterial] = useState({ description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good", cost: "" });
   const [newMaterialReceipt, setNewMaterialReceipt] = useState<File | null>(null);
   const newMaterialReceiptRef = useRef<HTMLInputElement>(null);
   const [newEquipment, setNewEquipment] = useState({ equipment_id: "", hours_operated: "", hours_idle: "", status: "operational" });
@@ -155,6 +155,12 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-extrabold uppercase ${entry.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
               {entry.status}
             </span>
+            {entry.status !== "signed" && (
+              <div className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 animate-pulse">
+                <AlertTriangle className="w-3 h-3 text-amber-500" />
+                <span>Draft - Unlocked</span>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex gap-1.5">
@@ -404,7 +410,10 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                     <div key={m.id} className="p-4 bg-surface-50 border border-surface-200 rounded-xl flex justify-between items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-surface-800">{m.description}</p>
-                        <p className="text-xs font-medium text-surface-500 text-surface-400 mt-1">Supplier: {m.supplier} • Ticket: {m.ticket_number}</p>
+                        <p className="text-xs font-medium text-surface-500 text-surface-400 mt-1">
+                          Supplier: {m.supplier} • Ticket: {m.ticket_number}
+                          {m.cost != null && ` • Cost: $${parseFloat(m.cost).toFixed(2)}`}
+                        </p>
 
                         {/* Receipt image: thumbnail or file link */}
                         {receiptUrl && (
@@ -493,7 +502,8 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                     <input type="text" placeholder="Unit (e.g. tons, m3)" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})}/>
                     <input type="text" placeholder="Supplier" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.supplier} onChange={e => setNewMaterial({...newMaterial, supplier: e.target.value})}/>
                     <input type="text" placeholder="Ticket Number" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.ticket_number} onChange={e => setNewMaterial({...newMaterial, ticket_number: e.target.value})}/>
-                    <select className="h-10 px-3 rounded-lg border border-surface-200 col-span-1 md:col-span-2 text-sm font-medium" value={newMaterial.status} onChange={e => setNewMaterial({...newMaterial, status: e.target.value})}>
+                    <input type="number" step="0.01" placeholder="Cost (e.g. 1500.00)" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.cost} onChange={e => setNewMaterial({...newMaterial, cost: e.target.value})}/>
+                    <select className="h-10 px-3 rounded-lg border border-surface-200 text-sm font-medium" value={newMaterial.status} onChange={e => setNewMaterial({...newMaterial, status: e.target.value})}>
                       <option value="good">Status: Good Condition</option>
                       <option value="damaged">Status: Damaged</option>
                       <option value="rejected">Status: Rejected</option>
@@ -521,7 +531,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                       </label>
                     </div>
 
-                    <Button className="md:col-span-2" onClick={() => addSubEntry("materials", newMaterial, () => setNewMaterial({description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good"}))}>Add Receipt</Button>
+                    <Button className="md:col-span-2" onClick={() => addSubEntry("materials", newMaterial, () => setNewMaterial({description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good", cost: ""}))}>Add Receipt</Button>
                   </div>
                 </div>
               )}

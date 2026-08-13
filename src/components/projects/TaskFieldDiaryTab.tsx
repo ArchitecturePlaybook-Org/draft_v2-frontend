@@ -13,6 +13,13 @@ interface TaskFieldDiaryTabProps {
   readOnly?: boolean;
 }
 
+const getLocalDateString = (date: Date = new Date()) => {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, projectUid, readOnly = false }) => {
   const [loading, setLoading] = useState(true);
   const [todayEntry, setTodayEntry] = useState<any | null>(null);
@@ -32,7 +39,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
       setTodayEntry(cachedToday);
       setLoading(false);
       
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = getLocalDateString();
       projectsApi.getDiaryEntries(projectUid).then(async (res) => {
         const entry = res.find((e: any) => e.entry_date === todayStr);
         if (entry) {
@@ -45,7 +52,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
     }
 
     try {
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = getLocalDateString();
       
       const res = await projectsApi.getDiaryEntries(projectUid);
       const entry = res.find((e: any) => e.entry_date === todayStr);
@@ -77,7 +84,7 @@ export const TaskFieldDiaryTab: React.FC<TaskFieldDiaryTabProps> = ({ task, proj
       console.warn("Failed to load or create today's entry:", err);
       if (err.status === 400 || err.message?.includes("must make a unique set")) {
          try {
-           const todayStr = new Date().toISOString().split("T")[0];
+           const todayStr = getLocalDateString();
            const res = await projectsApi.getDiaryEntries(projectUid);
            const entry = res.find((e: any) => e.entry_date === todayStr);
            if (entry) {
