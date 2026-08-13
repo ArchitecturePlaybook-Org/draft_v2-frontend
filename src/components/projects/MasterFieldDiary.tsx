@@ -7,6 +7,13 @@ import { DiaryEntryDetail } from "./DiaryEntryDetail";
 import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { fieldDiaryCache } from "@/domains/projects/fieldDiaryCache";
 
+const getLocalDateString = (date: Date = new Date()) => {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId }) => {
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
@@ -26,7 +33,7 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
       setEntries(cachedData);
       setIsLoading(false);
       
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = getLocalDateString();
       const todayEntry = cachedData.find((e: any) => e.entry_date === todayStr);
       if (todayEntry && !selectedEntry) {
         handleDateClick(todayStr, cachedData);
@@ -51,7 +58,7 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
       fieldDiaryCache.set(cacheKey, data);
       
       // Auto-select today's entry on first load
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = getLocalDateString();
       const todayEntry = data.find((e: any) => e.entry_date === todayStr);
       if (todayEntry && !selectedEntry) {
         handleDateClick(todayStr, data);
@@ -153,7 +160,7 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
 
   const goToToday = () => {
     setCurrentMonthDate(new Date());
-    handleDateClick(new Date().toISOString().split("T")[0]);
+    handleDateClick(getLocalDateString());
   };
 
   // Generate days in the selected month
@@ -187,7 +194,7 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
           </div>
           <div className="min-w-0">
             <h1 className="text-xs sm:text-sm font-black flex items-center gap-1.5 text-surface-800 truncate">
-              Field Diary — {selectedEntry ? selectedEntry.entry_date : new Date().toISOString().split("T")[0]}
+              Field Diary — {selectedEntry ? selectedEntry.entry_date : getLocalDateString()}
             </h1>
             <p className="text-[10px] text-surface-400 truncate">Log weather, site conditions, labor crews, & deliveries</p>
           </div>
@@ -274,8 +281,8 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
                 <div className="flex justify-center p-6"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div></div>
               ) : (
                 daysInMonthList.map((dateObj, i) => {
-                  const dateStr = dateObj.toISOString().split("T")[0];
-                  const isToday = dateStr === new Date().toISOString().split("T")[0];
+                  const dateStr = getLocalDateString(dateObj);
+                  const isToday = dateStr === getLocalDateString();
                   const entry = entries.find(e => e.entry_date === dateStr);
                   const isSelected = selectedEntry?.entry_date === dateStr;
                   
@@ -304,13 +311,18 @@ export const MasterFieldDiary: React.FC<{ projectId: string }> = ({ projectId })
                       </div>
 
                       {entry ? (
-                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0 ${
-                          isSelected 
-                            ? 'bg-surface-100 text-white' 
-                            : entry.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {entry.status}
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {entry.status !== 'signed' && (
+                            <span className="text-[10px] animate-pulse" title="Draft - Unlocked">⚠️</span>
+                          )}
+                          <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                            isSelected 
+                              ? 'bg-surface-100 text-white' 
+                              : entry.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {entry.status}
+                          </span>
+                        </div>
                       ) : (
                         <span className="text-[9px] text-surface-400 font-bold uppercase tracking-wider shrink-0">+ Create</span>
                       )}
