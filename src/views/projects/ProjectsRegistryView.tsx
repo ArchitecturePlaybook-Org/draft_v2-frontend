@@ -128,24 +128,45 @@ export function ProjectsRegistryView() {
     return 0;
   });
 
+  const totalProjectsCount = projects.length;
+  const inProgressCount = projects.filter(p => p.status === "Work in Progress").length;
+  const completedCount = projects.filter(p => p.status === "Completed").length;
+
   return (
     <div className="space-y-4 animate-fade-in pb-8">
       <Suspense fallback={null}>
         <SearchParamsReader onParams={handleSearchParams} />
       </Suspense>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-50/40 backdrop-blur-2xl p-4 sm:p-5 border border-white/20 dark:border-white/5 rounded-xl shadow-xl shadow-primary/5 relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
-        <div className="absolute top-0 right-0 w-[300px] h-full arch-grid opacity-[0.05] pointer-events-none mix-blend-overlay" />
-        <div className="relative z-10">
-          <h1 className="text-xl sm:text-2xl font-black text-primary mb-1 tracking-tight drop-shadow-sm">Project Registry</h1>
+      {/* Header Banner with Quick Stats */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-surface-50/60 dark:bg-surface-800/40 backdrop-blur-2xl p-4 sm:p-5 border border-surface-200/80 dark:border-surface-700/60 rounded-2xl shadow-lg relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-r from-accent/10 via-transparent to-transparent opacity-60 pointer-events-none" />
+        
+        <div className="relative z-10 space-y-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Project Registry</h1>
+            <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+              {totalProjectsCount} Blueprints
+            </span>
+          </div>
           <p className="text-xs text-surface-400 font-medium max-w-2xl leading-relaxed">
             {isAdmin 
               ? "Overview of active architectural projects, accounts, and cross-tenant collaborations across the platform." 
               : "Manage and oversee active architectural designs and collaborative project data."}
           </p>
         </div>
-        <div className="flex items-center gap-2 relative z-10 shrink-0 w-full sm:w-auto">
+
+        {/* Quick Stats Pill Row + Primary CTA */}
+        <div className="flex flex-wrap items-center gap-2 relative z-10 w-full lg:w-auto">
+          <div className="flex items-center gap-1.5 bg-surface-100/80 dark:bg-surface-700/60 px-3 py-1.5 rounded-xl border border-surface-200/60 dark:border-surface-700/50">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="text-[10px] font-extrabold text-foreground">{inProgressCount} In Progress</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-surface-100/80 dark:bg-surface-700/60 px-3 py-1.5 rounded-xl border border-surface-200/60 dark:border-surface-700/50">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-[10px] font-extrabold text-foreground">{completedCount} Completed</span>
+          </div>
+
           <button 
             onClick={() => {
               if (!planLimits.isLoading && !planLimits.canCreateProject) {
@@ -154,34 +175,37 @@ export function ProjectsRegistryView() {
                 setShowCreateModal(true);
               }
             }}
-            className="h-9 px-4 bg-accent text-background font-bold text-[10px] uppercase tracking-wider rounded-lg hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-sm shadow-accent/30 w-full sm:w-auto whitespace-nowrap"
+            className="h-9 px-4 bg-gradient-to-r from-accent to-accent-hover text-background font-black text-[10px] uppercase tracking-widest rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-md shadow-accent/20 shrink-0 ml-auto lg:ml-0"
           >
-            <span className="text-sm leading-none mb-0.5">+</span> Establish Blueprint
+            <span className="text-sm leading-none">+</span> Establish Blueprint
           </button>
         </div>
       </div>
 
-      {/* Filter and Sort Bar */}
-      <div className="flex flex-col sm:flex-row gap-2.5 bg-surface-50/40 backdrop-blur-xl p-2.5 rounded-xl border border-white/20 dark:border-white/5 shadow-md shadow-primary/5 relative z-10">
-        <div className="flex-1 flex items-center gap-2 bg-surface-100/50 backdrop-blur-md px-3 rounded-lg border border-white/10 dark:border-white/5 focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/10 transition-all shadow-inner min-w-0">
+      {/* Filter and Sort Toolbar */}
+      <div className="flex flex-col md:flex-row gap-2.5 bg-surface-50/60 dark:bg-surface-800/40 backdrop-blur-xl p-2.5 rounded-2xl border border-surface-200/80 dark:border-surface-700/60 shadow-sm relative z-10 items-center justify-between">
+        
+        {/* Search Bar */}
+        <div className="w-full md:w-72 flex items-center gap-2 bg-surface-100/70 dark:bg-surface-700/50 px-3 rounded-xl border border-surface-200/60 dark:border-surface-700/50 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/10 transition-all shadow-inner">
           <span className="text-surface-400 text-xs shrink-0">🔍</span>
           <input 
             type="text"
-            placeholder="Search projects by title or client..."
+            placeholder="Search title or client..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="flex-1 h-9 bg-transparent outline-none text-xs font-bold text-primary placeholder:text-surface-400/70 placeholder:font-normal min-w-0"
+            className="w-full h-8.5 bg-transparent outline-none text-xs font-bold text-foreground placeholder:text-surface-400/70 placeholder:font-normal"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="text-surface-400 hover:text-primary pr-1 text-xs transition-colors shrink-0">✕</button>
+            <button onClick={() => setSearchQuery("")} className="text-surface-400 hover:text-foreground text-xs transition-colors shrink-0">✕</button>
           )}
         </div>
         
-        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+        {/* Status Dropdown & Sort Dropdown */}
+        <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-end">
           <select 
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="flex-1 sm:flex-none h-9 px-3 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-lg text-[10px] font-bold text-primary outline-none focus:border-accent transition-all cursor-pointer shadow-inner appearance-none pr-8"
+            className="h-8.5 px-3 bg-surface-100/80 dark:bg-surface-700/60 border border-surface-200/60 dark:border-surface-700/50 rounded-xl text-[10px] font-black uppercase tracking-wider text-foreground outline-none focus:border-accent cursor-pointer appearance-none pr-8"
             style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.6rem center', backgroundSize: '0.9em' }}
           >
             <option value="ALL">All Statuses</option>
@@ -193,7 +217,7 @@ export function ProjectsRegistryView() {
           <select 
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
-            className="flex-1 sm:flex-none h-9 px-3 bg-surface-100/50 backdrop-blur-md border border-white/10 dark:border-white/5 rounded-lg text-[10px] font-bold text-primary outline-none focus:border-accent transition-all cursor-pointer shadow-inner appearance-none pr-8"
+            className="h-8.5 px-3 bg-surface-100/80 dark:bg-surface-700/60 border border-surface-200/60 dark:border-surface-700/50 rounded-xl text-[10px] font-black uppercase tracking-wider text-foreground outline-none focus:border-accent cursor-pointer appearance-none pr-8"
             style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.6rem center', backgroundSize: '0.9em' }}
           >
             <option value="NEWEST">Newest First</option>
@@ -201,10 +225,11 @@ export function ProjectsRegistryView() {
             <option value="A_Z">A to Z</option>
           </select>
         </div>
+
       </div>
 
       {isLoading || !isMounted ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-surface-100 border border-surface-200 rounded-xl">
+        <div className="flex flex-col items-center justify-center py-20 bg-surface-50/50 border border-surface-200/80 rounded-2xl">
           <Spinner size="md" label="Retrieving architectural nodes..." />
         </div>
       ) : filteredProjects.length > 0 ? (
@@ -218,7 +243,7 @@ export function ProjectsRegistryView() {
               transition: { staggerChildren: 0.05 }
             }
           }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5"
         >
           {filteredProjects.map((project) => (
             <motion.div key={project.uid} variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }} className="h-full">
@@ -233,6 +258,7 @@ export function ProjectsRegistryView() {
             </motion.div>
           ))}
         </motion.div>
+
       ) : (
         <div className="text-center py-32 bg-gradient-to-b from-surface-50/50 to-transparent backdrop-blur-xl border border-white/10 dark:border-white/5 rounded-[2rem] shadow-2xl relative overflow-hidden group">
           <div className="absolute inset-0 bg-primary/5 arch-grid opacity-10 pointer-events-none mix-blend-overlay group-hover:opacity-20 transition-opacity duration-1000" />

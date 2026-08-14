@@ -25,6 +25,7 @@ interface KanbanDrawerProps {
   /** Bubbles task click up to parent for split-pane rendering */
   onTaskSelect?: (task: Task) => void;
   readOnly?: boolean;
+  onUnlockClick?: () => void;
 }
 
 const COLUMNS: { id: TaskStatus; label: string; color: string; dotColor: string }[] = [
@@ -67,6 +68,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   leftOffset = 0,
   onTaskSelect,
   readOnly = false,
+  onUnlockClick,
 }) => {
   const [tasks, setTasks] = useState<Task[]>(block.tasks || []);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -322,10 +324,10 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
 
       {/* Drawer Panel */}
       <motion.div
-        initial={{ x: "-100%" }}
+        initial={{ x: "100%" }}
         animate={{ x: 0 }}
-        exit={{ x: "-100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        exit={{ x: "100%" }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         style={{ left: typeof window !== "undefined" && window.innerWidth < 768 ? 0 : leftOffset, width: typeof window !== "undefined" && window.innerWidth < 768 ? "100%" : (width ?? 896) }}
         className="fixed top-0 bottom-0 h-screen bg-background border-r border-surface-200 shadow-premium z-[45] flex flex-col min-w-0 overflow-hidden w-full md:w-auto"
       >
@@ -419,13 +421,23 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
 
         {/* Locked banner */}
         {isLocked && (
-          <div className="px-7 py-3 bg-amber-500/10 border-b border-amber-500/30 flex items-center gap-2">
-            <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <p className="text-xs font-bold text-amber-400">
-              This block is <strong>Locked</strong> — complete the previous milestone phase first to unlock.
-            </p>
+          <div className="px-7 py-3 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <p className="text-xs font-bold text-amber-400">
+                This block is <strong>Locked</strong> — complete the previous milestone phase first to unlock.
+              </p>
+            </div>
+            {userRole === "admin" && !readOnly && onUnlockClick && (
+              <button
+                onClick={onUnlockClick}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-lg shadow-amber-500/20 transition-all hover:scale-105"
+              >
+                Force Activate
+              </button>
+            )}
           </div>
         )}
 

@@ -72,13 +72,15 @@ export const ProjectStatusDropdown: React.FC<ProjectStatusDropdownProps> = ({
       <button
         type="button"
         onClick={toggleDropdown}
-        className={`px-3 py-1.5 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.15em] rounded-lg outline-none cursor-pointer hover:brightness-110 transition-all ${getButtonStyles(
+        className={`px-2 py-0.5 flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider rounded outline-none cursor-pointer hover:brightness-110 transition-all whitespace-nowrap ${getButtonStyles(
           status
         )}`}
       >
         {status}
-        <span className="text-[8px] opacity-70">▼</span>
+        <span className="text-[7px] opacity-70">▼</span>
       </button>
+
+
 
       {/* Animated Dropdown Menu */}
       <div

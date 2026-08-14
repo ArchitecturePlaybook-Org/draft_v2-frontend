@@ -107,16 +107,16 @@ export const ProjectSidebar: React.FC = () => {
               Project Workspace
             </h4>
           )}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {workspaceLinks.map((link) => (
               <Link 
                 key={link.id} 
                 href={`/dashboard/projects/${currentProjectUid}?tab=${link.id}`} 
-                className={`nav-item ${currentTab === link.id && pathname === `/dashboard/projects/${currentProjectUid}` ? "active bg-surface-100 text-foreground border-surface-200" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-10 h-10 rounded-lg mx-auto' : ''}`}
+                className={`nav-item ${currentTab === link.id && pathname === `/dashboard/projects/${currentProjectUid}` ? "active" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto' : ''}`}
                 title={isSidebarCollapsed ? link.label : undefined}
               >
-                <span className="text-lg leading-none grayscale opacity-70 transition-all group-hover:grayscale-0 group-hover:opacity-100 shrink-0">{link.icon}</span>
-                {!isSidebarCollapsed && <span className="truncate">{link.label}</span>}
+                <span className="text-sm leading-none shrink-0">{link.icon}</span>
+                {!isSidebarCollapsed && <span className="truncate text-[11px]">{link.label}</span>}
               </Link>
             ))}
           </div>
@@ -125,25 +125,26 @@ export const ProjectSidebar: React.FC = () => {
         {/* Project Tools */}
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-black">
-              Project Tools
+            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+              Tools
             </h4>
           )}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {toolsLinks.map((link) => (
               <Link 
                 key={link.label} 
                 href={link.href} 
                 target={link.target}
-                className={`nav-item ${pathname === link.href ? "active bg-surface-100 text-foreground border-surface-200" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-10 h-10 rounded-lg mx-auto' : ''}`}
+                className={`nav-item ${pathname === link.href ? "active" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto' : ''}`}
                 title={isSidebarCollapsed ? link.label : undefined}
               >
-                <span className="text-lg leading-none grayscale opacity-70 transition-all shrink-0">{link.icon}</span>
-                {!isSidebarCollapsed && <span className="truncate">{link.label}</span>}
+                <span className="text-sm leading-none shrink-0">{link.icon}</span>
+                {!isSidebarCollapsed && <span className="truncate text-[11px]">{link.label}</span>}
               </Link>
             ))}
           </div>
         </div>
+
       </nav>
 
       {!isSidebarCollapsed && <div className="shrink-0"><ProfileBanner /></div>}

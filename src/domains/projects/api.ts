@@ -258,7 +258,12 @@ export const projectsApi = {
     return unpackArray<any>(res);
   },
 
-  // ── Task Access Requests ──────────────────────────────────────────────────
+  // ── Task Access Requests & Shared Tasks ─────────────────────────────────────
+  getSharedTasks: async () => {
+    const res = await fetchFromBff<any>(`/api/v1/projects/tasks/?shared=true`, { method: "GET" });
+    return unpackArray<Task>(res);
+  },
+
   getTaskPublicInfo: async (taskUid: string) => {
     const res = await fetchFromBff<any>(`/api/v1/projects/tasks/${taskUid}/public_info/`, { method: "GET" });
     return res;
@@ -1181,6 +1186,8 @@ export const projectsApi = {
     return fetchFromBff<import("@/types/projects").Role[]>("/api/v1/users/admin/roles/", { method: "GET" });
   },
 };
+
+
 
 
 

@@ -98,7 +98,7 @@ export const MasterCatalogGrid: React.FC<Props> = ({ items, onRefresh, onEdit })
     }),
     columnHelper.accessor('item_code', {
       header: 'Item Code',
-      cell: (info) => <span className="font-black text-xs text-primary bg-surface-100 px-2 py-0.5 rounded border border-surface-200">{info.getValue()}</span>,
+      cell: (info) => <span className="font-black text-[10px] text-primary bg-surface-100 px-1.5 py-0.5 rounded border border-surface-200">{info.getValue()}</span>,
     }),
     columnHelper.display({
       id: 'type_preset',
@@ -114,7 +114,7 @@ export const MasterCatalogGrid: React.FC<Props> = ({ items, onRefresh, onEdit })
                     : '📏 Generic Line';
 
         return (
-          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+          <span className="text-[8.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
             {label}
           </span>
         );
@@ -124,17 +124,24 @@ export const MasterCatalogGrid: React.FC<Props> = ({ items, onRefresh, onEdit })
       header: 'Description',
       cell: (info) => {
         const { textDesc } = getItemDetails(info.row.original);
-        return <span className="font-bold text-foreground truncate block max-w-md">{textDesc}</span>;
+        return (
+          <span 
+            className="font-bold text-[11px] text-foreground truncate block max-w-[200px] sm:max-w-[300px] cursor-help"
+            title={textDesc}
+          >
+            {textDesc}
+          </span>
+        );
       },
     }),
     columnHelper.accessor('unit', {
       header: 'Unit',
-      cell: (info) => <span className="uppercase text-xs font-black text-surface-500">{info.getValue()}</span>,
+      cell: (info) => <span className="uppercase text-[9px] font-black text-surface-500">{info.getValue()}</span>,
     }),
     columnHelper.accessor('unit_cost', {
       header: 'Unit Cost',
       cell: (info) => (
-        <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+        <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
           ₹{Number(info.getValue()).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       ),
@@ -142,7 +149,7 @@ export const MasterCatalogGrid: React.FC<Props> = ({ items, onRefresh, onEdit })
     columnHelper.accessor('multiplier', {
       header: 'Waste Multiplier',
       cell: (info) => (
-        <span className="font-mono text-surface-500 font-bold">
+        <span className="font-mono text-[10px] text-surface-500 font-bold">
           {Number(info.getValue()).toFixed(2)}x
         </span>
       ),
@@ -342,7 +349,7 @@ export const MasterCatalogGrid: React.FC<Props> = ({ items, onRefresh, onEdit })
                   <th 
                     key={header.id}
                     style={{ width: header.getSize() !== 150 ? header.getSize() : 'auto' }}
-                    className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-surface-500 dark:text-surface-400"
+                    className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-surface-500 dark:text-surface-400"
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
@@ -359,7 +366,7 @@ export const MasterCatalogGrid: React.FC<Props> = ({ items, onRefresh, onEdit })
                 {row.getVisibleCells().map(cell => (
                   <td 
                     key={cell.id}
-                    className="px-4 py-3 text-sm text-foreground font-medium"
+                    className="px-3 py-2 text-foreground font-medium"
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>

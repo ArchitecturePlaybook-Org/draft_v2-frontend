@@ -19,8 +19,8 @@ export const Sidebar: React.FC = () => {
   const workspaceLinks = [
     { label: "Dashboard", href: "/dashboard", icon: "📊" },
     { label: "Projects", href: "/dashboard/projects", icon: "🏗️" },
+    { label: "Shared Tasks", href: "/dashboard/shared-tasks", icon: "🔗" },
     { label: "Templates", href: "/dashboard/templates", icon: "📋" },
-    // { label: "Templates Hub", href: "/dashboard/marketplace/templates", icon: "📦" },
     { label: "Business Leads", href: "/dashboard/leads", icon: "💼" },
   ];
 
@@ -89,14 +89,14 @@ export const Sidebar: React.FC = () => {
         </button>
       </div>
 
-      <nav className="flex-1 min-h-0 flex flex-col gap-3.5 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 min-h-0 flex flex-col gap-2.5 overflow-y-auto overflow-x-hidden">
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-bold">
+            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
               Workspace
             </h4>
           )}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {workspaceLinks.map((link) => (
               <React.Fragment key={link.href}>
                 <SidebarLink {...link} active={pathname === link.href} isCollapsed={isSidebarCollapsed} />
@@ -107,11 +107,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-bold">
+            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
               Operations
             </h4>
           )}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {opsLinks.map((link) => (
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
@@ -120,11 +120,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-bold">
+            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
               Organization
             </h4>
           )}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {orgLinks.map((link) => (
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
@@ -133,11 +133,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-bold">
+            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
               Account
             </h4>
           )}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {settingsLinks.map((link) => (
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
@@ -161,10 +161,11 @@ interface SidebarLinkProps {
 const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, icon, active, isCollapsed }) => (
   <Link 
     href={href} 
-    className={`nav-item ${active ? "active bg-surface-100 text-foreground border-surface-200" : ""} ${isCollapsed ? 'justify-center p-0 w-10 h-10 rounded-xl mx-auto' : ''}`}
+    className={`nav-item ${active ? "active" : ""} ${isCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto' : ''}`}
     title={isCollapsed ? label : undefined}
   >
-    <span className="text-lg leading-none grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 shrink-0">{icon}</span>
-    {!isCollapsed && <span className="truncate">{label}</span>}
+    <span className="text-sm leading-none shrink-0">{icon}</span>
+    {!isCollapsed && <span className="truncate text-[11px]">{label}</span>}
   </Link>
 );
+

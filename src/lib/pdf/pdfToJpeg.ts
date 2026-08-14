@@ -112,8 +112,7 @@ export async function convertPdfToJpegSheets(
         (b) => {
           if (b) resolve(b);
         },
-        "image/jpeg",
-        0.92
+        "image/png"
       );
     });
 

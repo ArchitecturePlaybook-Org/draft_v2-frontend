@@ -41,11 +41,11 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loadingBlockId, setLoadingBlockId] = useState<number | null>(null);
   const [loadingCellId, setLoadingCellId] = useState<string | null>(null);
-  
+
   const [isAddingZone, setIsAddingZone] = useState(false);
   const [isAddingPhase, setIsAddingPhase] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  
+
   const [showAddZoneInput, setShowAddZoneInput] = useState(false);
   const [newZoneName, setNewZoneName] = useState("");
   const [showAddPhaseInput, setShowAddPhaseInput] = useState(false);
@@ -171,7 +171,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     try {
       const block = await projectsApi.getOrCreateBlock(zone.id, phase.id);
       refreshMatrix();
-      
+
       const expandedBlock: MilestoneBlockExpanded = {
         ...block,
         tasks: [],
@@ -197,34 +197,42 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   };
 
   // ── Manual block unlock / lock ─────────────────────────────────────────────
-  const handleUnlockBlock = async (blockId: number, reason?: string) => {
+  const [confirmLockAction, setConfirmLockAction] = useState<{ type: 'lock' | 'unlock', blockId: number } | null>(null);
+  const [lockActionLoading, setLockActionLoading] = useState(false);
+
+  const confirmBlockAction = async () => {
+    if (!confirmLockAction) return;
+    setLockActionLoading(true);
     try {
-      const updatedBlock = await projectsApi.unlockBlock(blockId, reason);
-      toast.success("Block unlocked");
-      refreshMatrix();
-      // Update selectedBlock so KanbanDrawer recomputes isLocked immediately
-      if (selectedBlock?.id === blockId) {
-        setSelectedBlock(prev => prev ? { ...prev, ...updatedBlock, status: "ACTIVE" as const } : prev);
+      if (confirmLockAction.type === 'unlock') {
+        const updatedBlock = await projectsApi.unlockBlock(confirmLockAction.blockId);
+        toast.success("Block unlocked");
+        refreshMatrix();
+        if (selectedBlock?.id === confirmLockAction.blockId) {
+          setSelectedBlock(prev => prev ? { ...prev, ...updatedBlock, status: "ACTIVE" as const } : prev);
+        }
+      } else {
+        const updatedBlock = await projectsApi.lockBlock(confirmLockAction.blockId);
+        toast.success("Block re-locked");
+        refreshMatrix();
+        if (selectedBlock?.id === confirmLockAction.blockId) {
+          setSelectedBlock(prev => prev ? { ...prev, ...updatedBlock, status: "LOCKED" as const } : prev);
+        }
       }
+      setConfirmLockAction(null);
     } catch (err: any) {
-      toast.error(err?.data?.detail || "Could not unlock block.");
-      throw err;
+      toast.error(err?.data?.detail || `Could not ${confirmLockAction.type} block.`);
+    } finally {
+      setLockActionLoading(false);
     }
   };
 
-  const handleLockBlock = async (blockId: number) => {
-    try {
-      const updatedBlock = await projectsApi.lockBlock(blockId);
-      toast.success("Block re-locked");
-      refreshMatrix();
-      // Update selectedBlock so KanbanDrawer recomputes isLocked immediately
-      if (selectedBlock?.id === blockId) {
-        setSelectedBlock(prev => prev ? { ...prev, ...updatedBlock, status: "LOCKED" as const } : prev);
-      }
-    } catch (err: any) {
-      toast.error(err?.data?.detail || "Could not lock block.");
-      throw err;
-    }
+  const handleUnlockBlock = (blockId: number) => {
+    setConfirmLockAction({ type: 'unlock', blockId });
+  };
+
+  const handleLockBlock = (blockId: number) => {
+    setConfirmLockAction({ type: 'lock', blockId });
   };
 
 
@@ -232,7 +240,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     if (!payload) return;
     const projectId = payload.project_id || payload.zones[0]?.project || payload.phases[0]?.project || payload.blocks[0]?.project_id;
     if (!projectId || !newZoneName.trim()) return;
-    
+
     setIsAddingZone(true);
     try {
       await projectsApi.createZone({
@@ -256,7 +264,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     if (!payload) return;
     const projectId = payload.project_id || payload.phases[0]?.project || payload.zones[0]?.project || payload.blocks[0]?.project_id;
     if (!projectId || !newPhaseName.trim()) return;
-    
+
     setIsAddingPhase(true);
     try {
       await projectsApi.createPhase({
@@ -375,7 +383,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
 
   // ── Empty State — no zones or phases yet ───────────────────────────────────
   // ── Split-pane layout computation ─────────────────────────────────────────
-  const NAV_W = isSidebarCollapsed ? 80 : 280;
+  const NAV_W = isSidebarCollapsed ? 48 : 185;
   const totalWidth = typeof window !== "undefined" ? window.innerWidth - NAV_W : 1160;
   const MIN_TASK_W = 420;
   const MIN_KANBAN_W = 400;
@@ -408,16 +416,16 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   if (!loading && payload && (payload.zones.length === 0 || payload.phases.length === 0)) {
     if (showWizard) {
       return (
-        <MatrixOnboardingWizard 
-          projectUid={projectUid} 
+        <MatrixOnboardingWizard
+          projectUid={projectUid}
           onComplete={() => {
             setShowWizard(false);
             refreshMatrix();
-          }} 
+          }}
         />
       );
     }
-    
+
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center gap-4 glass-card bg-surface-100/50 backdrop-blur-md relative overflow-hidden p-8">
         <div className="absolute inset-0 arch-grid opacity-10 pointer-events-none" />
@@ -429,7 +437,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
           </p>
         </div>
         {!readOnly && userRole === "admin" && (
-          <button 
+          <button
             onClick={() => setShowWizard(true)}
             className="mt-2 relative group overflow-hidden h-11 px-8 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_30px_-10px_var(--accent)] z-10"
           >
@@ -460,8 +468,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   }
 
   const { zones, phases } = payload!;
-  const ZONE_COL_W = 104; // px per zone column (was 128px)
-  const PHASE_ROW_H = 72;  // px per phase row (was 110px)
+  const ZONE_COL_W = 124; // px per zone column (was 128px)
+  const PHASE_ROW_H = 124;  // px per phase row (making it a square)
   const HEADER_W = 140;    // px for phase label column (was 180px)
 
   return (
@@ -470,10 +478,9 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
       <div className="relative">
         <div
           ref={scrollRef}
-          className="overflow-auto rounded-xl border border-surface-200 bg-surface-100 shadow-sm"
-          style={{ maxHeight: "75vh" }}
+          className="overflow-x-auto overflow-y-visible rounded-xl border border-surface-200 bg-surface-100 shadow-sm"
         >
-          <table className="border-collapse" style={{ minWidth: HEADER_W + zones.length * ZONE_COL_W }}>
+          <table className="border-collapse table-fixed w-max" style={{ width: HEADER_W + (zones.length + (!readOnly && userRole === "admin" ? 1 : 0)) * ZONE_COL_W, minWidth: HEADER_W + (zones.length + (!readOnly && userRole === "admin" ? 1 : 0)) * ZONE_COL_W, maxWidth: HEADER_W + (zones.length + (!readOnly && userRole === "admin" ? 1 : 0)) * ZONE_COL_W }}>
             <thead className="sticky top-0 z-20 bg-surface-100 shadow-sm">
               <tr>
                 {/* Corner cell */}
@@ -481,7 +488,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                   className="sticky left-0 z-30 bg-surface-100/90 backdrop-blur-md border-b border-r border-surface-200 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] text-center shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)]"
                   style={{ width: HEADER_W, minWidth: HEADER_W, height: 52 }}
                 >
-                  <div className="flex flex-col items-center justify-center h-full">
+                  <div className="flex flex-row items-center justify-center h-full">
                     <span className="text-text-secondary">Phase</span>
                     <span className="mx-2 text-surface-300 dark:text-surface-600">/</span>
                     <span className="text-text-secondary">Zone</span>
@@ -516,8 +523,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                         </div>
                       ) : (
                         <div className="flex items-center justify-center gap-1">
-                          <p 
-                            className="text-[10px] font-black text-foreground uppercase tracking-[0.1em] truncate cursor-pointer hover:text-accent" 
+                          <p
+                            className="text-[10px] font-black text-foreground uppercase tracking-[0.1em] truncate cursor-pointer hover:text-accent"
                             title="Click to edit zone name"
                             onClick={() => {
                               if (!readOnly && userRole === "admin") {
@@ -541,11 +548,10 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                                 onClick={(e) => { e.stopPropagation(); handleDeleteZone(zone); }}
                                 disabled={hasStartedTasks}
                                 title={hasStartedTasks ? "Cannot delete zone: tasks have already been started" : "Delete Zone (no tasks started)"}
-                                className={`p-0.5 rounded ${
-                                  hasStartedTasks 
-                                    ? "text-surface-300 cursor-not-allowed" 
+                                className={`p-0.5 rounded ${hasStartedTasks
+                                    ? "text-surface-300 cursor-not-allowed"
                                     : "text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
-                                }`}
+                                  }`}
                               >
                                 <Trash2 className="w-2.5 h-2.5" />
                               </button>
@@ -559,7 +565,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                     </th>
                   );
                 })}
-                
+
                 {/* Add Zone Button Column */}
                 {!readOnly && userRole === "admin" && (
                   <th
@@ -568,8 +574,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                   >
                     {showAddZoneInput ? (
                       <div className="flex flex-col gap-1 p-1">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           autoFocus
                           value={newZoneName}
                           onChange={(e) => setNewZoneName(e.target.value)}
@@ -610,10 +616,10 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                   <tr key={phase.id}>
                     {/* Phase label — sticky left */}
                     <td
-                      className="sticky left-0 z-10 bg-surface-100/90 backdrop-blur-md border-b border-r border-surface-200 px-4 hover:bg-surface-200/50 transition-colors shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)] group"
-                      style={{ width: HEADER_W, minWidth: HEADER_W, height: PHASE_ROW_H }}
+                      className="sticky left-0 z-10 bg-surface-100/90 backdrop-blur-md border-b border-r border-surface-200 shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)] p-0 align-middle"
+                      style={{ width: HEADER_W, minWidth: HEADER_W, maxWidth: HEADER_W, height: PHASE_ROW_H }}
                     >
-                      <div className="flex flex-col h-full justify-center">
+                      <div className="relative w-full h-[124px] px-4 py-2 flex flex-col justify-center overflow-hidden">
                         {editingPhaseId === phase.id ? (
                           <div className="flex items-center gap-1 my-1">
                             <input
@@ -633,7 +639,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                           <div className="flex items-center justify-between gap-1 mb-2">
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-[0_0_8px_currentColor]" style={{ backgroundColor: phase.color_hex, color: phase.color_hex }} />
-                              <span 
+                              <span
                                 className="text-[11px] font-black text-foreground uppercase tracking-[0.1em] leading-tight line-clamp-2 cursor-pointer hover:text-accent"
                                 title="Click to edit phase name"
                                 onClick={() => {
@@ -659,11 +665,10 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                                   onClick={(e) => { e.stopPropagation(); handleDeletePhase(phase); }}
                                   disabled={hasStartedTasksInPhase}
                                   title={hasStartedTasksInPhase ? "Cannot delete phase: tasks have already been started" : "Delete Phase (no tasks started)"}
-                                  className={`p-1 rounded ${
-                                    hasStartedTasksInPhase 
-                                      ? "text-surface-300 cursor-not-allowed" 
+                                  className={`p-1 rounded ${hasStartedTasksInPhase
+                                      ? "text-surface-300 cursor-not-allowed"
                                       : "text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
-                                  }`}
+                                    }`}
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </button>
@@ -675,7 +680,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                         <div className="text-[10px] font-bold text-text-secondary tabular-nums">
                           {phaseDone}/{phaseTotal} zones done
                         </div>
-                        <div className="h-1 bg-surface-100 dark:bg-surface-700 rounded-full mt-1.5 overflow-hidden">
+                        <div className="h-1 bg-surface-100 dark:bg-surface-700 rounded-full mt-1.5 overflow-hidden shrink-0">
                           <div
                             className="h-full bg-emerald-400 rounded-full transition-all"
                             style={{ width: phaseTotal > 0 ? `${(phaseDone / phaseTotal) * 100}%` : "0%" }}
@@ -691,34 +696,38 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                       const block = getBlock(zone.id, phase.id);
                       const cellId = `${zone.id}-${phase.id}`;
                       const isLoading = loadingBlockId === block?.id || loadingCellId === cellId;
-                      
+
                       return (
                         <td
                           key={zone.id}
-                          className="border-b border-r border-surface-100 border-surface-200/50 p-1.5 align-top"
-                          style={{ width: ZONE_COL_W, minWidth: ZONE_COL_W, height: PHASE_ROW_H }}
+                          className="border-b border-r border-surface-100 border-surface-200/50 p-0 align-middle"
+                          style={{ width: ZONE_COL_W, minWidth: ZONE_COL_W, maxWidth: ZONE_COL_W, height: PHASE_ROW_H }}
                         >
-                          {isLoading ? (
-                            <div className="h-[88px] rounded-xl bg-surface-50 dark:bg-surface-800/50 flex items-center justify-center">
-                              <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
-                            </div>
-                          ) : (
-                            <MatrixBlockCell
-                              block={block}
-                              zoneName={zone.name}
-                              isManager={!readOnly && userRole === "admin"}
-                              onClick={block ? () => handleCellClick(block, zone, phase) : (!readOnly ? () => handleEmptyCellClick(zone, phase) : undefined)}
-                              onUnlock={!readOnly ? handleUnlockBlock : undefined}
-                              onLock={!readOnly ? handleLockBlock : undefined}
-                            />
-                          )}
+                          <div className="w-full h-[124px] flex items-center justify-center overflow-hidden">
+                            {isLoading ? (
+                              <div className="w-[112px] min-w-[112px] max-w-[112px] h-[112px] min-h-[112px] max-h-[112px] aspect-square rounded-xl bg-surface-50 dark:bg-surface-800/50 flex items-center justify-center overflow-hidden">
+                                <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                              </div>
+                            ) : (
+                              <MatrixBlockCell
+                                block={block}
+                                zoneName={zone.name}
+                                isManager={!readOnly && userRole === "admin"}
+                                onClick={block ? () => handleCellClick(block, zone, phase) : (!readOnly ? () => handleEmptyCellClick(zone, phase) : undefined)}
+                                onUnlock={!readOnly ? handleUnlockBlock : undefined}
+                                onLock={!readOnly ? handleLockBlock : undefined}
+                              />
+                            )}
+                          </div>
                         </td>
                       );
                     })}
-                    
+
                     {/* Empty cell under Add Zone Button */}
                     {!readOnly && userRole === "admin" && (
-                      <td className="border-b border-surface-100 border-surface-200/50 bg-surface-50/30 dark:bg-surface-800/30" />
+                      <td className="border-b border-surface-100 border-surface-200/50 bg-surface-50/30 dark:bg-surface-800/30 p-0">
+                        <div className="w-full h-[124px]"></div>
+                      </td>
                     )}
                   </tr>
                 );
@@ -730,8 +739,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                   <td className="border-r border-surface-200 p-4 sticky left-0 z-10 bg-surface-100/90 backdrop-blur-md shadow-[2px_0_10px_-5px_rgba(0,0,0,0.1)]">
                     {showAddPhaseInput ? (
                       <div className="flex flex-col gap-1">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           autoFocus
                           value={newPhaseName}
                           onChange={(e) => setNewPhaseName(e.target.value)}
@@ -831,6 +840,8 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
             onTaskSelect={setSelectedTask}
             userRole={userRole}
             projectUid={projectUid}
+            readOnly={readOnly}
+            onUnlockClick={() => setConfirmLockAction({ type: 'unlock', blockId: selectedBlock.id })}
           />
         )}
       </AnimatePresence>
@@ -886,6 +897,78 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
             }}
             readOnly={readOnly}
           />
+        )}
+      </AnimatePresence>
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {confirmLockAction && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+              onClick={() => setConfirmLockAction(null)}
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-surface-50/90 dark:bg-surface-900/90 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl p-5 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] max-w-xs w-full relative z-10 flex flex-col"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                  confirmLockAction.type === 'lock' 
+                    ? 'bg-amber-500/10 text-amber-500' 
+                    : 'bg-emerald-500/10 text-emerald-500'
+                }`}>
+                  {confirmLockAction.type === 'lock' ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  )}
+                </div>
+                <h3 className="text-[15px] font-black text-foreground tracking-tight">
+                  {confirmLockAction.type === 'lock' ? "Lock Block?" : "Force Activate?"}
+                </h3>
+              </div>
+              
+              <p className="text-xs text-text-secondary mb-5 font-medium leading-relaxed">
+                {confirmLockAction.type === 'lock'
+                  ? "Are you sure you want to re-lock this block? You will not be able to interact with it until it is unlocked again."
+                  : "Are you sure you want to manually activate this block? This overrides the strict phase progression rules."}
+              </p>
+              
+              <div className="flex gap-2 w-full justify-end">
+                <button
+                  onClick={() => setConfirmLockAction(null)}
+                  disabled={lockActionLoading}
+                  className="px-4 py-2 bg-surface-200/50 hover:bg-surface-200 text-text-secondary hover:text-foreground font-bold uppercase tracking-widest text-[9px] rounded-lg transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmBlockAction}
+                  disabled={lockActionLoading}
+                  className={`px-4 py-2 font-bold uppercase tracking-widest text-[9px] rounded-lg text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:scale-105 active:scale-95 shadow-md ${
+                    confirmLockAction.type === 'lock' 
+                      ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25' 
+                      : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/25'
+                  }`}
+                >
+                  {lockActionLoading ? (
+                    <div className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  ) : confirmLockAction.type === 'lock' ? "Lock" : "Activate"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

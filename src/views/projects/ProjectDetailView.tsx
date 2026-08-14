@@ -48,7 +48,8 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
     updateProjectStatus
   } = useProjectStore();
 
-  const { canManageProject } = usePermissions();
+  const { canManageProject, isProjectCreator } = usePermissions();
+  const isCreator = isProjectCreator(project);
   const { setProjectContext, recordProjectAccess } = useProjectNavStore();
   
   const [matrixView, setMatrixView] = useState<"grid" | "feed">("grid");
@@ -312,7 +313,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
         )}
       </div>
 
-      {showAssignModal && (
+      {showAssignModal && isCreator && (
         <ManageProjectAccessModal
           project={project}
           onClose={() => setShowAssignModal(false)}

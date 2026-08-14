@@ -543,8 +543,9 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
   useEstimationAutoSave();
 
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [rightPanelWidth, setRightPanelWidth] = useState(480);
+  const [rightPanelWidth, setRightPanelWidth] = useState(330);
   const [isResizing, setIsResizing] = useState(false);
+
   
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   
@@ -729,7 +730,7 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
               animate={{ width: typeof window !== "undefined" && window.innerWidth < 768 ? "90%" : rightPanelWidth, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={isResizing ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }}
-              className={`fixed md:relative inset-y-0 right-0 z-50 md:z-20 h-full bg-surface-100/95 backdrop-blur-3xl border-l border-surface-200 shadow-xl flex flex-col shrink-0 min-w-0 max-w-[90vw] md:max-w-none ${isResizing ? 'select-none pointer-events-none' : ''}`}
+              className={`fixed md:relative inset-y-0 right-0 z-50 md:z-20 h-full bg-surface-100/95 backdrop-blur-3xl border-l border-surface-200 shadow-xl flex flex-col shrink-0 min-w-0 max-w-[90vw] md:max-w-[400px] ${isResizing ? 'select-none pointer-events-none' : ''}`}
             >
               {/* Resize Handle (Desktop Only) */}
               <div 
@@ -741,8 +742,9 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
                   const startWidth = rightPanelWidth;
                   const handleMove = (moveEvent: PointerEvent) => {
                     const delta = startX - moveEvent.clientX;
-                    setRightPanelWidth(Math.max(320, Math.min(750, startWidth + delta)));
+                    setRightPanelWidth(Math.max(260, Math.min(420, startWidth + delta)));
                   };
+
                   const handleUp = () => {
                     setIsResizing(false);
                     window.removeEventListener("pointermove", handleMove);
