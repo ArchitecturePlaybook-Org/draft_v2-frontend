@@ -364,14 +364,18 @@ export const DataHubTab: React.FC = () => {
                           </span>
                         </div>
                       ) : (asset.file?.toLowerCase().endsWith('.dwg') || asset.file?.toLowerCase().endsWith('.dxf') || asset.title?.toLowerCase().includes('dwg')) ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-amber-500/5 dark:bg-amber-500/10">
-                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center text-xl mb-1 shadow-xs">
-                            📐
+                        asset.thumbnail ? (
+                          <img src={asset.thumbnail} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-amber-500/5 dark:bg-amber-500/10">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center text-xl mb-1 shadow-xs">
+                              📐
+                            </div>
+                            <span className="text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                              400 DPI CAD PNG
+                            </span>
                           </div>
-                          <span className="text-[8px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                            DWG CAD
-                          </span>
-                        </div>
+                        )
                       ) : asset.thumbnail ? (
                         <img src={asset.thumbnail} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       ) : isImageUrl(asset.file) ? (

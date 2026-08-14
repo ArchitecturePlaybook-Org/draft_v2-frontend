@@ -186,7 +186,7 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
               }}
               className="relative"
             >
-              <ProtectedFloorPlanViewer assetId={asset.id} versionKey={asset.updated_at}>
+              <ProtectedFloorPlanViewer assetId={asset.id} versionKey={asset.updated_at} lazy={false}>
                 {/* Render Pinned Contractor Revision Cloud Boxes (Click to Select) */}
                 <div className="absolute inset-0 pointer-events-auto z-30">
                   {markups.map((m, idx) => {

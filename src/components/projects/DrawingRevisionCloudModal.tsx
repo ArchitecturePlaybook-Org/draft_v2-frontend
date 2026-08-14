@@ -316,7 +316,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
             }}
             className="relative"
           >
-            <ProtectedFloorPlanViewer assetId={asset.id} versionKey={asset.updated_at}>
+            <ProtectedFloorPlanViewer assetId={asset.id} versionKey={asset.updated_at} lazy={false}>
               {/* Drag Selection Overlay */}
               {isDrawingCloud && (
                 <div
