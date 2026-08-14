@@ -311,6 +311,48 @@ export const projectsApi = {
     return res;
   },
 
+  // ── Drawing Markups & Revision Annotations ─────────────────────────────────
+  getDrawingMarkups: async (params?: { canonical_uid?: string; project_uid?: string; task_uid?: string; status?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.canonical_uid) query.append("canonical_uid", params.canonical_uid);
+    if (params?.project_uid) query.append("project_uid", params.project_uid);
+    if (params?.task_uid) query.append("task_uid", params.task_uid);
+    if (params?.status) query.append("status", params.status);
+
+    const url = `/api/v1/projects/drawing-markups/?${query.toString()}`;
+    const res = await fetchFromBff<any>(url, { method: "GET" });
+    return unpackArray<any>(res);
+  },
+
+  createDrawingMarkup: async (data: {
+    canonical_uid: string;
+    asset?: number;
+    project_uid?: string;
+    task_uid?: string;
+    author_name?: string;
+    x_percent: number;
+    y_percent: number;
+    width_percent?: number;
+    height_percent?: number;
+    title: string;
+    description?: string;
+    category?: string;
+  }) => {
+    const res = await fetchFromBff<any>(`/api/v1/projects/drawing-markups/`, {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+    return res;
+  },
+
+  updateDrawingMarkupStatus: async (id: number, status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED") => {
+    const res = await fetchFromBff<any>(`/api/v1/projects/drawing-markups/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    });
+    return res;
+  },
+
 
 
   // ── Field Diary ───────────────────────────────────────────────────────────

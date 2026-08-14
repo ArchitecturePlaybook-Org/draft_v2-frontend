@@ -3,17 +3,20 @@ import React, { useState, useEffect, useRef } from "react";
 import { ProjectAsset, SitePhoto } from "@/types/projects";
 import { ProtectedFloorPlanViewer } from "./ProtectedFloorPlanViewer";
 import { CellPhotoDrawer } from "./CellPhotoDrawer";
+import { DrawingRevisionCloudModal } from "./DrawingRevisionCloudModal";
 
 interface FloorPlanGridViewerProps {
   asset: ProjectAsset;
   projectId?: number;
+  taskUid?: string;
   onClose?: () => void;
   onRefresh: () => void;
   inline?: boolean;
   onToggleFullScreen?: () => void;
 }
 
-export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inline = false, onToggleFullScreen }: FloorPlanGridViewerProps) {
+export function FloorPlanGridViewer({ asset, projectId, taskUid, onClose, onRefresh, inline = false, onToggleFullScreen }: FloorPlanGridViewerProps) {
+  const [showCloudModal, setShowCloudModal] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [showInstructions, setShowInstructions] = useState(true);
   const [showGpsOverlay, setShowGpsOverlay] = useState(true);
@@ -105,6 +108,13 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
             }`}
           >
             <span>📍</span> GPS Pin Map
+          </button>
+          <button
+            onClick={() => setShowCloudModal(true)}
+            className="px-3 h-8 text-[10px] font-black uppercase tracking-wider rounded-lg border transition-all flex items-center gap-1.5 shrink-0 bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/20"
+            title="Open Revision Cloud area selection tool"
+          >
+            <span>☁️</span> Revision Clouds
           </button>
           <div className="flex bg-surface-100 p-1 rounded-xl shrink-0">
             <button onClick={() => handleZoom(-0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-100 border-surface-200 rounded-lg transition-all font-bold text-lg">－</button>
@@ -247,7 +257,14 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
         />
       </div>
 
-
+      {showCloudModal && (
+        <DrawingRevisionCloudModal
+          asset={asset}
+          taskUid={taskUid}
+          onClose={() => setShowCloudModal(false)}
+          onRefresh={onRefresh}
+        />
+      )}
     </div>
   );
 }

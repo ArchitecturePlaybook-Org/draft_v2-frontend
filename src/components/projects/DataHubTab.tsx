@@ -17,6 +17,12 @@ import { convertPdfToJpegSheets, ExtractedPdfSheet } from "@/lib/pdf/pdfToJpeg";
 import { PdfMultiSheetModal } from "./PdfMultiSheetModal";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { DrawingMarkup } from "@/types/projects";
+import { DrawingRevisionCloudModal } from "./DrawingRevisionCloudModal";
+import { ContractorRevisionReviewModal } from "./ContractorRevisionReviewModal";
+import { Bell, MapPin, X, ExternalLink, Cloud } from "lucide-react";
+import { toast } from "sonner";
+
 export const DataHubTab: React.FC = () => {
   const { project, activeHubCategory, setActiveHubCategory, fetchProject } = useProjectStore();
 
@@ -30,10 +36,23 @@ export const DataHubTab: React.FC = () => {
   const [historyAsset, setHistoryAsset] = useState<ProjectAsset | null>(null);
   const [manageLinksAsset, setManageLinksAsset] = useState<ProjectAsset | null>(null);
   const [surveyAsset, setSurveyAsset] = useState<ProjectAsset | null>(null);
+  const [cloudModalAsset, setCloudModalAsset] = useState<ProjectAsset | null>(null);
   const [viewerAsset, setViewerAsset] = useState<ProjectAsset | null>(null);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
   const [isCreate3DModalOpen, setIsCreate3DModalOpen] = useState(false);
   const [isCreateSketchModalOpen, setIsCreateSketchModalOpen] = useState(false);
+
+  // Drawing Markups & Contractor Revision Notifications State
+  const [markups, setMarkups] = useState<DrawingMarkup[]>([]);
+  const [showContractorMarkupsModal, setShowContractorMarkupsModal] = useState(false);
+
+  React.useEffect(() => {
+    if (project?.uid) {
+      projectsApi.getDrawingMarkups({ project_uid: project.uid }).then(data => setMarkups(data || [])).catch(() => {});
+    }
+  }, [project?.uid]);
+
+  const openMarkups = useMemo(() => markups.filter(m => m.status === "OPEN"), [markups]);
 
   // PDF Multi-Sheet Extractor Modal State
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
@@ -139,6 +158,38 @@ export const DataHubTab: React.FC = () => {
 
   return (
     <>
+      {/* Contractor Revisions Notification Banner */}
+      {openMarkups.length > 0 && (
+        <div className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-500 text-background font-black shrink-0 flex items-center justify-center">
+              <Bell className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-sm font-black text-amber-600 dark:text-amber-400">
+                  {openMarkups.length} Contractor Revision Request{openMarkups.length > 1 ? "s" : ""} Pinned on 2D Blueprints
+                </h4>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-background font-black text-[10px] uppercase tracking-wider">
+                  Action Required
+                </span>
+              </div>
+              <p className="text-xs text-surface-600 dark:text-surface-300 font-medium mt-0.5">
+                Contractors have submitted drawing markups, change notes, and blueprint revision clouds on project tasks.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowContractorMarkupsModal(true)}
+            className="px-4 py-2 bg-amber-500 text-background font-black text-xs uppercase tracking-wider rounded-xl hover:opacity-90 transition-all shrink-0 shadow-xs flex items-center gap-2"
+          >
+            <Cloud className="w-4 h-4" />
+            <span>View Contractor Revisions ({openMarkups.length})</span>
+          </button>
+        </div>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -566,6 +617,111 @@ export const DataHubTab: React.FC = () => {
             setExtractedSheets([]);
           }}
           onConfirmUpload={handleUploadExtractedSheets}
+        />
+      )}
+
+      {/* Contractor Revisions Modal */}
+      {showContractorMarkupsModal && (
+        <div className="fixed inset-0 z-[100] bg-surface-950/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-surface-card dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[85vh] flex flex-col animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-surface-200 dark:border-surface-800 pb-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <Cloud className="w-5 h-5 text-red-500" />
+                <div>
+                  <h3 className="text-sm font-black text-primary uppercase tracking-tight">Contractor Revision Clouds & Requests</h3>
+                  <p className="text-[10px] text-surface-400">Contractor change requests and annotation clouds on 2D blueprints</p>
+                </div>
+              </div>
+              <button onClick={() => setShowContractorMarkupsModal(false)} className="text-surface-400 hover:text-primary">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+              {markups.length === 0 ? (
+                <div className="py-12 text-center text-surface-400">
+                  <p className="text-xs font-bold">No contractor revision requests found.</p>
+                </div>
+              ) : (
+                markups.map((m, idx) => (
+                  <div
+                    key={m.id}
+                    className="p-4 rounded-2xl border border-surface-200/80 dark:border-surface-800 bg-surface-50 dark:bg-surface-950/60 space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-lg bg-red-500/20 text-red-400 font-mono text-[10px] font-black">
+                          ☁️ Cloud #{idx + 1}
+                        </span>
+                        <span className="text-xs font-black text-accent uppercase">{m.category}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                        m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                      }`}>
+                        {m.status}
+                      </span>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-primary">{m.title}</h4>
+
+                    {m.description && (
+                      <p className="text-xs text-surface-600 dark:text-surface-300 font-medium whitespace-pre-wrap bg-surface-100/50 dark:bg-surface-900/50 p-2.5 rounded-xl border border-surface-200/50 dark:border-surface-800">
+                        {m.description}
+                      </p>
+                    )}
+
+                      <div className="flex items-center justify-between text-[10px] text-surface-400 pt-1 flex-wrap gap-2">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-primary">👤 Submitter: {m.author_name && m.author_name !== "Contractor" ? m.author_name : (m.author_username || "Demo User")}</span>
+                          {m.task_title && <span className="text-accent font-semibold">🏗️ Task: {m.task_title}</span>}
+                        </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            const nextStatus = m.status === "OPEN" ? "RESOLVED" : "OPEN";
+                            await projectsApi.updateDrawingMarkupStatus(m.id, nextStatus as any);
+                            toast.success(`Updated status to ${nextStatus}`);
+                            const updated = await projectsApi.getDrawingMarkups({ project_uid: project.uid });
+                            setMarkups(updated || []);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
+                            m.status === "RESOLVED" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500 text-white"
+                          }`}
+                        >
+                          {m.status === "RESOLVED" ? "Re-Open" : "Mark Resolved"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowContractorMarkupsModal(false);
+                            const matchingAsset = project?.assets?.find(a => a.canonical_uid === m.canonical_uid || a.id === m.asset);
+                            if (matchingAsset) {
+                              setCloudModalAsset(matchingAsset);
+                            } else if (project?.assets && project.assets.length > 0) {
+                              const planAsset = project.assets.find(a => a.category === "2d_plan") || project.assets[0];
+                              setCloudModalAsset(planAsset);
+                            }
+                          }}
+                          className="px-3 py-1 bg-red-500 text-white font-black text-[10px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all flex items-center gap-1 shadow-xs"
+                        >
+                          <span>Open Revision Cloud</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cloudModalAsset && (
+        <ContractorRevisionReviewModal
+          asset={cloudModalAsset}
+          onClose={() => setCloudModalAsset(null)}
+          onRefresh={() => fetchProject(project.uid)}
         />
       )}
     </>
