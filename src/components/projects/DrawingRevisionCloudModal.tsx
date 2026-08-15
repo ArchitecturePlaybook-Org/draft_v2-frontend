@@ -3,8 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ProjectAsset, DrawingMarkup } from "@/types/projects";
 import { ProtectedFloorPlanViewer } from "./ProtectedFloorPlanViewer";
+import { ArchitecturalRevisionCloudCallout } from "./ArchitecturalRevisionCloudCallout";
+import { ReopenReasonModal } from "./ReopenReasonModal";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { Cloud, X, Layers, Plus, CheckCircle2, MapPin, Upload, FileCheck, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -29,15 +32,16 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
   // ── Revision Cloud Markups State ──────────────────────────────────────────
   const [markups, setMarkups] = useState<DrawingMarkup[]>([]);
   const [isDrawingCloud, setIsDrawingCloud] = useState(true);
-  
+
   // Drag to select area coordinates refs for instant tracking
   const isDraggingAreaRef = useRef(false);
   const areaStartRef = useRef<{ x: number; y: number } | null>(null);
   const [currentArea, setCurrentArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  
+
   // Confirmed pending area for modal
   const [pendingArea, setPendingArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [activeCloudMarkup, setActiveCloudMarkup] = useState<DrawingMarkup | null>(null);
+  const [reopenTargetMarkup, setReopenTargetMarkup] = useState<DrawingMarkup | null>(null);
   const [showCloudDrawer, setShowCloudDrawer] = useState(false);
 
   // Form inputs
@@ -79,6 +83,10 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
+      // If modal is active, allow normal scrolling inside modal without zooming canvas
+      if (showCloudDrawer || activeCloudMarkup || pendingArea || reopenTargetMarkup) {
+        return;
+      }
       e.preventDefault();
       const delta = e.deltaY < 0 ? 0.2 : -0.2;
       const newZoom = Math.min(Math.max(zoom + delta, 1), 5);
@@ -88,7 +96,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
 
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => container.removeEventListener("wheel", handleWheel);
-  }, [zoom]);
+  }, [zoom, showCloudDrawer, activeCloudMarkup, pendingArea, reopenTargetMarkup]);
 
   // Pan handlers when NOT drawing area
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -203,17 +211,25 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
     }
   };
 
+  const handleReopenCloudWithReason = async (reason: string) => {
+    if (!reopenTargetMarkup) return;
+    const nowStr = format(new Date(), "dd MMM yyyy, HH:mm");
+    const reopenEntry = `\n\n🔄 [Re-opened on ${nowStr} by ${userRealName || "User"}]:\n${reason}`;
+    const updatedDesc = (reopenTargetMarkup.description || "") + reopenEntry;
+
+    await projectsApi.updateDrawingMarkupStatus(reopenTargetMarkup.id, "OPEN", updatedDesc);
+    toast.success("Revision request re-opened with reason attached!");
+    setReopenTargetMarkup(null);
+    setActiveCloudMarkup(null);
+    await loadMarkups();
+    if (onRefresh) onRefresh();
+  };
+
   const handleResolveCloud = async (markupId: number, currentStatus: string) => {
     if (currentStatus === "RESOLVED") {
-      // Re-open
-      try {
-        await projectsApi.updateDrawingMarkupStatus(markupId, "OPEN");
-        toast.success("Revision request re-opened");
-        await loadMarkups();
-        setActiveCloudMarkup(null);
-        if (onRefresh) onRefresh();
-      } catch {
-        toast.error("Failed to update status");
+      const target = markups.find(m => m.id === markupId) || activeCloudMarkup;
+      if (target) {
+        setReopenTargetMarkup(target);
       }
       return;
     }
@@ -247,11 +263,11 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-surface-950/90 backdrop-blur-md flex flex-col no-print">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col no-print">
       {/* Header Bar */}
-      <div className="min-h-16 px-4 sm:px-6 py-3 bg-surface-900 border-b border-surface-800 flex items-center justify-between z-40 shrink-0">
+      <div className="min-h-16 px-4 sm:px-6 py-3 bg-surface-50 border-b border-surface-100 flex items-center justify-between z-40 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <button onClick={onClose} className="p-2 hover:bg-surface-800 rounded-xl transition-colors text-white text-lg shrink-0">←</button>
+          <button onClick={onClose} className="p-2 hover:bg-surface-100 rounded-xl transition-colors text-white text-lg shrink-0">←</button>
           <div className="min-w-0">
             <h2 className="font-black text-white text-sm uppercase tracking-tight truncate">{asset.title}</h2>
             <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest truncate">
@@ -264,11 +280,10 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
           {/* Mode Toggle Button */}
           <button
             onClick={() => setIsDrawingCloud(prev => !prev)}
-            className={`px-3.5 h-8 text-[10px] font-black uppercase tracking-wider rounded-xl border transition-all flex items-center gap-1.5 shrink-0 ${
-              isDrawingCloud 
-                ? "bg-red-500 text-white border-red-400 shadow-lg animate-pulse" 
-                : "bg-surface-800 text-surface-300 border-surface-700 hover:border-red-400"
-            }`}
+            className={`px-3.5 h-8 text-[10px] font-black uppercase tracking-wider rounded-xl border transition-all flex items-center gap-1.5 shrink-0 ${isDrawingCloud
+              ? "bg-red-500 text-white border-red-400 shadow-lg animate-pulse"
+              : "bg-surface-100 text-surface-300 border-surface-200 hover:border-red-400"
+              }`}
           >
             <Cloud className="w-4 h-4" />
             <span>{isDrawingCloud ? "Drag Area Mode Active" : "☁️ Enable Area Drag Mode"}</span>
@@ -278,7 +293,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
           {markups.length > 0 && (
             <button
               onClick={() => setShowCloudDrawer(prev => !prev)}
-              className="px-3 h-8 text-[10px] font-black uppercase tracking-wider rounded-xl bg-surface-800 text-white border border-surface-700 hover:border-accent shrink-0 flex items-center gap-1.5"
+              className="px-3 h-8 text-[10px] font-black uppercase tracking-wider rounded-xl bg-surface-100 text-white border border-surface-200 hover:border-accent shrink-0 flex items-center gap-1.5"
             >
               <Layers className="w-3.5 h-3.5 text-accent" />
               <span>Clouds ({markups.length})</span>
@@ -286,10 +301,10 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
           )}
 
           {/* Zoom controls */}
-          <div className="flex bg-surface-800 p-1 rounded-xl border border-surface-700">
-            <button onClick={() => handleZoom(-0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-700 text-white rounded-lg transition-all font-bold text-lg">－</button>
+          <div className="flex bg-surface-100 p-1 rounded-xl border border-surface-200">
+            <button onClick={() => handleZoom(-0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-200 text-white rounded-lg transition-all font-bold text-lg">－</button>
             <div className="px-2 sm:px-3 flex items-center text-[10px] font-black text-white uppercase whitespace-nowrap">{(zoom * 100).toFixed(0)}%</div>
-            <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-700 text-white rounded-lg transition-all font-bold text-lg">＋</button>
+            <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-200 text-white rounded-lg transition-all font-bold text-lg">＋</button>
           </div>
 
           <button onClick={onClose} className="px-4 h-9 bg-accent text-background font-black text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shadow-md">
@@ -299,7 +314,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
       </div>
 
       {/* Interactive Blueprint Canvas */}
-      <div className="flex-1 relative overflow-hidden bg-surface-950">
+      <div className="flex-1 relative overflow-hidden bg-background">
         <div
           ref={containerRef}
           className="w-full h-full flex items-center justify-center"
@@ -347,53 +362,107 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
               {/* Render Architectural Revision Cloud Callout Boxes */}
               <div className="absolute inset-0 pointer-events-auto z-30">
                 {markups.map((m, idx) => (
-                  <div
+                  <ArchitecturalRevisionCloudCallout
                     key={m.id}
-                    style={{
-                      left: `${m.x_percent}%`,
-                      top: `${m.y_percent}%`,
-                      width: `${m.width_percent || 16}%`,
-                      height: `${m.height_percent || 12}%`,
-                    }}
+                    markup={m}
+                    index={idx}
+                    isSelected={activeCloudMarkup?.id === m.id}
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveCloudMarkup(m);
                     }}
-                    className={`absolute border-2 border-dashed rounded-2xl cursor-pointer group shadow-2xl flex flex-col justify-between p-2 transition-all hover:scale-[1.03] ${
-                      m.status === "RESOLVED"
-                        ? "border-emerald-500/80 bg-emerald-500/10 dark:bg-emerald-500/15"
-                        : "border-red-500 bg-red-500/20 dark:bg-red-500/25 shadow-red-500/30"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md ${
-                        m.status === "RESOLVED" ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
-                      }`}>
-                        <span>☁️</span>
-                        <span>Cloud #{idx + 1}</span>
-                      </span>
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
-                        m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500 text-background"
-                      }`}>
-                        {m.status}
-                      </span>
-                    </div>
-
-                    <div className="bg-surface-900/90 text-white px-2 py-1 rounded-lg text-[9px] font-bold truncate border border-white/10 shadow-md">
-                      {m.title}
-                    </div>
-                  </div>
+                  />
                 ))}
               </div>
             </ProtectedFloorPlanViewer>
           </div>
+
+          {/* All Revision Clouds List Modal Dialog */}
+          {showCloudDrawer && (
+            <div
+              className="fixed inset-0 z-[110] bg-black flex items-center justify-center p-4"
+              onWheel={(e) => e.stopPropagation()}
+            >
+              <div
+                className="bg-surface-50 border border-surface-100 rounded-3xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+                onWheel={(e) => e.stopPropagation()}
+              >
+                <div className="p-4 border-b border-surface-100 flex items-center justify-between bg-background">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-accent" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-white">All Revision Clouds ({markups.length})</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowCloudDrawer(false)}
+                    className="w-7 h-7 rounded-lg bg-surface-100 text-surface-400 hover:text-white flex items-center justify-center transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-surface-50">
+                  {markups.length === 0 ? (
+                    <div className="py-12 text-center text-surface-400">
+                      <Cloud className="w-8 h-8 mx-auto opacity-40 mb-2" />
+                      <p className="text-xs font-bold">No revision clouds found on this blueprint.</p>
+                    </div>
+                  ) : (
+                    markups.map((m, idx) => (
+                      <div
+                        key={m.id}
+                        onClick={() => {
+                          setShowCloudDrawer(false);
+                          setActiveCloudMarkup(m);
+                        }}
+                        className="p-4 rounded-2xl bg-background border border-surface-100 hover:border-surface-200 cursor-pointer space-y-2.5 transition-all group shadow-md"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="px-2.5 py-0.5 rounded-lg bg-red-500 text-white font-mono text-[10px] font-black">
+                            ☁️ Cloud #{idx + 1}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${m.status === "RESOLVED" ? "bg-emerald-500 text-white" : "bg-amber-500 text-background"
+                            }`}>
+                            {m.status}
+                          </span>
+                        </div>
+
+                        <h4 className="text-xs font-black text-white group-hover:text-accent transition-colors">{m.title}</h4>
+
+                        {m.description && (
+                          <p className="text-[11px] text-surface-300 bg-surface-50 p-2.5 rounded-xl border border-surface-100 font-medium line-clamp-2">
+                            {m.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center justify-between text-[10px] pt-1.5 border-t border-surface-100 text-surface-400">
+                          <span className="font-bold text-white">👤 {m.author_name || "Contractor"}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleResolveCloud(m.id, m.status);
+                            }}
+                            className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1 shadow-xs ${m.status === "RESOLVED"
+                              ? "bg-amber-500 text-background hover:opacity-90"
+                              : "bg-emerald-500 text-white hover:opacity-90"
+                              }`}
+                          >
+                            {m.status === "RESOLVED" ? "↺ Re-Open" : "✓ Resolve"}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modal to Submit New Revision Cloud */}
         {pendingArea && (
-          <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-surface-900 border border-surface-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95">
-              <div className="flex items-center justify-between border-b border-surface-800 pb-3">
+          <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4">
+            <div className="bg-surface-50 border border-surface-100 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-surface-100 pb-3">
                 <div className="flex items-center gap-2">
                   <Cloud className="w-5 h-5 text-red-500" />
                   <h3 className="text-sm font-black text-white uppercase tracking-tight">New Revision Cloud Request</h3>
@@ -411,7 +480,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
                     value={markupTitle}
                     onChange={e => setMarkupTitle(e.target.value)}
                     placeholder="e.g. Expand doorway opening 20cm left in selected area"
-                    className="w-full bg-surface-950 border border-surface-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-accent"
+                    className="w-full bg-background border border-surface-100 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-accent"
                     required
                   />
                 </div>
@@ -421,7 +490,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
                   <select
                     value={markupCategory}
                     onChange={e => setMarkupCategory(e.target.value)}
-                    className="w-full bg-surface-950 border border-surface-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-accent"
+                    className="w-full bg-background border border-surface-100 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-accent"
                   >
                     <option value="Revision Request">Revision Request</option>
                     <option value="Structural Clarification">Structural Clarification</option>
@@ -437,7 +506,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
                     value={markupDescription}
                     onChange={e => setMarkupDescription(e.target.value)}
                     placeholder="Specify exact dimension changes, beam offsets, or architect approvals needed for this area..."
-                    className="w-full bg-surface-950 border border-surface-800 rounded-xl p-3 text-xs font-medium text-white outline-none focus:border-accent resize-none"
+                    className="w-full bg-background border border-surface-100 rounded-xl p-3 text-xs font-medium text-white outline-none focus:border-accent resize-none"
                   />
                 </div>
 
@@ -445,7 +514,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
                   <button
                     type="button"
                     onClick={() => setPendingArea(null)}
-                    className="flex-1 py-2.5 bg-surface-800 text-surface-300 font-bold text-xs rounded-xl hover:bg-surface-700"
+                    className="flex-1 py-2.5 bg-surface-100 text-surface-300 font-bold text-xs rounded-xl hover:bg-surface-200"
                   >
                     Cancel
                   </button>
@@ -464,15 +533,15 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
 
         {/* Read-Only Review Modal for Active Revision Cloud with Resolution & Optional File Upload */}
         {activeCloudMarkup && (
-          <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-surface-900 border border-surface-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95">
-              <div className="flex items-center justify-between border-b border-surface-800 pb-3">
+          <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4">
+            <div className="bg-surface-50 border border-surface-100 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-surface-100 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded-lg bg-red-500/20 text-red-400 font-mono text-xs font-black">
                     ☁️ Cloud #{markups.findIndex(m => m.id === activeCloudMarkup.id) + 1}
                   </span>
                   <span className="text-xs font-black uppercase text-accent">{activeCloudMarkup.category}</span>
-                  <span className="px-1.5 py-0.5 rounded bg-surface-800 text-[8px] font-black uppercase text-surface-400">
+                  <span className="px-1.5 py-0.5 rounded bg-surface-100 text-[8px] font-black uppercase text-surface-400">
                     Read-Only Review
                   </span>
                 </div>
@@ -485,21 +554,20 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
                 <h4 className="text-base font-black text-white leading-tight">{activeCloudMarkup.title}</h4>
 
                 {activeCloudMarkup.description && (
-                  <p className="bg-surface-950 p-3 rounded-xl border border-surface-800 text-surface-300 font-medium whitespace-pre-wrap">
+                  <p className="bg-background p-3 rounded-xl border border-surface-100 text-surface-300 font-medium whitespace-pre-wrap">
                     {activeCloudMarkup.description}
                   </p>
                 )}
 
-                <div className="grid grid-cols-2 gap-2 text-[10px] bg-surface-950 p-3 rounded-xl border border-surface-800">
+                <div className="grid grid-cols-2 gap-2 text-[10px] bg-background p-3 rounded-xl border border-surface-100">
                   <div>
                     <span className="text-surface-400 block font-bold uppercase">Requested By</span>
                     <span className="font-black text-white">{activeCloudMarkup.author_name || "Contractor"}</span>
                   </div>
                   <div>
                     <span className="text-surface-400 block font-bold uppercase">Current Status</span>
-                    <span className={`font-black uppercase ${
-                      activeCloudMarkup.status === "RESOLVED" ? "text-emerald-400" : "text-amber-400"
-                    }`}>
+                    <span className={`font-black uppercase ${activeCloudMarkup.status === "RESOLVED" ? "text-emerald-400" : "text-amber-400"
+                      }`}>
                       {activeCloudMarkup.status}
                     </span>
                   </div>
@@ -507,7 +575,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
 
                 {/* Optional Upload Revised Blueprint File Option when Resolving */}
                 {activeCloudMarkup.status !== "RESOLVED" && (
-                  <div className="p-3 bg-surface-950 border border-surface-800 rounded-2xl space-y-2">
+                  <div className="p-3 bg-background border border-surface-100 rounded-2xl space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="block text-[10px] font-black uppercase text-accent">
                         Upload Revised Blueprint (Optional)
@@ -529,7 +597,7 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
                       <button
                         type="button"
                         onClick={() => resolveFileInputRef.current?.click()}
-                        className="w-full border-2 border-dashed border-surface-700 hover:border-accent/60 rounded-xl p-3 text-center cursor-pointer transition-all flex items-center justify-center gap-2 bg-surface-900/50"
+                        className="w-full border-2 border-dashed border-surface-200 hover:border-accent/60 rounded-xl p-3 text-center cursor-pointer transition-all flex items-center justify-center gap-2 bg-surface-50/50"
                       >
                         <Upload className="w-4 h-4 text-accent" />
                         <span className="text-xs font-bold text-white">Click to Select Revised Image / PDF</span>
@@ -558,11 +626,10 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
                   type="button"
                   disabled={isResolvingWithFile}
                   onClick={() => handleResolveCloud(activeCloudMarkup.id, activeCloudMarkup.status)}
-                  className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${
-                    activeCloudMarkup.status === "RESOLVED"
-                      ? "bg-amber-500 text-background hover:opacity-90"
-                      : "bg-emerald-500 text-white hover:opacity-90"
-                  }`}
+                  className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${activeCloudMarkup.status === "RESOLVED"
+                    ? "bg-amber-500 text-background hover:opacity-90"
+                    : "bg-emerald-500 text-white hover:opacity-90"
+                    }`}
                 >
                   {isResolvingWithFile ? (
                     <>
@@ -581,6 +648,14 @@ export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }
             </div>
           </div>
         )}
+
+        {/* Re-Open Reason Input Modal */}
+        <ReopenReasonModal
+          isOpen={reopenTargetMarkup !== null}
+          onClose={() => setReopenTargetMarkup(null)}
+          onSubmit={handleReopenCloudWithReason}
+          markupTitle={reopenTargetMarkup?.title}
+        />
       </div>
     </div>
   );

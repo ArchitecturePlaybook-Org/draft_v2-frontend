@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ProjectAsset, DrawingMarkup } from "@/types/projects";
 import { ProtectedFloorPlanViewer } from "./ProtectedFloorPlanViewer";
+import { ArchitecturalRevisionCloudCallout } from "./ArchitecturalRevisionCloudCallout";
+import { ReopenReasonModal } from "./ReopenReasonModal";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 import { Cloud, X, Check, Upload, FileCheck, Loader2, MessageSquare, AlertCircle, Eye } from "lucide-react";
@@ -91,8 +93,28 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
     if (zoom + delta <= 1) setOffset({ x: 0, y: 0 });
   };
 
-  const handleResolveMarkup = async (statusOverride?: "OPEN" | "RESOLVED") => {
+  const [reopenTargetMarkup, setReopenTargetMarkup] = useState<DrawingMarkup | null>(null);
+
+  const handleReopenWithReason = async (reason: string) => {
+    if (!reopenTargetMarkup) return;
+    const nowStr = format(new Date(), "dd MMM yyyy, HH:mm");
+    const reopenEntry = `\n\n🔄 [Re-opened on ${nowStr} by ${userRealName || "User"}]:\n${reason}`;
+    const updatedDesc = (reopenTargetMarkup.description || "") + reopenEntry;
+
+    await projectsApi.updateDrawingMarkupStatus(reopenTargetMarkup.id, "OPEN", updatedDesc);
+    toast.success("Revision request re-opened with reason attached!");
+    setReopenTargetMarkup(null);
+    await loadMarkups();
+    if (onRefresh) onRefresh();
+  };
+
+  const handleResolveMarkup = async (statusOverride?: string) => {
     if (!selectedMarkup) return;
+
+    if (selectedMarkup.status === "RESOLVED" && !statusOverride) {
+      setReopenTargetMarkup(selectedMarkup);
+      return;
+    }
 
     const targetStatus = statusOverride || (selectedMarkup.status === "OPEN" ? "RESOLVED" : "OPEN");
 
@@ -106,7 +128,7 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
         updatedDesc += `\n\n[Resolution Reply - ${timeStamp}]: ${replyText.trim()}`;
       }
 
-      await projectsApi.updateDrawingMarkupStatus(selectedMarkup.id, targetStatus as any);
+      await projectsApi.updateDrawingMarkupStatus(selectedMarkup.id, targetStatus as any, updatedDesc);
 
       // Upload optional new plan version if selected
       if (resolveFile) {
@@ -134,11 +156,11 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
   const openCount = markups.filter(m => m.status === "OPEN").length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-surface-950/95 backdrop-blur-md flex flex-col no-print">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col no-print">
       {/* Header Bar */}
-      <div className="min-h-16 px-4 sm:px-6 py-3 bg-surface-900 border-b border-surface-800 flex items-center justify-between z-40 shrink-0">
+      <div className="min-h-16 px-4 sm:px-6 py-3 bg-surface-50 border-b border-surface-100 flex items-center justify-between z-40 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <button onClick={onClose} className="p-2 hover:bg-surface-800 rounded-xl transition-colors text-white text-lg shrink-0">←</button>
+          <button onClick={onClose} className="p-2 hover:bg-surface-100 rounded-xl transition-colors text-white text-lg shrink-0">←</button>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-black text-white text-sm uppercase tracking-tight truncate">{asset.title}</h2>
@@ -154,10 +176,10 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
 
         <div className="flex items-center gap-2">
           {/* Zoom controls */}
-          <div className="flex bg-surface-800 p-1 rounded-xl border border-surface-700">
-            <button onClick={() => handleZoom(-0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-700 text-white rounded-lg transition-all font-bold text-lg">－</button>
+          <div className="flex bg-surface-100 p-1 rounded-xl border border-surface-200">
+            <button onClick={() => handleZoom(-0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-200 text-white rounded-lg transition-all font-bold text-lg">－</button>
             <div className="px-2 sm:px-3 flex items-center text-[10px] font-black text-white uppercase whitespace-nowrap">{(zoom * 100).toFixed(0)}%</div>
-            <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-700 text-white rounded-lg transition-all font-bold text-lg">＋</button>
+            <button onClick={() => handleZoom(0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-200 text-white rounded-lg transition-all font-bold text-lg">＋</button>
           </div>
 
           <button onClick={onClose} className="px-4 h-9 bg-accent text-background font-black text-[10px] uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shadow-md">
@@ -167,7 +189,7 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
       </div>
 
       {/* Main Container: Canvas + Review & Resolve Drawer */}
-      <div className="flex-1 relative flex overflow-hidden bg-surface-950">
+      <div className="flex-1 relative flex overflow-hidden bg-background">
         {/* 2D Blueprint Canvas Overlay */}
         <div className="flex-1 relative overflow-hidden">
           <div
@@ -189,49 +211,18 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
               <ProtectedFloorPlanViewer assetId={asset.id} versionKey={asset.updated_at} lazy={false}>
                 {/* Render Pinned Contractor Revision Cloud Boxes (Click to Select) */}
                 <div className="absolute inset-0 pointer-events-auto z-30">
-                  {markups.map((m, idx) => {
-                    const isSelected = selectedMarkup?.id === m.id;
-                    return (
-                      <div
-                        key={m.id}
-                        style={{
-                          left: `${m.x_percent}%`,
-                          top: `${m.y_percent}%`,
-                          width: `${m.width_percent || 16}%`,
-                          height: `${m.height_percent || 12}%`,
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedMarkup(m);
-                        }}
-                        className={`absolute border-2 border-dashed rounded-2xl cursor-pointer group shadow-2xl flex flex-col justify-between p-2 transition-all ${
-                          isSelected ? "ring-4 ring-accent scale-[1.04] z-40" : "hover:scale-[1.02]"
-                        } ${
-                          m.status === "RESOLVED"
-                            ? "border-emerald-500/80 bg-emerald-500/10 dark:bg-emerald-500/15"
-                            : "border-red-500 bg-red-500/20 dark:bg-red-500/25 shadow-red-500/30"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md ${
-                            m.status === "RESOLVED" ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
-                          }`}>
-                            <span>☁️</span>
-                            <span>Cloud #{idx + 1}</span>
-                          </span>
-                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
-                            m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500 text-background"
-                          }`}>
-                            {m.status}
-                          </span>
-                        </div>
-
-                        <div className="bg-surface-900/90 text-white px-2 py-1 rounded-lg text-[9px] font-bold truncate border border-white/10 shadow-md">
-                          {m.title}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {markups.map((m, idx) => (
+                    <ArchitecturalRevisionCloudCallout
+                      key={m.id}
+                      markup={m}
+                      index={idx}
+                      isSelected={selectedMarkup?.id === m.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedMarkup(m);
+                      }}
+                    />
+                  ))}
                 </div>
               </ProtectedFloorPlanViewer>
             </div>
@@ -239,8 +230,8 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
         </div>
 
         {/* Right Side Review & Resolution Drawer */}
-        <div className="w-80 sm:w-96 bg-surface-900 border-l border-surface-800 flex flex-col z-30 shadow-2xl shrink-0">
-          <div className="p-4 border-b border-surface-800 flex items-center justify-between">
+        <div className="w-80 sm:w-96 bg-surface-50 border-l border-surface-100 flex flex-col z-30 shadow-2xl shrink-0">
+          <div className="p-4 border-b border-surface-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-accent" />
               <h3 className="text-xs font-black uppercase tracking-wider text-white">Revision Cloud Requests ({markups.length})</h3>
@@ -257,14 +248,13 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
             ) : selectedMarkup ? (
               <div className="space-y-4">
                 {/* Cloud Header Info */}
-                <div className="p-4 rounded-2xl bg-surface-950 border border-surface-800 space-y-3">
+                <div className="p-4 rounded-2xl bg-background border border-surface-100 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="px-2.5 py-0.5 rounded-lg bg-red-500/20 text-red-400 font-mono text-xs font-black">
                       ☁️ Cloud #{markups.findIndex(m => m.id === selectedMarkup.id) + 1}
                     </span>
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                      selectedMarkup.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${selectedMarkup.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                      }`}>
                       {selectedMarkup.status}
                     </span>
                   </div>
@@ -275,18 +265,18 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
                   </div>
 
                   {selectedMarkup.description && (
-                    <div className="bg-surface-900 p-3 rounded-xl border border-surface-800 text-xs text-surface-300 font-medium whitespace-pre-wrap">
+                    <div className="bg-surface-50 p-3 rounded-xl border border-surface-100 text-xs text-surface-300 font-medium whitespace-pre-wrap">
                       {selectedMarkup.description}
                     </div>
                   )}
 
-                  <div className="text-[10px] text-surface-400 space-y-1 pt-1 border-t border-surface-800">
+                  <div className="text-[10px] text-surface-400 space-y-1 pt-1 border-t border-surface-100">
                     <p className="font-semibold text-white">👤 Requested By: {selectedMarkup.author_name || "Contractor"}</p>
                   </div>
                 </div>
 
                 {/* Resolution & Reply Form */}
-                <div className="p-4 rounded-2xl bg-surface-950 border border-surface-800 space-y-3">
+                <div className="p-4 rounded-2xl bg-background border border-surface-100 space-y-3">
                   <h5 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
                     <Check className="w-4 h-4 text-emerald-400" />
                     <span>Resolve Request</span>
@@ -302,7 +292,7 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
                       value={replyText}
                       onChange={e => setReplyText(e.target.value)}
                       placeholder="Add a reply for the contractor..."
-                      className="w-full bg-surface-900 border border-surface-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent resize-none placeholder:text-surface-600"
+                      className="w-full bg-surface-50 border border-surface-100 rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent resize-none placeholder:text-surface-600"
                     />
                   </div>
 
@@ -330,7 +320,7 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="w-full border border-dashed border-surface-700 hover:border-accent rounded-xl p-2.5 text-center cursor-pointer transition-all flex items-center justify-center gap-2 bg-surface-900/50"
+                          className="w-full border border-dashed border-surface-200 hover:border-accent rounded-xl p-2.5 text-center cursor-pointer transition-all flex items-center justify-center gap-2 bg-surface-50/50"
                         >
                           <Upload className="w-3.5 h-3.5 text-accent" />
                           <span className="text-[11px] font-bold text-surface-300">Attach Revised Image / PDF</span>
@@ -358,11 +348,10 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => handleResolveMarkup()}
-                    className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${
-                      selectedMarkup.status === "RESOLVED"
-                        ? "bg-amber-500 text-background hover:opacity-90"
-                        : "bg-emerald-500 text-white hover:opacity-90"
-                    }`}
+                    className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${selectedMarkup.status === "RESOLVED"
+                      ? "bg-amber-500 text-background hover:opacity-90"
+                      : "bg-emerald-500 text-white hover:opacity-90"
+                      }`}
                   >
                     {isSubmitting ? (
                       <>
@@ -386,7 +375,7 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
                   <div
                     key={m.id}
                     onClick={() => setSelectedMarkup(m)}
-                    className="p-3 rounded-xl bg-surface-950 border border-surface-800 hover:border-accent/60 cursor-pointer transition-all space-y-1"
+                    className="p-3 rounded-xl bg-background border border-surface-100 hover:border-accent/60 cursor-pointer transition-all space-y-1"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black text-red-400">☁️ Cloud #{idx + 1}</span>
@@ -402,6 +391,14 @@ export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose,
           </div>
         </div>
       </div>
+
+      {/* Re-Open Reason Input Modal */}
+      <ReopenReasonModal
+        isOpen={reopenTargetMarkup !== null}
+        onClose={() => setReopenTargetMarkup(null)}
+        onSubmit={handleReopenWithReason}
+        markupTitle={reopenTargetMarkup?.title}
+      />
     </div>
   );
 }

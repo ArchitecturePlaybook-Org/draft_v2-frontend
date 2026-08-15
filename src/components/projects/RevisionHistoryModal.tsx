@@ -2,19 +2,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ProjectAsset, DrawingMarkup } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
+import { ReopenReasonModal } from "./ReopenReasonModal";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
-import { 
-  History, 
-  Upload, 
-  X, 
-  FileText, 
-  CheckCircle2, 
-  RotateCcw, 
-  Eye, 
-  Loader2, 
-  Clock, 
-  User, 
+import {
+  History,
+  Upload,
+  X,
+  FileText,
+  CheckCircle2,
+  RotateCcw,
+  Eye,
+  Loader2,
+  Clock,
+  User,
   FileCheck,
   Plus,
   Cloud,
@@ -38,7 +39,21 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
   const [showUploadForm, setShowUploadForm] = useState(false); // Default: View Mode Only
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [promotingId, setPromotingId] = useState<number | null>(null);
+  const [reopenTargetMarkup, setReopenTargetMarkup] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleReopenAuditMarkup = async (reason: string) => {
+    if (!reopenTargetMarkup) return;
+    const nowStr = format(new Date(), "dd MMM yyyy, HH:mm");
+    const reopenEntry = `\n\n🔄 [Re-opened on ${nowStr}]:\n${reason}`;
+    const updatedDesc = (reopenTargetMarkup.description || "") + reopenEntry;
+
+    await projectsApi.updateDrawingMarkupStatus(reopenTargetMarkup.id, "OPEN", updatedDesc);
+    toast.success("Revision request re-opened with reason attached!");
+    setReopenTargetMarkup(null);
+    const updated = await projectsApi.getDrawingMarkups({ canonical_uid: asset.canonical_uid });
+    setMarkups(updated || []);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -148,8 +163,8 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                 </p>
               </div>
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-200/60 dark:bg-surface-800/60 hover:bg-surface-300 text-surface-600 dark:text-surface-300 transition-all active:scale-95"
               aria-label="Close panel"
             >
@@ -182,16 +197,16 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                 <label className="text-[10px] font-black uppercase tracking-widest text-surface-500 block">
                   Select Revision File
                 </label>
-                <input 
-                  ref={fileInputRef} 
-                  type="file" 
-                  accept="image/png,image/jpeg,image/jpg,image/webp,.pdf" 
-                  className="hidden" 
-                  onChange={handleFileChange} 
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,.pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
                 />
-                
+
                 {!selectedFile ? (
-                  <div 
+                  <div
                     onClick={() => fileInputRef.current?.click()}
                     className="border-2 border-dashed border-surface-300 dark:border-surface-700 hover:border-accent/60 rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 bg-surface-100/50 dark:bg-surface-800/50"
                   >
@@ -205,8 +220,8 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                       <FileCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span className="font-bold text-primary truncate">{selectedFile.name}</span>
                     </div>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => setSelectedFile(null)}
                       className="text-[10px] font-bold text-red-500 hover:underline shrink-0 ml-2"
                     >
@@ -276,9 +291,8 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                             </span>
                             <span className="font-black text-primary truncate max-w-[200px]">{m.title}</span>
                           </div>
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1 ${
-                            m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1 ${m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                            }`}>
                             {m.status === "RESOLVED" ? <Check className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                             <span>{m.status}</span>
                           </span>
@@ -304,10 +318,29 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                             <span className="font-semibold text-accent">{m.category}</span>
                           </div>
                           <div>
-                            <span className="block font-bold text-surface-500 uppercase">Status & Resolution</span>
-                            <span className={`font-semibold ${m.status === "RESOLVED" ? "text-emerald-400" : "text-amber-400"}`}>
-                              {m.status === "RESOLVED" ? `Resolved at ${formatFullDate(m.updated_at)}` : "Open Action Required"}
-                            </span>
+                            <span className="block font-bold text-surface-500 uppercase">Status & Action</span>
+                            <div className="flex items-center justify-between mt-0.5">
+                              <span className={`font-semibold ${m.status === "RESOLVED" ? "text-emerald-400" : "text-amber-400"}`}>
+                                {m.status === "RESOLVED" ? "Resolved" : "Open Action Required"}
+                              </span>
+                              <button
+                                onClick={async () => {
+                                  if (m.status === "RESOLVED") {
+                                    setReopenTargetMarkup(m);
+                                  } else {
+                                    await projectsApi.updateDrawingMarkupStatus(m.id, "RESOLVED");
+                                    toast.success("Revision request resolved");
+                                    const updated = await projectsApi.getDrawingMarkups({ canonical_uid: asset.canonical_uid });
+                                    setMarkups(updated || []);
+                                  }
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1 ${
+                                  m.status === "RESOLVED" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30" : "bg-emerald-500 text-white hover:opacity-90"
+                                }`}
+                              >
+                                {m.status === "RESOLVED" ? "↺ Re-Open" : "✓ Resolve"}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -325,17 +358,15 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                   return (
                     <div
                       key={verAsset.id}
-                      className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                        isCurrent 
-                          ? "bg-accent/5 border-accent/40 shadow-sm" 
+                      className={`p-4 rounded-2xl border transition-all space-y-3 ${isCurrent
+                          ? "bg-accent/5 border-accent/40 shadow-sm"
                           : "bg-surface-50/80 dark:bg-surface-800/40 border-surface-200 dark:border-surface-800"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2.5 py-1 rounded-xl text-xs font-black uppercase font-mono ${
-                            isCurrent ? "bg-accent text-background" : "bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300"
-                          }`}>
+                          <span className={`px-2.5 py-1 rounded-xl text-xs font-black uppercase font-mono ${isCurrent ? "bg-accent text-background" : "bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300"
+                            }`}>
                             v{verAsset.version_number}
                           </span>
                           {isCurrent && (
@@ -385,6 +416,14 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
           )}
         </div>
       </div>
+
+      {/* Re-Open Reason Input Modal */}
+      <ReopenReasonModal
+        isOpen={reopenTargetMarkup !== null}
+        onClose={() => setReopenTargetMarkup(null)}
+        onSubmit={handleReopenAuditMarkup}
+        markupTitle={reopenTargetMarkup?.title}
+      />
     </div>
   );
 }

@@ -345,10 +345,12 @@ export const projectsApi = {
     return res;
   },
 
-  updateDrawingMarkupStatus: async (id: number, status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED") => {
+  updateDrawingMarkupStatus: async (id: number, status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED", description?: string) => {
+    const payload: any = { status };
+    if (description !== undefined) payload.description = description;
     const res = await fetchFromBff<any>(`/api/v1/projects/drawing-markups/${id}/`, {
       method: "PATCH",
-      body: JSON.stringify({ status })
+      body: JSON.stringify(payload)
     });
     return res;
   },

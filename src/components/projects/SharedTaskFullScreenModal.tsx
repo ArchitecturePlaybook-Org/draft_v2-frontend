@@ -7,17 +7,17 @@ import { toast } from "sonner";
 import { FloorPlanGridViewer } from "@/components/projects/FloorPlanGridViewer";
 import { format } from "date-fns";
 import dynamic from "next/dynamic";
-import { 
-  X, 
-  ArrowLeft, 
-  ExternalLink, 
-  Copy, 
-  Check, 
-  Loader2, 
-  MessageSquare, 
-  Camera, 
-  CheckSquare, 
-  Clock, 
+import {
+  X,
+  ArrowLeft,
+  ExternalLink,
+  Copy,
+  Check,
+  Loader2,
+  MessageSquare,
+  Camera,
+  CheckSquare,
+  Clock,
   AlertTriangle,
   Layers,
   User,
@@ -36,6 +36,7 @@ const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
 
 import { TaskFieldDiaryTab } from "@/components/projects/TaskFieldDiaryTab";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import { ReopenReasonModal } from "@/components/projects/ReopenReasonModal";
 
 interface SharedTaskFullScreenModalProps {
   taskUid: string;
@@ -59,8 +60,31 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
   const [updatingProgress, setUpdatingProgress] = useState(false);
   const [isAddingChecklist, setIsAddingChecklist] = useState(false);
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
-  const [fullScreenDrawingId, setFullScreenDrawingId] = useState<string | null>(null);
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
+  const [taskMarkups, setTaskMarkups] = useState<any[]>([]);
+  const [reopenTargetMarkup, setReopenTargetMarkup] = useState<any | null>(null);
+
+  const handleReopenTaskMarkup = async (reason: string) => {
+    if (!reopenTargetMarkup) return;
+    const nowStr = format(new Date(), "dd MMM yyyy, HH:mm");
+    const reopenEntry = `\n\n🔄 [Re-opened on ${nowStr}]:\n${reason}`;
+    const updatedDesc = (reopenTargetMarkup.description || "") + reopenEntry;
+
+    await projectsApi.updateDrawingMarkupStatus(reopenTargetMarkup.id, "OPEN", updatedDesc);
+    toast.success("Revision request re-opened with reason attached!");
+    setReopenTargetMarkup(null);
+    await loadTaskMarkups();
+  };
+
+  const loadTaskMarkups = async () => {
+    if (!taskUid) return;
+    try {
+      const data = await projectsApi.getDrawingMarkups({ task_uid: taskUid });
+      setTaskMarkups(data || []);
+    } catch {
+      console.error("Failed to load task markups");
+    }
+  };
 
   useEffect(() => {
     if (taskUid) {
@@ -255,12 +279,11 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
           <div className="bg-surface-card/90 dark:bg-surface-900/80 backdrop-blur-xl border border-surface-200/80 dark:border-surface-800 rounded-3xl p-6 sm:p-8 shadow-sm">
             <div className="flex items-center gap-2.5 mb-4 flex-wrap">
               {task?.status && (
-                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${
-                  task.status === "DONE" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
-                  task.status === "WIP" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" :
-                  task.status === "QA" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" :
-                  "bg-surface-200 dark:bg-surface-800 text-surface-600 border-surface-300"
-                }`}>
+                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${task.status === "DONE" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                    task.status === "WIP" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                      task.status === "QA" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" :
+                        "bg-surface-200 dark:bg-surface-800 text-surface-600 border-surface-300"
+                  }`}>
                   {task.status}
                 </span>
               )}
@@ -342,13 +365,13 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
                   if (asset.category === "3d_model" || asset.category === "sh3d") {
                     return (
                       <div key={l.id} className="border border-surface-200/80 dark:border-surface-800 rounded-2xl overflow-hidden bg-surface-50 dark:bg-surface-950 relative h-[420px]">
-                         <ModelViewer 
-                            url={asset.file} 
-                            format={
-                              asset.category === "sh3d" ? "sh3d" : 
+                        <ModelViewer
+                          url={asset.file}
+                          format={
+                            asset.category === "sh3d" ? "sh3d" :
                               asset.file.toLowerCase().endsWith(".obj") ? "obj" : "glb"
-                            } 
-                         />
+                          }
+                        />
                       </div>
                     );
                   }
@@ -367,7 +390,7 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
                   <h3 className="text-xs font-black uppercase tracking-widest text-surface-400 mb-4">Progress Tracking</h3>
                   <div className="relative w-28 h-28 mb-4">
                     <svg className="w-28 h-28 -rotate-90" viewBox="0 0 80 80">
-                      <circle cx="40" cy="40" r="32" fill="none" stroke="currentColor" className="text-surface-200 dark:text-surface-800" strokeWidth="8"/>
+                      <circle cx="40" cy="40" r="32" fill="none" stroke="currentColor" className="text-surface-200 dark:text-surface-800" strokeWidth="8" />
                       <circle
                         cx="40" cy="40" r="32" fill="none"
                         stroke={(task.progress_percent || 0) >= 100 ? "#10b981" : "#f59e0b"}
@@ -451,11 +474,11 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
                       <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={isUploadingPhoto} />
                     </label>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {task.asset_links?.filter((l: any) => l.latest_asset?.category === "site_photo").map((link: any) => (
-                      <div 
-                        key={link.id} 
+                      <div
+                        key={link.id}
                         onClick={() => setViewingPhotoUrl(link.latest_asset?.file || null)}
                         className="relative aspect-square rounded-2xl overflow-hidden border border-surface-200/60 dark:border-surface-800 bg-surface-50 dark:bg-surface-950 group cursor-pointer"
                       >
@@ -507,16 +530,16 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
                 ))
               )}
             </div>
-            
+
             <form onSubmit={handlePostComment} className="flex gap-2.5">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={newComment}
                 onChange={e => setNewComment(e.target.value)}
-                placeholder="Add a comment or update..." 
+                placeholder="Add a comment or update..."
                 className="flex-1 bg-surface-50 dark:bg-surface-950/50 border border-surface-200/80 dark:border-surface-800 rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-accent transition-all"
               />
-              <button 
+              <button
                 type="submit"
                 disabled={!newComment.trim()}
                 className="bg-accent text-background font-black px-5 py-2.5 rounded-xl hover:opacity-90 transition-all disabled:opacity-50 text-xs shadow-xs"
@@ -536,6 +559,14 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
           altText="Site Photo"
         />
       )}
+
+      {/* Re-Open Reason Input Modal */}
+      <ReopenReasonModal
+        isOpen={reopenTargetMarkup !== null}
+        onClose={() => setReopenTargetMarkup(null)}
+        onSubmit={handleReopenTaskMarkup}
+        markupTitle={reopenTargetMarkup?.title}
+      />
     </div>
   );
 }
