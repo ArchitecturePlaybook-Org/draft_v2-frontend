@@ -115,9 +115,13 @@ export interface LoginCredentials {
 
 export type RoleType = "architect" | "co_owner" | "constructor" | "client";
 
-// Role permission mappings (Technical Roles Only)
+// Role permission mappings (Technical & Domain Roles)
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ADMIN: ["*"], // Site-Wide Superadmin Bypass
+  architect: ["*"],
+  co_owner: ["*"],
+  constructor: ["*"],
+  client: ["projects:read", "tasks:read"],
   USER: [
     "projects:read",
     "tasks:read",

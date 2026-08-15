@@ -19,6 +19,8 @@ import {
   CheckCircle2
 } from "lucide-react";
 
+import { useAuthStore } from "@/store/auth-store";
+
 interface CellPhotoDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -79,17 +81,17 @@ async function stampMetadataOnImage(
       const textLine = [zoneStr, timeStr, gpsStr, userStr].filter(Boolean).join("  •  ");
       ctx.fillText(textLine, Math.max(12, Math.round(img.width * 0.02)), img.height - (bannerH / 2));
 
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(file);
-            return;
-          }
-          resolve(new File([blob], file.name, { type: "image/jpeg" }));
-        },
-        "image/jpeg",
-        0.92
-      );
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          resolve(file);
+          return;
+        }
+        const stampedFile = new File([blob], file.name, {
+          type: file.type || "image/jpeg",
+          lastModified: Date.now()
+        });
+        resolve(stampedFile);
+      }, file.type || "image/jpeg", 0.92);
     };
 
     img.onerror = () => {
@@ -102,6 +104,11 @@ async function stampMetadataOnImage(
 }
 
 export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPhotoAdded, onPhotoDeleted }: CellPhotoDrawerProps) {
+  const { user } = useAuthStore();
+  const userRealName = user
+    ? [user.first_name, user.last_name].filter(Boolean).join(" ").trim() || (user as any).username || user.email
+    : "Site Surveyor";
+
   const [photos, setPhotos] = useState<SitePhoto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -271,7 +278,7 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
       lat,
       lng,
       timestamp: capturedAt,
-      uploaderName: "Site Surveyor",
+      uploaderName: userRealName || "Demo User",
       zoneLabel: cellLabel
     });
 
@@ -492,7 +499,7 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
                             📍 {photo.latitude && photo.longitude ? `${Number(photo.latitude).toFixed(5)}, ${Number(photo.longitude).toFixed(5)}` : 'Zone ' + cellLabel}
                           </span>
                           <span className="text-amber-300 flex items-center gap-1">
-                            👤 {photo.uploaded_by?.first_name || photo.uploaded_by?.email ? `${photo.uploaded_by?.first_name || ''} ${photo.uploaded_by?.last_name || ''}`.trim() || photo.uploaded_by?.email : 'Site Inspector'}
+                            👤 {photo.uploaded_by?.first_name || photo.uploaded_by?.email ? `${photo.uploaded_by?.first_name || ''} ${photo.uploaded_by?.last_name || ''}`.trim() || photo.uploaded_by?.email : (userRealName || 'Demo User')}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-[8.5px] text-surface-200 font-semibold drop-shadow-md">
@@ -539,7 +546,7 @@ export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPh
                             {photo.uploaded_by?.first_name || photo.uploaded_by?.email ? (
                               `${photo.uploaded_by?.first_name || ''} ${photo.uploaded_by?.last_name || ''}`.trim() || photo.uploaded_by?.email
                             ) : (
-                              'Site Inspector'
+                              userRealName || 'Demo User'
                             )}
                           </span>
                         </div>

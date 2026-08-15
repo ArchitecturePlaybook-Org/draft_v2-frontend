@@ -55,7 +55,13 @@ export const useEstimationAutoSave = () => {
               unit: item.unit,
               gross_qty: item.gross_qty,
               net_qty: item.net_qty,
+              length: item.length !== undefined && item.length !== null ? Number(Number(item.length).toFixed(2)) : undefined,
+              width: item.width !== undefined && item.width !== null ? Number(Number(item.width).toFixed(2)) : undefined,
+              depth_height: item.depth_height !== undefined && item.depth_height !== null ? Number(Number(item.depth_height).toFixed(2)) : undefined,
+              no_of_items: item.no_of_items,
+              is_deduction: item.is_deduction,
               trace_data: {
+                ...(item.trace_data || {}),
                 type: item.type,
                 points: item.points,
                 color: item.color,
@@ -65,7 +71,6 @@ export const useEstimationAutoSave = () => {
             };
             const res = await projectsApi.createEstimation(data);
             if (res && res.id) {
-              // Update the store with the backendId, but silently so it doesn't trigger another sync loop
               updateItem(item.id, { backendId: res.id });
             }
           }
@@ -79,7 +84,13 @@ export const useEstimationAutoSave = () => {
                 unit: item.unit,
                 gross_qty: item.gross_qty,
                 net_qty: item.net_qty,
+                length: item.length !== undefined && item.length !== null ? Number(Number(item.length).toFixed(2)) : undefined,
+                width: item.width !== undefined && item.width !== null ? Number(Number(item.width).toFixed(2)) : undefined,
+                depth_height: item.depth_height !== undefined && item.depth_height !== null ? Number(Number(item.depth_height).toFixed(2)) : undefined,
+                no_of_items: item.no_of_items,
+                is_deduction: item.is_deduction,
                 trace_data: {
+                  ...(item.trace_data || {}),
                   type: item.type,
                   points: item.points,
                   color: item.color,

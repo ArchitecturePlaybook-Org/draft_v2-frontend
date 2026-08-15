@@ -1,22 +1,26 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { ProjectAsset } from "@/types/projects";
+import { ProjectAsset, DrawingMarkup } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
+import { ReopenReasonModal } from "./ReopenReasonModal";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
-import { 
-  History, 
-  Upload, 
-  X, 
-  FileText, 
-  CheckCircle2, 
-  RotateCcw, 
-  Eye, 
-  Loader2, 
-  Clock, 
-  User, 
+import {
+  History,
+  Upload,
+  X,
+  FileText,
+  CheckCircle2,
+  RotateCcw,
+  Eye,
+  Loader2,
+  Clock,
+  User,
   FileCheck,
-  Plus
+  Plus,
+  Cloud,
+  Check,
+  AlertCircle
 } from "lucide-react";
 
 interface RevisionHistoryModalProps {
@@ -28,20 +32,40 @@ interface RevisionHistoryModalProps {
 
 export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVersionPromoted }: RevisionHistoryModalProps) {
   const [history, setHistory] = useState<ProjectAsset[]>([]);
+  const [markups, setMarkups] = useState<DrawingMarkup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [revisionNotes, setRevisionNotes] = useState("");
-  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false); // Default: View Mode Only
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [promotingId, setPromotingId] = useState<number | null>(null);
+  const [reopenTargetMarkup, setReopenTargetMarkup] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleReopenAuditMarkup = async (reason: string) => {
+    if (!reopenTargetMarkup) return;
+    const nowStr = format(new Date(), "dd MMM yyyy, HH:mm");
+    const reopenEntry = `\n\n🔄 [Re-opened on ${nowStr}]:\n${reason}`;
+    const updatedDesc = (reopenTargetMarkup.description || "") + reopenEntry;
+
+    await projectsApi.updateDrawingMarkupStatus(reopenTargetMarkup.id, "OPEN", updatedDesc);
+    toast.success("Revision request re-opened with reason attached!");
+    setReopenTargetMarkup(null);
+    const updated = await projectsApi.getDrawingMarkups({ canonical_uid: asset.canonical_uid });
+    setMarkups(updated || []);
+  };
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await projectsApi.getAssetHistory(asset.id);
+        setIsLoading(true);
+        const [data, markupsData] = await Promise.all([
+          projectsApi.getAssetHistory(asset.id),
+          projectsApi.getDrawingMarkups({ canonical_uid: asset.canonical_uid })
+        ]);
         const sorted = [...data].reverse();
         setHistory(sorted);
+        setMarkups(markupsData || []);
       } catch (err) {
         console.error("Failed to load history", err);
         toast.error("Failed to load version history.");
@@ -50,7 +74,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
       }
     };
     load();
-  }, [asset.id]);
+  }, [asset.id, asset.canonical_uid]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -121,7 +145,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
 
       {/* Slide-in Panel */}
       <div
-        className="relative h-full w-full max-w-[460px] bg-surface-100/95 dark:bg-surface-900/95 backdrop-blur-2xl border-l border-surface-200 dark:border-surface-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
+        className="relative h-full w-full max-w-[540px] bg-surface-100/95 dark:bg-surface-900/95 backdrop-blur-2xl border-l border-surface-200 dark:border-surface-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -132,15 +156,15 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                 <History className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-widest text-accent">Blueprint Stack</p>
-                <h2 className="font-black text-lg text-primary truncate max-w-[260px]">{asset.title}</h2>
+                <p className="text-[10px] font-black uppercase tracking-widest text-accent">Blueprint Revision Stack & Audit Log</p>
+                <h2 className="font-black text-lg text-primary truncate max-w-[300px]">{asset.title}</h2>
                 <p className="text-[11px] text-surface-500 font-medium">
-                  {history.length} revision{history.length !== 1 ? "s" : ""} in history
+                  {history.length} Version{history.length !== 1 ? "s" : ""} • {markups.length} Contractor Cloud Request{markups.length !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-200/60 dark:bg-surface-800/60 hover:bg-surface-300 text-surface-600 dark:text-surface-300 transition-all active:scale-95"
               aria-label="Close panel"
             >
@@ -148,7 +172,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
             </button>
           </div>
 
-          {/* Toggle Upload Form Button */}
+          {/* Toggle Upload Form Button (Defaults to View Mode) */}
           <button
             onClick={() => setShowUploadForm(v => !v)}
             className="w-full h-10 flex items-center justify-center gap-2 px-4 bg-accent text-background rounded-xl font-bold text-xs uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-[0.99]"
@@ -156,33 +180,33 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
             {showUploadForm ? (
               <>
                 <X className="w-4 h-4" />
-                <span>Cancel Upload</span>
+                <span>Return to Revision View Log</span>
               </>
             ) : (
               <>
                 <Plus className="w-4 h-4" />
-                <span>Upload New Revision</span>
+                <span>Upload New Revision File</span>
               </>
             )}
           </button>
 
-          {/* Upload Form Box */}
+          {/* Upload Form Box (Only visible when user toggles upload) */}
           {showUploadForm && (
             <form onSubmit={handleUploadRevision} className="p-4 bg-surface-50 dark:bg-surface-800/50 rounded-2xl border border-surface-200 dark:border-surface-700 space-y-3 animate-in fade-in duration-200">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-widest text-surface-500 block">
                   Select Revision File
                 </label>
-                <input 
-                  ref={fileInputRef} 
-                  type="file" 
-                  accept="image/png,image/jpeg,image/jpg,image/webp,.pdf" 
-                  className="hidden" 
-                  onChange={handleFileChange} 
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,.pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
                 />
-                
+
                 {!selectedFile ? (
-                  <div 
+                  <div
                     onClick={() => fileInputRef.current?.click()}
                     className="border-2 border-dashed border-surface-300 dark:border-surface-700 hover:border-accent/60 rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 bg-surface-100/50 dark:bg-surface-800/50"
                   >
@@ -196,8 +220,8 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                       <FileCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span className="font-bold text-primary truncate">{selectedFile.name}</span>
                     </div>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => setSelectedFile(null)}
                       className="text-[10px] font-bold text-red-500 hover:underline shrink-0 ml-2"
                     >
@@ -223,7 +247,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
               <button
                 type="submit"
                 disabled={!selectedFile || isUploading}
-                className="w-full h-9 flex items-center justify-center gap-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 shadow-md"
+                className="w-full py-2.5 bg-accent text-background font-black text-xs uppercase tracking-wider rounded-xl hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isUploading ? (
                   <>
@@ -231,136 +255,175 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                     <span>Uploading...</span>
                   </>
                 ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    <span>Confirm & Upload Revision</span>
-                  </>
+                  <span>Submit Revision v{history.length + 1}</span>
                 )}
               </button>
             </form>
           )}
         </div>
 
-        {/* Revisions Timeline List */}
-        <div className="flex-1 overflow-y-auto p-5">
+        {/* Read-Only Revision View & Audit History Stack */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-surface-400 gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-accent" />
-              <span className="text-xs font-medium">Loading blueprint history...</span>
-            </div>
-          ) : history.length === 0 ? (
-            <div className="text-center py-16 px-4 bg-surface-50/50 rounded-2xl border border-dashed border-surface-200 space-y-2">
-              <FileText className="w-8 h-8 text-surface-400 mx-auto" />
-              <p className="text-xs font-bold text-primary">No revisions recorded</p>
-              <p className="text-[11px] text-surface-400 max-w-xs mx-auto">
-                Upload new revisions to keep track of design modifications over time.
-              </p>
+            <div className="py-20 text-center space-y-3">
+              <Loader2 className="w-8 h-8 animate-spin text-accent mx-auto" />
+              <p className="text-xs text-surface-500 font-bold uppercase tracking-wider">Loading complete audit history...</p>
             </div>
           ) : (
-            <div className="relative">
-              {/* Timeline Connector */}
-              <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-surface-200 dark:bg-surface-800" />
+            <>
+              {/* Contractor Revision Requests Audit Trail Section */}
+              {markups.length > 0 && (
+                <div className="p-4 rounded-2xl bg-red-500/5 dark:bg-red-500/10 border border-red-500/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-red-500 flex items-center gap-1.5">
+                      <Cloud className="w-4 h-4" />
+                      <span>Contractor Revision Cloud Requests ({markups.length})</span>
+                    </span>
+                  </div>
 
-              <div className="space-y-4">
-                {history.map((version) => (
-                  <div key={version.id} className="relative flex gap-3.5 group">
-                    {/* Version Badge Node */}
-                    <div className={`relative z-10 shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black border-2 transition-all ${
-                      version.is_latest
-                        ? "bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/20"
-                        : "bg-surface-100 dark:bg-surface-800 border-surface-300 dark:border-surface-700 text-surface-500"
-                    }`}>
-                      V{version.version_number}
-                    </div>
-
-                    {/* Version Card */}
-                    <div className={`flex-1 rounded-2xl border p-4 space-y-2 transition-all ${
-                      version.is_latest
-                        ? "border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm"
-                        : "border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/40 hover:border-surface-300"
-                    }`}>
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-sm text-primary">Version {version.version_number}</span>
-                            {version.is_latest && (
-                              <span className="px-2 py-0.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-full text-[9px] font-black uppercase tracking-wider">
-                                Current Active
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-[11px] text-surface-400 flex-wrap">
-                            <span className="flex items-center gap-1" title={formatFullDate(version.created_at)}>
-                              <Clock className="w-3 h-3 text-surface-400" />
-                              {formatRelativeDate(version.created_at)}
+                  <div className="space-y-3">
+                    {markups.map((m, idx) => (
+                      <div key={m.id} className="p-3.5 rounded-xl bg-surface-50 dark:bg-surface-950 border border-surface-200/80 dark:border-surface-800 space-y-2 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 font-mono text-[10px] font-black">
+                              ☁️ Cloud #{idx + 1}
                             </span>
-                            {version.uploaded_by && (
-                              <>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                  <User className="w-3 h-3 text-surface-400" />
-                                  {version.uploaded_by.first_name || version.uploaded_by.email}
-                                </span>
-                              </>
-                            )}
+                            <span className="font-black text-primary truncate max-w-[200px]">{m.title}</span>
                           </div>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1 ${m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                            }`}>
+                            {m.status === "RESOLVED" ? <Check className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                            <span>{m.status}</span>
+                          </span>
                         </div>
 
-                        <span className="text-[10px] font-bold text-surface-400 bg-surface-200/50 dark:bg-surface-700/50 px-2 py-0.5 rounded-md shrink-0">
-                          {formatFileSize(version.size)}
-                        </span>
-                      </div>
-
-                      {version.revision_notes && (
-                        <div className="p-2.5 bg-surface-100/80 dark:bg-surface-800/80 border border-surface-200/60 dark:border-surface-700/60 rounded-xl">
-                          <p className="text-xs text-primary/90 italic leading-relaxed">
-                            "{version.revision_notes}"
+                        {m.description && (
+                          <p className="text-surface-600 dark:text-surface-300 text-[11px] font-medium bg-surface-100/50 dark:bg-surface-900/50 p-2.5 rounded-lg border border-surface-200/40 dark:border-surface-800">
+                            {m.description}
                           </p>
-                        </div>
-                      )}
-
-                      {/* Card Action Controls */}
-                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-surface-200/60 dark:border-surface-700/60">
-                        {version.file && (
-                          <a
-                            href={version.file}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-200/70 dark:bg-surface-700/70 hover:bg-surface-300 text-primary text-xs font-bold rounded-xl transition-all"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            View Document
-                          </a>
                         )}
 
-                        {!version.is_latest && (
+                        <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 border-t border-surface-200/50 dark:border-surface-800 text-surface-400">
+                          <div>
+                            <span className="block font-bold text-surface-500 uppercase">Requested By</span>
+                            <span className="font-semibold text-primary">👤 {m.author_name && m.author_name !== "Contractor" ? m.author_name : (m.author_username || "Demo User")}</span>
+                          </div>
+                          <div>
+                            <span className="block font-bold text-surface-500 uppercase">Request Timestamp</span>
+                            <span className="font-semibold text-primary">🕒 {formatFullDate(m.created_at)}</span>
+                          </div>
+                          <div>
+                            <span className="block font-bold text-surface-500 uppercase">Category</span>
+                            <span className="font-semibold text-accent">{m.category}</span>
+                          </div>
+                          <div>
+                            <span className="block font-bold text-surface-500 uppercase">Status & Action</span>
+                            <div className="flex items-center justify-between mt-0.5">
+                              <span className={`font-semibold ${m.status === "RESOLVED" ? "text-emerald-400" : "text-amber-400"}`}>
+                                {m.status === "RESOLVED" ? "Resolved" : "Open Action Required"}
+                              </span>
+                              <button
+                                onClick={async () => {
+                                  if (m.status === "RESOLVED") {
+                                    setReopenTargetMarkup(m);
+                                  } else {
+                                    await projectsApi.updateDrawingMarkupStatus(m.id, "RESOLVED");
+                                    toast.success("Revision request resolved");
+                                    const updated = await projectsApi.getDrawingMarkups({ canonical_uid: asset.canonical_uid });
+                                    setMarkups(updated || []);
+                                  }
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1 ${
+                                  m.status === "RESOLVED" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30" : "bg-emerald-500 text-white hover:opacity-90"
+                                }`}
+                              >
+                                {m.status === "RESOLVED" ? "↺ Re-Open" : "✓ Resolve"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Version History Stack */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-surface-400">Drawing Version Stack</p>
+                {history.map((verAsset) => {
+                  const isCurrent = verAsset.is_latest;
+
+                  return (
+                    <div
+                      key={verAsset.id}
+                      className={`p-4 rounded-2xl border transition-all space-y-3 ${isCurrent
+                          ? "bg-accent/5 border-accent/40 shadow-sm"
+                          : "bg-surface-50/80 dark:bg-surface-800/40 border-surface-200 dark:border-surface-800"
+                        }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-1 rounded-xl text-xs font-black uppercase font-mono ${isCurrent ? "bg-accent text-background" : "bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300"
+                            }`}>
+                            v{verAsset.version_number}
+                          </span>
+                          {isCurrent && (
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Active Version</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {!isCurrent && (
                           <button
-                            onClick={() => handlePromote(version)}
-                            disabled={promotingId === version.id}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ml-auto"
+                            onClick={() => handlePromote(verAsset)}
+                            disabled={promotingId === verAsset.id}
+                            className="px-3 py-1.5 bg-surface-200 dark:bg-surface-700 hover:bg-accent hover:text-background text-primary font-bold text-[10px] uppercase rounded-xl transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
                           >
-                            {promotingId === version.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            {promotingId === verAsset.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
-                              <RotateCcw className="w-3.5 h-3.5" />
+                              <RotateCcw className="w-3 h-3" />
                             )}
-                            Restore V{version.version_number}
+                            <span>Make Active</span>
                           </button>
                         )}
                       </div>
+
+                      {verAsset.revision_notes && (
+                        <p className="text-xs text-primary font-bold bg-surface-100/80 dark:bg-surface-900/60 p-3 rounded-xl border border-surface-200/60 dark:border-surface-800">
+                          📝 {verAsset.revision_notes}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between text-[10px] text-surface-400 pt-1 border-t border-surface-200/60 dark:border-surface-800">
+                        <span className="flex items-center gap-1 font-medium">
+                          <Clock className="w-3 h-3 text-surface-400" />
+                          Uploaded: {formatFullDate(verAsset.created_at)}
+                        </span>
+                        <span className="font-mono text-surface-500 font-semibold">
+                          {formatFileSize(verAsset.size)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            </div>
+            </>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-surface-200/80 dark:border-surface-800/80 bg-surface-50/50 dark:bg-surface-900/50 text-[11px] text-surface-400">
-          Revisions keep a complete audit trail of design changes without overwriting original assets.
-        </div>
       </div>
+
+      {/* Re-Open Reason Input Modal */}
+      <ReopenReasonModal
+        isOpen={reopenTargetMarkup !== null}
+        onClose={() => setReopenTargetMarkup(null)}
+        onSubmit={handleReopenAuditMarkup}
+        markupTitle={reopenTargetMarkup?.title}
+      />
     </div>
   );
 }

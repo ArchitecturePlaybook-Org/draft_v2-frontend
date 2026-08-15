@@ -14,7 +14,7 @@ interface ProjectActionsMenuProps {
 export const ProjectActionsMenu: React.FC<ProjectActionsMenuProps> = ({ project, onAssignPersonnel, onCloneProject, onOpenSettings, onDeleteProject }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { isAdmin, canManageProject } = usePermissions();
+  const { isAdmin, canManageProject, isProjectCreator } = usePermissions();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -27,6 +27,7 @@ export const ProjectActionsMenu: React.FC<ProjectActionsMenuProps> = ({ project,
   }, []);
 
   const hasManagementRights = isAdmin || canManageProject(project);
+  const isCreator = isProjectCreator(project);
 
   if (!hasManagementRights) return null;
 
@@ -52,15 +53,18 @@ export const ProjectActionsMenu: React.FC<ProjectActionsMenuProps> = ({ project,
             <span>⚙️</span> Project Settings
           </button>
           
-          <button 
-            className="w-full text-left px-4 py-2.5 text-xs font-semibold text-text-secondary dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-800/80 hover:text-amber-500 dark:hover:text-amber-400 transition-colors flex items-center gap-2"
-            onClick={() => {
-              setIsOpen(false);
-              onAssignPersonnel?.();
-            }}
-          >
-            <span>👤</span> Assign Personnel
-          </button>
+          {/* Assign Personnel is strictly visible ONLY to the project creator / admin */}
+          {isCreator && (
+            <button 
+              className="w-full text-left px-4 py-2.5 text-xs font-semibold text-text-secondary dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-800/80 hover:text-amber-500 dark:hover:text-amber-400 transition-colors flex items-center gap-2"
+              onClick={() => {
+                setIsOpen(false);
+                onAssignPersonnel?.();
+              }}
+            >
+              <span>👤</span> Assign Personnel
+            </button>
+          )}
           
           <button 
             className="w-full text-left px-4 py-2.5 text-xs font-semibold text-text-secondary dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-800/80 hover:text-amber-500 dark:hover:text-amber-400 transition-colors flex items-center gap-2"
@@ -87,15 +91,17 @@ export const ProjectActionsMenu: React.FC<ProjectActionsMenuProps> = ({ project,
 
           <div className="h-px bg-surface-200 dark:bg-slate-800 my-1 mx-2" />
 
-          <button 
-            onClick={() => {
-              setIsOpen(false);
-              onDeleteProject?.();
-            }}
-            className="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-2"
-          >
-            <span>🗑️</span> Delete Blueprint
-          </button>
+          {isCreator && (
+            <button 
+              onClick={() => {
+                setIsOpen(false);
+                onDeleteProject?.();
+              }}
+              className="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-2"
+            >
+              <span>🗑️</span> Delete Blueprint
+            </button>
+          )}
         </div>
       )}
     </div>

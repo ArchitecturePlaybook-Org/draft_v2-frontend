@@ -76,23 +76,23 @@ export default function MasterCatalogPage() {
   if (loading) return <div className="flex items-center justify-center h-full"><Spinner size="lg" /></div>;
 
   return (
-    <div className="flex flex-col h-full bg-surface-50">
-      <div className="flex items-center justify-between p-8 border-b border-surface-200 bg-background">
+    <div className="flex flex-col h-full bg-background text-foreground">
+      <div className="flex items-center justify-between p-8 border-b border-surface-200 bg-surface-card/60 backdrop-blur-md">
         <div>
-          <h1 className="text-2xl font-black text-primary tracking-tight">Master Catalog</h1>
+          <h1 className="text-2xl font-black text-foreground tracking-tight">Master Catalog</h1>
           <p className="text-sm text-surface-500 mt-1">Manage global cost codes and materials across all projects.</p>
         </div>
         
         <div className="flex gap-3">
           <button 
             onClick={handleDownloadTemplate}
-            className="flex items-center gap-2 px-4 py-2 bg-surface-50 border border-surface-200 text-surface-600 font-bold text-xs uppercase tracking-widest rounded-xl hover:text-accent hover:border-accent transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-surface-50 dark:bg-surface-100/40 border border-surface-200 text-surface-600 dark:text-surface-300 font-bold text-xs uppercase tracking-widest rounded-xl hover:text-accent hover:border-accent transition-colors cursor-pointer"
           >
             <Download size={16} />
             Template
           </button>
           
-          <label className="flex items-center gap-2 px-4 py-2 bg-surface-50 border border-surface-200 text-surface-600 font-bold text-xs uppercase tracking-widest rounded-xl hover:text-accent hover:border-accent transition-colors cursor-pointer">
+          <label className="flex items-center gap-2 px-4 py-2 bg-surface-50 dark:bg-surface-100/40 border border-surface-200 text-surface-600 dark:text-surface-300 font-bold text-xs uppercase tracking-widest rounded-xl hover:text-accent hover:border-accent transition-colors cursor-pointer">
             {importing ? <Spinner size="sm" /> : <Upload size={16} />}
             <span>{importing ? 'Importing...' : 'Import'}</span>
             <input 
@@ -106,7 +106,7 @@ export default function MasterCatalogPage() {
           
           <button 
             onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent/90 transition-colors shadow-lg shadow-accent/20"
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-accent/90 transition-colors shadow-lg shadow-accent/20 cursor-pointer"
           >
             <Plus size={16} />
             Add Material
@@ -115,7 +115,7 @@ export default function MasterCatalogPage() {
       </div>
 
       <div className="flex-1 overflow-hidden p-8">
-        <div className="bg-background rounded-2xl border border-surface-200 shadow-sm h-full flex flex-col overflow-hidden">
+        <div className="bg-surface-card rounded-2xl border border-surface-200 shadow-sm h-full flex flex-col overflow-hidden">
            <MasterCatalogGrid items={items} onRefresh={fetchCatalog} onEdit={handleOpenEdit} />
         </div>
       </div>

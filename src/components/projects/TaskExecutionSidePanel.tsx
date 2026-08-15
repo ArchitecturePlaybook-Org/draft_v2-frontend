@@ -65,7 +65,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   isSubtaskPanel = false,
 }) => {
   const { isSidebarCollapsed } = useProjectNavStore();
-  const NAV_W = isSidebarCollapsed ? 80 : 280;
+  const NAV_W = isSidebarCollapsed ? 48 : 185;
 
   const [manualWidth, setManualWidth] = useState<number | null>(null);
   const defaultWidth = typeof window !== "undefined" ? window.innerWidth - NAV_W : 800;
@@ -456,17 +456,12 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
   const panelStyle = isMobileScreen
     ? { left: 0, right: 0, width: "100%", transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
-    : isSubtaskPanel
-      ? { right: 0, width: effectiveWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" }
-      : splitMode
-        ? { left: leftOffset, width: effectiveWidth, transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)" }
-        : { right: 0, width: panelWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" };
+    : { right: 0, width: effectiveWidth, transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)" };
 
   const panelClass = isSubtaskPanel
     ? "fixed top-0 right-0 bottom-0 z-[70] bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden w-full md:w-auto"
-    : splitMode
-      ? "fixed top-0 bottom-0 z-[45] bg-background shadow-2xl flex flex-col border-r border-surface-200 min-w-0 overflow-hidden w-full md:w-auto"
-      : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden w-full md:w-auto";
+    : "fixed top-0 right-0 bottom-0 z-50 bg-background shadow-2xl flex flex-col border-l border-surface-200 min-w-0 overflow-hidden w-full md:w-auto";
+
 
   return (
     <>
@@ -476,6 +471,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           onClick={onClose}
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-2xl"
         />
@@ -484,7 +480,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
         initial={{ x: slideX, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: slideX, opacity: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         style={panelStyle}
         className={panelClass}
       >
@@ -606,32 +602,6 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
             <div className="flex items-center gap-2 shrink-0 ml-auto">
               <span className="text-[9px] font-mono text-surface-500">ID: {task.task_code || task.uid}</span>
-
-              {!isSubtaskPanel && (
-                <button
-                  onClick={handleCopyLink}
-                  className={`${splitMode ? "h-9 px-3" : "h-10 sm:h-11 px-3 sm:px-6"} font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2 whitespace-nowrap shrink-0 ${isCopied
-                      ? "bg-emerald-600 text-white shadow-emerald-500/20 scale-[1.02]"
-                      : "bg-accent text-background hover:opacity-90"
-                    }`}
-                >
-                  {isCopied ? "✓" : splitMode ? "🔗" : "🔗 Copy Link"}
-                </button>
-              )}
-
-              {!readOnly && (isAdmin || isArchitect) && (
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  title="Soft Delete Task"
-                  className={`${splitMode ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"} rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm shrink-0 border border-red-200 dark:border-red-800/30`}
-                >
-                  🗑️
-                </button>
-              )}
-
-              <button onClick={onClose} className={`${splitMode ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"} rounded-xl bg-surface-200 text-surface-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center font-bold shadow-sm shrink-0`}>
-                ✕
-              </button>
             </div>
           </div>
 
@@ -679,11 +649,11 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
             </div>
 
             {/* Tab Body */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-surface-50">
+            <div className={`flex flex-col flex-1 p-4 sm:p-5 bg-surface-50 ${(activeTab === "execution" || activeTab === "drawing") ? "overflow-hidden" : "overflow-y-auto"}`}>
 
               {/* EXECUTION / PROGRESS TAB */}
               {activeTab === "execution" && (
-                <div className="flex flex-col lg:flex-row gap-8 max-w-[1400px] h-[calc(100vh-280px)]">
+                <div className="flex-1 flex flex-col lg:flex-row gap-8 max-w-[1400px] h-full min-h-0">
                   {/* Main Execution Content */}
                   <div className="flex-1 space-y-8 overflow-y-auto pr-2 pb-8 max-w-4xl">
                     {/* Subtask Header Overview Card */}

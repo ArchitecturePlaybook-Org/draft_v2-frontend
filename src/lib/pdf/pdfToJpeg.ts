@@ -95,8 +95,8 @@ export async function convertPdfToJpegSheets(
 
   for (let pageNum = 1; pageNum <= numPages; pageNum++) {
     const page = await pdfDoc.getPage(pageNum);
-    // 2x scale for crisp architectural floor plan details
-    const viewport = page.getViewport({ scale: 2.0 });
+    // 3.5x scale for Ultra-HD 4K architectural blueprint clarity (3500px+ resolution)
+    const viewport = page.getViewport({ scale: 3.5 });
 
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
@@ -105,6 +105,9 @@ export async function convertPdfToJpegSheets(
     canvas.height = viewport.height;
     canvas.width = viewport.width;
 
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+
     await page.render({ canvasContext: context, viewport }).promise;
 
     const blob = await new Promise<Blob>((resolve) => {
@@ -112,8 +115,7 @@ export async function convertPdfToJpegSheets(
         (b) => {
           if (b) resolve(b);
         },
-        "image/jpeg",
-        0.92
+        "image/png"
       );
     });
 

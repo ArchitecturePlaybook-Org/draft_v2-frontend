@@ -62,7 +62,7 @@ export const PdfMultiSheetModal: React.FC<PdfMultiSheetModalProps> = ({
       .map((s) => ({
         title: s.title || `Sheet ${s.pageNumber}`,
         blob: s.blob,
-        filename: `${s.title.replace(/[^a-zA-Z0-9_-]/g, "_")}_p${s.pageNumber}.jpg`,
+        filename: `${s.title.replace(/[^a-zA-Z0-9_-]/g, "_")}_p${s.pageNumber}.png`,
       }));
 
     if (toUpload.length === 0) return;
@@ -99,7 +99,7 @@ export const PdfMultiSheetModal: React.FC<PdfMultiSheetModalProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] font-semibold text-text-secondary truncate mt-0.5">
-                  File: <strong className="text-foreground">{pdfFileName}</strong> • ({sheets.length} sheets converted to JPEG)
+                  File: <strong className="text-foreground">{pdfFileName}</strong> • ({sheets.length} sheets converted to PNG)
                 </p>
               </div>
             </div>
@@ -186,7 +186,7 @@ export const PdfMultiSheetModal: React.FC<PdfMultiSheetModalProps> = ({
                             Sheet {sheet.pageNumber} Title
                           </label>
                           <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            JPEG Ready
+                            PNG Ready
                           </span>
                         </div>
                         <input
