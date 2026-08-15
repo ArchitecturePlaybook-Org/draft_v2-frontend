@@ -227,11 +227,11 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     }
   };
 
-  const handleUnlockBlock = (blockId: number) => {
+  const handleUnlockBlock = async (blockId: number, reason?: string) => {
     setConfirmLockAction({ type: 'unlock', blockId });
   };
 
-  const handleLockBlock = (blockId: number) => {
+  const handleLockBlock = async (blockId: number) => {
     setConfirmLockAction({ type: 'lock', blockId });
   };
 

@@ -338,3 +338,24 @@ export interface TaskComment {
 
 
 
+
+export interface DrawingMarkup {
+  id: number;
+  canonical_uid: string;
+  asset?: number | null;
+  project_uid?: string;
+  task_uid?: string;
+  author_name?: string;
+  author_username?: string;
+  task_title?: string;
+  x_percent: number;
+  y_percent: number;
+  width_percent?: number;
+  height_percent?: number;
+  title: string;
+  description?: string;
+  category?: string;
+  status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED";
+  created_at: string;
+  updated_at?: string;
+}

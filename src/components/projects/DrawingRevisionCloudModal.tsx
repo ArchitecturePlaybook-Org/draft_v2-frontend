@@ -21,7 +21,7 @@ interface DrawingRevisionCloudModalProps {
 export function DrawingRevisionCloudModal({ asset, taskUid, onClose, onRefresh }: DrawingRevisionCloudModalProps) {
   const { user } = useAuthStore();
   const userRealName = user
-    ? [user.first_name, user.last_name].filter(Boolean).join(" ").trim() || user.username || user.email
+    ? [user.first_name, user.last_name].filter(Boolean).join(" ").trim() || (user as any).username || user.email
     : "";
 
   const [zoom, setZoom] = useState(1);

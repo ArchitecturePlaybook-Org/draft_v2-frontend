@@ -58,6 +58,7 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
 
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [updatingProgress, setUpdatingProgress] = useState(false);
+  const [fullScreenDrawingId, setFullScreenDrawingId] = useState<string | null>(null);
   const [isAddingChecklist, setIsAddingChecklist] = useState(false);
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);

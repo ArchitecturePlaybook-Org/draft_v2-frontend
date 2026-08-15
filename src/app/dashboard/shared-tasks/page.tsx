@@ -77,7 +77,7 @@ export default function SharedTasksPage() {
 
   // Helper to get actual project title for any task without showing code hashes
   const getTaskProjectTitle = (t: Task) => {
-    if (t.project_title) return t.project_title;
+    if ((t as any).project_title) return (t as any).project_title;
     if ((t.project as any)?.title) return (t.project as any).title;
     if (t.project_uid && projectTitleMap.has(t.project_uid)) return projectTitleMap.get(t.project_uid)!;
     if (t.project && projectTitleMap.has(String(t.project))) return projectTitleMap.get(String(t.project))!;

@@ -7,6 +7,8 @@ import { ArchitecturalRevisionCloudCallout } from "./ArchitecturalRevisionCloudC
 import { ReopenReasonModal } from "./ReopenReasonModal";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { useAuthStore } from "@/store/auth-store";
 import { Cloud, X, Check, Upload, FileCheck, Loader2, MessageSquare, AlertCircle, Eye } from "lucide-react";
 
 interface ContractorRevisionReviewModalProps {
@@ -17,6 +19,9 @@ interface ContractorRevisionReviewModalProps {
 }
 
 export function ContractorRevisionReviewModal({ asset, initialMarkupId, onClose, onRefresh }: ContractorRevisionReviewModalProps) {
+  const { user } = useAuthStore();
+  const userRealName = user ? [user.first_name, user.last_name].filter(Boolean).join(" ").trim() || (user as any).username || user.email : "User";
+  
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);

@@ -106,7 +106,7 @@ async function stampMetadataOnImage(
 export function CellPhotoDrawer({ isOpen, onClose, asset, gridCol, gridRow, onPhotoAdded, onPhotoDeleted }: CellPhotoDrawerProps) {
   const { user } = useAuthStore();
   const userRealName = user
-    ? [user.first_name, user.last_name].filter(Boolean).join(" ").trim() || user.username || user.email
+    ? [user.first_name, user.last_name].filter(Boolean).join(" ").trim() || (user as any).username || user.email
     : "Site Surveyor";
 
   const [photos, setPhotos] = useState<SitePhoto[]>([]);

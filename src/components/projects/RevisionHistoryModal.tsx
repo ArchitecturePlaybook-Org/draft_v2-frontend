@@ -405,7 +405,7 @@ export function RevisionHistoryModal({ asset, onClose, onRevisionUploaded, onVer
                           Uploaded: {formatFullDate(verAsset.created_at)}
                         </span>
                         <span className="font-mono text-surface-500 font-semibold">
-                          {formatFileSize(verAsset.file_size)}
+                          {formatFileSize(verAsset.size)}
                         </span>
                       </div>
                     </div>
