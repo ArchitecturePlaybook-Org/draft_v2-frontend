@@ -326,7 +326,7 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-surface-400 mb-0.5">Est. Cost</p>
-                <p className="text-xs font-bold text-primary">${task?.estimated_cost || "0.00"}</p>
+                <p className="text-xs font-bold text-primary">₹{task?.estimated_cost || "0.00"}</p>
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-surface-400 mb-0.5">Assignee</p>

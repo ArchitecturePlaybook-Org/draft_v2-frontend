@@ -313,7 +313,7 @@ export default function SharedTaskPage() {
 
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-surface-400 mb-1">Est. Cost</p>
-                <p className="font-bold text-primary">${task.estimated_cost || "0.00"}</p>
+                <p className="font-bold text-primary">₹{task.estimated_cost || "0.00"}</p>
               </div>
               <div className="col-span-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-surface-400 mb-1">Assignee</p>

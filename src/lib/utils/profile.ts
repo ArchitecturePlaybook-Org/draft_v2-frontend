@@ -18,7 +18,7 @@ export const CATEGORY_SCHEMAS: Record<string, FieldSchema[]> = {
   contractor: [
     { key: "company_reg_number", label: "Company Registration", type: "text" },
     { key: "primary_trade", label: "Primary Trade", type: "select", options: ["General Construction", "MEP", "Structural", "Civil", "Finishing"] },
-    { key: "insurance_limit", label: "Liability Insurance Limit", type: "text", placeholder: "e.g. $5M" },
+    { key: "insurance_limit", label: "Liability Insurance Limit", type: "text", placeholder: "e.g. ₹5M" },
   ],
   supplier: [
     { key: "product_category", label: "Main Product Line", type: "select", options: ["Raw Materials", "Finishes", "Equipment", "Structural Components"] },
@@ -28,7 +28,7 @@ export const CATEGORY_SCHEMAS: Record<string, FieldSchema[]> = {
   ],
   client: [
     { key: "project_interest", label: "Main Project Interest", type: "select", options: ["Residential", "Commercial", "Industrial", "Renovation"] },
-    { key: "budget_range", label: "Planned Budget Range", type: "select", options: ["<$100k", "$100k-$500k", "$500k-$1M", ">$1M"] },
+    { key: "budget_range", label: "Planned Budget Range", type: "select", options: ["<₹100k", "₹100k-₹500k", "₹500k-₹1M", ">₹1M"] },
     { key: "estimated_start", label: "Target Start Date", type: "date" },
   ],
 };

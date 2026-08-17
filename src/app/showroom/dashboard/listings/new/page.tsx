@@ -157,7 +157,7 @@ export default function NewProductPage() {
                 value={form.price_display}
                 onChange={(e) => set("price_display", e.target.value)}
                 className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:outline-none focus:border-accent"
-                placeholder="e.g. From $1,200 or POA"
+                placeholder="e.g. From ₹1,200 or POA"
               />
             </div>
             <div>

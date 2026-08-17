@@ -25,7 +25,7 @@ export const LeadGenerationModal: React.FC<LeadGenerationModalProps> = ({
   const [formData, setFormData] = useState({
     projectType: 'Residential',
     timeline: '3-6 Months',
-    budget: '$50k - $100k',
+    budget: '₹50k - ₹100k',
     message: ''
   });
 
@@ -130,7 +130,7 @@ export const LeadGenerationModal: React.FC<LeadGenerationModalProps> = ({
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Estimated Budget Range</label>
                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                    {['<$10k', '$10k-$50k', '$50k-$100k', '$100k+'].map(b => (
+                    {['<₹10k', '₹10k-₹50k', '₹50k-₹100k', '₹100k+'].map(b => (
                       <button
                         key={b}
                         onClick={() => setFormData({...formData, budget: b})}

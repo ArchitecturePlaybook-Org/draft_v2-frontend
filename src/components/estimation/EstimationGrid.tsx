@@ -238,7 +238,7 @@ export const EstimationGrid = () => {
           <span>Total Takeoffs</span>
           <div className="flex items-center gap-3">
             <span>Qty: <strong className="font-mono text-accent">{totalQuantitySum.toFixed(2)}</strong></span>
-            <span>Cost: <strong className="font-mono text-emerald-600 dark:text-emerald-400">${totalCostSum.toFixed(2)}</strong></span>
+            <span>Cost: <strong className="font-mono text-emerald-600 dark:text-emerald-400">₹{totalCostSum.toFixed(2)}</strong></span>
           </div>
         </div>
       )}
