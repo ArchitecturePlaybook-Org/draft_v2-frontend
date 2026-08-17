@@ -27,6 +27,7 @@ interface ProjectState {
   // Async Data Actions
   fetchProject: (id: string) => Promise<void>;
   addTaskOptimistically: (task: Partial<Task>) => void;
+  toggleTaskAssetLink: (taskUid: string, canonicalUid: string, linkId?: number) => Promise<void>;
   updateProjectStatus: (uid: string, status: ProjectStatus) => Promise<void>;
   updateTaskStatus: (taskUid: string, status: string) => Promise<void>;
   updateTaskDates: (taskUid: string, start: string, end: string) => Promise<void>;
@@ -124,6 +125,60 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         tasks_done_count: doneCount
       } 
     });
+  },
+
+  toggleTaskAssetLink: async (taskUid: string, canonicalUid: string, linkId?: number) => {
+    const { project, activeTask } = get();
+    if (!project) return;
+
+    const task = project.tasks.find(t => t.uid === taskUid);
+    if (!task) return;
+
+    const existingLink = linkId 
+      ? task.asset_links?.find(l => l.id === linkId)
+      : task.asset_links?.find(l => String(l.canonical_uid) === String(canonicalUid));
+
+    const isUnlinking = !!existingLink;
+
+    let newAssetLinks = task.asset_links || [];
+    if (isUnlinking) {
+      newAssetLinks = newAssetLinks.filter(l => l !== existingLink);
+    } else {
+      const tempLink: any = {
+        id: Date.now(),
+        task: taskUid,
+        canonical_uid: canonicalUid,
+        asset_title: "",
+        linked_at: new Date().toISOString(),
+        latest_asset: null
+      };
+      newAssetLinks = [...newAssetLinks, tempLink];
+    }
+
+    const updatedTasks = project.tasks.map(t =>
+      t.uid === taskUid ? { ...t, asset_links: newAssetLinks } : t
+    );
+
+    const updatedActiveTask = activeTask?.uid === taskUid ? { ...activeTask, asset_links: newAssetLinks } : activeTask;
+
+    set({ 
+      project: { ...project, tasks: updatedTasks },
+      activeTask: updatedActiveTask
+    });
+
+    try {
+      if (isUnlinking && existingLink) {
+        await projectsApi.unlinkAssetFromTask(existingLink.id);
+      } else {
+        await projectsApi.linkAssetToTask(taskUid, canonicalUid);
+      }
+      const freshData = await projectsApi.getProjectDetails(project.uid);
+      set({ project: freshData });
+    } catch (err) {
+      console.error("Failed to toggle asset link:", err);
+      get().fetchProject(project.uid);
+      throw err;
+    }
   },
 
   updateProjectStatus: async (uid: string, status: ProjectStatus) => {

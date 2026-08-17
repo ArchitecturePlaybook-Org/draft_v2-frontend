@@ -24,7 +24,7 @@ import { Bell, MapPin, X, ExternalLink, Cloud } from "lucide-react";
 import { toast } from "sonner";
 
 export const DataHubTab: React.FC = () => {
-  const { project, activeHubCategory, setActiveHubCategory, fetchProject } = useProjectStore();
+  const { project, activeHubCategory, setActiveHubCategory, fetchProject, toggleTaskAssetLink } = useProjectStore();
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
@@ -35,6 +35,7 @@ export const DataHubTab: React.FC = () => {
 
   const [historyAsset, setHistoryAsset] = useState<ProjectAsset | null>(null);
   const [manageLinksAsset, setManageLinksAsset] = useState<ProjectAsset | null>(null);
+  const [togglingTaskUids, setTogglingTaskUids] = useState<Record<string, boolean>>({});
   const [surveyAsset, setSurveyAsset] = useState<ProjectAsset | null>(null);
   const [cloudModalAsset, setCloudModalAsset] = useState<ProjectAsset | null>(null);
   const [viewerAsset, setViewerAsset] = useState<ProjectAsset | null>(null);
@@ -569,21 +570,33 @@ export const DataHubTab: React.FC = () => {
                           <p className="text-[10px] uppercase tracking-widest text-surface-400 font-bold">{task.status}</p>
                         </div>
                         <button
+                          disabled={!!togglingTaskUids[task.uid]}
                           onClick={async () => {
+                            if (togglingTaskUids[task.uid]) return;
+                            setTogglingTaskUids(prev => ({ ...prev, [task.uid]: true }));
                             try {
-                              if (isLinked) {
-                                await projectsApi.unlinkAssetFromTask(link.id);
-                              } else {
-                                await projectsApi.linkAssetToTask(task.uid, manageLinksAsset.canonical_uid);
-                              }
-                              fetchProject(project.uid);
+                              await toggleTaskAssetLink(task.uid, manageLinksAsset.canonical_uid, link?.id);
                             } catch (err) {
-                              alert("Failed to toggle link.");
+                              toast.error("Failed to toggle task link.");
+                            } finally {
+                              setTogglingTaskUids(prev => ({ ...prev, [task.uid]: false }));
                             }
                           }}
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${isLinked ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-surface-200/50 text-surface-400 hover:bg-accent hover:text-white hover:shadow-[0_0_15px_var(--accent-glow)]'}`}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+                            togglingTaskUids[task.uid]
+                              ? 'bg-surface-200/80 text-surface-400 cursor-wait'
+                              : isLinked
+                              ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                              : 'bg-surface-200/50 text-surface-400 hover:bg-accent hover:text-white hover:shadow-[0_0_15px_var(--accent-glow)]'
+                          }`}
                         >
-                          {isLinked ? '✓' : '+'}
+                          {togglingTaskUids[task.uid] ? (
+                            <div className="w-4 h-4 border-2 border-surface-400 border-t-transparent rounded-full animate-spin" />
+                          ) : isLinked ? (
+                            '✓'
+                          ) : (
+                            '+'
+                          )}
                         </button>
                       </div>
                     );
