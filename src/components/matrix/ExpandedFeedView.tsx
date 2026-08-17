@@ -216,30 +216,30 @@ export const ExpandedFeedView: React.FC<ExpandedFeedViewProps> = ({
                 paddingBottom: "3rem"
               }}
             >
-              <div className="bg-surface-100 rounded-3xl border border-surface-200 overflow-hidden shadow-sm">
+              <div className="bg-surface-100 rounded-xl border border-surface-200 overflow-hidden shadow-sm">
                 {/* Phase Header */}
           <div 
-            className="px-8 py-5 border-b border-surface-200 sticky top-0 z-20 shadow-sm"
+            className="px-4 py-2.5 border-b border-surface-200 sticky top-0 z-20 shadow-sm"
             style={{ backgroundColor: section.phase.color_hex ? `${section.phase.color_hex}15` : undefined }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <span 
-                className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xl border border-white/20 shadow-inner"
+                className="w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs border border-white/20 shadow-inner"
                 style={{ backgroundColor: section.phase.color_hex || undefined, color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
               >
                 {section.phase.sequence_order}
               </span>
               <div>
-                <h2 className="text-2xl font-black text-primary tracking-tight">{section.phase.name}</h2>
+                <h2 className="text-sm font-black text-primary tracking-tight">{section.phase.name}</h2>
                 {section.phase.description && (
-                  <p className="text-sm text-surface-500 font-medium">{section.phase.description}</p>
+                  <p className="text-[11px] text-surface-500 font-medium">{section.phase.description}</p>
                 )}
               </div>
             </div>
           </div>
 
           {/* Zones Row (Horizontal Scroll) */}
-          <div className="flex overflow-x-auto p-8 gap-8 snap-x snap-mandatory">
+          <div className="flex overflow-x-auto p-4 gap-4 snap-x snap-mandatory no-scrollbar">
             {section.blocks.map(block => {
               const isLocked = block.status === "LOCKED";
               
@@ -247,15 +247,15 @@ export const ExpandedFeedView: React.FC<ExpandedFeedViewProps> = ({
                 <div 
                   key={block.id} 
                   className={`
-                    snap-center shrink-0 w-[420px] rounded-2xl border-2 flex flex-col relative overflow-hidden
+                    snap-center shrink-0 w-[300px] rounded-xl border flex flex-col relative overflow-hidden
                     ${isLocked ? "border-dashed border-surface-200 bg-surface-50/50" : "border-surface-200 bg-surface-100 shadow-sm"}
                   `}
                 >
                   {/* Block Header */}
-                  <div className="px-5 py-4 border-b border-surface-100 flex items-center justify-between shrink-0">
+                  <div className="px-3.5 py-2.5 border-b border-surface-100 flex items-center justify-between shrink-0">
                     <div>
-                      <h3 className="font-bold text-lg text-primary">{block.zone_name}</h3>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400 mt-0.5">
+                      <h3 className="font-bold text-xs text-primary">{block.zone_name}</h3>
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-surface-400 mt-0.5">
                         {block.total_tasks} Tasks · {block.completed_tasks} Done
                       </p>
                     </div>

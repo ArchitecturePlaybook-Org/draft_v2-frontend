@@ -31,6 +31,9 @@ export interface Project {
   is_template?: boolean;
   template_scope?: "GLOBAL" | "ORG" | "USER";
   share_token?: string | null;
+  visibility?: "PUBLIC" | "PRIVATE";
+  shared_roles?: number[];
+  shared_users?: number[];
   created_by: User;
   memberships_count: number;
   tasks_count: number;
@@ -62,12 +65,20 @@ export interface SitePhoto {
   created_at: string;
 }
 
+export interface Role {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+
 export interface ProjectAsset {
   id: number;
   project: string;
   folder?: number | null;
   title: string;
   category: AssetCategory;
+  drawing_tag?: "none" | "gfc" | "abd";
   file: string; // URL
   thumbnail: string | null;
   size: number;
@@ -155,12 +166,20 @@ export interface TaskTag {
   account: number;
 }
 
+export interface SubtaskTemplateItem {
+  id?: string;
+  title: string;
+  description?: string;
+  checklists?: string[];
+}
+
 export interface TaskTemplate {
   id: number;
   name: string;
   description: string;
   default_duration_days: number;
-  default_checklists: any[];
+  default_checklists: string[];
+  default_subtasks?: SubtaskTemplateItem[];
 }
 
 export interface ProjectMembership {
@@ -317,3 +336,26 @@ export interface TaskComment {
 }
 
 
+
+
+
+export interface DrawingMarkup {
+  id: number;
+  canonical_uid: string;
+  asset?: number | null;
+  project_uid?: string;
+  task_uid?: string;
+  author_name?: string;
+  author_username?: string;
+  task_title?: string;
+  x_percent: number;
+  y_percent: number;
+  width_percent?: number;
+  height_percent?: number;
+  title: string;
+  description?: string;
+  category?: string;
+  status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED";
+  created_at: string;
+  updated_at?: string;
+}

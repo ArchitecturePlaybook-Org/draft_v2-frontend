@@ -3,19 +3,23 @@ import React, { useState, useEffect, useRef } from "react";
 import { ProjectAsset, SitePhoto } from "@/types/projects";
 import { ProtectedFloorPlanViewer } from "./ProtectedFloorPlanViewer";
 import { CellPhotoDrawer } from "./CellPhotoDrawer";
+import { DrawingRevisionCloudModal } from "./DrawingRevisionCloudModal";
 
 interface FloorPlanGridViewerProps {
   asset: ProjectAsset;
   projectId?: number;
+  taskUid?: string;
   onClose?: () => void;
   onRefresh: () => void;
   inline?: boolean;
   onToggleFullScreen?: () => void;
 }
 
-export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inline = false, onToggleFullScreen }: FloorPlanGridViewerProps) {
+export function FloorPlanGridViewer({ asset, projectId, taskUid, onClose, onRefresh, inline = false, onToggleFullScreen }: FloorPlanGridViewerProps) {
+  const [showCloudModal, setShowCloudModal] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [showGpsOverlay, setShowGpsOverlay] = useState(true);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -80,7 +84,6 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
     if (zoom + delta <= 1) setOffset({ x: 0, y: 0 });
   };
 
-
   return (
     <div className={inline ? "flex flex-col bg-surface-900 w-full h-full min-h-[500px] rounded-2xl overflow-hidden shadow-inner no-print border border-surface-200" : "fixed inset-0 z-50 bg-surface-900 flex flex-col no-print"}>
       {/* Header */}
@@ -91,11 +94,28 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
           )}
           <div className="min-w-0">
             <h2 className="font-black text-primary text-sm uppercase tracking-tighter truncate">{asset.title}</h2>
-            <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest truncate">Site Survey Grid (8×8)</p>
+            <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest truncate">Site Survey Grid (8×8) • EXIF GPS & Timestamp Enabled</p>
           </div>
         </div>
         
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:justify-end w-full sm:w-auto max-w-full overflow-x-auto custom-scrollbar pb-0.5">
+          <button
+            onClick={() => setShowGpsOverlay(prev => !prev)}
+            className={`px-3 h-8 text-[10px] font-black uppercase tracking-wider rounded-lg border transition-all flex items-center gap-1 shrink-0 ${
+              showGpsOverlay 
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" 
+                : "bg-surface-100 text-surface-400 border-surface-200"
+            }`}
+          >
+            <span>📍</span> GPS Pin Map
+          </button>
+          <button
+            onClick={() => setShowCloudModal(true)}
+            className="px-3 h-8 text-[10px] font-black uppercase tracking-wider rounded-lg border transition-all flex items-center gap-1.5 shrink-0 bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/20"
+            title="Open Revision Cloud area selection tool"
+          >
+            <span>☁️</span> Revision Clouds
+          </button>
           <div className="flex bg-surface-100 p-1 rounded-xl shrink-0">
             <button onClick={() => handleZoom(-0.5)} className="w-8 h-8 flex items-center justify-center hover:bg-surface-100 border-surface-200 rounded-lg transition-all font-bold text-lg">－</button>
             <div className="px-2 sm:px-3 flex items-center text-[10px] font-black text-primary uppercase whitespace-nowrap">{(zoom * 100).toFixed(0)}%</div>
@@ -143,6 +163,7 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
                   const c = i % cols;
                   const colLetter = String.fromCharCode(65 + c);
                   const cellPhotos = asset.site_photos?.filter(p => p.grid_col === c && p.grid_row === r) || [];
+                  const latestPhoto = cellPhotos[cellPhotos.length - 1];
                   
                   return (
                     <div 
@@ -164,12 +185,27 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
                         {colLetter}{r + 1}
                       </span>
 
-                      {/* Content Indicator */}
+                      {/* Photo & GPS Pins Indicator */}
                       {cellPhotos.length > 0 && (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="bg-accent/90 text-white p-1 rounded-lg shadow-lg flex flex-col items-center scale-75 group-hover:scale-100 transition-transform">
-                            <span className="text-[10px]">📷</span>
+                          <div className="bg-accent/90 text-white px-1.5 py-1 rounded-xl shadow-lg flex flex-col items-center scale-90 group-hover:scale-105 transition-transform backdrop-blur-xs">
+                            <span className="text-[10px]">{showGpsOverlay && latestPhoto?.latitude ? '📍' : '📷'}</span>
                             <span className="text-[8px] font-black">{cellPhotos.length}</span>
+                          </div>
+
+                          {/* Hover Details Tooltip */}
+                          <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col bg-surface-900/90 text-white p-2 rounded-xl text-[9px] shadow-xl border border-white/10 whitespace-nowrap z-50 pointer-events-none">
+                            <span className="font-black text-accent uppercase">Zone {colLetter}{r + 1} • {cellPhotos.length} Photos</span>
+                            {latestPhoto && (
+                              <span className="text-[8px] text-surface-300">
+                                🕒 {new Date(latestPhoto.captured_at || latestPhoto.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                            {latestPhoto?.latitude && latestPhoto?.longitude && (
+                              <span className="text-[8px] text-emerald-400 font-bold">
+                                📍 {Number(latestPhoto.latitude).toFixed(4)}, {Number(latestPhoto.longitude).toFixed(4)}
+                              </span>
+                            )}
                           </div>
                         </div>
                       )}
@@ -221,7 +257,14 @@ export function FloorPlanGridViewer({ asset, projectId, onClose, onRefresh, inli
         />
       </div>
 
-
+      {showCloudModal && (
+        <DrawingRevisionCloudModal
+          asset={asset}
+          taskUid={taskUid}
+          onClose={() => setShowCloudModal(false)}
+          onRefresh={onRefresh}
+        />
+      )}
     </div>
   );
 }

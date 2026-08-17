@@ -66,20 +66,20 @@ export const ProjectSidebar: React.FC = () => {
         </svg>
       </button>
       {/* Toggle Collapse Button & Back to Portal */}
-      <div className="flex items-center justify-between mb-6 min-w-0">
+      <div className="flex items-center justify-between mb-3 min-w-0">
         <button 
           onClick={() => {
             setProjectContext(null);
             router.push("/dashboard/projects");
           }}
-          className={`flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-foreground transition-colors min-w-0 ${isSidebarCollapsed ? 'justify-center w-10 h-10 bg-surface-100 rounded-lg shrink-0' : 'uppercase tracking-widest'}`}
+          className={`flex items-center gap-1.5 text-[11px] font-bold text-text-secondary hover:text-foreground transition-colors min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 bg-surface-100 rounded-lg shrink-0' : 'uppercase tracking-widest'}`}
           title="Back to Projects"
         >
           {isSidebarCollapsed ? (
-            <span className="text-sm leading-none mt-px">←</span>
+            <span className="text-xs leading-none mt-px">←</span>
           ) : (
             <>
-              <span className="text-sm leading-none mt-px shrink-0">←</span>
+              <span className="text-xs leading-none mt-px shrink-0">←</span>
               <span className="truncate">Global Portfolio</span>
             </>
           )}
@@ -88,18 +88,18 @@ export const ProjectSidebar: React.FC = () => {
 
       {/* Project Title Block */}
       {!isSidebarCollapsed && (
-        <div className="mb-8 min-w-0">
-          <h2 className="text-xl font-extrabold text-foreground tracking-tight leading-tight line-clamp-2">
+        <div className="mb-4 min-w-0">
+          <h2 className="text-sm font-black text-foreground tracking-tight leading-snug line-clamp-2">
             {currentProjectTitle || "Loading Project..."}
           </h2>
-          <div className="mt-2 inline-flex items-center px-2 py-1 bg-surface-100 text-text-secondary text-[9px] font-bold uppercase tracking-widest rounded-md border border-surface-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-semantic-green mr-1.5 animate-pulse" />
+          <div className="mt-1 inline-flex items-center px-1.5 py-0.5 bg-surface-100 text-text-secondary text-[8px] font-bold uppercase tracking-widest rounded border border-surface-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-semantic-green mr-1 animate-pulse" />
             Workspace Active
           </div>
         </div>
       )}
 
-      <nav className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto overflow-x-hidden scroll-smooth">
+      <nav className="flex-1 min-h-0 flex flex-col gap-3.5 overflow-y-auto overflow-x-hidden scroll-smooth">
         {/* Workspace Views */}
         <div>
           {!isSidebarCollapsed && (
@@ -107,16 +107,16 @@ export const ProjectSidebar: React.FC = () => {
               Project Workspace
             </h4>
           )}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {workspaceLinks.map((link) => (
               <Link 
                 key={link.id} 
                 href={`/dashboard/projects/${currentProjectUid}?tab=${link.id}`} 
-                className={`nav-item ${currentTab === link.id && pathname === `/dashboard/projects/${currentProjectUid}` ? "active bg-surface-100 text-foreground border-surface-200" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-10 h-10 rounded-lg mx-auto' : ''}`}
+                className={`nav-item ${currentTab === link.id && pathname === `/dashboard/projects/${currentProjectUid}` ? "active" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto' : ''}`}
                 title={isSidebarCollapsed ? link.label : undefined}
               >
-                <span className="text-lg leading-none grayscale opacity-70 transition-all group-hover:grayscale-0 group-hover:opacity-100 shrink-0">{link.icon}</span>
-                {!isSidebarCollapsed && <span className="truncate">{link.label}</span>}
+                <span className="text-sm leading-none shrink-0">{link.icon}</span>
+                {!isSidebarCollapsed && <span className="truncate text-[11px]">{link.label}</span>}
               </Link>
             ))}
           </div>
@@ -125,25 +125,26 @@ export const ProjectSidebar: React.FC = () => {
         {/* Project Tools */}
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-black">
-              Project Tools
+            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+              Tools
             </h4>
           )}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {toolsLinks.map((link) => (
               <Link 
                 key={link.label} 
                 href={link.href} 
                 target={link.target}
-                className={`nav-item ${pathname === link.href ? "active bg-surface-100 text-foreground border-surface-200" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-10 h-10 rounded-lg mx-auto' : ''}`}
+                className={`nav-item ${pathname === link.href ? "active" : ""} ${isSidebarCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto' : ''}`}
                 title={isSidebarCollapsed ? link.label : undefined}
               >
-                <span className="text-lg leading-none grayscale opacity-70 transition-all shrink-0">{link.icon}</span>
-                {!isSidebarCollapsed && <span className="truncate">{link.label}</span>}
+                <span className="text-sm leading-none shrink-0">{link.icon}</span>
+                {!isSidebarCollapsed && <span className="truncate text-[11px]">{link.label}</span>}
               </Link>
             ))}
           </div>
         </div>
+
       </nav>
 
       {!isSidebarCollapsed && <div className="shrink-0"><ProfileBanner /></div>}

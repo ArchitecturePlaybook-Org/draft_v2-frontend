@@ -19,7 +19,7 @@ interface ProtectedFloorPlanViewerProps {
 export function ProtectedFloorPlanViewer({
   assetId,
   versionKey,
-  lazy = true,
+  lazy = false,
   children,
 }: ProtectedFloorPlanViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);

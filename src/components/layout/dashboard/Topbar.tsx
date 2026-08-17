@@ -9,13 +9,12 @@ import { useProjectNavStore } from "@/store/project-nav-store";
 export const Topbar: React.FC = () => {
   const pathname = usePathname();
   const { isAdmin } = usePermissions();
-  const { currentProjectTitle, currentProjectUid } = useProjectNavStore();
+  const { currentProjectTitle, currentProjectUid, toggleSidebar, isSidebarCollapsed } = useProjectNavStore();
 
   const getBreadcrumbs = () => {
     const parts = pathname.split("/").filter(Boolean);
     return parts.map((part, index) => {
       const href = "/" + parts.slice(0, index + 1).join("/");
-      // Replace the raw project UID segment with the human-readable project title
       const isProjectUidSegment =
         currentProjectUid && part === currentProjectUid;
       const label = isProjectUidSegment && currentProjectTitle
@@ -29,7 +28,14 @@ export const Topbar: React.FC = () => {
 
   return (
     <header className="topbar">
-      <div className="flex items-center gap-2 min-w-0 flex-1 basis-full sm:basis-auto overflow-x-auto custom-scrollbar">
+      <div className="flex items-center gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar">
+        <button
+          onClick={toggleSidebar}
+          className="md:hidden p-1.5 rounded-lg bg-surface-100 border border-surface-200 text-surface-500 hover:text-foreground text-xs shrink-0"
+          title="Toggle Navigation Menu"
+        >
+          ☰
+        </button>
         {breadcrumbs.map((crumb, idx) => (
           <React.Fragment key={crumb.href}>
             <span 

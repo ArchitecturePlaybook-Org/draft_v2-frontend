@@ -85,11 +85,30 @@ const SiteOpsLaborPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => 
           {entry.labor_entries?.length > 0 && (
             <div className="mb-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">👷 Labour</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {entry.labor_entries.map((l: any) => (
-                  <div key={l.id} className="bg-surface-100 rounded-xl p-3 text-center">
-                    <p className="text-lg font-black text-primary">{l.headcount}</p>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-surface-400">{l.trade_type || "General"}</p>
+                  <div key={l.id} className="bg-surface-100 rounded-xl p-3 border border-surface-200/50 flex flex-col justify-between hover:shadow-xs transition-shadow">
+                    <div>
+                      <p className="font-bold text-xs text-primary truncate" title={l.crew_name || "General Crew"}>
+                        {l.crew_name || "General Crew"}
+                      </p>
+                      <p className="text-[9px] text-surface-400 font-bold uppercase tracking-wider mt-0.5">
+                        {l.trade_type || "General"}
+                      </p>
+                      {l.zone && (
+                        <p className="text-[9px] text-surface-500 mt-1 truncate" title={`Zone: ${l.zone}`}>
+                          📍 {l.zone}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-surface-200/40 flex justify-between items-center text-[10px] font-bold">
+                      <span className="text-orange-600 bg-orange-50 dark:bg-orange-950/20 px-1.5 py-0.5 rounded">
+                        {l.headcount} workers
+                      </span>
+                      <span className="text-surface-500 bg-surface-200/40 px-1.5 py-0.5 rounded">
+                        ⏱️ {l.total_hours} hrs
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -416,13 +435,13 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
 
   return (
     <div className="w-full">
-      {/* Sub-Navigation Pills */}
-      <div className="flex flex-wrap gap-2 p-2 bg-surface-100/50 backdrop-blur-xl rounded-2xl border border-surface-200/50 mb-8 shadow-sm w-full">
+      {/* Sub-tab Navigation */}
+      <div className="flex overflow-x-auto no-scrollbar gap-1 p-1 bg-surface-100/50 backdrop-blur-xl rounded-xl border border-surface-200/50 mb-3 shadow-sm w-full">
         {SUBTABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
-            className={`relative flex items-center gap-2 px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-colors duration-300 ${
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-extrabold text-[9px] uppercase tracking-wider transition-colors duration-300 whitespace-nowrap shrink-0 ${
               activeSubTab === tab.id
                 ? "text-accent"
                 : "text-surface-400 hover:text-primary"
@@ -431,11 +450,11 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
             {activeSubTab === tab.id && (
               <motion.div
                 layoutId="siteOpsActiveTab"
-                className="absolute inset-0 bg-surface-50 rounded-xl shadow-[0_0_15px_rgba(var(--color-accent),0.1)] border border-surface-200/50"
+                className="absolute inset-0 bg-surface-50 rounded-lg shadow-sm border border-surface-200/50"
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
               />
             )}
-            <span className="relative z-10">{tab.emoji}</span>
+            <span className="relative z-10 text-xs">{tab.emoji}</span>
             <span className="relative z-10">{tab.label}</span>
           </button>
         ))}

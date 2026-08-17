@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { projectsApi } from "@/domains/projects/api";
-import { ChevronDown, ChevronUp, Plus, Sun, Cloud, CloudRain, Wind, AlertTriangle, Hammer, Package, Truck, Activity, Trash, Camera, Paperclip, File } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Sun, Cloud, CloudRain, Wind, AlertTriangle, Hammer, Package, Truck, Activity, Trash, Camera, Paperclip, File, Receipt, ImagePlus } from "lucide-react";
 
 interface DiaryEntryDetailProps {
   entry: any;
@@ -17,9 +17,23 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   
   // Section states for adding new items
   const [newLabor, setNewLabor] = useState({ crew_name: "", trade_type: "", headcount: "", total_hours: "", zone: "" });
-  const [newMaterial, setNewMaterial] = useState({ description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good" });
+  const [newMaterial, setNewMaterial] = useState({ description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good", cost: "" });
+  const [newMaterialReceipt, setNewMaterialReceipt] = useState<File | null>(null);
+  const newMaterialReceiptRef = useRef<HTMLInputElement>(null);
   const [newEquipment, setNewEquipment] = useState({ equipment_id: "", hours_operated: "", hours_idle: "", status: "operational" });
   const [newDelay, setNewDelay] = useState({ delay_type: "weather", duration_hours: "", impacted_path: "" });
+  const [uploadingReceiptId, setUploadingReceiptId] = useState<number | null>(null);
+
+  // Local temperature state — buffered so we only PATCH on blur, not on every keystroke.
+  // Sending intermediate values like "", "-", "2." to the backend DecimalField causes 400 errors.
+  const [tempHigh, setTempHigh] = useState<string>(entry.temperature_high != null ? String(entry.temperature_high) : "");
+  const [tempLow, setTempLow] = useState<string>(entry.temperature_low != null ? String(entry.temperature_low) : "");
+
+  // Keep local temp state in sync when the parent entry prop changes (e.g. after onUpdate refresh)
+  React.useEffect(() => {
+    setTempHigh(entry.temperature_high != null ? String(entry.temperature_high) : "");
+    setTempLow(entry.temperature_low != null ? String(entry.temperature_low) : "");
+  }, [entry.temperature_high, entry.temperature_low]);
 
   // Accordion state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -55,7 +69,22 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   const addSubEntry = async (type: string, payload: any, resetFn: () => void) => {
     if (isLocked) return;
     try {
-      await projectsApi.createDiarySubEntry(entry.id, type, payload);
+      const result = await projectsApi.createDiarySubEntry(entry.id, type, payload);
+      // If this is a material entry and a receipt image was staged, upload it now
+      if (type === "materials" && newMaterialReceipt) {
+        // The result from createDiarySubEntry for materials returns the full entry;
+        // find the latest material entry id from the updated entry's material_entries
+        const latestMaterial = result?.material_entries?.at(-1);
+        if (latestMaterial?.id) {
+          try {
+            await projectsApi.uploadMaterialReceipt(latestMaterial.id, newMaterialReceipt);
+          } catch {
+            toast.warning("Receipt image could not be attached — please use the attachment button on the card.");
+          }
+        }
+        setNewMaterialReceipt(null);
+        if (newMaterialReceiptRef.current) newMaterialReceiptRef.current.value = "";
+      }
       toast.success("Added successfully");
       resetFn();
       onUpdate();
@@ -117,47 +146,53 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   const siteConditionOptions = ["Dry", "Muddy", "Work Suspended"];
 
   return (
-    <div className="bg-surface-100 border-surface-200 rounded-2xl border shadow-xl flex flex-col">
+    <div className="bg-surface-100 border-surface-200 rounded-xl border shadow-sm flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="p-5 border-b border-surface-200 bg-surface-100 rounded-t-2xl flex justify-between items-center shadow-sm">
+      <div className="px-3.5 py-2 border-b border-surface-200 bg-surface-100 rounded-t-xl flex justify-between items-center shadow-xs">
         <div>
-          <h2 className="text-xl font-bold text-primary">Diary: {entry.entry_date}</h2>
-          <div className="flex gap-2 items-center mt-1">
-            <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase ${entry.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+          <h2 className="text-sm font-black text-primary">Diary: {entry.entry_date}</h2>
+          <div className="flex gap-1.5 items-center mt-0.5">
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-extrabold uppercase ${entry.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
               {entry.status}
             </span>
+            {entry.status !== "signed" && (
+              <div className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 animate-pulse">
+                <AlertTriangle className="w-3 h-3 text-amber-500" />
+                <span>Draft - Unlocked</span>
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           {!isLocked && (
-            <Button variant="primary" onClick={handleSign}>Sign & Lock</Button>
+            <Button variant="primary" size="sm" onClick={handleSign}>Sign & Lock</Button>
           )}
-          {onClose && <Button variant="outline" onClick={onClose}>Close</Button>}
+          {onClose && <Button variant="outline" size="sm" onClick={onClose}>Close</Button>}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-50">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-surface-50 no-scrollbar">
 
         {/* 1. Metadata & Weather */}
-        <div className="bg-surface-100 border-surface-200 border border-surface-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-surface-100 border-surface-200 border rounded-lg overflow-hidden shadow-xs">
           <div 
-            className="p-4 flex justify-between items-center cursor-pointer hover:bg-surface-50 select-none"
+            className="p-2.5 flex justify-between items-center cursor-pointer hover:bg-surface-50 select-none"
             onClick={() => toggleSection('metadata')}
           >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Sun className="w-5 h-5" /></div>
-              <h3 className="font-bold text-lg text-surface-800">Weather & Conditions</h3>
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-blue-100 text-blue-600 rounded-md"><Sun className="w-4 h-4" /></div>
+              <h3 className="font-bold text-xs text-surface-800">Weather & Conditions</h3>
               {!expandedSections.metadata && (
-                <span className="text-sm font-medium text-surface-500 text-surface-400 ml-4">
+                <span className="text-[11px] font-medium text-surface-400 ml-2">
                   {entry.sky_conditions || 'Not set'} • {entry.temperature_high ? `${entry.temperature_high}°C` : '-'}
                 </span>
               )}
             </div>
-            {expandedSections.metadata ? <ChevronUp className="w-5 h-5 text-surface-400" /> : <ChevronDown className="w-5 h-5 text-surface-400" />}
+            {expandedSections.metadata ? <ChevronUp className="w-4 h-4 text-surface-400" /> : <ChevronDown className="w-4 h-4 text-surface-400" />}
           </div>
           
           {expandedSections.metadata && (
-            <div className="p-5 border-t border-surface-100 bg-surface-100 border-surface-200 space-y-6">
+            <div className="p-3 border-t border-surface-100 bg-surface-100 space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase mb-2">Sky Conditions</label>
@@ -198,11 +233,35 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase mb-2">Temp High (°C)</label>
-                    <input type="number" disabled={isLocked} className="w-full h-10 px-3 rounded-lg border border-surface-200" value={entry.temperature_high || ""} onChange={e => handleMetadataUpdate("temperature_high", e.target.value)} />
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      className="w-full h-10 px-3 rounded-lg border border-surface-200"
+                      value={tempHigh}
+                      onChange={e => setTempHigh(e.target.value)}
+                      onBlur={() => {
+                        const parsed = tempHigh === "" ? null : parseFloat(tempHigh);
+                        if (!isNaN(parsed as number) || parsed === null) {
+                          handleMetadataUpdate("temperature_high", parsed);
+                        }
+                      }}
+                    />
                   </div>
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-surface-500 text-surface-400 uppercase mb-2">Temp Low (°C)</label>
-                    <input type="number" disabled={isLocked} className="w-full h-10 px-3 rounded-lg border border-surface-200" value={entry.temperature_low || ""} onChange={e => handleMetadataUpdate("temperature_low", e.target.value)} />
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      className="w-full h-10 px-3 rounded-lg border border-surface-200"
+                      value={tempLow}
+                      onChange={e => setTempLow(e.target.value)}
+                      onBlur={() => {
+                        const parsed = tempLow === "" ? null : parseFloat(tempLow);
+                        if (!isNaN(parsed as number) || parsed === null) {
+                          handleMetadataUpdate("temperature_low", parsed);
+                        }
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -344,25 +403,94 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
           {expandedSections.materials && (
             <div className="p-5 border-t border-surface-100 bg-surface-100 border-surface-200 space-y-4">
               <div className="space-y-3">
-                {entry.material_entries?.map((m: any) => (
-                  <div key={m.id} className="p-4 bg-surface-50 border border-surface-200 rounded-xl flex justify-between items-start">
-                    <div>
-                      <p className="font-bold text-surface-800">{m.description}</p>
-                      <p className="text-xs font-medium text-surface-500 text-surface-400 mt-1">Supplier: {m.supplier} • Ticket: {m.ticket_number}</p>
-                    </div>
-                    <div className="text-right flex items-start gap-3">
-                      <div className="flex flex-col items-end">
-                        <p className="font-bold text-emerald-600 text-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{m.quantity} <span className="text-sm font-normal text-emerald-700">{m.unit}</span></p>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full mt-2 ${m.status === 'good' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.status}</span>
+                {entry.material_entries?.map((m: any) => {
+                  const receiptUrl: string | null = m.receipt_image_url || null;
+                  const isReceiptImg = receiptUrl ? isImageUrl(receiptUrl) : false;
+                  return (
+                    <div key={m.id} className="p-4 bg-surface-50 border border-surface-200 rounded-xl flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-surface-800">{m.description}</p>
+                        <p className="text-xs font-medium text-surface-500 text-surface-400 mt-1">
+                          Supplier: {m.supplier} • Ticket: {m.ticket_number}
+                          {m.cost != null && ` • Cost: $${parseFloat(m.cost).toFixed(2)}`}
+                        </p>
+
+                        {/* Receipt image: thumbnail or file link */}
+                        {receiptUrl && (
+                          <div className="mt-3">
+                            {isReceiptImg ? (
+                              <a href={receiptUrl} target="_blank" rel="noopener noreferrer" title="View full receipt">
+                                <img
+                                  src={receiptUrl}
+                                  alt="Receipt"
+                                  className="h-20 w-auto max-w-[160px] object-cover rounded-lg border border-emerald-200 dark:border-emerald-800/50 hover:opacity-90 transition-opacity cursor-zoom-in"
+                                />
+                              </a>
+                            ) : (
+                              <a
+                                href={receiptUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/50 hover:underline"
+                              >
+                                <Receipt className="w-3.5 h-3.5" /> View Receipt PDF
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Attach receipt button for entries without one */}
+                        {!receiptUrl && !isLocked && (
+                          <div className="mt-3">
+                            <input
+                              type="file"
+                              id={`receipt-upload-${m.id}`}
+                              className="hidden"
+                              accept="image/*,application/pdf"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setUploadingReceiptId(m.id);
+                                const toastId = toast.loading("Uploading receipt...");
+                                try {
+                                  await projectsApi.uploadMaterialReceipt(m.id, file);
+                                  toast.success("Receipt attached", { id: toastId });
+                                  onUpdate();
+                                } catch (err: any) {
+                                  toast.error(err?.message || "Failed to upload receipt", { id: toastId });
+                                } finally {
+                                  setUploadingReceiptId(null);
+                                  e.target.value = "";
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`receipt-upload-${m.id}`}
+                              className={`inline-flex items-center gap-1.5 text-xs font-medium text-surface-500 hover:text-emerald-600 bg-surface-100 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-surface-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                                uploadingReceiptId === m.id ? "opacity-60 pointer-events-none" : ""
+                              }`}
+                            >
+                              <ImagePlus className="w-3.5 h-3.5" />
+                              {uploadingReceiptId === m.id ? "Uploading..." : "Attach Receipt"}
+                            </label>
+                          </div>
+                        )}
                       </div>
-                      {!isLocked && (
-                        <button onClick={(e) => { e.stopPropagation(); handleDelete("materials", m.id); }} className="p-2 bg-surface-100 hover:bg-red-50 text-surface-400 hover:text-red-500 rounded-lg">
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      )}
+
+                      <div className="text-right flex items-start gap-3 shrink-0">
+                        <div className="flex flex-col items-end">
+                          <p className="font-bold text-emerald-600 text-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{m.quantity} <span className="text-sm font-normal text-emerald-700">{m.unit}</span></p>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full mt-2 ${m.status === 'good' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.status}</span>
+                        </div>
+                        {!isLocked && (
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete("materials", m.id); }} className="p-2 bg-surface-100 hover:bg-red-50 text-surface-400 hover:text-red-500 rounded-lg">
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               {!isLocked && (
@@ -374,12 +502,36 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                     <input type="text" placeholder="Unit (e.g. tons, m3)" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})}/>
                     <input type="text" placeholder="Supplier" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.supplier} onChange={e => setNewMaterial({...newMaterial, supplier: e.target.value})}/>
                     <input type="text" placeholder="Ticket Number" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.ticket_number} onChange={e => setNewMaterial({...newMaterial, ticket_number: e.target.value})}/>
-                    <select className="h-10 px-3 rounded-lg border border-surface-200 col-span-1 md:col-span-2 text-sm font-medium" value={newMaterial.status} onChange={e => setNewMaterial({...newMaterial, status: e.target.value})}>
+                    <input type="number" step="0.01" placeholder="Cost (e.g. 1500.00)" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.cost} onChange={e => setNewMaterial({...newMaterial, cost: e.target.value})}/>
+                    <select className="h-10 px-3 rounded-lg border border-surface-200 text-sm font-medium" value={newMaterial.status} onChange={e => setNewMaterial({...newMaterial, status: e.target.value})}>
                       <option value="good">Status: Good Condition</option>
                       <option value="damaged">Status: Damaged</option>
                       <option value="rejected">Status: Rejected</option>
                     </select>
-                    <Button className="md:col-span-2" onClick={() => addSubEntry("materials", newMaterial, () => setNewMaterial({description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good"}))}>Add Receipt</Button>
+
+                    {/* Receipt image picker */}
+                    <div className="col-span-1 md:col-span-2">
+                      <input
+                        ref={newMaterialReceiptRef}
+                        type="file"
+                        id={`new-material-receipt-${entry.id}`}
+                        className="hidden"
+                        accept="image/*,application/pdf"
+                        onChange={e => setNewMaterialReceipt(e.target.files?.[0] ?? null)}
+                      />
+                      <label
+                        htmlFor={`new-material-receipt-${entry.id}`}
+                        className="flex items-center gap-2 w-full h-10 px-3 rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 text-sm font-medium cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                      >
+                        <Receipt className="w-4 h-4 shrink-0" />
+                        {newMaterialReceipt
+                          ? <span className="truncate">{newMaterialReceipt.name}</span>
+                          : <span>Attach receipt image or PDF <span className="text-surface-400 font-normal">(optional)</span></span>
+                        }
+                      </label>
+                    </div>
+
+                    <Button className="md:col-span-2" onClick={() => addSubEntry("materials", newMaterial, () => setNewMaterial({description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good", cost: ""}))}>Add Receipt</Button>
                   </div>
                 </div>
               )}
