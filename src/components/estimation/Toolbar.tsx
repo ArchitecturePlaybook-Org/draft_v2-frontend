@@ -200,6 +200,7 @@ export const Toolbar = () => {
             <div key={tool.id} className="relative group">
               <button
                 type="button"
+                title={tool.label}
                 onClick={() => setActiveTool(tool.id)}
                 className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all cursor-pointer ${
                   activeTool === tool.id 
@@ -210,10 +211,10 @@ export const Toolbar = () => {
                 <tool.icon size={18} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
               </button>
 
-              {/* Instant, Premium Floating Tooltip */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1.5 bg-surface-900/90 dark:bg-surface-100/90 text-white dark:text-surface-900 backdrop-blur-md text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xl border border-white/10 dark:border-surface-200 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-75 ease-out z-50 whitespace-nowrap scale-95 group-hover:scale-100">
+              {/* Instant, Premium Floating Tooltip Above Button */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 px-2.5 py-1 bg-surface-900 dark:bg-surface-100 text-white dark:text-surface-900 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xl border border-white/10 dark:border-surface-200 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-75 ease-out z-50 whitespace-nowrap scale-95 group-hover:scale-100">
                 {tool.label}
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface-900/90 dark:bg-surface-100/90 rotate-45 border-t border-l border-white/10 dark:border-surface-200" />
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface-900 dark:bg-surface-100 rotate-45 border-r border-b border-white/10 dark:border-surface-200" />
               </div>
             </div>
           ))}
@@ -225,6 +226,7 @@ export const Toolbar = () => {
         <div className="relative shrink-0 group" ref={thicknessRef}>
           <button
             type="button"
+            title="Adjust Line Thickness"
             onClick={toggleThicknessPopover}
             className="flex items-center gap-2 px-3 py-1.5 bg-surface-50 dark:bg-surface-100/40 border border-surface-200 hover:border-accent rounded-xl text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
           >
@@ -237,9 +239,9 @@ export const Toolbar = () => {
           </button>
 
           {/* Instant Tooltip for Thickness */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1.5 bg-surface-900/90 dark:bg-surface-100/90 text-white dark:text-surface-900 backdrop-blur-md text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xl border border-white/10 dark:border-surface-200 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-75 ease-out z-50 whitespace-nowrap scale-95 group-hover:scale-100">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 px-2.5 py-1 bg-surface-900 dark:bg-surface-100 text-white dark:text-surface-900 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xl border border-white/10 dark:border-surface-200 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-75 ease-out z-50 whitespace-nowrap scale-95 group-hover:scale-100">
             Line Thickness
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface-900/90 dark:bg-surface-100/90 rotate-45 border-t border-l border-white/10 dark:border-surface-200" />
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface-900 dark:bg-surface-100 rotate-45 border-r border-b border-white/10 dark:border-surface-200" />
           </div>
         </div>
 
