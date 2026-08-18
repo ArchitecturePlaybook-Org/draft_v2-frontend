@@ -313,7 +313,7 @@ export default function SharedTaskPage() {
 
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-surface-400 mb-1">Est. Cost</p>
-                <p className="font-bold text-primary">${task.estimated_cost || "0.00"}</p>
+                <p className="font-bold text-primary">₹{task.estimated_cost || "0.00"}</p>
               </div>
               <div className="col-span-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-surface-400 mb-1">Assignee</p>
@@ -352,7 +352,13 @@ export default function SharedTaskPage() {
                   }
                   if (asset.category === '3d_model' || asset.category === 'sh3d') {
                     return (
-                      <div key={l.id} className="border border-surface-200 rounded-2xl overflow-hidden bg-slate-50 relative h-[500px]">
+                      <div key={l.id} className="border border-surface-200 rounded-2xl overflow-hidden bg-slate-50 relative h-[500px] group">
+                         <button
+                           onClick={() => setFullScreenDrawingId(asset.canonical_uid)}
+                           className="absolute top-3 right-3 z-10 px-3.5 py-1.5 bg-surface-900/80 hover:bg-surface-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all border border-white/10 shadow-lg cursor-pointer"
+                         >
+                           Full Screen ⛶
+                         </button>
                          <ModelViewer 
                             url={asset.file} 
                             format={
@@ -552,19 +558,52 @@ export default function SharedTaskPage() {
           </div>
         </main>
 
-        {/* Full-Screen Floor Plan Modal */}
+        {/* Full-Screen Drawings & Models Modal */}
         {fullScreenDrawingId && task && (() => {
           const fullScreenAsset = task.asset_links
             ?.find(l => l.latest_asset?.canonical_uid === fullScreenDrawingId)
             ?.latest_asset;
-          return fullScreenAsset ? (
-            <FloorPlanGridViewer
-              asset={fullScreenAsset}
-              projectId={publicInfo?.project_id || 0}
-              onClose={() => setFullScreenDrawingId(null)}
-              onRefresh={loadFullTask}
-            />
-          ) : null;
+          if (!fullScreenAsset) return null;
+
+          if (fullScreenAsset.category === "2d_plan") {
+            return (
+              <FloorPlanGridViewer
+                asset={fullScreenAsset}
+                projectId={publicInfo?.project_id || 0}
+                onClose={() => setFullScreenDrawingId(null)}
+                onRefresh={loadFullTask}
+              />
+            );
+          }
+
+          if (fullScreenAsset.category === "3d_model" || fullScreenAsset.category === "sh3d") {
+            return (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-2xl animate-in fade-in duration-300">
+                <div className="bg-surface-950 border border-white/10 w-full max-w-6xl h-[85vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] relative scale-in-center">
+                  <button
+                    onClick={() => setFullScreenDrawingId(null)}
+                    className="absolute top-6 right-6 z-10 w-12 h-12 bg-surface-800/80 hover:bg-red-500 hover:text-white backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-lg shadow-lg transition-all duration-300 text-white font-bold cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                  <div className="flex-1 w-full h-full">
+                    <ModelViewer
+                      url={fullScreenAsset.file}
+                      format={
+                        fullScreenAsset.category === "sh3d"
+                          ? "sh3d"
+                          : fullScreenAsset.file?.toLowerCase().endsWith(".obj")
+                          ? "obj"
+                          : "glb"
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return null;
         })()}
 
         {/* Full-Screen Photo Lightbox */}

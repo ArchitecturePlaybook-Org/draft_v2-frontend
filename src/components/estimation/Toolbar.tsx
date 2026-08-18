@@ -194,29 +194,27 @@ export const Toolbar = () => {
       
       <div className="flex items-center gap-1.5 min-w-max">
         
-        {/* 🎨 ICON-ONLY TOOL BUTTONS WITH HOVER EXPAND & TOOLTIPS */}
+        {/* 🎨 ICON-ONLY TOOL BUTTONS WITH INSTANT CUSTOM TOOLTIPS */}
         <div className="flex items-center gap-1 shrink-0">
           {tools.map((tool) => (
             <div key={tool.id} className="relative group">
               <button
                 type="button"
+                title={tool.label}
                 onClick={() => setActiveTool(tool.id)}
-                className={`relative flex items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer ${
+                className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all cursor-pointer ${
                   activeTool === tool.id 
                     ? 'bg-accent text-background font-bold shadow-md shadow-accent/20 scale-105' 
                     : 'text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-200/60 hover:text-foreground font-medium'
                 }`}
-                title={tool.label}
               >
                 <tool.icon size={18} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
-                <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-xs group-hover:opacity-100 transition-all duration-200 ease-in-out whitespace-nowrap text-xs font-bold pl-0.5">
-                  {tool.label}
-                </span>
               </button>
 
-              {/* Floating Tooltip */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 bg-surface-card dark:bg-surface-100 text-foreground text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xl border border-surface-200 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap hidden sm:block">
+              {/* Instant, Premium Floating Tooltip Above Button */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 px-2.5 py-1 bg-surface-900 dark:bg-surface-100 text-white dark:text-surface-900 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xl border border-white/10 dark:border-surface-200 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-75 ease-out z-50 whitespace-nowrap scale-95 group-hover:scale-100">
                 {tool.label}
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface-900 dark:bg-surface-100 rotate-45 border-r border-b border-white/10 dark:border-surface-200" />
               </div>
             </div>
           ))}
@@ -225,12 +223,12 @@ export const Toolbar = () => {
         <div className="w-px h-6 bg-surface-200 mx-1 shrink-0"></div>
 
         {/* 🎛️ MODERN LINE THICKNESS POPOVER SELECTOR */}
-        <div className="relative shrink-0" ref={thicknessRef}>
+        <div className="relative shrink-0 group" ref={thicknessRef}>
           <button
             type="button"
-            onClick={toggleThicknessPopover}
-            className="flex items-center gap-2 px-3 py-1.5 bg-surface-50 dark:bg-surface-100/40 border border-surface-200 hover:border-accent rounded-xl text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs group"
             title="Adjust Line Thickness"
+            onClick={toggleThicknessPopover}
+            className="flex items-center gap-2 px-3 py-1.5 bg-surface-50 dark:bg-surface-100/40 border border-surface-200 hover:border-accent rounded-xl text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
           >
             <Sliders size={15} className="text-surface-400 group-hover:text-accent transition-colors" />
             <span className="text-[11px] font-mono font-black">{globalLineWidth || 2}px</span>
@@ -239,6 +237,12 @@ export const Toolbar = () => {
               style={{ height: `${Math.max(2, Math.min(10, globalLineWidth || 2))}px` }}
             ></div>
           </button>
+
+          {/* Instant Tooltip for Thickness */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 px-2.5 py-1 bg-surface-900 dark:bg-surface-100 text-white dark:text-surface-900 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xl border border-white/10 dark:border-surface-200 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-75 ease-out z-50 whitespace-nowrap scale-95 group-hover:scale-100">
+            Line Thickness
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface-900 dark:bg-surface-100 rotate-45 border-r border-b border-white/10 dark:border-surface-200" />
+          </div>
         </div>
 
         <div className="w-px h-6 bg-surface-200 mx-1 shrink-0"></div>

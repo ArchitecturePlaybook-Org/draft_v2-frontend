@@ -598,7 +598,7 @@ export default function TemplateDetailPage() {
                     {
                       label: "Cost Range",
                       value: template.template_est_cost_min
-                        ? `$${Number(template.template_est_cost_min).toLocaleString()} – $${Number(template.template_est_cost_max).toLocaleString()}`
+                        ? `₹${Number(template.template_est_cost_min).toLocaleString()} – ₹${Number(template.template_est_cost_max).toLocaleString()}`
                         : "—",
                       emoji: "💰",
                     },

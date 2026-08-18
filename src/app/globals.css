@@ -54,6 +54,29 @@ body {
   --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* --- Global Select & Option Dark Theme Styles --- */
+select {
+  color-scheme: dark;
+  background-color: var(--surface-100, #202630);
+  color: var(--primary, #F5F8FC);
+}
+
+option {
+  background-color: var(--surface-100, #202630);
+  color: var(--primary, #F5F8FC);
+}
+
+.theme-light select {
+  color-scheme: light;
+  background-color: var(--surface-50, #FFFFFF);
+  color: var(--primary, #111827);
+}
+
+.theme-light option {
+  background-color: #FFFFFF;
+  color: #111827;
+}
+
 .theme-light {
   --background: #F9FAFB;
   --foreground: #111827;

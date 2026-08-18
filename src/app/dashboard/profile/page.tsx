@@ -868,104 +868,124 @@ export default function ProfilePage() {
             </motion.section>
 
             {isUploadingPortfolio && (
-              <motion.div variants={{hidden: {opacity: 0, scale: 0.95}, show: {opacity: 1, scale: 1}}} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                <div className="bg-surface-100 border-surface-200 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-                  <div className="p-8 space-y-8">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Project Specification</h3>
-                      <button onClick={() => setIsUploadingPortfolio(false)} className="text-surface-400 hover:text-primary transition-colors">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
+              <div 
+                className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-start justify-center pt-16 sm:pt-20 pb-6 px-3 sm:px-4 overflow-hidden"
+                onClick={() => setIsUploadingPortfolio(false)}
+              >
+                <div 
+                  className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-white/10 w-full max-w-lg max-h-[calc(100vh-6rem)] rounded-2xl overflow-hidden shadow-2xl flex flex-col z-10 animate-in zoom-in-95 duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-4 border-b border-surface-200 dark:border-white/10 flex justify-between items-center shrink-0 bg-surface-100/60 dark:bg-surface-800/40">
+                    <div>
+                      <h3 className="text-sm font-extrabold text-primary tracking-tight">Add Portfolio Project</h3>
+                      <p className="text-[11px] text-surface-500 font-medium">Upload project assets & architectural specs</p>
                     </div>
-
-                    <form 
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const form = e.target as HTMLFormElement;
-                        const formData = new FormData(form);
-                        setIsLoading(true);
-                        try {
-                          const newItem = await portfoliosApi.addPortfolioItem(formData);
-                          setPortfolioItems(prev => [newItem, ...prev]);
-                          setIsUploadingPortfolio(false);
-                          setSuccess("Portfolio item synchronized successfully.");
-                        } catch (err) {
-                          console.error(err);
-                          alert("System failure during data ingestion.");
-                        } finally {
-                          setIsLoading(false);
-                        }
-                      }}
-                      className="space-y-6"
+                    <button 
+                      type="button"
+                      onClick={() => setIsUploadingPortfolio(false)} 
+                      className="w-7 h-7 rounded-full bg-surface-200/80 hover:bg-surface-300 text-surface-600 flex items-center justify-center font-bold text-xs transition-all"
                     >
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Project Title</label>
-                        <input name="title" required className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. Minimalist Glass Villa" />
+                      ✕
+                    </button>
+                  </div>
+
+                  <form 
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const formData = new FormData(form);
+                      setIsLoading(true);
+                      try {
+                        const newItem = await portfoliosApi.addPortfolioItem(formData);
+                        setPortfolioItems(prev => [newItem, ...prev]);
+                        setIsUploadingPortfolio(false);
+                        setSuccess("Portfolio item synchronized successfully.");
+                      } catch (err) {
+                        console.error(err);
+                        alert("System failure during data ingestion.");
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    className="flex-1 flex flex-col min-h-0 overflow-hidden"
+                  >
+                    <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4 min-h-0">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Project Title *</label>
+                        <input name="title" required className="w-full h-10 px-3.5 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl outline-none focus:border-accent text-xs font-semibold text-primary" placeholder="e.g. Minimalist Glass Villa" />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Main Thumbnail</label>
-                          <input type="file" name="image" required accept="image/*" className="w-full text-sm text-surface-500 text-surface-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Main Thumbnail *</label>
+                          <input type="file" name="image" required accept="image/*" className="w-full text-xs text-surface-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Gallery Images</label>
-                          <input type="file" name="images" multiple accept="image/*" className="w-full text-sm text-surface-500 text-surface-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Gallery Images</label>
+                          <input type="file" name="images" multiple accept="image/*" className="w-full text-xs text-surface-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Video URL (Optional)</label>
-                        <input name="video_url" type="url" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. https://www.youtube.com/watch?v=..." />
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Video URL (Optional)</label>
+                        <input name="video_url" type="url" className="w-full h-10 px-3.5 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl outline-none focus:border-accent text-xs font-semibold text-primary" placeholder="e.g. https://www.youtube.com/watch?v=..." />
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Execution Description</label>
-                        <textarea name="description" className="w-full h-32 p-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="Define the architectural parameters and outcome..." />
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Execution Description</label>
+                        <textarea name="description" rows={3} className="w-full p-3 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl outline-none focus:border-accent text-xs font-semibold text-primary resize-none" placeholder="Define the architectural parameters and outcome..." />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Project Date</label>
-                          <input type="date" name="project_date" className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" />
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Project Date</label>
+                          <input type="date" name="project_date" className="w-full h-10 px-3 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl outline-none focus:border-accent text-xs font-semibold text-primary" />
                         </div>
-                        <div className="flex items-center gap-3 pt-6">
+                        <div className="flex items-center gap-2 pt-5">
                           <input 
                             type="checkbox" 
                             name="is_public" 
                             id="is_public_check" 
                             value="true"
                             defaultChecked 
-                            className="w-5 h-5 rounded-lg border-surface-200 text-accent focus:ring-accent/20" 
+                            className="w-4 h-4 rounded border-surface-200 text-accent focus:ring-accent/20" 
                           />
-                          <label htmlFor="is_public_check" className="text-[10px] font-bold text-surface-600 text-surface-300 uppercase tracking-widest cursor-pointer">Public Visibility</label>
+                          <label htmlFor="is_public_check" className="text-xs font-bold text-primary uppercase tracking-wider cursor-pointer">Public Visibility</label>
                         </div>
                       </div>
                       
-                      <div className="space-y-4 pt-4 border-t border-surface-100">
-                        <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Discovery Filters (Optional)</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Category</label>
-                            <input name="category" type="text" className="w-full h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. Residential" />
+                      <div className="space-y-3 pt-3 border-t border-surface-200 dark:border-white/10">
+                        <h4 className="text-[10px] font-bold text-surface-400 uppercase tracking-wider">Discovery Filters (Optional)</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-surface-500 uppercase">Category</label>
+                            <input name="category" type="text" className="w-full h-9 px-3 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-lg outline-none focus:border-accent text-xs" placeholder="e.g. Residential" />
                           </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">City</label>
-                            <input name="city" type="text" className="w-full h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. New York" />
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-surface-500 uppercase">City</label>
+                            <input name="city" type="text" className="w-full h-9 px-3 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-lg outline-none focus:border-accent text-xs" placeholder="e.g. New York" />
                           </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Country</label>
-                            <input name="country" type="text" className="w-full h-12 px-4 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm" placeholder="e.g. USA" />
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-surface-500 uppercase">Country</label>
+                            <input name="country" type="text" className="w-full h-9 px-3 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-lg outline-none focus:border-accent text-xs" placeholder="e.g. USA" />
                           </div>
                         </div>
                       </div>
+                    </div>
+
+                    <div className="p-4 border-t border-surface-200 dark:border-white/10 shrink-0 bg-surface-100/60 dark:bg-surface-800/40">
                       <button 
                         type="submit" 
                         disabled={isLoading}
-                        className="w-full h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl shadow-primary/20"
+                        className="w-full h-11 bg-accent text-background font-extrabold uppercase text-xs tracking-wider hover:opacity-90 transition-all rounded-xl shadow-sm disabled:opacity-50"
                       >
                         {isLoading ? "Ingesting Data..." : "Synchronize Project"}
                       </button>
-                    </form>
-                  </div>
+                    </div>
+                  </form>
                 </div>
-              </motion.div>
+              </div>
             )}
           </motion.div>
         )}
@@ -1209,38 +1229,36 @@ export default function ProfilePage() {
 
       {/* Decommission Modal */}
       {isDecommissionModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-surface-100 border-surface-200 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="p-8 space-y-6 border-t-8 border-red-600">
-              <h3 className="text-sm font-bold text-red-600 uppercase tracking-[0.3em]">Confirm Decommission</h3>
-              <p className="text-sm text-surface-600 text-surface-300 leading-relaxed">
-                This action will schedule your account for permanent anonymization in 30 days. You will immediately lose access to all projects and organizations.
-              </p>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Verify Password</label>
-                <input 
-                  type="password" 
-                  value={decommissionPassword}
-                  onChange={(e) => setDecommissionPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full h-12 px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm"
-                />
-              </div>
-              <div className="flex gap-4 pt-2">
-                <button 
-                  onClick={() => { setIsDecommissionModalOpen(false); setDecommissionPassword(""); }}
-                  className="w-full h-12 bg-surface-100 text-surface-600 text-surface-300 font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-surface-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleDecommission}
-                  disabled={!decommissionPassword || isLoading}
-                  className="w-full h-12 bg-red-600 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
-                >
-                  {isLoading ? "Processing..." : "Confirm & Deactivate"}
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-4 overflow-hidden">
+          <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-white/10 w-full max-w-md max-h-[85vh] rounded-2xl overflow-y-auto shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200 border-t-4 border-red-600">
+            <h3 className="text-sm font-black text-red-600 uppercase tracking-widest">Confirm Decommission</h3>
+            <p className="text-xs text-surface-500 leading-relaxed font-medium">
+              This action will schedule your account for permanent anonymization in 30 days. You will immediately lose access to all projects and practices.
+            </p>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Verify Password</label>
+              <input 
+                type="password" 
+                value={decommissionPassword}
+                onChange={(e) => setDecommissionPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full h-10 px-3.5 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl outline-none focus:border-red-500 text-xs font-semibold text-primary"
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button 
+                onClick={() => { setIsDecommissionModalOpen(false); setDecommissionPassword(""); }}
+                className="w-full h-10 bg-surface-200 text-surface-700 font-bold uppercase text-xs tracking-wider rounded-xl hover:bg-surface-300 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDecommission}
+                disabled={!decommissionPassword || isLoading}
+                className="w-full h-10 bg-red-600 text-white font-bold uppercase text-xs tracking-wider rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
+              >
+                {isLoading ? "Processing..." : "Confirm & Deactivate"}
+              </button>
             </div>
           </div>
         </div>
@@ -1248,119 +1266,115 @@ export default function ProfilePage() {
 
       {/* Image Cropping Modal */}
       {isCropModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-surface-100 border-surface-200 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="p-8 space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">Adjust Profile Image</h3>
-                <button 
-                  onClick={() => setIsCropModalOpen(false)}
-                  className="text-surface-400 hover:text-primary transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="flex justify-center max-h-[400px] overflow-hidden bg-surface-50 border border-surface-200 rounded-xl">
-                <ReactCrop
-                  crop={crop}
-                  onChange={(c) => setCrop(c)}
-                  onComplete={(c) => setCompletedCrop(c)}
-                  aspect={1}
-                  circularCrop
-                >
-                  <img ref={imgRef} src={imgSrc} alt="Crop preview" onLoad={onImageLoad} className="max-h-[400px] object-contain" />
-                </ReactCrop>
-              </div>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-4 overflow-hidden">
+          <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-white/10 w-full max-w-lg max-h-[85vh] rounded-2xl overflow-y-auto shadow-2xl p-5 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center pb-2 border-b border-surface-200">
+              <h3 className="text-sm font-extrabold text-primary tracking-tight">Adjust Profile Image</h3>
               <button 
-                onClick={handleCropSubmit}
-                disabled={!completedCrop || isLoading}
-                className="w-full h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all disabled:opacity-50 shadow-xl rounded-xl"
+                onClick={() => setIsCropModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-surface-200 text-surface-600 flex items-center justify-center font-bold text-xs"
               >
-                {isLoading ? "Saving..." : "Crop & Save"}
+                ✕
               </button>
             </div>
+            <div className="flex justify-center max-h-[350px] overflow-hidden bg-surface-100 border border-surface-200 rounded-xl">
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={1}
+                circularCrop
+              >
+                <img ref={imgRef} src={imgSrc} alt="Crop preview" onLoad={onImageLoad} className="max-h-[350px] object-contain" />
+              </ReactCrop>
+            </div>
+            <button 
+              onClick={handleCropSubmit}
+              disabled={!completedCrop || isLoading}
+              className="w-full h-11 bg-accent text-background font-extrabold uppercase text-xs tracking-wider hover:opacity-90 transition-all disabled:opacity-50 shadow-sm rounded-xl"
+            >
+              {isLoading ? "Saving..." : "Crop & Save Image"}
+            </button>
           </div>
         </div>
       )}
 
       {/* 2FA Setup Modal */}
       {is2FASetupModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-surface-100 border-surface-200 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="p-8 space-y-8">
-              <div className="flex justify-between items-center">
-                <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em]">
-                  {recoveryCodes.length > 0 ? "Recovery Codes" : "Setup 2FA"}
-                </h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-4 overflow-hidden">
+          <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-white/10 w-full max-w-md max-h-[85vh] rounded-2xl overflow-y-auto shadow-2xl p-5 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center border-b border-surface-200 pb-3">
+              <h3 className="text-sm font-extrabold text-primary tracking-tight">
+                {recoveryCodes.length > 0 ? "Recovery Codes" : "Setup 2FA"}
+              </h3>
+              <button 
+                onClick={() => {
+                  setIs2FASetupModalOpen(false);
+                  setRecoveryCodes([]);
+                  setMfaCode("");
+                }} 
+                className="w-7 h-7 rounded-full bg-surface-200 text-surface-600 flex items-center justify-center font-bold text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            {recoveryCodes.length > 0 ? (
+              <div className="space-y-4">
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-200 text-amber-800 text-xs font-semibold">
+                  <strong>Save these recovery codes in a safe place!</strong> They are the only way to access your account if you lose your device.
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {recoveryCodes.map((code, idx) => (
+                    <div key={idx} className="bg-surface-100 border border-surface-200 p-2.5 text-center font-mono font-bold text-xs tracking-wider rounded-lg">
+                      {code}
+                    </div>
+                  ))}
+                </div>
                 <button 
-                  onClick={() => {
-                    setIs2FASetupModalOpen(false);
-                    setRecoveryCodes([]);
-                    setMfaCode("");
-                  }} 
-                  className="text-surface-400 hover:text-primary transition-colors"
+                  onClick={() => { setIs2FASetupModalOpen(false); setRecoveryCodes([]); setMfaCode(""); }} 
+                  className="w-full h-11 bg-accent text-background font-extrabold uppercase text-xs tracking-wider rounded-xl shadow-sm"
                 >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  I Have Saved Them
                 </button>
               </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-xs text-surface-500 leading-relaxed text-center font-medium">
+                  Scan the QR code below with your authenticator app (Google Authenticator / Authy).
+                </p>
+                
+                <div className="flex justify-center bg-surface-100 p-4 border border-surface-200 rounded-xl mx-auto w-max">
+                  <QRCodeSVG value={mfaUri} size={180} />
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-[10px] text-surface-400 uppercase tracking-wider font-bold mb-1">Manual Entry Code:</p>
+                  <code className="text-xs bg-surface-100 px-3 py-1.5 rounded-lg border border-surface-200 font-mono text-primary font-bold">
+                    {mfaSecret}
+                  </code>
+                </div>
 
-              {recoveryCodes.length > 0 ? (
-                <div className="space-y-6">
-                  <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800/30 text-amber-800 text-sm">
-                    <strong>Save these recovery codes in a safe place!</strong> They are the only way to access your account if you lose your device.
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    {recoveryCodes.map((code, idx) => (
-                      <div key={idx} className="bg-surface-50 border border-surface-200 p-3 text-center font-mono font-bold tracking-widest rounded-lg">
-                        {code}
-                      </div>
-                    ))}
-                  </div>
+                <div className="space-y-3 pt-3 border-t border-surface-200">
+                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Verify Code</label>
+                  <input 
+                    type="text" 
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    maxLength={6}
+                    placeholder="123456" 
+                    className="w-full h-11 text-center text-xl tracking-[0.4em] font-mono px-4 bg-surface-100 border border-surface-200 rounded-xl outline-none focus:border-accent text-primary" 
+                  />
                   <button 
-                    onClick={() => { setIs2FASetupModalOpen(false); setRecoveryCodes([]); setMfaCode(""); }} 
-                    className="w-full h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all shadow-xl rounded-xl"
+                    onClick={confirm2FASetup}
+                    disabled={mfaCode.length !== 6 || isLoading}
+                    className="w-full h-11 bg-accent text-background font-extrabold uppercase text-xs tracking-wider rounded-xl shadow-sm disabled:opacity-50"
                   >
-                    I Have Saved Them
+                    {isLoading ? "Verifying..." : "Verify & Enable Protection"}
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  <p className="text-sm text-surface-600 text-surface-300 leading-relaxed text-center">
-                    Scan the QR code below with your authenticator app (like Google Authenticator or Authy).
-                  </p>
-                  
-                  <div className="flex justify-center bg-surface-100 border-surface-200 p-4 border border-surface-200 rounded-xl mx-auto w-max">
-                    <QRCodeSVG value={mfaUri} size={200} />
-                  </div>
-                  
-                  <div className="text-center">
-                    <p className="text-xs text-surface-500 text-surface-400 uppercase tracking-widest font-bold mb-2">Manual Entry Code:</p>
-                    <code className="text-sm bg-surface-50 px-3 py-2 rounded-lg border border-surface-200 font-mono text-primary">
-                      {mfaSecret}
-                    </code>
-                  </div>
-
-                  <div className="space-y-4 pt-4 border-t border-surface-100">
-                    <label className="text-[10px] font-bold text-surface-500 text-surface-400 uppercase tracking-widest">Verify Code</label>
-                    <input 
-                      type="text" 
-                      value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value)}
-                      maxLength={6}
-                      placeholder="123456" 
-                      className="w-full h-14 text-center text-2xl tracking-[0.5em] font-mono px-5 bg-surface-50 border border-surface-200 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" 
-                    />
-                    <button 
-                      onClick={confirm2FASetup}
-                      disabled={mfaCode.length !== 6 || isLoading}
-                      className="w-full h-14 bg-accent text-background font-bold uppercase text-[10px] tracking-[0.3em] hover:bg-accent transition-all disabled:opacity-50 shadow-xl rounded-xl"
-                    >
-                      {isLoading ? "Verifying..." : "Verify & Enable"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

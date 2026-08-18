@@ -8,6 +8,7 @@ import { ProfileBanner } from "@/components/layout/dashboard/ProfileBanner";
 import { useCommandPaletteStore } from "@/store/command-palette-store";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { useProjectNavStore } from "@/store/project-nav-store";
+import { useNotificationCenter } from "@/shared/hooks/useNotificationCenter";
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
@@ -16,12 +17,21 @@ export const Sidebar: React.FC = () => {
   const { recentProjects, setProjectContext, isSidebarCollapsed, toggleSidebar } = useProjectNavStore();
   const router = useRouter();
 
+  const { unreadChatCount } = useNotificationCenter();
+
   const workspaceLinks = [
     { label: "Dashboard", href: "/dashboard", icon: "📊" },
     { label: "Projects", href: "/dashboard/projects", icon: "🏗️" },
     { label: "Shared Tasks", href: "/dashboard/shared-tasks", icon: "🔗" },
     { label: "Templates", href: "/dashboard/templates", icon: "📋" },
     { label: "Business Leads", href: "/dashboard/leads", icon: "💼" },
+  ];
+
+  const showroomLinks = [
+    { label: "Discover Catalog", href: "/dashboard/showroom", icon: "🛍️" },
+    { label: "My Orders", href: "/dashboard/showroom/orders", icon: "📦" },
+    { label: "Vendor Dashboard", href: "/dashboard/showroom/dashboard", icon: "🏪" },
+    { label: "Showroom Chats", href: "/dashboard/showroom/chats", icon: "💬", badge: unreadChatCount },
   ];
 
   const opsLinks = [
@@ -99,7 +109,30 @@ export const Sidebar: React.FC = () => {
           <div className="flex flex-col gap-0.5">
             {workspaceLinks.map((link) => (
               <React.Fragment key={link.href}>
-                <SidebarLink {...link} active={pathname === link.href} isCollapsed={isSidebarCollapsed} />
+                <SidebarLink {...link} active={pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href))} isCollapsed={isSidebarCollapsed} />
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          {!isSidebarCollapsed && (
+            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+              Showroom
+            </h4>
+          )}
+          <div className="flex flex-col gap-0.5">
+            {showroomLinks.map((link) => (
+              <React.Fragment key={link.href}>
+                <SidebarLink
+                  {...link}
+                  active={
+                    link.href === "/dashboard/showroom"
+                      ? (pathname === "/dashboard/showroom" || pathname.startsWith("/dashboard/showroom?"))
+                      : pathname.startsWith(link.href)
+                  }
+                  isCollapsed={isSidebarCollapsed}
+                />
               </React.Fragment>
             ))}
           </div>
@@ -156,16 +189,26 @@ interface SidebarLinkProps {
   icon: string;
   active: boolean;
   isCollapsed?: boolean;
+  badge?: number;
 }
 
-const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, icon, active, isCollapsed }) => (
+const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, icon, active, isCollapsed, badge }) => (
   <Link 
     href={href} 
-    className={`nav-item ${active ? "active" : ""} ${isCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto' : ''}`}
+    className={`nav-item relative ${active ? "active" : ""} ${isCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto' : ''}`}
     title={isCollapsed ? label : undefined}
   >
-    <span className="text-sm leading-none shrink-0">{icon}</span>
-    {!isCollapsed && <span className="truncate text-[11px]">{label}</span>}
+    <span className="text-sm leading-none shrink-0 relative">
+      {icon}
+      {isCollapsed && badge && badge > 0 ? (
+        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+      ) : null}
+    </span>
+    {!isCollapsed && <span className="truncate text-[11px] flex-1">{label}</span>}
+    {!isCollapsed && badge && badge > 0 ? (
+      <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-black text-[9px] shrink-0 animate-pulse">
+        {badge}
+      </span>
+    ) : null}
   </Link>
 );
-

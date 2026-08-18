@@ -412,7 +412,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
                         <p className="font-bold text-surface-800">{m.description}</p>
                         <p className="text-xs font-medium text-surface-500 text-surface-400 mt-1">
                           Supplier: {m.supplier} • Ticket: {m.ticket_number}
-                          {m.cost != null && ` • Cost: $${parseFloat(m.cost).toFixed(2)}`}
+                          {m.cost != null && ` • Cost: ₹${parseFloat(m.cost).toFixed(2)}`}
                         </p>
 
                         {/* Receipt image: thumbnail or file link */}

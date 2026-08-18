@@ -68,7 +68,7 @@ export default function LeadAnalyticsDashboard() {
           <CardHeader className="pb-2">
             <CardDescription>Pipeline Value</CardDescription>
             <CardTitle className="text-4xl text-amber-600 dark:text-amber-400">
-              ${data.pipeline_value.toLocaleString()}
+              ₹{data.pipeline_value.toLocaleString('en-IN')}
             </CardTitle>
           </CardHeader>
         </Card>

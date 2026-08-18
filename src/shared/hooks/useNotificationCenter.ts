@@ -1,0 +1,231 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { fetchFromBff } from "@/shared/api/fetchFromBff";
+import { useAuthStore } from "@/store/auth-store";
+import { playNotificationSound } from "@/shared/utils/audioNotification";
+
+export interface NotificationItem {
+  id: number;
+  title: string;
+  body: string;
+  notification_type: "ORDER" | "CHAT" | "LEAD" | "TASK" | "SYSTEM" | string;
+  link?: string;
+  is_read: boolean;
+  created_at: string;
+  metadata?: Record<string, any>;
+}
+
+import { useNotificationContext } from "@/shared/providers/NotificationProvider";
+
+export function useNotificationCenterState() {
+  const { user } = useAuthStore();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [showUnreadOnly, setShowUnreadOnly] = useState<boolean>(true);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch initial notifications history
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const res = await fetchFromBff<any>("/api/v1/communications/notifications/");
+      const list = Array.isArray(res) ? res : res?.results || [];
+      setNotifications(list);
+    } catch {
+      // Graceful fallback
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  // Connect WebSocket stream for real-time notifications with robust url fallback & authentication
+  useEffect(() => {
+    if (!user) return;
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host =
+      process.env.NEXT_PUBLIC_WS_HOST ||
+      (window.location.hostname === "localhost" ? "127.0.0.1:8000" : window.location.host);
+
+    let ws: WebSocket | null = null;
+    let reconnectTimer: NodeJS.Timeout;
+    let pollInterval: NodeJS.Timeout;
+    let isCancelled = false;
+    let hasConnectedOnce = false;
+
+    const connect = async () => {
+      if (isCancelled) return;
+
+      let token = "";
+      try {
+        const tokenRes = await fetch("/api/ws-token");
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json();
+          token = tokenData.token || "";
+        }
+      } catch {
+        // Fallback
+      }
+
+      if (isCancelled) return;
+
+      // If user is unauthenticated or token is missing, do NOT connect or retry
+      if (!token) {
+        console.warn("[NotificationWS] Token unavailable. Skipping WebSocket connection.");
+        return;
+      }
+
+      const wsUrl = `${protocol}//${host}/ws/notifications/?token=${token}`;
+
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          hasConnectedOnce = true;
+          console.log(`[NotificationWS] Live notification stream connected for user #${user.id}`);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            const item: NotificationItem | undefined = data.notification || data.payload;
+            if (item && item.id) {
+              setNotifications((prev) => {
+                if (prev.some((n) => n.id === item.id)) return prev;
+                return [item, ...prev];
+              });
+
+              // Play notification audio sound
+              playNotificationSound();
+            }
+          } catch {
+            // Ignore non-json frames
+          }
+        };
+
+        ws.onclose = (event) => {
+          if (event.code === 4003 || event.code === 4001 || event.code === 1008 || !hasConnectedOnce) {
+            console.warn("[NotificationWS] WebSocket connection closed or rejected. Halting reconnect loop.");
+            return;
+          }
+          if (!isCancelled && event.code !== 1000) {
+            reconnectTimer = setTimeout(connect, 10000);
+          }
+        };
+
+        ws.onerror = () => {
+          if (ws) ws.close();
+        };
+      } catch {
+        if (!isCancelled && hasConnectedOnce) {
+          reconnectTimer = setTimeout(connect, 15000);
+        }
+      }
+    };
+
+    connect();
+
+    // Fallback sync every 30 seconds to guarantee live state
+    pollInterval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+
+    return () => {
+      isCancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (pollInterval) clearInterval(pollInterval);
+      if (ws) ws.close(1000, "Component unmounted");
+    };
+  }, [user, fetchNotifications]);
+
+  const markAsRead = useCallback(async (id: number) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+    );
+    try {
+      await fetchFromBff(`/api/v1/communications/notifications/${id}/read/`, {
+        method: "POST",
+      });
+    } catch {
+      // Fallback
+    }
+  }, []);
+
+  const markAllAsRead = useCallback(async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    try {
+      await fetchFromBff("/api/v1/communications/notifications/read-all/", {
+        method: "POST",
+      });
+    } catch {
+      // Fallback
+    }
+  }, []);
+
+  const markThreadNotificationsAsRead = useCallback((orderId?: number, leadId?: number) => {
+    setNotifications((prev) =>
+      prev.map((n) => {
+        if (!n.is_read && n.notification_type === "CHAT" && n.metadata) {
+          const matchedOrder = orderId && (Number(n.metadata.showroom_order) === Number(orderId) || Number(n.metadata.order_id) === Number(orderId));
+          const matchedLead = leadId && Number(n.metadata.lead_id) === Number(leadId);
+          if (matchedOrder || matchedLead) {
+            return { ...n, is_read: true };
+          }
+        }
+        return n;
+      })
+    );
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadChatCount = notifications.filter(
+    (n) => !n.is_read && n.notification_type === "CHAT"
+  ).length;
+
+  const filteredNotifications = showUnreadOnly
+    ? notifications.filter((n) => !n.is_read)
+    : notifications;
+
+  return {
+    notifications: filteredNotifications,
+    allNotifications: notifications,
+    showUnreadOnly,
+    setShowUnreadOnly,
+    unreadCount,
+    unreadChatCount,
+    isOpen,
+    setIsOpen,
+    loading,
+    markAsRead,
+    markAllAsRead,
+    markThreadNotificationsAsRead,
+    refetch: fetchNotifications,
+  };
+}
+
+export function useNotificationCenter() {
+  const ctx = useNotificationContext();
+  if (ctx) return ctx;
+
+  return {
+    notifications: [],
+    allNotifications: [],
+    showUnreadOnly: true,
+    setShowUnreadOnly: () => {},
+    unreadCount: 0,
+    unreadChatCount: 0,
+    isOpen: false,
+    setIsOpen: () => {},
+    loading: false,
+    markAsRead: async () => {},
+    markAllAsRead: async () => {},
+    markThreadNotificationsAsRead: () => {},
+    refetch: async () => {},
+  };
+}

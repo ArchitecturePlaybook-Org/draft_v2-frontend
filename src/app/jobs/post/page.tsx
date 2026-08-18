@@ -128,7 +128,7 @@ export default function PostJobPage() {
                 </Field>
                 <Field label="Salary Range">
                   <input type="text" value={form.salary_range} onChange={(e) => set("salary_range", e.target.value)}
-                    placeholder="e.g. $80k–$100k / £60k–£75k" className={inputCls} />
+                    placeholder="e.g. ₹80k–₹100k" className={inputCls} />
                 </Field>
               </div>
               <Field label="Contact Email (optional)">

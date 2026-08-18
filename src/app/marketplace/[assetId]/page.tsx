@@ -241,9 +241,9 @@ export default function TemplateDetailPage() {
                   <div className="mb-4 pb-4 border-b border-surface-100">
                     <p className="text-xs font-bold text-surface-400 uppercase tracking-wider mb-1">Est. Project Cost</p>
                     <p className="text-2xl font-black text-primary">
-                      {template.template_est_cost_min && `$${Number(template.template_est_cost_min).toLocaleString()}`}
+                      {template.template_est_cost_min && `₹${Number(template.template_est_cost_min).toLocaleString()}`}
                       {template.template_est_cost_min && template.template_est_cost_max && " – "}
-                      {template.template_est_cost_max && `$${Number(template.template_est_cost_max).toLocaleString()}`}
+                      {template.template_est_cost_max && `₹${Number(template.template_est_cost_max).toLocaleString()}`}
                     </p>
                   </div>
                 )}

@@ -166,7 +166,7 @@ export const Create3DModelModal: React.FC<Create3DModelModalProps> = ({
               <div className="relative border-2 border-dashed border-surface-300 dark:border-white/10 rounded-2xl p-4 text-center hover:border-emerald-500/50 bg-surface-100/30 dark:bg-surface-800/20 transition-colors cursor-pointer group">
                 <input
                   type="file"
-                  accept=".obj,.glb,.gltf,.ifc,.sh3d,.sh3x,.zip,.stl,.fbx"
+                  accept=".ifc,.glb,.gltf,.obj,.stl,.fbx,.dae,.ply,.skp,.sh3d,.sh3x,.zip"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -201,10 +201,10 @@ export const Create3DModelModal: React.FC<Create3DModelModalProps> = ({
                 ) : (
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-primary group-hover:text-emerald-500 transition-colors">
-                      📁 Click or drag 3D file (.OBJ, .GLB, .GLTF, .IFC, .SH3D, .ZIP)
+                      📁 Click or drag 3D file (.IFC, .GLB, .GLTF, .OBJ, .STL, .FBX, .DAE, .PLY, .SKP, .SH3D, .ZIP)
                     </p>
                     <p className="text-[10px] font-medium text-surface-400">
-                      File will be uploaded directly from browser to AWS S3 storage
+                      File will be uploaded directly from browser to S3 storage
                     </p>
                   </div>
                 )}

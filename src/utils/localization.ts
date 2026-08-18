@@ -47,9 +47,9 @@ export function detectUserCurrency(): string {
       return "EUR";
     }
     
-    // Default to USD
-    return "USD";
+    // Default to INR
+    return "INR";
   } catch (e) {
-    return "USD";
+    return "INR";
   }
 }
