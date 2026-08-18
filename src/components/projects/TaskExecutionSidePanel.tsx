@@ -1049,6 +1049,14 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                             <p className="text-[10px] text-surface-400 uppercase tracking-widest font-bold">Linked 3D Model</p>
                           </div>
                           <div className="flex gap-2">
+                            <a
+                              href={`/dashboard/projects/${projectUid}/bim-viewer?assetId=${linked3dModel.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="h-8 px-4 flex items-center bg-surface-100 text-surface-600 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-surface-200 hover:text-primary transition-all"
+                            >
+                              Open in New Tab
+                            </a>
                             <button
                               onClick={() => setIsFullScreen3D(true)}
                               className="h-8 px-4 bg-surface-100 text-surface-600 text-surface-300 font-bold text-[9px] uppercase tracking-widest rounded-lg hover:bg-surface-200 hover:text-primary transition-all"

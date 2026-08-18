@@ -161,11 +161,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     const updatedActiveTask = activeTask?.uid === taskUid ? { ...activeTask, asset_links: newAssetLinks } : activeTask;
 
-    const updatedAssets = (project.assets || []).map(a => 
-      String(a.canonical_uid) === String(canonicalUid) && a.category === "2d_plan"
-        ? { ...a, drawing_tag: (isUnlinking ? "abd" : "gfc") as any }
-        : a
-    );
+    const updatedAssets = (project.assets || []).map(a => a);
 
     set({ 
       project: { ...project, tasks: updatedTasks, assets: updatedAssets },

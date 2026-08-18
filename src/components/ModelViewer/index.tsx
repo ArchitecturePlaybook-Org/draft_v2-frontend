@@ -88,6 +88,18 @@ function getModelFormat(url: string, formatProp?: string): 'glb' | 'gltf' | 'obj
   return "glb";
 }
 
+import dynamic from 'next/dynamic';
+
+const BimViewer = dynamic(() => import('@/components/bim/BimViewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center bg-slate-950 text-white p-6 rounded-2xl">
+      <div className="w-10 h-10 border-3 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-3" />
+      <p className="text-xs font-bold tracking-wide">Loading OpenBIM 3D Engine…</p>
+    </div>
+  ),
+});
+
 export default function ModelViewer({ url, format }: ModelViewerProps) {
   const actualFormat = getModelFormat(url, format);
   const isObj = actualFormat === 'obj';
@@ -113,33 +125,7 @@ export default function ModelViewer({ url, format }: ModelViewerProps) {
 
   return (
     <ModelErrorBoundary fallbackUrl={url}>
-      <div className="w-full h-full min-h-[400px] bg-slate-50 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative">
-        <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0, 5], fov: 45 }}>
-          <Suspense fallback={<Loader />}>
-            {/* Added strong lighting to brighten the models */}
-            <ambientLight intensity={1.5} />
-            <directionalLight position={[10, 10, 10]} intensity={2} castShadow />
-            <directionalLight position={[-10, 10, -10]} intensity={1} />
-            <directionalLight position={[0, -10, 0]} intensity={0.5} />
-            <Stage environment={null} intensity={1}>
-              {isObj ? (
-                <ObjModel url={modelUrl} />
-              ) : (
-                <GlbModel url={modelUrl} />
-              )}
-            </Stage>
-          </Suspense>
-          <OrbitControls makeDefault autoRotate autoRotateSpeed={1.5} />
-        </Canvas>
-        <div className="absolute bottom-4 left-4 right-4 flex justify-between text-xs text-slate-500 pointer-events-none">
-          <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm">
-            Drag to rotate, scroll to zoom
-          </div>
-          <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm uppercase font-semibold">
-            {actualFormat}
-          </div>
-        </div>
-      </div>
+      <BimViewer url={url} fileName={url.split("/").pop()} />
     </ModelErrorBoundary>
   );
 }

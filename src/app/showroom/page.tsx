@@ -482,7 +482,7 @@ function ShowroomContent() {
   );
 }
 
-export default function ShowroomDiscoverPage() {
+export function ShowroomDiscoverPageOriginal() {
   return (
     <Suspense fallback={
       <div className="p-6 max-w-[1600px] mx-auto space-y-5 animate-pulse">
@@ -492,5 +492,22 @@ export default function ShowroomDiscoverPage() {
     }>
       <ShowroomContent />
     </Suspense>
+  );
+}
+
+export default function ShowroomDiscoverPage() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
+      <div className="w-20 h-20 bg-accent/20 text-accent rounded-3xl flex items-center justify-center text-4xl mb-6 shadow-inner border border-accent/30">
+        🛍️
+      </div>
+      <h1 className="text-4xl font-black text-primary tracking-tight mb-4">Showroom Catalog</h1>
+      <p className="text-surface-500 font-medium max-w-md mb-8">
+        We are building a comprehensive architectural products marketplace. Soon you will be able to discover, compare, and add real products to your BoQ instantly.
+      </p>
+      <div className="px-6 py-2 bg-surface-card border border-surface-200 rounded-full shadow-sm text-sm font-bold text-accent uppercase tracking-widest">
+        Coming Soon
+      </div>
+    </div>
   );
 }

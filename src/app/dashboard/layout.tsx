@@ -33,8 +33,8 @@ export default function DashboardLayout({
     }
   }, [user, pathname, router]);
 
-  const hideTopbar = pathname.includes('/estimation') || pathname.includes('/editor') || pathname.includes('/sketch');
-  const isEditorFullscreen = pathname.includes('/editor') || pathname.includes('/sketch');
+  const hideTopbar = pathname.includes('/estimation') || pathname.includes('/editor') || pathname.includes('/sketch') || pathname.includes('/bim-viewer');
+  const isEditorFullscreen = pathname.includes('/editor') || pathname.includes('/sketch') || pathname.includes('/bim-viewer');
   const isFullWidthPage = pathname.includes('/showroom/chats') || hideTopbar;
 
   if (isEditorFullscreen) {

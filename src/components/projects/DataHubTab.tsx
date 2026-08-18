@@ -122,7 +122,7 @@ export const DataHubTab: React.FC = () => {
     } else if (asset.category === "2d_plan") {
       setSurveyAsset(asset);
     } else if (asset.category === "3d_model") {
-      setViewerAsset(asset);
+      window.open(`/dashboard/projects/${project.uid}/bim-viewer?assetId=${asset.id}`, "_blank");
     } else if (asset.category === "sh3d") {
       window.open(`/dashboard/projects/${project.uid}/editor?assetId=${asset.canonical_uid}${asset.size === 0 ? '&isNew=true' : ''}`, "_blank");
     } else {
@@ -255,7 +255,7 @@ export const DataHubTab: React.FC = () => {
                   multiple
                   accept={
                     activeHubCategory === "3d_model"
-                      ? ".obj,.stl,.fbx,.gltf,.glb"
+                      ? ".ifc,.glb,.gltf,.obj,.stl,.fbx,.dae,.ply,.skp,.sh3d,.sh3x,.zip"
                       : activeHubCategory === "2d_plan"
                         ? "image/png,image/jpeg,image/jpg,image/webp,.pdf,.dwg,.dxf"
                         : activeHubCategory === "document"
@@ -445,6 +445,15 @@ export const DataHubTab: React.FC = () => {
                           </button>
                         )}
 
+                        {asset.category === "3d_model" && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleOpenAsset(asset); }}
+                            className="mt-2 w-full text-[9px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-md px-2 py-1 uppercase tracking-wider hover:bg-indigo-500/20 transition-colors flex items-center justify-center gap-1"
+                          >
+                            <span>🏛️</span> Open in 3D BIM Viewer ↗
+                          </button>
+                        )}
+
                         {(activeHubCategory === "2d_plan" || activeHubCategory === "3d_model") && (
                           <div className="mt-2 pt-2 border-t border-surface-200/50">
                             {(() => {
@@ -516,15 +525,15 @@ export const DataHubTab: React.FC = () => {
         />
       )}
       {viewerAsset && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-900/60 backdrop-blur-2xl animate-in fade-in duration-300">
-          <div className="bg-surface-50/80 backdrop-blur-3xl border border-white/10 w-full max-w-6xl h-[80vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] relative scale-in-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pt-16 sm:pt-20 bg-surface-900/60 backdrop-blur-2xl animate-in fade-in duration-300">
+          <div className="bg-surface-50/80 backdrop-blur-3xl border border-white/10 w-full max-w-6xl h-[85vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] relative scale-in-center">
             <button
               onClick={() => setViewerAsset(null)}
-              className="absolute top-6 right-6 z-10 w-12 h-12 bg-surface-200/50 hover:bg-red-500 hover:text-white backdrop-blur-md border border-surface-300/50 rounded-full flex items-center justify-center text-lg shadow-lg transition-all duration-300 text-surface-900 font-bold"
+              className="absolute top-4 right-4 z-20 w-10 h-10 bg-slate-900/80 hover:bg-red-600 hover:text-white backdrop-blur-md border border-slate-700/50 rounded-full flex items-center justify-center text-sm shadow-lg transition-all duration-300 text-white font-bold"
             >
               ✕
             </button>
-            <div className="flex-1 w-full h-full bg-slate-50/50">
+            <div className="flex-1 w-full h-full bg-slate-950">
               <ModelViewer
                 url={viewerAsset.file}
                 format={viewerAsset.file?.toLowerCase().includes('.obj') ? 'obj' : viewerAsset.file?.toLowerCase().includes('.sh3d') ? 'sh3d' : 'glb'}

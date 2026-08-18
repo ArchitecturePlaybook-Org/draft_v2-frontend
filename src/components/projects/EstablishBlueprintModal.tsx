@@ -204,13 +204,13 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Entity / Organization *</label>
                   <select 
-                    className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-primary outline-none focus:border-accent"
+                    className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-primary dark:text-white outline-none focus:border-accent"
                     value={formData.account_id}
                     onChange={(e) => setFormData({...formData, account_id: e.target.value})}
                   >
-                    <option value="" disabled>Select Firm / Tenant...</option>
+                    <option value="" disabled className="bg-surface-50 dark:bg-surface-800 text-primary dark:text-white">Select Firm / Tenant...</option>
                     {orgs.map(org => (
-                      <option key={org.id} value={org.id}>{org.name} ({org.account_type})</option>
+                      <option key={org.id} value={org.id} className="bg-surface-50 dark:bg-surface-800 text-primary dark:text-white">{org.name} ({org.account_type})</option>
                     ))}
                   </select>
                 </div>
@@ -237,7 +237,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                         <span className="absolute left-3 text-surface-400 font-mono text-xs">{manualPrefix}</span>
                         <input 
                           type="text" 
-                          className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl pl-[85px] pr-3 text-primary font-mono text-xs outline-none focus:border-accent"
+                          className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl pl-[85px] pr-3 text-primary dark:text-white font-mono text-xs outline-none focus:border-accent"
                           value={formData.project_code}
                           onChange={(e) => setFormData({...formData, project_code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')})}
                           placeholder="CODE"
@@ -249,15 +249,15 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Asset Kind</label>
                     <select 
-                      className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-primary outline-none focus:border-accent"
+                      className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-primary dark:text-white outline-none focus:border-accent"
                       value={formData.kind}
                       onChange={(e) => setFormData({...formData, kind: e.target.value})}
                     >
-                      <option>Residential</option>
-                      <option>Commercial</option>
-                      <option>Renovation</option>
-                      <option>Industrial</option>
-                      <option>Infrastructure</option>
+                      <option className="bg-surface-50 dark:bg-surface-800 text-primary dark:text-white">Residential</option>
+                      <option className="bg-surface-50 dark:bg-surface-800 text-primary dark:text-white">Commercial</option>
+                      <option className="bg-surface-50 dark:bg-surface-800 text-primary dark:text-white">Renovation</option>
+                      <option className="bg-surface-50 dark:bg-surface-800 text-primary dark:text-white">Industrial</option>
+                      <option className="bg-surface-50 dark:bg-surface-800 text-primary dark:text-white">Infrastructure</option>
                     </select>
                   </div>
                 </div>

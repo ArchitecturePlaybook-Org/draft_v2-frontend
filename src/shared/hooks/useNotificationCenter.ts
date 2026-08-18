@@ -44,7 +44,7 @@ export function useNotificationCenterState() {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Connect WebSocket stream for real-time notifications with robust url fallback
+  // Connect WebSocket stream for real-time notifications with robust url fallback & authentication
   useEffect(() => {
     if (!user) return;
 
@@ -52,17 +52,42 @@ export function useNotificationCenterState() {
     const host =
       process.env.NEXT_PUBLIC_WS_HOST ||
       (window.location.hostname === "localhost" ? "127.0.0.1:8000" : window.location.host);
-    const wsUrl = `${protocol}//${host}/ws/notifications/`;
 
     let ws: WebSocket | null = null;
     let reconnectTimer: NodeJS.Timeout;
     let pollInterval: NodeJS.Timeout;
+    let isCancelled = false;
+    let hasConnectedOnce = false;
 
-    const connect = () => {
+    const connect = async () => {
+      if (isCancelled) return;
+
+      let token = "";
+      try {
+        const tokenRes = await fetch("/api/ws-token");
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json();
+          token = tokenData.token || "";
+        }
+      } catch {
+        // Fallback
+      }
+
+      if (isCancelled) return;
+
+      // If user is unauthenticated or token is missing, do NOT connect or retry
+      if (!token) {
+        console.warn("[NotificationWS] Token unavailable. Skipping WebSocket connection.");
+        return;
+      }
+
+      const wsUrl = `${protocol}//${host}/ws/notifications/?token=${token}`;
+
       try {
         ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
+          hasConnectedOnce = true;
           console.log(`[NotificationWS] Live notification stream connected for user #${user.id}`);
         };
 
@@ -84,29 +109,38 @@ export function useNotificationCenterState() {
           }
         };
 
-        ws.onclose = () => {
-          reconnectTimer = setTimeout(connect, 3000);
+        ws.onclose = (event) => {
+          if (event.code === 4003 || event.code === 4001 || event.code === 1008 || !hasConnectedOnce) {
+            console.warn("[NotificationWS] WebSocket connection closed or rejected. Halting reconnect loop.");
+            return;
+          }
+          if (!isCancelled && event.code !== 1000) {
+            reconnectTimer = setTimeout(connect, 10000);
+          }
         };
 
         ws.onerror = () => {
           if (ws) ws.close();
         };
       } catch {
-        reconnectTimer = setTimeout(connect, 5000);
+        if (!isCancelled && hasConnectedOnce) {
+          reconnectTimer = setTimeout(connect, 15000);
+        }
       }
     };
 
     connect();
 
-    // Fallback sync every 10 seconds to guarantee live state
+    // Fallback sync every 30 seconds to guarantee live state
     pollInterval = setInterval(() => {
       fetchNotifications();
-    }, 10000);
+    }, 30000);
 
     return () => {
+      isCancelled = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (pollInterval) clearInterval(pollInterval);
-      if (ws) ws.close();
+      if (ws) ws.close(1000, "Component unmounted");
     };
   }, [user, fetchNotifications]);
 
@@ -177,6 +211,21 @@ export function useNotificationCenterState() {
 
 export function useNotificationCenter() {
   const ctx = useNotificationContext();
-  const fallback = useNotificationCenterState();
-  return ctx || fallback;
+  if (ctx) return ctx;
+
+  return {
+    notifications: [],
+    allNotifications: [],
+    showUnreadOnly: true,
+    setShowUnreadOnly: () => {},
+    unreadCount: 0,
+    unreadChatCount: 0,
+    isOpen: false,
+    setIsOpen: () => {},
+    loading: false,
+    markAsRead: async () => {},
+    markAllAsRead: async () => {},
+    markThreadNotificationsAsRead: () => {},
+    refetch: async () => {},
+  };
 }
