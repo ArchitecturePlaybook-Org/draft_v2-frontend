@@ -33,6 +33,7 @@ export interface PortfolioItem {
     id: number;
     uid: string;
     name: string;
+    avatar?: string | null;
     category: string;
     city: string;
     country: string;

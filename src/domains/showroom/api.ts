@@ -27,7 +27,9 @@ export interface Product {
   price_unit: string;
   cover_image_url: string;
   has_3d_model: boolean;
+  model_3d_url?: string;
   has_bim_file: boolean;
+  bim_file_url?: string;
   status: ProductStatus;
   is_featured: boolean;
   views_count: number;
@@ -84,8 +86,13 @@ export async function fetchProducts(params?: {
   sort?: string;
   has_3d?: boolean;
   has_bim?: boolean;
+  has_spec?: boolean;
   featured?: boolean;
   vendor?: string;
+  origin?: string;
+  max_lead_time?: number;
+  min_price?: number;
+  max_price?: number;
   page?: number;
 }): Promise<PaginatedResponse<Product>> {
   const q = new URLSearchParams();
@@ -94,8 +101,13 @@ export async function fetchProducts(params?: {
   if (params?.sort) q.set("sort", params.sort);
   if (params?.has_3d) q.set("has_3d", "true");
   if (params?.has_bim) q.set("has_bim", "true");
+  if (params?.has_spec) q.set("has_spec", "true");
   if (params?.featured) q.set("featured", "true");
   if (params?.vendor) q.set("vendor", params.vendor);
+  if (params?.origin) q.set("origin", params.origin);
+  if (params?.max_lead_time) q.set("max_lead_time", String(params.max_lead_time));
+  if (params?.min_price) q.set("min_price", String(params.min_price));
+  if (params?.max_price) q.set("max_price", String(params.max_price));
   if (params?.page) q.set("page", String(params.page));
   const qs = q.toString() ? `?${q.toString()}` : "";
   return fetchFromBff<PaginatedResponse<Product>>(`/api/v1/showroom/products/${qs}`);
@@ -114,9 +126,17 @@ export async function placeOrder(slug: string, quantity: number, message: string
 
 // ─── Buyer ───────────────────────────────────────────────────────────────────
 
-export async function fetchMyOrders(): Promise<ProductOrder[]> {
-  const data = await fetchFromBff<PaginatedResponse<ProductOrder> | ProductOrder[]>("/api/v1/showroom/my-orders/");
+export async function fetchMyOrders(status?: OrderStatus): Promise<ProductOrder[]> {
+  const qs = status ? `?status=${status}` : "";
+  const data = await fetchFromBff<PaginatedResponse<ProductOrder> | ProductOrder[]>(`/api/v1/showroom/my-orders/${qs}`);
   return Array.isArray(data) ? data : (data as PaginatedResponse<ProductOrder>).results || [];
+}
+
+export async function cancelOrder(id: number): Promise<ProductOrder> {
+  return fetchFromBff<ProductOrder>(`/api/v1/showroom/my-orders/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: "CANCELLED" }),
+  });
 }
 
 // ─── Vendor Dashboard ────────────────────────────────────────────────────────
@@ -167,4 +187,100 @@ export async function updateOrderStatus(
     method: "PATCH",
     body: JSON.stringify({ status, vendor_note }),
   });
+}
+
+// ─── Quotations & PDF Proforma Invoicing ───────────────────────────────────
+
+export interface QuotationData {
+  quotation_number: string;
+  unit_price: number;
+  quantity: number;
+  discount_amount: number;
+  freight_charges: number;
+  tax_rate_percent: number;
+  subtotal: number;
+  tax_amount: number;
+  grand_total: number;
+  valid_until?: string;
+  payment_terms?: string;
+  notes?: string;
+  created_at?: string;
+  status: "OFFERED" | "ACCEPTED" | "DECLINED";
+}
+
+export async function createOrderQuotation(
+  orderId: number,
+  payload: {
+    unit_price: number;
+    quantity?: number;
+    discount_amount?: number;
+    freight_charges?: number;
+    tax_rate_percent?: number;
+    valid_until?: string;
+    payment_terms?: string;
+    notes?: string;
+  }
+): Promise<{ detail: string; quotation: QuotationData; order_id: number }> {
+  return fetchFromBff<{ detail: string; quotation: QuotationData; order_id: number }>(
+    `/api/v1/showroom/orders/${orderId}/quotation/`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function acceptOrderQuotation(
+  orderId: number
+): Promise<{ detail: string; status: OrderStatus; quotation: QuotationData }> {
+  return fetchFromBff<{ detail: string; status: OrderStatus; quotation: QuotationData }>(
+    `/api/v1/showroom/orders/${orderId}/accept-quotation/`,
+    {
+      method: "POST",
+    }
+  );
+}
+
+export function getQuotationPdfUrl(orderId: number): string {
+  const host =
+    process.env.NEXT_PUBLIC_BFF_HOST ||
+    (typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://127.0.0.1:8000" : "");
+  return `${host}/api/v1/showroom/orders/${orderId}/pdf/`;
+}
+
+// ─── Project Bill of Quantities (BoQ) Integration ───────────────────────────
+
+export async function addToProjectBoQ(
+  slug: string,
+  payload: {
+    project_id: number;
+    trade_division?: string;
+    quantity?: number;
+    unit_price?: number;
+    notes?: string;
+  }
+): Promise<{ detail: string; boq_item: any }> {
+  return fetchFromBff<{ detail: string; boq_item: any }>(`/api/v1/showroom/products/${slug}/add-to-boq/`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ─── File & Asset Upload Handler ─────────────────────────────────────────────
+
+export async function uploadShowroomFile(
+  file: File,
+  fileType: "cover" | "3d" | "bim" | "spec_sheet" | "general" = "general"
+): Promise<{ url: string; filename: string; size: number; saved_path: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("file_type", fileType);
+
+  return fetchFromBff<{ url: string; filename: string; size: number; saved_path: string }>(
+    "/api/v1/showroom/upload/",
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
 }

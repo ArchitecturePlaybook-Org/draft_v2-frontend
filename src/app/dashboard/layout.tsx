@@ -11,6 +11,8 @@ import { AnalystBot } from "@/components/AnalystBot";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { OfflineIndicator } from "@/components/shared/OfflineIndicator";
 import { useProjectNavStore } from "@/store/project-nav-store";
+import { NotificationProvider } from "@/shared/providers/NotificationProvider";
+import { useNotificationCenterState } from "@/shared/hooks/useNotificationCenter";
 
 export default function DashboardLayout({
   children,
@@ -21,6 +23,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { isSidebarCollapsed } = useProjectNavStore();
+  const notificationState = useNotificationCenterState();
 
   useEffect(() => {
     if (user && user.profile && user.profile.is_onboarding_complete === false) {
@@ -32,6 +35,7 @@ export default function DashboardLayout({
 
   const hideTopbar = pathname.includes('/estimation') || pathname.includes('/editor') || pathname.includes('/sketch');
   const isEditorFullscreen = pathname.includes('/editor') || pathname.includes('/sketch');
+  const isFullWidthPage = pathname.includes('/showroom/chats') || hideTopbar;
 
   if (isEditorFullscreen) {
     return (
@@ -42,34 +46,36 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className={`dashboard-shell flex flex-col h-screen overflow-hidden relative ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-      <TrialBanner />
-      <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
-        {/* Dynamic Navigation Components */}
-        <SidebarShell />
+    <NotificationProvider value={notificationState}>
+      <div className={`dashboard-shell flex flex-col h-screen overflow-hidden relative ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <TrialBanner />
+        <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
+          {/* Dynamic Navigation Components */}
+          <SidebarShell />
 
-        {/* Main Execution Area */}
-        <main className="main-area">
-          {!hideTopbar && <Topbar />}
-          <div className={`min-w-0 max-w-full overflow-x-clip ${hideTopbar ? "h-full w-full flex-1" : "page-content flex-1"}`}>
-            {children}
-          </div>
-        </main>
-      </div>
-      
-      {/* Theme toggle on fullscreen pages only (estimation / editor) */}
-      {hideTopbar && (
-        <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[39] pointer-events-none">
-          <div className="pointer-events-auto">
-            <ThemeToggle />
-          </div>
+          {/* Main Execution Area */}
+          <main className={`main-area ${isFullWidthPage ? "overflow-hidden" : ""}`}>
+            {!hideTopbar && <Topbar />}
+            <div className={`min-w-0 max-w-full ${isFullWidthPage ? "h-full w-full flex-1 overflow-hidden p-0 m-0" : "page-content flex-1"}`}>
+              {children}
+            </div>
+          </main>
         </div>
-      )}
+        
+        {/* Theme toggle on fullscreen pages only (estimation / editor) */}
+        {hideTopbar && (
+          <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[39] pointer-events-none">
+            <div className="pointer-events-auto">
+              <ThemeToggle />
+            </div>
+          </div>
+        )}
 
-      {/* Global Analyst Assistant */}
-      <AnalystBot />
-      <KeyboardShortcuts />
-      <OfflineIndicator />
-    </div>
+        {/* Global Analyst Assistant */}
+        <AnalystBot />
+        <KeyboardShortcuts />
+        <OfflineIndicator />
+      </div>
+    </NotificationProvider>
   );
 }

@@ -3,7 +3,9 @@ import { fetchFromBff } from "@/shared/api/fetchFromBff";
 export interface Lead {
   id: number;
   client: string; // UUID or ID
+  client_id?: number;
   professional: string; // UUID or ID
+  professional_id?: number;
   portfolio_item?: number;
   client_name: string;
   professional_name: string;

@@ -5,11 +5,25 @@ import { usePathname } from "next/navigation";
 import { usePermissions } from "@/hooks/use-permissions";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { useProjectNavStore } from "@/store/project-nav-store";
+import { useNotificationCenter } from "@/shared/hooks/useNotificationCenter";
+import { NotificationCenterDrawer } from "@/components/notifications/NotificationCenterDrawer";
 
 export const Topbar: React.FC = () => {
   const pathname = usePathname();
   const { isAdmin } = usePermissions();
   const { currentProjectTitle, currentProjectUid, toggleSidebar, isSidebarCollapsed } = useProjectNavStore();
+
+  const {
+    notifications,
+    allNotifications,
+    showUnreadOnly,
+    setShowUnreadOnly,
+    unreadCount,
+    isOpen,
+    setIsOpen,
+    markAsRead,
+    markAllAsRead,
+  } = useNotificationCenter();
 
   const getBreadcrumbs = () => {
     const parts = pathname.split("/").filter(Boolean);
@@ -27,39 +41,69 @@ export const Topbar: React.FC = () => {
   const breadcrumbs = getBreadcrumbs();
 
   return (
-    <header className="topbar">
-      <div className="flex items-center gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar">
-        <button
-          onClick={toggleSidebar}
-          className="md:hidden p-1.5 rounded-lg bg-surface-100 border border-surface-200 text-surface-500 hover:text-foreground text-xs shrink-0"
-          title="Toggle Navigation Menu"
-        >
-          ☰
-        </button>
-        {breadcrumbs.map((crumb, idx) => (
-          <React.Fragment key={crumb.href}>
-            <span 
-              className={`text-sm font-medium whitespace-nowrap shrink-0 ${
-                idx === breadcrumbs.length - 1 ? "text-foreground truncate max-w-[min(200px,40vw)]" : "text-(--gray-600)"
-              }`}
-            >
-              {crumb.label}
-            </span>
-            {idx < breadcrumbs.length - 1 && (
-              <span className="text-(--gray-600) text-xs shrink-0">/</span>
-            )}
-          </React.Fragment>
-        ))}
-      </div>
+    <>
+      <header className="topbar">
+        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-x-auto no-scrollbar">
+          <button
+            onClick={toggleSidebar}
+            className="md:hidden p-1.5 rounded-lg bg-surface-100 border border-surface-200 text-surface-500 hover:text-foreground text-xs shrink-0"
+            title="Toggle Navigation Menu"
+          >
+            ☰
+          </button>
+          {breadcrumbs.map((crumb, idx) => (
+            <React.Fragment key={crumb.href}>
+              <span 
+                className={`text-sm font-medium whitespace-nowrap shrink-0 ${
+                  idx === breadcrumbs.length - 1 ? "text-foreground truncate max-w-[min(200px,40vw)]" : "text-(--gray-600)"
+                }`}
+              >
+                {crumb.label}
+              </span>
+              {idx < breadcrumbs.length - 1 && (
+                <span className="text-(--gray-600) text-xs shrink-0">/</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
 
-      <div className="flex items-center gap-2 sm:gap-4 shrink-0 ml-auto">
-        {isAdmin && (
-          <div className="px-2 sm:px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] sm:text-[10px] font-bold text-red-400 uppercase tracking-widest animate-pulse whitespace-nowrap">
-            Overseer
-          </div>
-        )}
-        <ThemeToggle />
-      </div>
-    </header>
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0 ml-auto">
+          {isAdmin && (
+            <div className="px-2 sm:px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] sm:text-[10px] font-bold text-red-400 uppercase tracking-widest animate-pulse whitespace-nowrap">
+              Overseer
+            </div>
+          )}
+
+          {/* Real-time Notification Bell Button */}
+          <button
+            onClick={() => setIsOpen(true)}
+            className="relative p-2 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 text-surface-600 dark:text-surface-300 transition-colors cursor-pointer shrink-0"
+            title="Notification Center"
+          >
+            <span className="text-base leading-none">🔔</span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-600 text-white font-black text-[10px] flex items-center justify-center border-2 border-surface-card shadow-xs animate-bounce">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          <ThemeToggle />
+        </div>
+      </header>
+
+      {/* Slide-Over Notification Drawer */}
+      <NotificationCenterDrawer
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        notifications={notifications}
+        allNotifications={allNotifications}
+        showUnreadOnly={showUnreadOnly}
+        setShowUnreadOnly={setShowUnreadOnly}
+        unreadCount={unreadCount}
+        onMarkAsRead={markAsRead}
+        onMarkAllAsRead={markAllAsRead}
+      />
+    </>
   );
 };
