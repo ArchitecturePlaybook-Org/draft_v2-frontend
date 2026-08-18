@@ -60,7 +60,7 @@ export const ProjectProgressBar: React.FC<ProjectProgressBarProps> = ({
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-widest font-bold text-surface-400 dark:text-slate-400">Budget</span>
             <span className="text-sm font-black text-primary dark:text-slate-100">
-              ${(budgetUsed / 1000).toFixed(0)}k <span className="text-surface-400 dark:text-slate-400 font-bold">/ ${(budgetTotal / 1000).toFixed(0)}k</span>
+              ₹{(budgetUsed / 1000).toFixed(0)}k <span className="text-surface-400 dark:text-slate-400 font-bold">/ ₹{(budgetTotal / 1000).toFixed(0)}k</span>
             </span>
           </div>
           <div className="hidden sm:block w-px h-8 bg-surface-200 dark:bg-slate-800" />

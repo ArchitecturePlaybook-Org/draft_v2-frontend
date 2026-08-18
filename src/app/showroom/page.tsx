@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { fetchProducts, type Product } from "@/domains/showroom/api";
 
 import { useWishlistStore } from "@/store/wishlist-store";
+import { AddToBoQModal } from "@/components/showroom/AddToBoQModal";
 import { useCompareStore } from "@/store/compare-store";
 import { WishlistDrawer } from "@/components/layout/showroom/WishlistDrawer";
 import { ProductCompareDrawer } from "@/components/layout/showroom/ProductCompareDrawer";
@@ -36,11 +37,13 @@ const SORTS = [
   { value: "name", label: "🔤 Alphabetical (A–Z)" },
 ];
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, onOpenBoQ }: { product: Product; onOpenBoQ?: (p: Product) => void }) {
   const { toggleItem, isWishlisted } = useWishlistStore();
   const { toggleCompare, isCompared } = useCompareStore();
   const wishlisted = isWishlisted(product.id);
   const compared = isCompared(product.id);
+  const pathname = usePathname();
+  const basePath = pathname?.startsWith("/dashboard/showroom") ? "/dashboard/showroom" : "/showroom";
 
   return (
     <motion.div
@@ -53,7 +56,7 @@ function ProductCard({ product }: { product: Product }) {
       className="group relative rounded-2xl overflow-hidden bg-surface-card border border-surface-200 shadow-sm hover:shadow-lg hover:border-accent/60 transition-all duration-300 flex flex-col justify-between"
     >
       <div className="relative w-full aspect-[4/3] bg-surface-100 overflow-hidden">
-        <Link href={`/showroom/${product.slug}`} className="block w-full h-full">
+        <Link href={`${basePath}/${product.slug}`} className="block w-full h-full">
           {product.cover_image_url ? (
             <img
               src={product.cover_image_url}
@@ -113,7 +116,7 @@ function ProductCard({ product }: { product: Product }) {
       {/* Content Details */}
       <div className="p-4 flex flex-col space-y-2.5 flex-1 justify-between">
         <div>
-          <Link href={`/showroom/${product.slug}`} className="block">
+          <Link href={`${basePath}/${product.slug}`} className="block">
             <h3 className="text-sm font-bold text-primary group-hover:text-accent transition-colors line-clamp-1 tracking-tight">
               {product.name}
             </h3>
@@ -138,13 +141,23 @@ function ProductCard({ product }: { product: Product }) {
             {product.country_of_origin && <span>📍 {product.country_of_origin}</span>}
           </div>
 
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-1.5">
             <Link
-              href={`/showroom/${product.slug}`}
+              href={`${basePath}/${product.slug}`}
               className="flex-1 py-1.5 rounded-xl bg-primary text-background font-bold text-[11px] text-center uppercase tracking-wider group-hover:bg-accent group-hover:text-background transition-all shadow-sm"
             >
-              View Specs
+              Specs
             </Link>
+
+            {onOpenBoQ && (
+              <button
+                onClick={() => onOpenBoQ(product)}
+                className="px-2.5 py-1.5 bg-accent/15 hover:bg-accent/25 text-accent font-black rounded-xl text-[10px] transition-all border border-accent/30 shadow-2xs cursor-pointer"
+                title="Add directly to active project BoQ"
+              >
+                📐 BoQ
+              </button>
+            )}
 
             <button
               onClick={() => toggleCompare(product)}
@@ -152,7 +165,7 @@ function ProductCard({ product }: { product: Product }) {
                 compared ? 'bg-accent/10 border-accent text-accent' : 'bg-surface-100 border-surface-200 text-surface-400 hover:text-primary'
               }`}
             >
-              {compared ? '✓ Comparing' : '+ Compare'}
+              {compared ? '✓' : '+ Compare'}
             </button>
           </div>
         </div>
@@ -256,8 +269,17 @@ function ShowroomContent() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const wishlistItems = useWishlistStore((state) => state.items);
 
+  const [boqProduct, setBoqProduct] = useState<Product | null>(null);
+
   return (
-    <div className="min-h-screen p-4 sm:p-6 max-w-[1600px] mx-auto space-y-5 animate-fade-in">
+    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-5 animate-fade-in select-none">
+      
+      {/* Add To BoQ Modal */}
+      <AddToBoQModal
+        isOpen={Boolean(boqProduct)}
+        onClose={() => setBoqProduct(null)}
+        product={boqProduct}
+      />
       
       {/* 1. Ultra-Compact Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-card border border-surface-200 rounded-2xl px-5 py-3.5 shadow-sm">
@@ -294,13 +316,6 @@ function ShowroomContent() {
               </span>
             )}
           </button>
-
-          <Link
-            href="/showroom/dashboard"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-background font-black rounded-xl text-xs uppercase tracking-wider hover:opacity-90 transition-all shadow-sm"
-          >
-            <span>🏪 Vendor Dashboard</span>
-          </Link>
         </div>
       </div>
 
@@ -452,7 +467,9 @@ function ShowroomContent() {
             }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
           >
-            {products.map((p) => <ProductCard key={p.id} product={p} />)}
+            {products.map((p) => (
+              <ProductCard key={p.id} product={p} onOpenBoQ={(prod) => setBoqProduct(prod)} />
+            ))}
           </motion.div>
         )}
       </div>

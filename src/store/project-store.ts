@@ -12,7 +12,7 @@ interface ProjectState {
   zones: SpatialZone[];
   phases: MilestonePhase[];
   taskTemplates: any[];
-  
+
   // UI State
   activeTab: TabView;
   activeHubCategory: HubCategory;
@@ -23,7 +23,7 @@ interface ProjectState {
   setActiveTab: (tab: TabView) => void;
   setActiveHubCategory: (category: HubCategory) => void;
   setActiveTask: (task: Task | null) => void;
-  
+
   // Async Data Actions
   fetchProject: (id: string) => Promise<void>;
   addTaskOptimistically: (task: Partial<Task>) => void;
@@ -39,7 +39,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   zones: [],
   phases: [],
   taskTemplates: [],
-  
+
   activeTab: "data_hub",
   activeHubCategory: "sketch",
   activeTask: null,
@@ -56,7 +56,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
     try {
       const data = await projectsApi.getProjectDetails(id);
-      
+
       const currentActiveTask = get().activeTask;
       let updatedActiveTask = currentActiveTask;
       if (currentActiveTask && data?.tasks) {
@@ -67,7 +67,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       }
 
       set({ project: data, activeTask: updatedActiveTask });
-      
+
       try {
         const matrixData = await projectsApi.getMatrix(data.uid);
         set({ zones: matrixData.zones, phases: matrixData.phases });
@@ -89,7 +89,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   addTaskOptimistically: (taskData: Partial<Task>) => {
     const { project } = get();
     if (!project) return;
-    
+
     const newTask: Task = {
       id: Math.random() * 1000000,
       uid: `offline-${Date.now()}`,
@@ -116,23 +116,82 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       return s === "done" || s === "completed";
     }).length;
 
-    set({ 
-      project: { 
-        ...project, 
+    set({
+      project: {
+        ...project,
         tasks: updatedTasks,
         tasks_count: updatedTasks.length,
         tasks_done_count: doneCount
-      } 
+      }
     });
   },
 
+  toggleTaskAssetLink: async (taskUid: string, canonicalUid: string, linkId?: number) => {
+    const { project, activeTask } = get();
+    if (!project) return;
+
+    const task = project.tasks.find(t => t.uid === taskUid);
+    if (!task) return;
+
+    const existingLink = linkId 
+      ? task.asset_links?.find(l => l.id === linkId)
+      : task.asset_links?.find(l => String(l.canonical_uid) === String(canonicalUid));
+
+    const isUnlinking = !!existingLink;
+
+    let newAssetLinks = task.asset_links || [];
+    if (isUnlinking) {
+      newAssetLinks = newAssetLinks.filter(l => l !== existingLink);
+    } else {
+      const tempLink: any = {
+        id: Date.now(),
+        task: taskUid,
+        canonical_uid: canonicalUid,
+        asset_title: "",
+        linked_at: new Date().toISOString(),
+        latest_asset: null
+      };
+      newAssetLinks = [...newAssetLinks, tempLink];
+    }
+
+    const updatedTasks = project.tasks.map(t =>
+      t.uid === taskUid ? { ...t, asset_links: newAssetLinks } : t
+    );
+
+    const updatedActiveTask = activeTask?.uid === taskUid ? { ...activeTask, asset_links: newAssetLinks } : activeTask;
+
+    const updatedAssets = (project.assets || []).map(a => 
+      String(a.canonical_uid) === String(canonicalUid) && a.category === "2d_plan"
+        ? { ...a, drawing_tag: (isUnlinking ? "abd" : "gfc") as any }
+        : a
+    );
+
+    set({ 
+      project: { ...project, tasks: updatedTasks, assets: updatedAssets },
+      activeTask: updatedActiveTask
+    });
+
+    try {
+      if (isUnlinking && existingLink) {
+        await projectsApi.unlinkAssetFromTask(existingLink.id);
+      } else {
+        await projectsApi.linkAssetToTask(taskUid, canonicalUid);
+      }
+      const freshData = await projectsApi.getProjectDetails(project.uid);
+      set({ project: freshData });
+    } catch (err) {
+      console.error("Failed to toggle asset link:", err);
+      get().fetchProject(project.uid);
+      throw err;
+    }
+  },
   updateProjectStatus: async (uid: string, status: ProjectStatus) => {
     const { project } = get();
     if (!project) return;
-    
+
     // Optimistic update
     set({ project: { ...project, status: status as any } });
-    
+
     try {
       await projectsApi.updateProject(uid, { status: status as any });
     } catch (err) {
@@ -147,18 +206,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (!project) return;
 
     // Optimistic update
-    const updatedTasks = project.tasks.map(t => 
+    const updatedTasks = project.tasks.map(t =>
       t.uid === taskUid ? { ...t, status: status as any } : t
     );
-    
+
     const doneCount = updatedTasks.filter(t => {
       const s = (t.status || "").toLowerCase();
       return s === "done" || s === "completed";
     }).length;
 
-    set({ 
-      project: { 
-        ...project, 
+    set({
+      project: {
+        ...project,
         tasks: updatedTasks,
         tasks_count: updatedTasks.length,
         tasks_done_count: doneCount
@@ -180,10 +239,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (!project) return;
 
     // Optimistic update
-    const updatedTasks = project.tasks.map(t => 
+    const updatedTasks = project.tasks.map(t =>
       t.uid === taskUid ? { ...t, start_date: start, end_date: end } : t
     );
-    
+
     set({ project: { ...project, tasks: updatedTasks } });
 
     try {

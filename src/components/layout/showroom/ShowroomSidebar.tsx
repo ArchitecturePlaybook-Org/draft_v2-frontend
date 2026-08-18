@@ -45,9 +45,7 @@ export const ShowroomSidebar: React.FC = () => {
   const currentMinPrice = searchParams.get("min_price") || "";
   const currentMaxPrice = searchParams.get("max_price") || "";
 
-  const isDiscoverActive = pathname === "/showroom" && currentCategory === "All" && !currentOrigin && !currentMaxLead && !currentMinPrice && !currentMaxPrice;
-  const isOrdersActive = pathname.startsWith("/showroom/my-orders") || pathname.startsWith("/showroom/orders");
-  const isDashboardActive = pathname.startsWith("/showroom/dashboard");
+  const base = pathname.startsWith("/dashboard/showroom") ? "/dashboard/showroom" : "/showroom";
 
   const buildQueryUrl = (paramsToUpdate: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -59,7 +57,7 @@ export const ShowroomSidebar: React.FC = () => {
       }
     });
     const qs = params.toString();
-    return `/showroom${qs ? `?${qs}` : ""}`;
+    return `${base}${qs ? `?${qs}` : ""}`;
   };
 
   return (
@@ -77,47 +75,6 @@ export const ShowroomSidebar: React.FC = () => {
           </div>
         </div>
 
-        {/* 1. Main Navigation */}
-        <div>
-          <h4 className="text-[10px] uppercase tracking-widest text-surface-500 font-extrabold mb-2 px-2">
-            Navigation
-          </h4>
-          <div className="flex flex-col gap-1">
-            <Link
-              href="/showroom"
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                isDiscoverActive
-                  ? "bg-accent text-background shadow-sm"
-                  : "text-surface-600 hover:bg-surface-100 hover:text-primary"
-              }`}
-            >
-              <span>🛍️</span>
-              <span>Discover Catalog</span>
-            </Link>
-            <Link
-              href="/showroom/my-orders"
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                isOrdersActive
-                  ? "bg-accent text-background shadow-sm"
-                  : "text-surface-600 hover:bg-surface-100 hover:text-primary"
-              }`}
-            >
-              <span>📦</span>
-              <span>My Inquiries / Orders</span>
-            </Link>
-            <Link
-              href="/showroom/dashboard"
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                isDashboardActive
-                  ? "bg-accent text-background shadow-sm"
-                  : "text-surface-600 hover:bg-surface-100 hover:text-primary"
-              }`}
-            >
-              <span>🏪</span>
-              <span>Vendor Dashboard</span>
-            </Link>
-          </div>
-        </div>
 
         {/* 2. Trade Budget Filter */}
         <div>
@@ -160,7 +117,7 @@ export const ShowroomSidebar: React.FC = () => {
           </h4>
           <div className="flex flex-col gap-0.5">
             {CATEGORY_LINKS.map((item) => {
-              const active = pathname === "/showroom" && (
+              const active = (pathname === "/showroom" || pathname === "/dashboard/showroom") && (
                 item.category === "All" ? currentCategory === "All" : currentCategory === item.category
               );
               const href = buildQueryUrl({ category: item.category === "All" ? null : item.category });

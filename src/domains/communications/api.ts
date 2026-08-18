@@ -78,7 +78,14 @@ export const communicationsApi = {
     const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<Message>(res);
   },
-  sendMessage: async (data: { recipient?: number | string; channel?: number; body: string; subject: string; lead?: number; project?: number; files?: File[] }) => {
+  getShowroomOrderThread: async (orderId: number, search?: string) => {
+    const url = search 
+      ? `/api/v1/communications/inbox/?showroom_order=${orderId}&search=${encodeURIComponent(search)}` 
+      : `/api/v1/communications/inbox/?showroom_order=${orderId}`;
+    const res = await fetchFromBff<any>(url, { method: "GET" });
+    return unpackArray<Message>(res);
+  },
+  sendMessage: async (data: { recipient?: number | string; channel?: number; body: string; subject: string; lead?: number; showroom_order?: number; project?: number; files?: File[] }) => {
     if (data.files && data.files.length > 0) {
       const formData = new FormData();
       if (data.recipient) formData.append("recipient", data.recipient.toString());
@@ -86,6 +93,7 @@ export const communicationsApi = {
       formData.append("body", data.body);
       formData.append("subject", data.subject);
       if (data.lead) formData.append("lead", data.lead.toString());
+      if (data.showroom_order) formData.append("showroom_order", data.showroom_order.toString());
       if (data.project) formData.append("project", data.project.toString());
       
       data.files.forEach((file, index) => {
@@ -113,6 +121,22 @@ export const communicationsApi = {
     return fetchFromBff<{detail: string}>(`/api/v1/communications/inbox/mark-read/`, {
       method: "POST",
       body: JSON.stringify({ thread_user_id: threadUserId }),
+    });
+  },
+  markShowroomOrderAsRead: async (orderId: number) => {
+    return fetchFromBff<{detail: string; updated_count: number}>(`/api/v1/communications/inbox/mark-read/`, {
+      method: "POST",
+      body: JSON.stringify({ showroom_order_id: orderId }),
+    });
+  },
+  getUnreadCounts: async () => {
+    return fetchFromBff<{
+      showroom_orders: Record<string, number>;
+      leads: Record<string, number>;
+      direct_messages: Record<string, number>;
+      total_unread: number;
+    }>(`/api/v1/communications/inbox/unread-counts/`, {
+      method: "GET",
     });
   },
   softDelete: async (id: number) => {
