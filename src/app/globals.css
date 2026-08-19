@@ -366,14 +366,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .page-content {
-  padding: 2rem;
-  padding-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  padding-top: 0.75rem;
   max-width: min(1400px, 100%);
   width: 100%;
   min-width: 0;
   margin: 0 auto;
   box-sizing: border-box;
   overflow-x: clip;
+}
+
+@media (max-width: 640px) {
+  .page-content {
+    padding: 0.75rem 0.75rem;
+  }
 }
 
 .glass-card {
@@ -396,15 +402,15 @@ h1, h2, h3, h4, h5, h6 {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.5rem;
-  font-size: 0.72rem;
-  border-radius: var(--radius-md);
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  border-radius: 0.5rem;
   color: var(--text-secondary);
   text-decoration: none;
   font-weight: 600;
-  transition: all var(--transition-smooth);
-  border-left: 2px solid transparent;
+  transition: all 0.2s ease-in-out;
+  border-left: 3px solid transparent;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -412,11 +418,12 @@ h1, h2, h3, h4, h5, h6 {
 .nav-item:hover {
   background: var(--surface-100);
   color: var(--foreground);
+  transform: translateX(2px);
 }
 .nav-item.active {
-  background: rgba(212, 175, 55, 0.12);
+  background: rgba(var(--color-accent-rgb, 212, 175, 55), 0.12);
   color: var(--accent);
-  border-left: 2px solid var(--accent);
+  border-left: 3px solid var(--accent);
   font-weight: 700;
 }
 

@@ -35,7 +35,7 @@ export default function DashboardLayout({
 
   const hideTopbar = pathname.includes('/estimation') || pathname.includes('/editor') || pathname.includes('/sketch') || pathname.includes('/bim-viewer');
   const isEditorFullscreen = pathname.includes('/editor') || pathname.includes('/sketch') || pathname.includes('/bim-viewer');
-  const isFullWidthPage = pathname.includes('/showroom/chats') || hideTopbar;
+  const isFullWidthPage = pathname.includes('/showroom/chats') || hideTopbar || pathname.includes('/report');
 
   if (isEditorFullscreen) {
     return (

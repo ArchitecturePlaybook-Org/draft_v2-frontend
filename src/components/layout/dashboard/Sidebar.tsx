@@ -50,11 +50,11 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="sidebar relative min-h-0">
+    <aside className="sidebar relative min-h-0 bg-surface-50/95 dark:bg-surface-900/95 backdrop-blur-xl border-r border-surface-200/80 dark:border-white/10 p-3 flex flex-col justify-between">
       {/* Floating Toggle Button */}
       <button
         onClick={toggleSidebar}
-        className="absolute top-12 -right-3 z-50 flex items-center justify-center w-6 h-6 rounded-full bg-surface-50 border border-surface-200 text-surface-400 hover:bg-accent hover:text-background hover:border-accent hover:scale-110 hover:shadow-lg transition-all duration-200 focus:outline-none"
+        className="absolute top-10 -right-3 z-50 flex items-center justify-center w-6 h-6 rounded-full bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-white/10 text-surface-400 hover:text-accent hover:border-accent hover:scale-110 shadow-sm transition-all duration-200 focus:outline-none"
         title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
       >
         <svg 
@@ -64,12 +64,18 @@ export const Sidebar: React.FC = () => {
           <path d="m15 18-6-6 6-6"/>
         </svg>
       </button>
-      <div className="flex items-center justify-between mb-4 px-1 min-w-0 gap-2">
+
+      {/* Brand Logo & Notification Bell */}
+      <div className="flex items-center justify-between mb-3 px-1 min-w-0 gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 shrink-0 rounded-lg bg-surface-100 flex items-center justify-center text-sm shadow-none border border-surface-200">
-            🏗
+          <div className="w-8 h-8 shrink-0 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-sm shadow-xs text-accent">
+            🏗️
           </div>
-          {!isSidebarCollapsed && <span className="text-sm font-extrabold tracking-tight text-foreground truncate">Playbook</span>}
+          {!isSidebarCollapsed && (
+            <span className="text-xs font-black uppercase tracking-wider text-primary truncate">
+              Architecture Playbook
+            </span>
+          )}
         </div>
         {!isSidebarCollapsed && (
           <div className="ml-auto shrink-0">
@@ -78,35 +84,37 @@ export const Sidebar: React.FC = () => {
         )}
       </div>
 
-      <div className="px-1 mb-4 flex gap-2 min-w-0">
+      {/* Quick Search Bar */}
+      <div className="px-0.5 mb-3 flex gap-2 min-w-0">
         <button 
           onClick={() => setIsCommandPaletteOpen(true)}
-          className={`flex items-center min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 p-0 shrink-0' : 'w-full px-2.5 py-1.5 justify-between'} bg-surface-100 hover:bg-surface-200 border border-surface-200 rounded-lg transition-all text-xs text-text-secondary shadow-none shrink-0`}
+          className={`flex items-center min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 p-0 shrink-0' : 'w-full px-2.5 py-1.5 justify-between'} bg-surface-100/70 dark:bg-surface-800/50 hover:bg-surface-200/80 dark:hover:bg-surface-800 border border-surface-200/80 dark:border-white/10 rounded-xl transition-all text-xs text-surface-400 shadow-2xs shrink-0`}
         >
           {isSidebarCollapsed ? (
             <span className="opacity-70 text-xs">🔍</span>
           ) : (
             <>
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="opacity-70 text-text-secondary shrink-0 text-xs">🔍</span>
-                <span className="font-semibold text-text-secondary truncate text-xs">Search...</span>
+                <span className="opacity-70 text-xs">🔍</span>
+                <span className="font-semibold truncate text-xs text-surface-400">Search...</span>
               </div>
               <div className="flex items-center gap-1 opacity-70 shrink-0">
-                <kbd className="px-1 py-0.2 text-[9px] font-mono font-bold bg-surface-200 border border-surface-300 rounded text-text-secondary">⌘K</kbd>
+                <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-surface-200 dark:bg-surface-700 border border-surface-300 dark:border-white/10 rounded text-surface-500">⌘K</kbd>
               </div>
             </>
           )}
         </button>
       </div>
 
-      <nav className="flex-1 min-h-0 flex flex-col gap-2.5 overflow-y-auto overflow-x-hidden">
+      {/* Main Navigation Links */}
+      <nav className="flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto overflow-x-hidden no-scrollbar">
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Workspace
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {workspaceLinks.map((link) => (
               <React.Fragment key={link.href}>
                 <SidebarLink {...link} active={pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href))} isCollapsed={isSidebarCollapsed} />
@@ -117,11 +125,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Showroom
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {showroomLinks.map((link) => (
               <React.Fragment key={link.href}>
                 <SidebarLink
@@ -140,11 +148,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Operations
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {opsLinks.map((link) => (
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
@@ -153,11 +161,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Organization
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {orgLinks.map((link) => (
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
@@ -166,11 +174,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Account
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {settingsLinks.map((link) => (
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
@@ -178,7 +186,7 @@ export const Sidebar: React.FC = () => {
         </div>
       </nav>
 
-      {!isSidebarCollapsed && <div className="shrink-0"><ProfileBanner /></div>}
+      {!isSidebarCollapsed && <div className="shrink-0 pt-2"><ProfileBanner /></div>}
     </aside>
   );
 };

@@ -40,13 +40,13 @@ export function ProfileFeaturedSection({ profile }: ProfileFeaturedSectionProps)
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-primary flex items-center gap-2">
-            Featured Portfolios
+            Featured Architectural 3D Models & Blueprints
             <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
               {featuredList.length}
             </span>
           </h2>
           <p className="text-[11px] text-surface-500 font-medium">
-            Top architectural showcases and project blueprints
+            3D models, parametric facades, and masterplan specifications
           </p>
         </div>
       </div>

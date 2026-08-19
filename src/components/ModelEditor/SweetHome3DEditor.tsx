@@ -203,24 +203,40 @@ export default function SweetHome3DEditor({ projectId, projectUid, assetId, isNe
 
       if (loadAssetId) {
         try {
-          const asset = await projectsApi.getAssetByCanonicalUid(loadAssetId);
-          assetPk = asset.id;
+          console.log('[SH3D] Fetching asset details for canonicalUid:', loadAssetId);
+          let asset: any;
+          try {
+            asset = await projectsApi.getAssetByCanonicalUid(loadAssetId);
+            console.log('[SH3D] Asset retrieved:', asset);
+          } catch (apiErr: any) {
+            console.error('[SH3D] getAssetByCanonicalUid failed:', apiErr);
+            throw new Error(`Asset API error: ${apiErr?.message || 'Failed to fetch asset metadata'}`);
+          }
 
-          const hasLoadableFile = Boolean(asset.file) && Number(asset.size) > 0;
+          assetPk = asset.id;
+          const rawFile = asset.file || asset.file_url || asset.url;
+          const hasLoadableFile = Boolean(rawFile) && Number(asset.size) > 0;
+
           if (hasLoadableFile) {
-            const extMatch = asset.file.match(/\.(sh3d|sh3x)(\?|$)/i);
+            const extMatch = rawFile.match(/\.(sh3d|sh3x)(\?|$)/i);
             if (extMatch) modelExt = extMatch[0].split('?')[0];
 
             const fileUrl = withCacheBuster(
-              resolveAssetFileUrl(asset.file),
+              resolveAssetFileUrl(rawFile),
               asset.updated_at || asset.id,
             );
-            const res = await fetch(fileUrl, {
-              credentials: 'include',
-              cache: 'no-store',
-            });
+            console.log('[SH3D] Fetching model file:', rawFile, '-> resolved:', fileUrl);
+
+            let res: Response;
+            try {
+              res = await fetch(fileUrl, { cache: 'no-store' });
+            } catch (fileFetchErr: any) {
+              console.error('[SH3D] fetch(fileUrl) network error:', fileFetchErr, 'for URL:', fileUrl);
+              throw new Error(`Network error fetching file (${fileUrl}): ${fileFetchErr?.message || 'Failed to fetch'}`);
+            }
+
             if (!res.ok) {
-              throw new Error(`Failed to fetch model file (${res.status})`);
+              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
             }
 
             const blob = await res.blob();
@@ -232,14 +248,15 @@ export default function SweetHome3DEditor({ projectId, projectUid, assetId, isNe
               modelBlobUrlRef.current = modelBlobUrl;
               startBlank = false;
             } else {
-              startBlank = true;
+              throw new Error('Downloaded model file is 0 bytes');
             }
           } else {
+            console.warn('[SH3D] Asset has no loadable file or size is 0:', asset);
             startBlank = true;
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to load 3D model asset:', error);
-          toast.error('Could not load the saved model. Starting with a blank canvas.');
+          toast.error(`Could not load saved model (${error?.message || 'Unknown error'}). Starting with a blank canvas.`);
           startBlank = true;
         }
       }

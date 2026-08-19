@@ -107,10 +107,12 @@ export default function ModelViewer({ url, format }: ModelViewerProps) {
   const modelUrl = getModelProxyUrl(url);
 
   if (isSh3d) {
+    const resolvedModelUrl = resolveAssetFileUrl(modelUrl);
+
     return (
       <div className="w-full h-full min-h-[400px] bg-slate-50 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative">
         <iframe 
-          src={`/sh3d/SweetHome3DJSViewer.html?file=${encodeURIComponent(modelUrl)}`} 
+          src={`/sh3d/SweetHome3DJSViewer.html?file=${encodeURIComponent(resolvedModelUrl)}`} 
           className="w-full h-full border-0" 
           title="Sweet Home 3D Viewer"
         />

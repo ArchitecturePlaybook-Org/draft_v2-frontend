@@ -45,17 +45,17 @@ export const ProjectSidebar: React.FC = () => {
     { label: pendingRequestsCount > 0 ? `Task Approvals (${pendingRequestsCount})` : "Task Approvals", id: "access_requests", icon: "🔑" },
   ];
 
-  const toolsLinks = [
+  const toolsLinks: { label: string; href: string; icon: string; target?: string }[] = [
     { label: "Estimation", href: `/dashboard/projects/${currentProjectUid}/estimation`, icon: "📐" },
-    { label: "Reports", href: `/dashboard/projects/${currentProjectUid}/report/project-summary`, icon: "📄", target: "_blank" },
+    { label: "Reports", href: `/dashboard/projects/${currentProjectUid}/report/project-summary`, icon: "📄" },
   ];
 
   return (
-    <aside className="sidebar shadow-2xl z-50 relative min-h-0">
+    <aside className="sidebar shadow-2xl z-50 relative min-h-0 bg-surface-50/95 dark:bg-surface-900/95 backdrop-blur-xl border-r border-surface-200/80 dark:border-white/10 p-3 flex flex-col justify-between">
       {/* Floating Toggle Button */}
       <button
         onClick={toggleSidebar}
-        className="absolute top-12 -right-3 z-50 flex items-center justify-center w-6 h-6 rounded-full bg-surface-50 border border-surface-200 text-surface-400 hover:bg-accent hover:text-background hover:border-accent hover:scale-110 hover:shadow-lg transition-all duration-200 focus:outline-none"
+        className="absolute top-10 -right-3 z-50 flex items-center justify-center w-6 h-6 rounded-full bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-white/10 text-surface-400 hover:text-accent hover:border-accent hover:scale-110 shadow-sm transition-all duration-200 focus:outline-none"
         title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
       >
         <svg 
@@ -65,49 +65,50 @@ export const ProjectSidebar: React.FC = () => {
           <path d="m15 18-6-6 6-6"/>
         </svg>
       </button>
-      {/* Toggle Collapse Button & Back to Portal */}
-      <div className="flex items-center justify-between mb-3 min-w-0">
+
+      {/* Back to Global Portfolio Link */}
+      <div className="flex items-center justify-between mb-2 min-w-0">
         <button 
           onClick={() => {
             setProjectContext(null);
             router.push("/dashboard/projects");
           }}
-          className={`flex items-center gap-1.5 text-[11px] font-bold text-text-secondary hover:text-foreground transition-colors min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 bg-surface-100 rounded-lg shrink-0' : 'uppercase tracking-widest'}`}
-          title="Back to Projects"
+          className={`flex items-center gap-1.5 text-[10px] font-bold text-surface-400 hover:text-primary transition-colors min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 bg-surface-100 dark:bg-surface-800 rounded-lg shrink-0' : 'uppercase tracking-wider'}`}
+          title="Back to Global Projects"
         >
           {isSidebarCollapsed ? (
             <span className="text-xs leading-none mt-px">←</span>
           ) : (
             <>
-              <span className="text-xs leading-none mt-px shrink-0">←</span>
+              <span className="text-xs leading-none shrink-0 text-accent">←</span>
               <span className="truncate">Global Portfolio</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Project Title Block */}
+      {/* Active Project Title Block */}
       {!isSidebarCollapsed && (
-        <div className="mb-4 min-w-0">
-          <h2 className="text-sm font-black text-foreground tracking-tight leading-snug line-clamp-2">
+        <div className="mb-3 min-w-0 bg-surface-100/70 dark:bg-surface-800/50 p-2.5 rounded-xl border border-surface-200/80 dark:border-white/10">
+          <h2 className="text-xs font-black text-primary tracking-tight leading-snug line-clamp-2">
             {currentProjectTitle || "Loading Project..."}
           </h2>
-          <div className="mt-1 inline-flex items-center px-1.5 py-0.5 bg-surface-100 text-text-secondary text-[8px] font-bold uppercase tracking-widest rounded border border-surface-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-semantic-green mr-1 animate-pulse" />
+          <div className="mt-1 inline-flex items-center px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[8px] font-extrabold uppercase tracking-wider rounded border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
             Workspace Active
           </div>
         </div>
       )}
 
-      <nav className="flex-1 min-h-0 flex flex-col gap-3.5 overflow-y-auto overflow-x-hidden scroll-smooth">
+      <nav className="flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto overflow-x-hidden no-scrollbar">
         {/* Workspace Views */}
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-3 mb-3 text-[10px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Project Workspace
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {workspaceLinks.map((link) => (
               <Link 
                 key={link.id} 
@@ -125,11 +126,11 @@ export const ProjectSidebar: React.FC = () => {
         {/* Project Tools */}
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Tools
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {toolsLinks.map((link) => (
               <Link 
                 key={link.label} 
@@ -144,10 +145,9 @@ export const ProjectSidebar: React.FC = () => {
             ))}
           </div>
         </div>
-
       </nav>
 
-      {!isSidebarCollapsed && <div className="shrink-0"><ProfileBanner /></div>}
+      {!isSidebarCollapsed && <div className="shrink-0 pt-2"><ProfileBanner /></div>}
     </aside>
   );
 };

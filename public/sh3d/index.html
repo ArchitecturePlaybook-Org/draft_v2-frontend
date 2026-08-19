@@ -1,6 +1,8 @@
 <html>
 
 <head>
+
+
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -2470,6 +2472,8 @@
       console.log('[SH3D] Embedded save intercept installed (no file download)');
     })();
 
+
+
     /* ===== Init SweetHome3D app (LOCAL SAVE MODE) ===== */
     // Server-side URLs commented out to enforce local saving logic
     var application = new SweetHome3DJSApplication({
@@ -2487,12 +2491,11 @@
       // writePreferencesURL: API_BASE + "write?path=userPreferences.json",
       // readPreferencesURL: API_BASE + "read?path=userPreferences.json",
 
-      // Catalogs from your static bundle
-      // Use static file directly - caching handled by server no-cache headers
-      furnitureCatalogURLs: ["/sh3d/lib/resources/DefaultFurnitureCatalog.json"],
-      furnitureResourcesURLBase: "/sh3d/",
-      texturesCatalogURLs: ["/sh3d/lib/resources/DefaultTexturesCatalog.json"],
-      texturesResourcesURLBase: "/sh3d/",
+      // Catalogs, textures, and models served from S3 via proxy
+      furnitureCatalogURLs: [location.origin + "/s3-assets/sh3d/lib/resources/DefaultFurnitureCatalog.json"],
+      furnitureResourcesURLBase: location.origin + "/s3-assets/sh3d/",
+      texturesCatalogURLs: [location.origin + "/s3-assets/sh3d/lib/resources/DefaultTexturesCatalog.json"],
+      texturesResourcesURLBase: location.origin + "/s3-assets/sh3d/",
 
       writeHomeWithWorker: true,
       compressionLevel: 5,

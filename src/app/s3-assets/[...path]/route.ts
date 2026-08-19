@@ -13,7 +13,6 @@ function signS3Url(rawUrl: string): string {
   try {
     const urlObj = new URL(rawUrl);
 
-    // If already has query string signature, return as is
     if (urlObj.searchParams.has("X-Amz-Signature") || urlObj.searchParams.has("AWSAccessKeyId")) {
       return rawUrl;
     }
@@ -21,8 +20,8 @@ function signS3Url(rawUrl: string): string {
     const host = urlObj.host;
     const path = urlObj.pathname;
     const now = new Date();
-    const amzDate = now.toISOString().replace(/[:-]/g, "").replace(/\.\d{3}/, ""); // YYYYMMDDTHHMMSSZ
-    const datestamp = amzDate.substring(0, 8); // YYYYMMDD
+    const amzDate = now.toISOString().replace(/[:-]/g, "").replace(/\.\d{3}/, "");
+    const datestamp = amzDate.substring(0, 8);
 
     const service = "s3";
     const credentialScope = `${datestamp}/${region}/${service}/aws4_request`;
@@ -71,35 +70,36 @@ function signS3Url(rawUrl: string): string {
   }
 }
 
-export async function GET(req: NextRequest) {
-  let targetUrl = req.nextUrl.searchParams.get("url");
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  const rawPath = req.nextUrl.pathname;
+  const objectKey = decodeURIComponent(rawPath.replace(/^\/s3-assets\//, ""));
 
-  if (targetUrl) {
-    const rawUrl = req.url;
-    const match = rawUrl.match(/[?&]url=(.+)$/);
-    if (match && match[1]) {
-      try {
-        targetUrl = decodeURIComponent(match[1]);
-      } catch {
-        targetUrl = match[1];
-      }
-    }
+  if (!objectKey) {
+    return NextResponse.json({ error: "Missing path" }, { status: 400 });
   }
 
-  if (!targetUrl) {
-    return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
-  }
+  const bucketName = process.env.AWS_STORAGE_BUCKET_NAME || "playbook-production-bucket";
+  const region = process.env.AWS_S3_REGION_NAME || "ap-south-1";
+  const cfDomain = process.env.AWS_CLOUDFRONT_DOMAIN || process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN;
+
+  // Use CloudFront Edge URL if configured, otherwise default to S3 endpoint
+  const s3TargetUrl = cfDomain
+    ? `https://${cfDomain.replace(/^https?:\/\//, "")}/${objectKey}`
+    : `https://${bucketName}.s3.${region}.amazonaws.com/${objectKey}`;
 
   try {
-    const signedUrl = signS3Url(targetUrl);
-    const s3Res = await fetch(signedUrl, {
+    const fetchUrl = cfDomain ? s3TargetUrl : signS3Url(s3TargetUrl);
+    const s3Res = await fetch(fetchUrl, {
       method: "GET",
       cache: "no-store",
     });
 
     if (!s3Res.ok) {
       return NextResponse.json(
-        { error: `Failed to fetch asset: ${s3Res.statusText}` },
+        { error: `Failed to fetch asset from S3: ${s3Res.statusText}` },
         { status: s3Res.status }
       );
     }
@@ -112,15 +112,13 @@ export async function GET(req: NextRequest) {
       "Content-Type": contentType,
       "Access-Control-Allow-Origin": requestOrigin,
       "Access-Control-Allow-Credentials": "true",
-      "Cache-Control": "private, no-store, no-cache, must-revalidate",
-      "Pragma": "no-cache",
+      "Cache-Control": "public, max-age=31536000, immutable",
     };
 
     if (contentLength) {
       headers["Content-Length"] = contentLength;
     }
 
-    // Stream directly using body ReadableStream to avoid buffer memory allocation limits
     return new NextResponse(s3Res.body as any, {
       status: 200,
       headers,
