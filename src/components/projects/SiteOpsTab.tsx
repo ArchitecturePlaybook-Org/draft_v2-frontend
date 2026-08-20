@@ -9,16 +9,12 @@ import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 
 import { AlertTriangle, Camera, File } from "lucide-react";
+import { SkeletonGrid, SkeletonTable } from "@/components/ui/Skeleton";
 
 const MasterFieldDiary = dynamic(
   () => import("@/components/projects/MasterFieldDiary").then((mod) => mod.MasterFieldDiary),
   {
-    loading: () => (
-      <div className="p-12 text-center text-surface-500 font-bold tracking-[0.2em] uppercase text-xs bg-surface-50/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-4">
-        <div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" />
-        Loading Field Diary...
-      </div>
-    ),
+    loading: () => <SkeletonTable rows={4} cols={3} />,
   }
 );
 
@@ -60,7 +56,7 @@ const SiteOpsLaborPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => 
     load();
   }, [projectUid]);
 
-  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" /></div>;
+  if (loading) return <SkeletonGrid count={3} columns="grid-cols-1 md:grid-cols-3" />;
 
   const entriesWithLabor = entries.filter((e) => e.labor_entries?.length > 0 || e.equipment_entries?.length > 0);
 
@@ -154,7 +150,7 @@ const SiteOpsMaterialsPanel: React.FC<{ projectUid: string }> = ({ projectUid })
     load();
   }, [projectUid]);
 
-  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" /></div>;
+  if (loading) return <SkeletonTable rows={4} cols={4} />;
 
   const deliveries = entries.flatMap((e) =>
     (e.material_entries || []).map((m: any) => ({ ...m, entry_date: e.entry_date }))
@@ -216,7 +212,7 @@ const SiteOpsDelaysPanel: React.FC<{ projectUid: string }> = ({ projectUid }) =>
     load();
   }, [projectUid]);
 
-  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" /></div>;
+  if (loading) return <SkeletonTable rows={3} cols={3} />;
 
   const delays = entries.flatMap((e) =>
     (e.delay_entries || []).map((d: any) => ({ ...d, entry_date: e.entry_date }))
@@ -278,14 +274,7 @@ const SiteOpsGalleryPanel: React.FC<{ projectUid: string }> = ({ projectUid }) =
     load();
   }, [projectUid]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <div className="w-8 h-8 border-4 border-surface-200 border-t-accent rounded-full animate-spin" />
-        <span className="text-xs font-bold text-surface-400 uppercase tracking-widest">Loading site gallery...</span>
-      </div>
-    );
-  }
+  if (loading) return <SkeletonGrid count={6} columns="grid-cols-2 md:grid-cols-3 lg:grid-cols-4" />;
 
   const attachments = entries.flatMap((e) =>
     (e.attachments || []).map((att: any) => ({ ...att, entry_date: e.entry_date }))

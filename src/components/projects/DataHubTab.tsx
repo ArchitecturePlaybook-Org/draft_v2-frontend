@@ -4,9 +4,10 @@ import { useProjectStore } from "@/store/project-store";
 import { projectsApi } from "@/domains/projects/api";
 import { useInfiniteScrollBatch } from "@/hooks/useInfiniteScrollBatch";
 import dynamic from "next/dynamic";
+import { SkeletonGrid, SkeletonCard } from "@/components/ui/Skeleton";
 const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
   ssr: false,
-  loading: () => <div className="p-8 text-center text-surface-500 animate-pulse">Loading 3D Engine...</div>
+  loading: () => <SkeletonCard className="h-64" />
 });
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { RevisionHistoryModal } from "./RevisionHistoryModal";
@@ -491,10 +492,7 @@ export const DataHubTab: React.FC = () => {
             {filteredAssets.length > 0 && (
               <div ref={assetsSentinelRef} className="col-span-full flex flex-col items-center justify-center py-6 gap-2">
                 {isLoadingMoreAssets && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-surface-400">
-                    <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
-                    Loading more assets...
-                  </div>
+                  <SkeletonGrid count={3} columns="grid-cols-1 md:grid-cols-3" />
                 )}
                 {!hasMoreAssets && loadedAssetCount > 15 && (
                   <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">
