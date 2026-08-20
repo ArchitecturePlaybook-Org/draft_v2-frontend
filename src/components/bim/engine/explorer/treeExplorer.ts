@@ -1,6 +1,6 @@
 import { state, escapeHtml } from "../core/state";
 import { applyVisibilityChange, isolateVisibility, focusCameraOnElements } from "./visibility";
-import { showProperties, formatEntityName } from "../inspector/properties";
+import { showProperties, clearProperties, formatEntityName } from "../inspector/properties";
 
 // ── BIM Tree Element Node Factory ─────────────────────────────
 
@@ -129,14 +129,35 @@ export function createBimTreeNode({ label, count = 0, fragmentIdMap = null, isBr
   item.appendChild(actions);
 
   item.addEventListener("click", () => {
+    const isAlreadySelected = item.classList.contains("selected");
+
+    if (isAlreadySelected) {
+      item.classList.remove("selected");
+      state.lastSelection = null;
+      if (state.highlighter) {
+        try { state.highlighter.clear("select"); } catch (e) {}
+      }
+      try { state.outliner?.clear?.("select"); } catch (e) {}
+      clearProperties();
+      return;
+    }
+
     document.querySelectorAll(".bim-tree .tree-item").forEach((el) => el.classList.remove("selected"));
     item.classList.add("selected");
 
-    if (fragmentIdMap && state.outliner) {
+    if (fragmentIdMap) {
       state.lastSelection = fragmentIdMap;
-      state.outliner.clear("select");
-      state.outliner.add("select", fragmentIdMap);
+      if (state.highlighter) {
+        try {
+          state.highlighter.highlight("select", fragmentIdMap, true, false);
+        } catch (e) {}
+      }
+      try {
+        state.outliner?.clear?.("select");
+        state.outliner?.add?.("select", fragmentIdMap);
+      } catch (e) {}
       showProperties(fragmentIdMap);
+      focusCameraOnElements(fragmentIdMap);
     }
   });
 
@@ -483,9 +504,20 @@ export function buildGenericThreeTree(threeObject: any, container: HTMLElement) 
     item.appendChild(actions);
 
     item.addEventListener("click", () => {
+      const isAlreadySelected = item.classList.contains("selected");
+
+      if (isAlreadySelected) {
+        item.classList.remove("selected");
+        state.lastSelection = null;
+        clearProperties();
+        return;
+      }
+
       document.querySelectorAll(".bim-tree .tree-item").forEach((el) => el.classList.remove("selected"));
       item.classList.add("selected");
+      state.lastSelection = obj;
       showProperties(obj);
+      focusCameraOnElements(null, obj);
     });
 
     node.appendChild(item);

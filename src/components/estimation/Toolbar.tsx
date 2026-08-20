@@ -190,7 +190,7 @@ export const Toolbar = () => {
   ] as const;
 
   return (
-    <div className="w-full max-w-full overflow-x-auto no-scrollbar bg-surface-card border-2 border-surface-300 dark:border-surface-200 shadow-2xl rounded-2xl p-1.5 mb-2 z-20 pointer-events-auto shrink-0 relative text-foreground">
+    <div className="w-auto max-w-[92vw] overflow-x-auto no-scrollbar bg-surface-card/95 dark:bg-surface-900/95 backdrop-blur-xl border border-surface-200/90 dark:border-white/15 shadow-2xl rounded-2xl p-1.5 z-30 pointer-events-auto shrink-0 relative text-foreground">
       
       <div className="flex items-center gap-1.5 min-w-max">
         

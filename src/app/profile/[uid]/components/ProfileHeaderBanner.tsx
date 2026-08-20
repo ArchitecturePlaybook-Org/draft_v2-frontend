@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { PublicProfile } from '@/domains/users/api';
+import { useAuthStore } from '@/store/auth-store';
 
 interface ProfileHeaderBannerProps {
   profile: PublicProfile;
@@ -18,6 +20,7 @@ export function ProfileHeaderBanner({
   onOpenMessageModal,
   onOpenEditModal,
 }: ProfileHeaderBannerProps) {
+  const { isAuthenticated } = useAuthStore();
   const [isSaved, setIsSaved] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
@@ -111,6 +114,15 @@ export function ProfileHeaderBanner({
           </button>
 
           <div className="flex items-center gap-2 w-full justify-end flex-wrap sm:flex-nowrap">
+            {isAuthenticated && (
+              <Link
+                href="/dashboard"
+                className="px-3.5 py-1.5 rounded-lg bg-accent text-background font-extrabold text-xs uppercase tracking-wider hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <span>📊</span> Dashboard
+              </Link>
+            )}
+
             <button
               onClick={onOpenEditModal}
               className="px-3.5 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-xs hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
