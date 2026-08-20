@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { SvgDrawingLayer } from './SvgDrawingLayer';
+import { Toolbar } from './Toolbar';
 import { useEstimationStore } from '@/store/estimation-store';
 import { ZoomIn, ZoomOut, Maximize2, Undo2, Redo2 } from 'lucide-react';
 
@@ -15,6 +16,11 @@ export const TakeoffCanvas: React.FC<TakeoffCanvasProps> = ({ imageUrl }) => {
 
   return (
     <div className="flex-1 relative overflow-hidden bg-surface-card text-foreground flex items-center justify-center rounded-2xl shadow-inner border border-surface-200 w-full h-full min-h-[500px]">
+      {/* 🛠️ Floating Top-Center Drawing Toolbar (Overlaying Floor Plan Canvas) */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 max-w-[94%] pointer-events-none">
+        <Toolbar />
+      </div>
+
       <TransformWrapper
         initialScale={1}
         minScale={0.1}

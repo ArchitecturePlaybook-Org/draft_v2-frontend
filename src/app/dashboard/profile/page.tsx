@@ -10,6 +10,7 @@ import { QRCodeSVG } from "qrcode.react";
 import ReactCrop, { Crop, PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 import { CATEGORY_SCHEMAS, calculateProfileCompleteness } from "@/lib/utils/profile";
 import { EditPortfolioModal } from "@/components/portfolios/EditPortfolioModal";
@@ -124,8 +125,8 @@ export default function ProfilePage() {
         setWebsite(user.profile.website || "");
         setHeadline(String(user.profile.metadata?.headline || ""));
         setCompany(String(user.profile.metadata?.current_company || ""));
-        setCity(String(user.profile.city || user.profile.metadata?.city || ""));
-        setCountry(String(user.profile.country || user.profile.metadata?.country || ""));
+        setCity(String((user.profile as any).city || user.profile.metadata?.city || ""));
+        setCountry(String((user.profile as any).country || user.profile.metadata?.country || ""));
         setSocialLinks({
           linkedin: String(user.profile.social_links?.linkedin || ""),
           github: String(user.profile.social_links?.github || ""),
@@ -203,7 +204,7 @@ export default function ProfilePage() {
     }
     setIsLoading(true);
     try {
-      await authApi.requestEmailChange(newEmail, changeEmailPassword);
+      await authApi.requestEmailChange({ new_email: newEmail, password: changeEmailPassword });
       toast.success("Verification link sent to your new email address.");
       setNewEmail("");
       setChangeEmailPassword("");
@@ -214,9 +215,9 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleRevokeSession(sessionId: string) {
+  async function handleRevokeSession(sessionId: any) {
     try {
-      await authApi.revokeSession(sessionId);
+      await authApi.revokeSession(Number(sessionId));
       setSessions(prev => prev.filter(s => s.id !== sessionId));
       toast.success("Session revoked.");
     } catch (err) {

@@ -5,6 +5,7 @@ import { OrbitControls, Stage, Environment, Html, useProgress } from '@react-thr
 import React, { Suspense, Component, ErrorInfo, ReactNode } from 'react';
 import GlbModel from './GlbModel';
 import ObjModel from './ObjModel';
+import { resolveAssetFileUrl } from "@/lib/resolveAssetFileUrl";
 
 function Loader() {
   const { progress } = useProgress();

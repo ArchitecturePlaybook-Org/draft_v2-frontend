@@ -443,27 +443,28 @@ export function initFeatures() {
   state.highlighter.events.hover.onHighlight.add((fragmentIdMap: any) => {
     wakeRenderer();
     if (state.activeTool !== "select") return;
-    state.outliner.clear("hover");
-    state.outliner.add("hover", fragmentIdMap);
+    try { state.outliner?.clear?.("hover"); } catch (e) {}
+    try { state.outliner?.add?.("hover", fragmentIdMap); } catch (e) {}
   });
 
   state.highlighter.events.hover.onClear.add(() => {
-    state.outliner.clear("hover");
+    try { state.outliner?.clear?.("hover"); } catch (e) {}
   });
 
   state.highlighter.events.select.onHighlight.add((fragmentIdMap: any) => {
     wakeRenderer();
     if (state.activeTool !== "select") return;
     state.lastSelection = fragmentIdMap;
-    state.outliner.clear("select");
-    state.outliner.add("select", fragmentIdMap);
+    try { state.outliner?.clear?.("select"); } catch (e) {}
+    try { state.outliner?.add?.("select", fragmentIdMap); } catch (e) {}
     showProperties(fragmentIdMap);
   });
 
   state.highlighter.events.select.onClear.add(() => {
     state.lastSelection = null;
-    state.outliner.clear("select");
+    try { state.outliner?.clear?.("select"); } catch (e) {}
     clearProperties();
+    document.querySelectorAll(".bim-tree .tree-item").forEach((el) => el.classList.remove("selected"));
   });
 
   state.clipper = state.components.get(OBC.Clipper);

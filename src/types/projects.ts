@@ -83,6 +83,7 @@ export interface ProjectAsset {
   thumbnail: string | null;
   size: number;
   uploaded_by: User | null;
+  linked_tasks?: { id: number; task_id?: number; uid: string; title: string; task_code?: string; }[];
   // Revision Control
   canonical_uid: string;
   version_number: number;
@@ -112,6 +113,7 @@ export interface Task {
   task_code?: string;
   project: string;
   project_uid?: string;
+  project_title?: string;
   title: string;
   description: string;
   cost: string;

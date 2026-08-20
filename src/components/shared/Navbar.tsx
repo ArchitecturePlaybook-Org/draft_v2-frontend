@@ -36,7 +36,7 @@ const Navbar = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 h-20 z-[2000] transition-all duration-300 border-b flex items-center overflow-hidden ${
+      className={`fixed top-0 left-0 right-0 h-16 z-[2000] transition-all duration-300 border-b flex items-center overflow-hidden ${
         scrolled
           ? "bg-background/95 dark:bg-slate-950/95 backdrop-blur-md border-surface-200 dark:border-white/10 shadow-md"
           : "bg-background/80 dark:bg-slate-950/80 backdrop-blur-md border-surface-200/50 dark:border-white/5"
@@ -44,11 +44,11 @@ const Navbar = () => {
     >
       <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-3 min-w-0">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 sm:gap-3.5 py-2 no-underline text-primary group shrink-0 min-w-0">
+        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 py-1.5 no-underline text-primary group shrink-0 min-w-0">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 245 247"
-            className="w-9 h-9 text-accent transition-transform group-hover:scale-105 shrink-0"
+            className="w-7 h-7 text-accent transition-transform group-hover:scale-105 shrink-0"
             preserveAspectRatio="xMidYMid meet"
           >
             <path
@@ -56,7 +56,7 @@ const Navbar = () => {
               fill="currentColor"
             />
           </svg>
-          <span className="font-black text-sm md:text-base tracking-tight uppercase text-foreground truncate max-w-[140px] sm:max-w-none">
+          <span className="font-black text-sm tracking-tight uppercase text-foreground truncate max-w-[150px] sm:max-w-none">
             Architecture Playbook
           </span>
         </Link>
@@ -68,7 +68,7 @@ const Navbar = () => {
               key={link.name}
               href={link.href}
               className={`text-[13px] font-medium transition-colors hover:text-foreground whitespace-nowrap shrink-0 ${
-                pathname === link.href ? "text-foreground" : "text-text-secondary"
+                pathname === link.href ? "text-foreground font-bold" : "text-text-secondary"
               }`}
             >
               {link.name}
@@ -82,10 +82,10 @@ const Navbar = () => {
           {isAuthenticated ? (
             <Link
               href="/dashboard"
-              className="bg-accent text-background text-[13px] font-semibold px-6 py-2.5 rounded-full hover:opacity-90 transition-all shadow-lg shadow-accent/20 flex items-center gap-2"
+              className="bg-accent text-background text-xs font-extrabold px-4 py-2 rounded-xl hover:opacity-90 transition-all shadow-md shadow-accent/20 flex items-center gap-2 uppercase tracking-wider"
             >
-              <div className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-[10px]">👤</div>
-              Dashboard
+              <span>📊</span>
+              <span>Go to Dashboard</span>
             </Link>
           ) : (
             <>
@@ -131,11 +131,21 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div
-        className={`fixed inset-0 bg-background z-[999] lg:hidden flex flex-col pt-topbar transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-0 bg-background z-[999] lg:hidden flex flex-col pt-16 transition-transform duration-300 ease-in-out ${
           isMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex flex-col border-t border-surface-200">
+          {isAuthenticated && (
+            <Link
+              href="/dashboard"
+              onClick={() => setIsMenuOpen(false)}
+              className="px-6 py-4 text-[15px] font-bold border-b border-surface-200 bg-accent/10 text-accent flex items-center justify-between"
+            >
+              <span>📊 Go to Dashboard</span>
+              <span>→</span>
+            </Link>
+          )}
           {navLinks.map((link) => (
             <Link
               key={link.name}
@@ -147,20 +157,24 @@ const Navbar = () => {
               <span className="opacity-0 group-hover:opacity-100 transition-opacity text-accent">→</span>
             </Link>
           ))}
-          <Link
-            href="/login"
-            onClick={() => setIsMenuOpen(false)}
-            className="px-6 py-4 text-[15px] font-semibold border-b border-surface-200 bg-surface-100 text-foreground hover:bg-surface-200"
-          >
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            onClick={() => setIsMenuOpen(false)}
-            className="px-6 py-5 text-[15px] font-bold text-background bg-foreground hover:bg-foreground/90"
-          >
-            Get Started
-          </Link>
+          {!isAuthenticated && (
+            <>
+              <Link
+                href="/login"
+                onClick={() => setIsMenuOpen(false)}
+                className="px-6 py-4 text-[15px] font-semibold border-b border-surface-200 bg-surface-100 text-foreground hover:bg-surface-200"
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                onClick={() => setIsMenuOpen(false)}
+                className="px-6 py-5 text-[15px] font-bold text-background bg-foreground hover:bg-foreground/90"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

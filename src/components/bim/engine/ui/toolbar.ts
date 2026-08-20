@@ -269,4 +269,256 @@ export function setupUIListeners() {
   initCostDashboardControls();
   initBottomSheetController();
   initPivotOrbDetector();
+
+  // ── Raycasting & 3D Snapping Event Listeners for Measurement Engine ──
+  const viewerContainer = document.getElementById("viewer-container");
+  if (!viewerContainer) return;
+
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let pointerDownPos = { x: 0, y: 0 };
+  let isPointerMoved = false;
+
+  viewerContainer.addEventListener("pointerdown", (e) => {
+    pointerDownPos = { x: e.clientX, y: e.clientY };
+    isPointerMoved = false;
+  });
+
+  viewerContainer.addEventListener("pointermove", (e) => {
+    if (Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y) > 6) {
+      isPointerMoved = true;
+    }
+
+    const touchLoupe = document.getElementById("touch-reticle-loupe");
+    const reticleBadge = document.getElementById("reticle-snap-badge");
+
+    if (state.activeTool !== "measure" || !state.currentModel) {
+      if (snapMarkerGroup) snapMarkerGroup.visible = false;
+      if (touchLoupe) touchLoupe.style.display = "none";
+      return;
+    }
+
+    const rect = viewerContainer.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, state.world.camera.three);
+    const hits = raycaster.intersectObject(state.currentModel, true);
+
+    if (hits.length > 0) {
+      const snap = computeSnapPoint(hits[0]);
+      state.currentSnapPoint = snap.point;
+      state.currentSnapType = snap.type;
+
+      if (!snapMarkerGroup) initSnapPreviewObjects();
+      if (snapMarkerGroup) {
+        snapMarkerGroup.position.copy(state.currentSnapPoint);
+        updateSnapMarkerAppearance(state.currentSnapType);
+        snapMarkerGroup.visible = true;
+      }
+
+      const snapLabel = state.currentSnapType === "vertex" ? "Corner ◆" : (state.currentSnapType === "midpoint" ? "Midpoint ▰" : (state.currentSnapType === "edge" ? "Edge ━" : "Surface ●"));
+
+      if (touchLoupe && (e.pointerType === "touch" || window.innerWidth <= 768)) {
+        touchLoupe.style.display = "flex";
+        touchLoupe.style.left = `${e.clientX}px`;
+        touchLoupe.style.top = `${e.clientY - 45}px`;
+        if (reticleBadge) reticleBadge.textContent = snapLabel;
+      }
+
+      if (state.activeMeasureMode === "distance") {
+        if (state.measureStartPoint && rubberbandLine) {
+          updateStartPinAppearance();
+          const positions = rubberbandLine.geometry.attributes.position as THREE.BufferAttribute;
+          positions.setXYZ(0, state.measureStartPoint.x, state.measureStartPoint.y, state.measureStartPoint.z);
+          positions.setXYZ(1, state.currentSnapPoint.x, state.currentSnapPoint.y, state.currentSnapPoint.z);
+          positions.needsUpdate = true;
+          rubberbandLine.computeLineDistances();
+          rubberbandLine.visible = true;
+
+          const triInfo = updateLiveTriangle(state.measureStartPoint, state.currentSnapPoint);
+          const fD = formatLength(triInfo.D);
+          if (triInfo.isDiagonal) {
+            setHint(`📐 Diagonal — Direct: ${fD.fullStr} | ${triInfo.label1} | ${triInfo.label2} (${snapLabel}). Click to lock.`);
+          } else {
+            setHint(`📐 Axis-Aligned — Distance: ${fD.fullStr} (${snapLabel}). Click to lock.`);
+          }
+        } else {
+          setHint(`📐 Distance — Snapped to ${snapLabel}. Click to lock Point 1.`);
+        }
+      } else if (state.activeMeasureMode === "angle") {
+        if (state.measurePointsList.length === 1) {
+          setHint(`📐 Angle — Point 1 (Arm A) set. Hover over vertex apex (${snapLabel}) and click.`);
+        } else if (state.measurePointsList.length === 2) {
+          const dirA = new THREE.Vector3().subVectors(state.measurePointsList[0], state.measurePointsList[1]).normalize();
+          const dirB = new THREE.Vector3().subVectors(state.currentSnapPoint, state.measurePointsList[1]).normalize();
+          const dot = THREE.MathUtils.clamp(dirA.dot(dirB), -1, 1);
+          const angleDeg = (Math.acos(dot) * 180 / Math.PI).toFixed(1);
+          setHint(`📐 Angle — Live: ∠ ${angleDeg}° (${snapLabel}). Click Point 3 to finish.`);
+        } else {
+          setHint(`📐 Angle — Snapped to ${snapLabel}. Click Point 1 (Arm A).`);
+        }
+      } else if (state.activeMeasureMode === "area") {
+        if (state.measurePointsList.length >= 1) {
+          updateAreaLivePreview(state.currentSnapPoint);
+          const firstPt = state.measurePointsList[0];
+          const isNearFirst = firstPt && state.currentSnapPoint.distanceTo(firstPt) < 0.5;
+          if (isNearFirst && state.measurePointsList.length >= 3) {
+            setHint(`🎯 Close Loop — Click Point 1 or Double-Click to FINISH Polygon Area.`);
+          } else {
+            setHint(`📐 Area — ${state.measurePointsList.length} points set (${snapLabel}). Click next point, or Double-Click to finish.`);
+          }
+        } else {
+          setHint(`📐 Area — Snapped to ${snapLabel}. Click to start polygon.`);
+        }
+      }
+    } else {
+      state.currentSnapPoint = null;
+      if (snapMarkerGroup) snapMarkerGroup.visible = false;
+      if (touchLoupe) touchLoupe.style.display = "none";
+      if (state.measureStartPoint && rubberbandLine) {
+        rubberbandLine.visible = false;
+        if (liveTriangleGroup) liveTriangleGroup.visible = false;
+      }
+    }
+  });
+
+  const toolDeleteMeasurements = document.getElementById("tool-delete-measurements");
+  if (toolDeleteMeasurements) {
+    toolDeleteMeasurements.addEventListener("click", () => {
+      state.orthogonalDimensions.forEach((dim: any) => dim.dispose());
+      state.orthogonalDimensions.length = 0;
+      toolDeleteMeasurements.style.display = "none";
+      showToast("All measurements cleared");
+    });
+  }
+
+  viewerContainer.addEventListener("dblclick", (e) => {
+    if (state.activeTool === "measure" && state.activeMeasureMode === "area") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (state.measurePointsList.length >= 3) {
+        finishAreaMeasurement();
+      } else {
+        showToast("Need at least 3 points to form an area");
+      }
+    }
+  });
+
+  window.addEventListener("keydown", (e) => {
+    const target = e.target as HTMLElement | null;
+    const isTyping = target ? target.matches("input, textarea, select") : false;
+
+    if (e.key === "Enter" && state.activeTool === "measure" && state.activeMeasureMode === "area") {
+      if (state.measurePointsList.length >= 3) {
+        finishAreaMeasurement();
+      }
+    } else if (e.key === "Escape" && state.activeTool === "measure") {
+      state.measurePointsList.length = 0;
+      state.measureStartPoint = null;
+      clearAreaLivePreview();
+      if (startPinGroup) startPinGroup.visible = false;
+      if (rubberbandLine) rubberbandLine.visible = false;
+      if (liveTriangleGroup) liveTriangleGroup.visible = false;
+      showToast("Measurement cancelled");
+    } else if ((e.key === "f" || e.key === "F") && !isTyping && !e.ctrlKey && !e.metaKey) {
+      if (state.currentModel) {
+        fitCameraToModel(state.currentModel);
+        showToast("Zoom Extents (Fit)");
+      }
+    }
+  });
+
+  viewerContainer.addEventListener("click", (e) => {
+    if (isPointerMoved) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("#section-control-card") || target?.closest("#measurement-control-card") || target?.closest(".radial-menu-container")) {
+      return;
+    }
+
+    if (state.activeTool === "clip") {
+      if (!state.currentModel) return;
+
+      const rect = viewerContainer.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, state.world.camera.three);
+
+      const hits = raycaster.intersectObject(state.currentModel, true);
+      if (hits.length > 0 && hits[0].face) {
+        const hit = hits[0];
+        const normalMatrix = new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld);
+        const worldNormal = hit.face!.normal.clone().applyMatrix3(normalMatrix).normalize();
+
+        state.activeSectionPlane.setFromNormalAndCoplanarPoint(worldNormal, hit.point);
+        state.isSectionActive = true;
+        setActiveClipPlane(true);
+        showToast("Section aligned to surface");
+      }
+    } else if (state.activeTool === "measure") {
+      if (!state.currentSnapPoint) return;
+
+      if (state.activeMeasureMode === "distance") {
+        if (!state.measureStartPoint) {
+          state.measureStartPoint = state.currentSnapPoint.clone();
+          if (!startPinGroup) initSnapPreviewObjects();
+          if (startPinGroup) {
+            startPinGroup.position.copy(state.measureStartPoint);
+            updateStartPinAppearance();
+            startPinGroup.visible = true;
+          }
+          showToast("Point 1 locked — now hover and click Point 2");
+        } else {
+          const measureEndPoint = state.currentSnapPoint.clone();
+          const dimGroup = new OrthogonalDimensionGroup(state.measureStartPoint, measureEndPoint);
+          state.orthogonalDimensions.push(dimGroup);
+          resolveScreenSpaceCollisions();
+
+          const dist = state.measureStartPoint.distanceTo(measureEndPoint);
+          const fDist = formatLength(dist);
+          showToast(`Distance: ${fDist.fullStr}`);
+
+          state.measureStartPoint = null;
+          if (startPinGroup) startPinGroup.visible = false;
+          if (rubberbandLine) rubberbandLine.visible = false;
+          if (liveTriangleGroup) liveTriangleGroup.visible = false;
+          if (toolDeleteMeasurements) toolDeleteMeasurements.style.display = "flex";
+          setHint("📐 Distance — Measurement created! Click to start another.");
+        }
+      } else if (state.activeMeasureMode === "angle") {
+        if (state.measurePointsList.length === 0) {
+          state.measurePointsList.push(state.currentSnapPoint.clone());
+          showToast("Point 1 (Side A) locked — Click Point 2 (Vertex Apex)");
+        } else if (state.measurePointsList.length === 1) {
+          state.measurePointsList.push(state.currentSnapPoint.clone());
+          showToast("Point 2 (Apex) locked — Click Point 3 (Side B)");
+        } else if (state.measurePointsList.length === 2) {
+          const pA = state.measurePointsList[0];
+          const pApex = state.measurePointsList[1];
+          const pB = state.currentSnapPoint.clone();
+
+          const angleGroup = new AngleDimensionGroup(pA, pApex, pB);
+          state.orthogonalDimensions.push(angleGroup);
+          resolveScreenSpaceCollisions();
+
+          const dirA = new THREE.Vector3().subVectors(pA, pApex).normalize();
+          const dirB = new THREE.Vector3().subVectors(pB, pApex).normalize();
+          const dot = THREE.MathUtils.clamp(dirA.dot(dirB), -1, 1);
+          const angleDeg = (Math.acos(dot) * 180 / Math.PI).toFixed(1);
+
+          showToast(`Angle: ∠ ${angleDeg}°`);
+          state.measurePointsList.length = 0;
+          if (toolDeleteMeasurements) toolDeleteMeasurements.style.display = "flex";
+        }
+      } else if (state.activeMeasureMode === "area") {
+        state.measurePointsList.push(state.currentSnapPoint.clone());
+        const count = state.measurePointsList.length;
+        showToast(`Vertex ${count} added`);
+        if (count >= 3 && toolDeleteMeasurements) {
+          toolDeleteMeasurements.style.display = "flex";
+        }
+      }
+    }
+  });
 }
