@@ -445,7 +445,7 @@ export default function ProfilePage() {
             </button>
 
             <Link 
-              href={`/profile/${user.uid}`} 
+              href="/portfolio" 
               className="flex-1 py-1.5 bg-surface-200/70 dark:bg-surface-700/60 hover:bg-surface-300/80 border border-surface-300/40 dark:border-white/10 rounded-lg flex items-center justify-center gap-1 text-[9px] font-bold text-primary uppercase tracking-wider transition-all"
             >
               Public View
