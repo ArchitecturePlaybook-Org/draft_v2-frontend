@@ -107,17 +107,15 @@ export const Topbar: React.FC = () => {
             </div>
           )}
 
-          {/* Public Profile View Link */}
-          {user?.uid && (
-            <Link
-              href={`/profile/${user.uid}`}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 border border-surface-200 dark:border-white/10 text-surface-600 dark:text-surface-300 text-xs font-semibold transition-colors shrink-0"
-              title="View Your Public Profile Page"
-            >
-              <Globe className="w-3.5 h-3.5 text-accent" />
-              <span className="truncate">Public View</span>
-            </Link>
-          )}
+          {/* Public Portfolio View Link */}
+          <Link
+            href="/portfolio"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 border border-surface-200 dark:border-white/10 text-surface-600 dark:text-surface-300 text-xs font-semibold transition-colors shrink-0"
+            title="Explore Architectural Portfolios"
+          >
+            <Globe className="w-3.5 h-3.5 text-accent" />
+            <span className="truncate">Public View</span>
+          </Link>
 
           {/* Calendar Side Panel Button */}
           <button
