@@ -8,6 +8,7 @@ import { orgsApi } from "@/domains/orgs/api";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { EstablishBlueprintModal } from "@/components/projects/EstablishBlueprintModal";
 import { Spinner } from "@/components/ui/Spinner";
+import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -229,9 +230,7 @@ export function ProjectsRegistryView() {
       </div>
 
       {isLoading || !isMounted ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-surface-50/50 border border-surface-200/80 rounded-2xl">
-          <Spinner size="md" label="Retrieving architectural nodes..." />
-        </div>
+        <SkeletonGrid count={6} columns="grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" />
       ) : filteredProjects.length > 0 ? (
         <motion.div 
           initial="hidden"

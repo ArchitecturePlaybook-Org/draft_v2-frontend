@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { calculateProfileCompleteness } from "@/lib/utils/profile";
 import { fetchFromBff } from "@/shared/api/fetchFromBff";
 import { motion, Variants } from "framer-motion";
+import { SkeletonDashboard } from "@/components/ui/Skeleton";
 import { 
   AlertCircle, 
   Briefcase, 
@@ -82,12 +83,7 @@ export function DashboardView() {
   };
 
   if (isUserLoading || isLoadingData || !isMounted) {
-    return (
-      <div className="flex items-center justify-center h-full flex-col gap-3 py-16">
-        <div className="w-8 h-8 border-3 border-surface-200 border-t-primary rounded-full animate-spin" />
-        <p className="text-surface-400 text-xs font-bold tracking-widest uppercase animate-pulse">Initializing Interface...</p>
-      </div>
-    );
+    return <SkeletonDashboard />;
   }
 
   const events: Event[] = Array.isArray(eventsData) ? eventsData : (eventsData?.results || []);

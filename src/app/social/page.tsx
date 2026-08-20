@@ -171,11 +171,12 @@ function PostCard({
   );
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+import { AppSkeleton as Skeleton } from "@/components/ui/Skeleton";
+
 function PostSkeleton() {
   return (
-    <div className="break-inside-avoid rounded-2xl border border-surface-200 bg-surface-card overflow-hidden animate-pulse">
-      <div className="bg-surface-100" style={{ height: `${220 + Math.random() * 200}px` }} />
+    <div className="break-inside-avoid rounded-2xl border border-surface-200/80 dark:border-white/10 bg-surface-card overflow-hidden">
+      <Skeleton height={260} borderRadius={16} />
     </div>
   );
 }

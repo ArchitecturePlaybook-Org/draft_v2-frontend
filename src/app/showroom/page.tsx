@@ -174,12 +174,14 @@ function ProductCard({ product, onOpenBoQ }: { product: Product; onOpenBoQ?: (p:
   );
 }
 
+import { AppSkeleton as Skeleton } from "@/components/ui/Skeleton";
+
 function ProductSkeleton() {
   return (
-    <div className="rounded-2xl border border-surface-200 bg-surface-card p-3 space-y-3 animate-pulse">
-      <div className="h-40 bg-surface-100 rounded-xl" />
-      <div className="h-4 bg-surface-200 rounded w-3/4" />
-      <div className="h-3 bg-surface-100 rounded w-1/2" />
+    <div className="rounded-2xl border border-surface-200/80 dark:border-white/10 bg-surface-card p-3 space-y-3">
+      <Skeleton height={160} borderRadius={12} />
+      <Skeleton height={16} width="75%" borderRadius={6} />
+      <Skeleton height={12} width="50%" borderRadius={6} />
     </div>
   );
 }

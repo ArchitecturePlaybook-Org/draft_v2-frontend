@@ -7,6 +7,7 @@ import { orgsApi } from "@/domains/orgs/api";
 import { usePermissions } from "@/hooks/use-permissions";
 import { TaskExecutionSidePanel } from "@/components/projects/TaskExecutionSidePanel";
 import { Spinner } from "@/components/ui/Spinner";
+import { SkeletonDashboard } from "@/components/ui/Skeleton";
 import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
 import { ExpandedFeedView } from "@/components/matrix/ExpandedFeedView";
 import { CreateMatrixTaskModal } from "@/components/matrix/CreateMatrixTaskModal";
@@ -186,7 +187,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
     }
   };
 
-  if (isLoading) return <div className="py-32 flex justify-center"><Spinner size="lg" label="Retrieving architectural nodes..." /></div>;
+  if (isLoading) return <SkeletonDashboard />;
   
   if (!project) return (
     <div className="text-center py-32 bg-surface-100 border border-surface-200 rounded-2xl shadow-sm mt-8">
