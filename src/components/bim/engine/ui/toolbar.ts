@@ -25,7 +25,7 @@ import {
 } from "../tools/measurement";
 import { applyVisibilityChange, isolateVisibility, showAllVisibility } from "../explorer/visibility";
 import { clearProperties } from "../inspector/properties";
-import { fitCameraToModel } from "../core/viewer";
+import { fitCameraToModel, load3DModel } from "../core/viewer";
 import { initSavedViewsControls, openSaveViewModal } from "../tools/savedViews";
 import { initCostDashboardControls } from "../tools/costEstimation";
 import { initPivotOrbDetector } from "../tools/pivotOrb";
@@ -269,6 +269,41 @@ export function setupUIListeners() {
   initCostDashboardControls();
   initBottomSheetController();
   initPivotOrbDetector();
+
+  const btnSample = document.getElementById("btn-load-sample") || document.getElementById("btn-sample");
+  if (btnSample) {
+    btnSample.onclick = async () => {
+      showToast("⚡ Loading demo sample model...");
+      setHint("Loading demo sample model...");
+      try {
+        const res = await fetch("https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb");
+        if (res.ok) {
+          const buffer = await res.arrayBuffer();
+          await load3DModel(buffer, "DemoModel.glb");
+          const uploadPanel = document.getElementById("upload-panel");
+          if (uploadPanel) uploadPanel.style.display = "none";
+          const appUi = document.getElementById("app-ui");
+          if (appUi) appUi.style.display = "block";
+          showToast("✅ Demo sample model loaded!");
+        } else {
+          showToast("Please choose an IFC or 3D model file to view");
+        }
+      } catch (err) {
+        showToast("Please choose an IFC or 3D model file to view");
+      }
+    };
+  }
+
+  const btnReset = document.getElementById("btn-reset");
+  if (btnReset) {
+    btnReset.onclick = () => {
+      const uploadPanel = document.getElementById("upload-panel");
+      if (uploadPanel) uploadPanel.style.display = "flex";
+      const appUi = document.getElementById("app-ui");
+      if (appUi) appUi.style.display = "none";
+      showToast("Reset viewer for new file");
+    };
+  }
 
   // ── Raycasting & 3D Snapping Event Listeners for Measurement Engine ──
   const viewerContainer = document.getElementById("viewer-container");

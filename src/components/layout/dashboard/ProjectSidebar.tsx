@@ -61,7 +61,7 @@ export const ProjectSidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="sidebar shadow-2xl z-50 relative min-h-0 bg-surface-50/95 dark:bg-surface-900/95 backdrop-blur-xl border-r border-surface-200/80 dark:border-white/10 p-2.5 flex flex-col justify-between transition-all duration-300">
+    <aside className={`sidebar shadow-2xl z-50 relative min-h-0 bg-surface-50/95 dark:bg-surface-900/95 backdrop-blur-xl border-r border-surface-200/80 dark:border-white/10 p-2.5 flex flex-col justify-between transition-all duration-300 ${isSidebarCollapsed ? 'collapsed' : ''}`}>
       {/* Floating Toggle Button */}
       <button
         onClick={toggleSidebar}

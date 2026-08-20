@@ -7,8 +7,8 @@ import { ProjectSidebar } from "@/components/layout/dashboard/ProjectSidebar";
 import { usePathname } from "next/navigation";
 
 /** Reserves horizontal space for the fixed-position sidebar in the flex layout. */
-const SidebarSpacer = () => (
-  <div className="sidebar-spacer shrink-0" aria-hidden="true" />
+const SidebarSpacer = ({ isCollapsed }: { isCollapsed?: boolean }) => (
+  <div className={`sidebar-spacer shrink-0 ${isCollapsed ? 'collapsed' : ''}`} aria-hidden="true" />
 );
 
 export const SidebarShell: React.FC = () => {
@@ -39,7 +39,7 @@ export const SidebarShell: React.FC = () => {
   if (!mounted) {
     return (
       <>
-        <SidebarSpacer />
+        <SidebarSpacer isCollapsed={isSidebarCollapsed} />
         <aside className="sidebar opacity-0 pointer-events-none" aria-hidden="true" />
       </>
     );
@@ -47,7 +47,7 @@ export const SidebarShell: React.FC = () => {
 
   return (
     <>
-      <SidebarSpacer />
+      <SidebarSpacer isCollapsed={isSidebarCollapsed} />
       {/* Mobile Drawer Backdrop Overlay */}
       {!isSidebarCollapsed && (
         <div
