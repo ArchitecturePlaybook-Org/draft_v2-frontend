@@ -9,6 +9,25 @@ import { useCommandPaletteStore } from "@/store/command-palette-store";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { useProjectNavStore } from "@/store/project-nav-store";
 import { useNotificationCenter } from "@/shared/hooks/useNotificationCenter";
+import {
+  LayoutDashboard,
+  FolderKanban,
+  Share2,
+  FileSpreadsheet,
+  Briefcase,
+  ShoppingBag,
+  Package,
+  Store,
+  MessageSquare,
+  Calendar,
+  Users,
+  BookOpen,
+  ClipboardList,
+  User,
+  CreditCard,
+  Building2,
+  Search,
+} from "lucide-react";
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
@@ -20,56 +39,66 @@ export const Sidebar: React.FC = () => {
   const { unreadChatCount } = useNotificationCenter();
 
   const workspaceLinks = [
-    { label: "Dashboard", href: "/dashboard", icon: "📊" },
-    { label: "Projects", href: "/dashboard/projects", icon: "🏗️" },
-    { label: "Shared Tasks", href: "/dashboard/shared-tasks", icon: "🔗" },
-    { label: "Templates", href: "/dashboard/templates", icon: "📋" },
-    { label: "Business Leads", href: "/dashboard/leads", icon: "💼" },
+    { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+    { label: "Projects", href: "/dashboard/projects", icon: <FolderKanban className="w-4 h-4" /> },
+    { label: "Shared Tasks", href: "/dashboard/shared-tasks", icon: <Share2 className="w-4 h-4" /> },
+    { label: "Templates", href: "/dashboard/templates", icon: <FileSpreadsheet className="w-4 h-4" /> },
+    { label: "Business Leads", href: "/dashboard/leads", icon: <Briefcase className="w-4 h-4" /> },
   ];
 
   const showroomLinks = [
-    { label: "Discover Catalog", href: "/dashboard/showroom", icon: "🛍️" },
-    { label: "My Orders", href: "/dashboard/showroom/orders", icon: "📦" },
-    { label: "Vendor Dashboard", href: "/dashboard/showroom/dashboard", icon: "🏪" },
-    { label: "Showroom Chats", href: "/dashboard/showroom/chats", icon: "💬", badge: unreadChatCount },
+    { label: "Discover Catalog", href: "/dashboard/showroom", icon: <ShoppingBag className="w-4 h-4" /> },
+    { label: "My Orders", href: "/dashboard/showroom/orders", icon: <Package className="w-4 h-4" /> },
+    { label: "Vendor Dashboard", href: "/dashboard/showroom/dashboard", icon: <Store className="w-4 h-4" /> },
+    { label: "Showroom Chats", href: "/dashboard/showroom/chats", icon: <MessageSquare className="w-4 h-4" />, badge: unreadChatCount },
   ];
 
   const opsLinks = [
-    { label: "Calendar", href: "/dashboard/calendar", icon: "📅" },
+    { label: "Calendar", href: "/dashboard/calendar", icon: <Calendar className="w-4 h-4" /> },
   ];
 
   const orgLinks = [
-    { label: "Team & Members", href: "/dashboard/organization", icon: "👥" },
-    { label: "Master Catalog", href: "/dashboard/catalog", icon: "📚" },
-    { label: "Task Templates", href: "/dashboard/task-templates", icon: "📋" },
+    { label: "Team & Members", href: "/dashboard/organization", icon: <Users className="w-4 h-4" /> },
+    { label: "Master Catalog", href: "/dashboard/catalog", icon: <BookOpen className="w-4 h-4" /> },
+    { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4" /> },
   ];
 
   const settingsLinks = [
-    { label: "My Profile", href: "/dashboard/profile", icon: "👤" },
-    { label: "Subscription", href: "/dashboard/subscription", icon: "💳" },
+    { label: "My Profile", href: "/dashboard/profile", icon: <User className="w-4 h-4" /> },
+    { label: "Subscription", href: "/dashboard/subscription", icon: <CreditCard className="w-4 h-4" /> },
   ];
 
   return (
-    <aside className="sidebar relative min-h-0">
+    <aside className="sidebar relative min-h-0 bg-surface-50/95 dark:bg-surface-900/95 backdrop-blur-xl border-r border-surface-200/80 dark:border-white/10 p-2.5 flex flex-col justify-between transition-all duration-300">
       {/* Floating Toggle Button */}
       <button
         onClick={toggleSidebar}
-        className="absolute top-12 -right-3 z-50 flex items-center justify-center w-6 h-6 rounded-full bg-surface-50 border border-surface-200 text-surface-400 hover:bg-accent hover:text-background hover:border-accent hover:scale-110 hover:shadow-lg transition-all duration-200 focus:outline-none"
-        title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        className="absolute top-3.5 -right-3 z-[100] flex items-center justify-center w-6 h-6 rounded-full bg-accent text-background font-black shadow-md border-2 border-surface-50 dark:border-surface-900 hover:scale-115 active:scale-95 transition-all duration-200 cursor-pointer focus:outline-none"
+        title={isSidebarCollapsed ? "Expand Sidebar (⌘B)" : "Collapse Sidebar (⌘B)"}
+        aria-label={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
       >
         <svg 
-          width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+          width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
           className={`transform transition-transform duration-300 ${isSidebarCollapsed ? "rotate-180" : "rotate-0"}`}
         >
           <path d="m15 18-6-6 6-6"/>
         </svg>
       </button>
-      <div className="flex items-center justify-between mb-4 px-1 min-w-0 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 shrink-0 rounded-lg bg-surface-100 flex items-center justify-center text-sm shadow-none border border-surface-200">
-            🏗
+
+      {/* Brand Logo & Notification Bell */}
+      <div className={`flex items-center mb-2.5 min-w-0 gap-2 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-1'}`}>
+        <div className={`flex items-center gap-2 min-w-0 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+          <div 
+            className="w-7 h-7 shrink-0 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-xs shadow-2xs text-accent cursor-pointer hover:scale-105 transition-transform"
+            title={isSidebarCollapsed ? "Architecture Playbook" : undefined}
+          >
+            <Building2 className="w-3.5 h-3.5 text-accent" />
           </div>
-          {!isSidebarCollapsed && <span className="text-sm font-extrabold tracking-tight text-foreground truncate">Playbook</span>}
+          {!isSidebarCollapsed && (
+            <span className="text-[11px] font-black uppercase tracking-wider text-primary truncate">
+              Architecture Playbook
+            </span>
+          )}
         </div>
         {!isSidebarCollapsed && (
           <div className="ml-auto shrink-0">
@@ -78,35 +107,38 @@ export const Sidebar: React.FC = () => {
         )}
       </div>
 
-      <div className="px-1 mb-4 flex gap-2 min-w-0">
+      {/* Quick Search Bar */}
+      <div className="px-0.5 mb-2.5 flex gap-2 min-w-0">
         <button 
           onClick={() => setIsCommandPaletteOpen(true)}
-          className={`flex items-center min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 p-0 shrink-0' : 'w-full px-2.5 py-1.5 justify-between'} bg-surface-100 hover:bg-surface-200 border border-surface-200 rounded-lg transition-all text-xs text-text-secondary shadow-none shrink-0`}
+          className={`flex items-center min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 p-0 mx-auto' : 'w-full px-2 py-1 justify-between'} bg-surface-100/70 dark:bg-surface-800/50 hover:bg-surface-200/80 dark:hover:bg-surface-800 border border-surface-200/80 dark:border-white/10 rounded-lg transition-all text-[11px] text-surface-400 shadow-2xs shrink-0`}
+          title={isSidebarCollapsed ? "Quick Search (⌘K)" : undefined}
         >
           {isSidebarCollapsed ? (
-            <span className="opacity-70 text-xs">🔍</span>
+            <Search className="w-3.5 h-3.5 opacity-80" />
           ) : (
             <>
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="opacity-70 text-text-secondary shrink-0 text-xs">🔍</span>
-                <span className="font-semibold text-text-secondary truncate text-xs">Search...</span>
+                <Search className="w-3 h-3 opacity-70" />
+                <span className="font-semibold truncate text-[11px] text-surface-400">Search...</span>
               </div>
               <div className="flex items-center gap-1 opacity-70 shrink-0">
-                <kbd className="px-1 py-0.2 text-[9px] font-mono font-bold bg-surface-200 border border-surface-300 rounded text-text-secondary">⌘K</kbd>
+                <kbd className="px-1 py-0.2 text-[8px] font-mono font-bold bg-surface-200 dark:bg-surface-700 border border-surface-300 dark:border-white/10 rounded text-surface-500">⌘K</kbd>
               </div>
             </>
           )}
         </button>
       </div>
 
-      <nav className="flex-1 min-h-0 flex flex-col gap-2.5 overflow-y-auto overflow-x-hidden">
+      {/* Main Navigation Links */}
+      <nav className="flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto overflow-x-hidden no-scrollbar">
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Workspace
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {workspaceLinks.map((link) => (
               <React.Fragment key={link.href}>
                 <SidebarLink {...link} active={pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href))} isCollapsed={isSidebarCollapsed} />
@@ -117,11 +149,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Showroom
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {showroomLinks.map((link) => (
               <React.Fragment key={link.href}>
                 <SidebarLink
@@ -140,11 +172,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Operations
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {opsLinks.map((link) => (
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
@@ -153,11 +185,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Organization
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {orgLinks.map((link) => (
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
@@ -166,11 +198,11 @@ export const Sidebar: React.FC = () => {
 
         <div>
           {!isSidebarCollapsed && (
-            <h4 className="px-2 mb-1.5 text-[9px] uppercase tracking-widest text-text-secondary font-black">
+            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Account
             </h4>
           )}
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             {settingsLinks.map((link) => (
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
@@ -178,7 +210,7 @@ export const Sidebar: React.FC = () => {
         </div>
       </nav>
 
-      {!isSidebarCollapsed && <div className="shrink-0"><ProfileBanner /></div>}
+      {!isSidebarCollapsed && <div className="shrink-0 pt-2"><ProfileBanner /></div>}
     </aside>
   );
 };
@@ -186,7 +218,7 @@ export const Sidebar: React.FC = () => {
 interface SidebarLinkProps {
   label: string;
   href: string;
-  icon: string;
+  icon: React.ReactNode;
   active: boolean;
   isCollapsed?: boolean;
   badge?: number;
@@ -195,10 +227,10 @@ interface SidebarLinkProps {
 const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, icon, active, isCollapsed, badge }) => (
   <Link 
     href={href} 
-    className={`nav-item relative ${active ? "active" : ""} ${isCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto' : ''}`}
+    className={`nav-item relative ${active ? "active" : ""} ${isCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto text-xs' : ''}`}
     title={isCollapsed ? label : undefined}
   >
-    <span className="text-sm leading-none shrink-0 relative">
+    <span className="text-xs leading-none shrink-0 relative flex items-center justify-center">
       {icon}
       {isCollapsed && badge && badge > 0 ? (
         <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-600 animate-ping" />
@@ -206,7 +238,7 @@ const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, icon, active, is
     </span>
     {!isCollapsed && <span className="truncate text-[11px] flex-1">{label}</span>}
     {!isCollapsed && badge && badge > 0 ? (
-      <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-black text-[9px] shrink-0 animate-pulse">
+      <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-black text-[8px] shrink-0 animate-pulse">
         {badge}
       </span>
     ) : null}

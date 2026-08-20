@@ -311,6 +311,31 @@ export default function BimViewerPageClient() {
               <button id="btn-measure-mode-area" className="measure-mode-btn">Area</button>
             </div>
           </div>
+
+          {/* 3D Snap Filters */}
+          <div className="snap-filters-row">
+            <span className="snap-filter-label">Snap:</span>
+            <button id="snap-filter-vertex" className="snap-pill-btn active">Vertex</button>
+            <button id="snap-filter-midpoint" className="snap-pill-btn active">Midpoint</button>
+            <button id="snap-filter-edge" className="snap-pill-btn active">Edge</button>
+            <button id="snap-filter-surface" className="snap-pill-btn active">Surface</button>
+          </div>
+
+          {/* Measurement Units & Clear Actions */}
+          <div className="measure-unit-row">
+            <label className="snap-filter-label">Unit:</label>
+            <select id="measure-unit-select" className="measure-unit-select">
+              <option value="m">Meters (m)</option>
+              <option value="cm">Centimeters (cm)</option>
+              <option value="mm">Millimeters (mm)</option>
+              <option value="ft">Feet (ft)</option>
+              <option value="in">Inches (in)</option>
+              <option value="ft-in">Feet-Inches (ft-in)</option>
+            </select>
+            <button id="tool-delete-measurements" className="clear-measure-btn" style={{ display: "none" }} title="Clear All Measurements">
+              Clear All
+            </button>
+          </div>
         </div>
 
         {/* Section Cut Suite Card */}

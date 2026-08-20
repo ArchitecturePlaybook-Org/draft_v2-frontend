@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { eventsApi, Event } from "@/domains/events/api";
 import { projectsApi } from "@/domains/projects/api";
-import { Task } from "@/types/projects";
+import { Task, Project } from "@/types/projects";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns";
 import { CreateEventModal } from "@/components/events/CreateEventModal";
 import { motion, Variants } from "framer-motion";
@@ -27,7 +27,7 @@ function DayDetailsModal({
   data,
   onClose,
 }: {
-  data: { date: Date; events: Event[]; tasks: Task[] } | null;
+  data: { date: Date; events: Event[]; tasks: Task[]; projects: Project[] } | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -86,7 +86,27 @@ function DayDetailsModal({
               ))}
             </div>
           )}
-          {data.events.length === 0 && data.tasks.length === 0 && (
+          {data.projects.length > 0 && (
+            <div className="space-y-2 mt-4">
+              <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-widest mb-1.5">Projects</h3>
+              {data.projects.map((proj, i) => (
+                <div 
+                  key={`modal-proj-${i}`} 
+                  onClick={() => router.push(`/dashboard/projects/${proj.uid}`)}
+                  className="text-xs font-black p-3 rounded-lg border shadow-sm bg-indigo-500/10 text-indigo-500 border-indigo-500/20 shadow-indigo-500/20 hover:bg-indigo-500/20 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="shrink-0">🏗️</span> 
+                    <div className="flex flex-col">
+                      <span>{proj.title}</span>
+                      <span className="text-[10px] font-bold opacity-70 mt-1">Status: {proj.status}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {data.events.length === 0 && data.tasks.length === 0 && data.projects.length === 0 && (
             <p className="text-surface-500 text-sm italic text-center">No schedule for this day.</p>
           )}
         </div>
@@ -99,23 +119,27 @@ export default function CalendarPage() {
   const router = useRouter();
   const [events, setEvents] = useState<Event[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<{ date: Date; events: Event[]; tasks: Task[] } | null>(null);
+  const [selectedDay, setSelectedDay] = useState<{ date: Date; events: Event[]; tasks: Task[]; projects: Project[] } | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [eventsData, tasksData] = await Promise.all([
+      const [eventsData, tasksData, projectsData] = await Promise.all([
         eventsApi.listEvents(),
         projectsApi.getTasks(),
+        projectsApi.getProjects(),
       ]);
       const eventsList = Array.isArray(eventsData) ? eventsData : (eventsData as any).results || [];
       const tasksList = Array.isArray(tasksData) ? tasksData : (tasksData as any).results || [];
+      const projectsList = Array.isArray(projectsData) ? projectsData : (projectsData as any).results || [];
       
       setEvents(eventsList);
       setTasks(tasksList);
+      setProjects(projectsList);
     } catch (err) {
       console.error(err);
     } finally {
@@ -213,9 +237,17 @@ export default function CalendarPage() {
                 return isSameDay(tDate, date);
             });
 
+            // Filter projects by created_at (as a proxy for project start date)
+            const dayProjects = projects.filter(p => {
+                if (!p.created_at) return false;
+                const pDate = new Date(p.created_at);
+                return isSameDay(pDate, date);
+            });
+
             const allItems = [
               ...dayEvents.map(e => ({ type: 'event' as const, data: e })),
-              ...dayTasks.map(t => ({ type: 'task' as const, data: t }))
+              ...dayTasks.map(t => ({ type: 'task' as const, data: t })),
+              ...dayProjects.map(p => ({ type: 'project' as const, data: p }))
             ];
             
             const displayItems = allItems.slice(0, 3);
@@ -225,7 +257,7 @@ export default function CalendarPage() {
               <motion.div 
                 variants={itemVariants}
                 key={idx} 
-                onClick={() => setSelectedDay({ date, events: dayEvents, tasks: dayTasks })}
+                onClick={() => setSelectedDay({ date, events: dayEvents, tasks: dayTasks, projects: dayProjects })}
                 whileHover={{ scale: 1.02, zIndex: 10 }}
                 className={`min-h-[140px] p-3 border-r border-b border-white/10 last:border-r-0 transition-colors hover:bg-white/5 cursor-pointer group relative bg-surface-50/40 backdrop-blur-md ${
                   !isCurrentMonth ? "bg-black/5 dark:bg-black/20 opacity-50" : "bg-transparent"
@@ -254,7 +286,7 @@ export default function CalendarPage() {
                           {evt.title}
                         </div>
                       );
-                    } else {
+                    } else if (item.type === 'task') {
                       const task = item.data as Task;
                       return (
                         <div 
@@ -268,6 +300,20 @@ export default function CalendarPage() {
                           className="text-[9px] font-black px-2.5 py-1.5 rounded-md truncate uppercase tracking-[0.1em] border shadow-sm transition-transform hover:scale-[1.02] bg-success/10 text-success border-success/20 shadow-success/20 flex items-center gap-1 hover:bg-success/20 cursor-pointer"
                         >
                           <span className="shrink-0 text-[10px]">☑</span> {task.title}
+                        </div>
+                      );
+                    } else {
+                      const proj = item.data as Project;
+                      return (
+                        <div 
+                          key={`proj-${i}`} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/dashboard/projects/${proj.uid}`);
+                          }}
+                          className="text-[9px] font-black px-2.5 py-1.5 rounded-md truncate uppercase tracking-[0.1em] border shadow-sm transition-transform hover:scale-[1.02] bg-indigo-500/10 text-indigo-500 border-indigo-500/20 shadow-indigo-500/20 flex items-center gap-1 hover:bg-indigo-500/20 cursor-pointer"
+                        >
+                          <span className="shrink-0 text-[10px]">🏗️</span> {proj.title}
                         </div>
                       );
                     }

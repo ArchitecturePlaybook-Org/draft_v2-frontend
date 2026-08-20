@@ -11,6 +11,7 @@ import { Toolbar } from "@/components/estimation/Toolbar";
 import { useEstimationAutoSave } from "@/components/estimation/useEstimationAutoSave";
 import { useEstimationStore } from "@/store/estimation-store";
 import { TakeoffType } from "@/types/estimation.types";
+import { LayoutGrid, Layers, PieChart, Download, Building2, Calculator, FileSpreadsheet } from "lucide-react";
 
 interface EstimationSummaryType {
   grand_total?: number;
@@ -675,7 +676,6 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
             key={selectedAsset.id}
             className="flex-1 relative overflow-hidden flex flex-col p-2 sm:p-3 bg-surface-50/50 backdrop-blur-[2px]"
           >
-            <Toolbar />
             {selectedAsset.file ? (
               <TakeoffCanvas imageUrl={selectedAsset.file} />
             ) : (
@@ -756,41 +756,44 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
               />
               
               {/* Right Panel Header & Subtabs */}
-              <div className="h-11 px-3 flex items-center justify-between border-b border-surface-200 bg-surface-50/80 shrink-0 gap-2">
+              <div className="h-11 px-3 flex items-center justify-between border-b border-surface-200 bg-surface-50/90 backdrop-blur-md shrink-0 gap-2">
                 <div className="flex items-center gap-1 p-0.5 bg-surface-200/60 rounded-lg shrink-0">
                   <button
                     onClick={() => setRightPanelSubTab("grid")}
-                    className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-all ${
+                    className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-all flex items-center gap-1 ${
                       rightPanelSubTab === "grid"
                         ? "bg-surface-card text-foreground border border-surface-200 shadow-2xs"
                         : "text-text-secondary hover:text-foreground"
                     }`}
                   >
-                    📊 Plan Grid
+                    <LayoutGrid className="w-3 h-3 text-accent" />
+                    Grid
                   </button>
                   <button
                     onClick={() => setRightPanelSubTab("takeoff")}
-                    className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-all ${
+                    className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-all flex items-center gap-1 ${
                       rightPanelSubTab === "takeoff"
                         ? "bg-surface-card text-foreground border border-surface-200 shadow-2xs"
                         : "text-text-secondary hover:text-foreground"
                     }`}
                   >
-                    🧱 Takeoff
+                    <Layers className="w-3 h-3 text-accent" />
+                    Takeoff
                   </button>
                   <button
                     onClick={() => setRightPanelSubTab("summary")}
-                    className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-all ${
+                    className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-md transition-all flex items-center gap-1 ${
                       rightPanelSubTab === "summary"
                         ? "bg-surface-card text-foreground border border-surface-200 shadow-2xs"
                         : "text-text-secondary hover:text-foreground"
                     }`}
                   >
-                    📑 Summary
+                    <PieChart className="w-3 h-3 text-accent" />
+                    Summary
                   </button>
                 </div>
 
-                <button onClick={() => setRightPanelOpen(false)} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-200 text-surface-400 hover:text-accent transition-all shrink-0">
+                <button onClick={() => setRightPanelOpen(false)} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-surface-200 text-surface-400 hover:text-accent transition-all shrink-0 cursor-pointer">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </button>
               </div>
@@ -820,35 +823,66 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
                   </motion.div>
                 ) : (
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="space-y-3">
-                    <div className="text-center p-4 bg-gradient-to-br from-accent/10 via-surface-card to-surface-card rounded-xl border border-surface-200 shadow-2xs relative overflow-hidden">
-                      <p className="text-[9px] font-black text-accent uppercase tracking-wider mb-1 relative z-10">Project Grand Total Estimate</p>
-                      <div className="text-2xl sm:text-3xl font-black text-foreground tracking-tight relative z-10 drop-shadow-2xs">
-                        ₹{estimationSummary?.grand_total?.toLocaleString() || "0.00"}
+                    {/* Executive Grand Total Banner */}
+                    <div className="p-4 bg-gradient-to-br from-accent/15 via-surface-card to-surface-card rounded-2xl border border-accent/30 shadow-md relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-2xl pointer-events-none" />
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[9px] font-black text-accent uppercase tracking-wider bg-accent/10 border border-accent/20 px-2 py-0.5 rounded-full">
+                          Aggregated Estimate
+                        </span>
+                        <Calculator className="w-4 h-4 text-accent" />
                       </div>
-                      <p className="text-[9px] font-semibold text-text-secondary mt-1">Aggregated across all 2D floor plans & material takeoffs</p>
+                      
+                      <div className="text-2xl sm:text-3xl font-mono font-black text-foreground tracking-tight drop-shadow-2xs">
+                        ₹{(estimationSummary?.grand_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      <p className="text-[9px] font-semibold text-text-secondary mt-1.5 leading-relaxed">
+                        Calculated across all 2D floor plans, material takeoffs, and BOQ items.
+                      </p>
                     </div>
 
+                    {/* Category Breakdowns */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center px-1 border-b border-surface-200 pb-1.5">
                          <h4 className="text-[9px] font-black uppercase tracking-wider text-text-secondary">Master Category Totals</h4>
-                         <span className="text-[8px] font-black uppercase tracking-wider text-text-secondary">{estimationSummary?.items?.length || 0} Categories</span>
+                         <span className="text-[8px] font-black uppercase tracking-wider text-accent font-mono bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">
+                           {estimationSummary?.items?.length || 0} Categories
+                         </span>
                       </div>
+
                       {estimationSummary?.items?.length ? (
-                        estimationSummary.items.map((item: { description: string; item_code: string; total_qty: number; unit: string; total_cost: number }, i: number) => (
-                           <div key={i} className="flex justify-between items-center p-2.5 bg-surface-card rounded-xl border border-surface-200 hover:border-accent/40 transition-all shadow-2xs">
-                             <div className="flex-1 min-w-0 pr-2">
-                               <p className="text-xs font-bold text-foreground truncate">{item.description}</p>
-                               <p className="text-[8px] font-black uppercase tracking-wider text-text-secondary mt-0.5 bg-surface-100 border border-surface-200 w-fit px-1.5 py-0.5 rounded">{item.item_code}</p>
-                             </div>
-                             <div className="text-right shrink-0">
-                               <p className="text-xs font-black text-foreground">{item.total_qty} <span className="text-[9px] uppercase tracking-wider text-text-secondary font-bold">{item.unit}</span></p>
-                               <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">₹{(item.total_cost || 0).toLocaleString()}</p>
-                             </div>
-                           </div>
-                        ))
+                        estimationSummary.items.map((item: { description: string; item_code: string; total_qty: number; unit: string; total_cost: number }, i: number) => {
+                          const grandTotal = estimationSummary?.grand_total || 1;
+                          const pct = Math.min(100, Math.round(((item.total_cost || 0) / grandTotal) * 100));
+                          return (
+                            <div key={i} className="p-3 bg-surface-card rounded-xl border border-surface-200/80 hover:border-accent/40 transition-all shadow-2xs space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 min-w-0 pr-2">
+                                  <p className="text-xs font-bold text-foreground truncate">{item.description}</p>
+                                  <p className="text-[8px] font-black uppercase tracking-wider text-text-secondary mt-0.5 bg-surface-100 border border-surface-200 w-fit px-1.5 py-0.5 rounded font-mono">
+                                    {item.item_code}
+                                  </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-xs font-black text-foreground font-mono">
+                                    {item.total_qty} <span className="text-[9px] uppercase tracking-wider text-text-secondary font-bold">{item.unit}</span>
+                                  </p>
+                                  <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5 font-mono">
+                                    ₹{(item.total_cost || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Visual Progress Bar */}
+                              <div className="w-full bg-surface-100 rounded-full h-1.5 overflow-hidden flex">
+                                <div className="bg-gradient-to-r from-accent to-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })
                       ) : (
                         <div className="text-center p-6 bg-surface-50/50 rounded-xl border border-dashed border-surface-200">
-                          <span className="text-2xl mb-2 block opacity-30">📋</span>
+                          <FileSpreadsheet className="w-6 h-6 text-surface-400 mx-auto mb-2 opacity-50" />
                           <p className="text-xs font-bold text-text-secondary leading-relaxed">No estimation summary data calculated yet.</p>
                         </div>
                       )}
@@ -858,12 +892,13 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
               </div>
 
               {/* Actions Footer */}
-              <div className="p-3 border-t border-surface-200 bg-surface-50/80 backdrop-blur-xl shrink-0">
+              <div className="p-3 border-t border-surface-200 bg-surface-50/90 backdrop-blur-xl shrink-0">
                 <button 
                   onClick={() => projectsApi.exportProjectData(project.uid, 'estimations')}
-                  className="w-full h-9 bg-gradient-to-r from-accent to-accent-hover text-background font-black text-[9px] uppercase tracking-wider rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5"
+                  className="w-full h-9 bg-gradient-to-r from-accent to-accent-hover text-background font-black text-[9px] uppercase tracking-wider rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
-                  <span>📥</span> Export Full Estimation Sheet (CSV)
+                  <Download className="w-3.5 h-3.5" />
+                  Export Full Estimation Sheet (CSV)
                 </button>
               </div>
             </motion.div>

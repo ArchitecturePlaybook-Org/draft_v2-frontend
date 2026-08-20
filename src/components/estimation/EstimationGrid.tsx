@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useReactTable, getCoreRowModel, getGroupedRowModel, getExpandedRowModel, flexRender, ColumnDef, GroupingState } from '@tanstack/react-table';
 import { useEstimationStore } from '@/store/estimation-store';
 import { TakeoffItem } from '@/types/estimation.types';
-import { Trash2 } from 'lucide-react';
+import { Trash2, LayoutGrid, Calculator, Layers, FileSpreadsheet } from 'lucide-react';
 
 const CodeCell = (props: any) => {
   const { row, getValue, table } = props;
@@ -55,7 +55,7 @@ const EditableCell = ({ getValue, row: { index, original }, column: { id }, tabl
   // Non-editable view (click to edit)
   return (
     <div 
-      className="w-full h-full min-h-[24px] cursor-text px-1" 
+      className="w-full h-full min-h-[24px] cursor-text px-1 flex items-center" 
       onClick={() => setIsEditing(true)}
     >
       {value}
@@ -91,7 +91,7 @@ export const EstimationGrid = () => {
       aggregationFn: 'sum',
       cell: (info) => (
         <div className={`px-1 font-mono text-[11px] text-primary ${info.row.getIsGrouped() ? 'font-black text-accent' : 'font-bold'}`}>
-          {Number(info.getValue()).toFixed(2)}
+          {Number(info.getValue() || 0).toFixed(2)}
         </div>
       )
     },
@@ -103,7 +103,11 @@ export const EstimationGrid = () => {
     {
       header: 'Unit Cost',
       accessorKey: 'unit_cost',
-      cell: EditableCell
+      cell: (info) => (
+        <div className="px-1 font-mono text-[11px] text-surface-600 dark:text-surface-300 font-medium">
+          ₹{Number(info.getValue() || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </div>
+      )
     },
     {
       header: 'Total',
@@ -111,7 +115,7 @@ export const EstimationGrid = () => {
       aggregationFn: 'sum',
       cell: (info) => (
         <div className={`px-1 font-mono text-[11px] text-emerald-600 dark:text-emerald-400 ${info.row.getIsGrouped() ? 'font-black' : 'font-bold'}`}>
-          ${Number(info.getValue()).toFixed(2)}
+          ₹{Number(info.getValue() || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
         </div>
       )
     },
@@ -123,7 +127,7 @@ export const EstimationGrid = () => {
             e.stopPropagation();
             deleteItem(row.original.id);
           }} 
-          className="text-red-500 hover:bg-red-500/10 p-1 rounded-md transition-all opacity-0 group-hover:opacity-100"
+          className="text-red-500 hover:bg-red-500/10 p-1 rounded-md transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
           title="Delete item"
         >
           <Trash2 size={13} />
@@ -152,17 +156,19 @@ export const EstimationGrid = () => {
   });
 
   return (
-    <div className="w-full h-full flex flex-col bg-surface-card overflow-hidden font-sans border border-surface-200 rounded-xl shadow-xs">
+    <div className="w-full h-full flex flex-col bg-surface-card overflow-hidden font-sans border border-surface-200/80 rounded-xl shadow-xs">
       
       {/* Control Bar */}
-      <div className="h-9 border-b border-surface-200 bg-surface-100/80 px-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs">📊</span>
-          <span className="text-[10px] font-black uppercase tracking-wider text-surface-700">Spreadsheet Grid</span>
-          <span className="text-[9px] bg-surface-200 px-1.5 py-0.5 rounded font-bold text-surface-500">{items.length} items</span>
+      <div className="h-10 border-b border-surface-200 bg-surface-100/90 backdrop-blur-md px-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
+          <LayoutGrid className="w-3.5 h-3.5 text-accent" />
+          <span className="text-[10px] font-black uppercase tracking-wider text-foreground">Spreadsheet Grid</span>
+          <span className="text-[9px] bg-accent/10 border border-accent/20 px-2 py-0.5 rounded-full font-extrabold text-accent">
+            {items.length} {items.length === 1 ? 'item' : 'items'}
+          </span>
         </div>
 
-        <label className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-wider text-text-secondary cursor-pointer select-none">
+        <label className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-wider text-text-secondary cursor-pointer select-none hover:text-foreground transition-colors">
           <input 
             type="checkbox" 
             checked={grouping.length > 0} 
@@ -181,7 +187,7 @@ export const EstimationGrid = () => {
               <tr key={hg.id}>
                 <th className="w-7 border-r border-surface-200 bg-surface-100 text-[9px] font-black text-text-secondary text-center uppercase">#</th>
                 {hg.headers.map(header => (
-                  <th key={header.id} className="p-1.5 border-r border-surface-200 text-left font-black text-foreground text-[10px] uppercase tracking-wider bg-surface-100 whitespace-nowrap">
+                  <th key={header.id} className="p-2 border-r border-surface-200 text-left font-black text-foreground text-[10px] uppercase tracking-wider bg-surface-100 whitespace-nowrap">
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
@@ -207,7 +213,7 @@ export const EstimationGrid = () => {
                     {isGroupRow ? '' : row.index + 1}
                   </td>
                   {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="p-1 border-r border-surface-200/80 relative text-[11px]">
+                    <td key={cell.id} className="p-1.5 border-r border-surface-200/80 relative text-[11px]">
                       {cell.getIsGrouped() ? (
                          flexRender(cell.column.columnDef.cell, cell.getContext())
                       ) : cell.getIsAggregated() ? (
@@ -224,21 +230,31 @@ export const EstimationGrid = () => {
         </table>
         
         {items.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-40 text-surface-400 p-4 text-center">
-            <span className="text-2xl mb-1 opacity-40">📐</span>
+          <div className="flex flex-col items-center justify-center h-44 text-surface-400 p-6 text-center">
+            <div className="w-10 h-10 rounded-2xl bg-surface-100 border border-surface-200 flex items-center justify-center mb-2 text-accent">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
             <p className="text-xs font-black uppercase tracking-wider text-surface-600">No Takeoffs Measured Yet</p>
-            <p className="text-[10px] text-surface-400 mt-0.5">Use the drawing tools above to measure lengths, areas, & counts</p>
+            <p className="text-[10px] text-surface-400 mt-1 max-w-[220px]">Use the drawing toolbar above to measure lines, polygons, & item counts</p>
           </div>
         )}
       </div>
 
       {/* Sticky Bottom Totals Bar */}
       {items.length > 0 && (
-        <div className="h-8 border-t border-surface-200 bg-surface-100/90 px-3 flex items-center justify-between shrink-0 text-[10px] font-black uppercase tracking-wider text-foreground">
-          <span>Total Takeoffs</span>
+        <div className="h-10 border-t border-surface-200/80 bg-surface-100/95 backdrop-blur-xl px-3 flex items-center justify-between shrink-0 text-[10px] font-black uppercase tracking-wider text-foreground">
+          <div className="flex items-center gap-1.5 text-text-secondary">
+            <Calculator className="w-3.5 h-3.5 text-accent" />
+            <span>Plan Total</span>
+          </div>
           <div className="flex items-center gap-3">
-            <span>Qty: <strong className="font-mono text-accent">{totalQuantitySum.toFixed(2)}</strong></span>
-            <span>Cost: <strong className="font-mono text-emerald-600 dark:text-emerald-400">₹{totalCostSum.toFixed(2)}</strong></span>
+            <span className="text-surface-500">
+              Qty: <strong className="font-mono text-foreground font-bold">{totalQuantitySum.toFixed(2)}</strong>
+            </span>
+            <div className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono font-black text-xs flex items-center gap-1 shadow-2xs">
+              <span>Total:</span>
+              <span>₹{totalCostSum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            </div>
           </div>
         </div>
       )}

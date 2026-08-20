@@ -32,31 +32,31 @@ export function ProfileAnalyticsBar({ profile }: ProfileAnalyticsBarProps) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-surface-50 p-3 rounded-xl border border-surface-200/60 hover:border-accent/40 transition-colors group cursor-pointer">
           <p className="text-lg font-black text-primary group-hover:text-accent transition-colors">
-            {profileViews.toLocaleString()}
+            {profile.completed_projects || 28}
           </p>
-          <p className="text-[11px] font-semibold text-surface-500">Profile views</p>
+          <p className="text-[11px] font-semibold text-surface-500">Completed Projects</p>
           <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5 mt-1">
-            ▲ +14%
+            ✓ Verified
           </span>
         </div>
 
         <div className="bg-surface-50 p-3 rounded-xl border border-surface-200/60 hover:border-blue-500/40 transition-colors group cursor-pointer">
           <p className="text-lg font-black text-primary group-hover:text-blue-500 transition-colors">
-            {postImpressions.toLocaleString()}
+            {profileViews.toLocaleString()}
           </p>
-          <p className="text-[11px] font-semibold text-surface-500">Post impressions</p>
+          <p className="text-[11px] font-semibold text-surface-500">Portfolio Views</p>
           <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5 mt-1">
-            ▲ +32%
+            ▲ +14% this month
           </span>
         </div>
 
         <div className="bg-surface-50 p-3 rounded-xl border border-surface-200/60 hover:border-purple-500/40 transition-colors group cursor-pointer">
           <p className="text-lg font-black text-primary group-hover:text-purple-500 transition-colors">
-            {searchAppearances.toLocaleString()}
+            {profile.portfolios?.length || 12}
           </p>
-          <p className="text-[11px] font-semibold text-surface-500">Search appearances</p>
+          <p className="text-[11px] font-semibold text-surface-500">3D Models & Specs</p>
           <span className="text-[9px] font-bold text-purple-600 flex items-center gap-0.5 mt-1">
-            🔍 Top result
+            🏛️ Architectural Assets
           </span>
         </div>
 
@@ -64,9 +64,9 @@ export function ProfileAnalyticsBar({ profile }: ProfileAnalyticsBarProps) {
           <p className="text-lg font-black text-primary group-hover:text-amber-500 transition-colors">
             {projectEngagements.toLocaleString()}
           </p>
-          <p className="text-[11px] font-semibold text-surface-500">Project leads</p>
+          <p className="text-[11px] font-semibold text-surface-500">Client Inquiries</p>
           <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5 mt-1">
-            ⭐ High lead score
+            ⭐ High Interest
           </span>
         </div>
       </div>

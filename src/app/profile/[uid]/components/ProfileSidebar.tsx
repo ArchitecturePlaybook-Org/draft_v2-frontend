@@ -15,48 +15,48 @@ export function ProfileSidebar({ profile, onOpenContactModal }: ProfileSidebarPr
   const similarArchitects = [
     {
       id: 201,
-      name: "Dr. Sarah Jenkins",
+      name: "Ar. Ananya Sharma",
       category: "Senior Urban Masterplanner",
-      location: "San Francisco, CA",
+      location: "Bengaluru, KA",
       avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80",
-      uid: "sarah-jenkins-882"
+      uid: "ananya-sharma-blr"
     },
     {
       id: 202,
-      name: "Vikram Malhotra",
-      category: "Principal Structural Engineer",
-      location: "London, UK",
+      name: "Er. Vikramaditya Rao",
+      category: "Principal Structural Consultant",
+      location: "Bengaluru, KA",
       avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80",
-      uid: "vikram-malhotra-491"
+      uid: "vikram-rao-blr"
     },
     {
       id: 203,
-      name: "Claire Dupont",
+      name: "Ar. Priya Venkatesh",
       category: "BIM Integration Director",
-      location: "Paris, France",
+      location: "Bengaluru, KA",
       avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80",
-      uid: "claire-dupont-102"
+      uid: "priya-v-blr"
     }
   ];
 
   const stakeholders: Stakeholder[] = profile.stakeholders?.length > 0
     ? profile.stakeholders
     : [
-        {
-          id: 301,
-          uid: "sh-101",
-          name: "Apex Engineering Group",
-          avatar: "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=100&q=80",
-          category: "Structural Consultants"
-        },
-        {
-          id: 302,
-          uid: "sh-102",
-          name: "Vance Real Estate",
-          avatar: "https://images.unsplash.com/photo-1554469384-e58fac16e23a?auto=format&fit=crop&w=100&q=80",
-          category: "Client Developer"
-        }
-      ];
+      {
+        id: 301,
+        uid: "sh-101",
+        name: "Sobha Structural Consultants",
+        avatar: "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=100&q=80",
+        category: "Structural Consultants"
+      },
+      {
+        id: 302,
+        uid: "sh-102",
+        name: "Prestige Group Developers",
+        avatar: "https://images.unsplash.com/photo-1554469384-e58fac16e23a?auto=format&fit=crop&w=100&q=80",
+        category: "Client Developer"
+      }
+    ];
 
   const toggleConnect = (id: number) => {
     setConnectedState((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -105,16 +105,12 @@ export function ProfileSidebar({ profile, onOpenContactModal }: ProfileSidebarPr
                   </div>
                 </div>
 
-                <button
-                  onClick={() => toggleConnect(person.id)}
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 transition-all ${
-                    isConn
-                      ? 'bg-surface-200 text-surface-700'
-                      : 'border border-blue-600 text-blue-600 hover:bg-blue-50'
-                  }`}
+                <Link
+                  href={`/profile/${person.uid}`}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-surface-300 text-primary hover:bg-surface-200 transition-all shrink-0"
                 >
-                  {isConn ? '✓' : '+ Connect'}
-                </button>
+                  View
+                </Link>
               </div>
             );
           })}

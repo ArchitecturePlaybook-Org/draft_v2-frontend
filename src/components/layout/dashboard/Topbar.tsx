@@ -1,17 +1,50 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isSameDay } from "date-fns";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useAuthStore } from "@/store/auth-store";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { useProjectNavStore } from "@/store/project-nav-store";
 import { useNotificationCenter } from "@/shared/hooks/useNotificationCenter";
 import { NotificationCenterDrawer } from "@/components/notifications/NotificationCenterDrawer";
+import { CalendarSidePanelDrawer } from "@/components/layout/dashboard/CalendarSidePanelDrawer";
+import { eventsApi } from "@/domains/events/api";
+import { projectsApi } from "@/domains/projects/api";
+import { Calendar, Bell, Globe } from "lucide-react";
 
 export const Topbar: React.FC = () => {
   const pathname = usePathname();
+  const { user } = useAuthStore();
   const { isAdmin } = usePermissions();
   const { currentProjectTitle, currentProjectUid, toggleSidebar, isSidebarCollapsed } = useProjectNavStore();
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [todayScheduleCount, setTodayScheduleCount] = useState(0);
+
+  useEffect(() => {
+    const fetchTodaySchedule = async () => {
+      try {
+        const [eventsRes, tasksRes] = await Promise.all([
+          eventsApi.listEvents().catch(() => []),
+          projectsApi.getTasks().catch(() => []),
+        ]);
+        const events = Array.isArray(eventsRes) ? eventsRes : (eventsRes as any)?.results || [];
+        const tasks = Array.isArray(tasksRes) ? tasksRes : (tasksRes as any)?.results || [];
+
+        const today = new Date();
+        const countEvents = events.filter((e: any) => e.event_date && isSameDay(new Date(e.event_date), today)).length;
+        const countTasks = tasks.filter((t: any) => (t.due_date || t.end_date) && isSameDay(new Date((t.due_date || t.end_date) as string), today)).length;
+
+        setTodayScheduleCount(countEvents + countTasks);
+      } catch (err) {
+        console.error("[Topbar] Failed to fetch today agenda:", err);
+      }
+    };
+
+    fetchTodaySchedule();
+  }, [isCalendarOpen]);
 
   const {
     notifications,
@@ -74,13 +107,42 @@ export const Topbar: React.FC = () => {
             </div>
           )}
 
+          {/* Public Profile View Link */}
+          {user?.uid && (
+            <Link
+              href={`/profile/${user.uid}`}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 border border-surface-200 dark:border-white/10 text-surface-600 dark:text-surface-300 text-xs font-semibold transition-colors shrink-0"
+              title="View Your Public Profile Page"
+            >
+              <Globe className="w-3.5 h-3.5 text-accent" />
+              <span className="truncate">Public View</span>
+            </Link>
+          )}
+
+          {/* Calendar Side Panel Button */}
+          <button
+            onClick={() => setIsCalendarOpen(true)}
+            className="relative p-2 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 text-surface-600 dark:text-surface-300 transition-colors cursor-pointer shrink-0"
+            title={todayScheduleCount > 0 ? `Agenda (${todayScheduleCount} item${todayScheduleCount > 1 ? 's' : ''} scheduled today)` : "Agenda & Calendar"}
+          >
+            <Calendar className="w-4 h-4" />
+            {todayScheduleCount > 0 && (
+              <>
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping opacity-75" />
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white font-black text-[9px] flex items-center justify-center border-2 border-surface-card shadow-xs">
+                  {todayScheduleCount > 9 ? "9+" : todayScheduleCount}
+                </span>
+              </>
+            )}
+          </button>
+
           {/* Real-time Notification Bell Button */}
           <button
             onClick={() => setIsOpen(true)}
             className="relative p-2 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 text-surface-600 dark:text-surface-300 transition-colors cursor-pointer shrink-0"
             title="Notification Center"
           >
-            <span className="text-base leading-none">🔔</span>
+            <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-600 text-white font-black text-[10px] flex items-center justify-center border-2 border-surface-card shadow-xs animate-bounce">
                 {unreadCount > 9 ? "9+" : unreadCount}
@@ -103,6 +165,12 @@ export const Topbar: React.FC = () => {
         unreadCount={unreadCount}
         onMarkAsRead={markAsRead}
         onMarkAllAsRead={markAllAsRead}
+      />
+
+      {/* Calendar Side Panel Drawer */}
+      <CalendarSidePanelDrawer 
+        isOpen={isCalendarOpen} 
+        onClose={() => setIsCalendarOpen(false)} 
       />
     </>
   );
