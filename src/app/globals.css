@@ -315,6 +315,18 @@ h1, h2, h3, h4, h5, h6 {
   transition: width var(--transition-smooth), min-width var(--transition-smooth), max-width var(--transition-smooth);
 }
 
+.sidebar.collapsed {
+  width: var(--nav-width-collapsed) !important;
+  max-width: var(--nav-width-collapsed) !important;
+  min-width: var(--nav-width-collapsed) !important;
+}
+
+.sidebar-spacer.collapsed {
+  width: var(--nav-width-collapsed) !important;
+  min-width: var(--nav-width-collapsed) !important;
+  max-width: var(--nav-width-collapsed) !important;
+}
+
 @media (max-width: 768px) {
   :root {
     --nav-width: 220px;
