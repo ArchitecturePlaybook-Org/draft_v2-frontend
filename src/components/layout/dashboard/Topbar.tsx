@@ -117,6 +117,7 @@ export const Topbar: React.FC = () => {
             <span className="truncate">Public View</span>
           </Link>
 
+
           {/* Calendar Side Panel Button */}
           <button
             onClick={() => setIsCalendarOpen(true)}
