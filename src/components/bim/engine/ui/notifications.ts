@@ -57,7 +57,7 @@ export function showStatus(filename: string, numElements: number) {
 
   if (statusModelName) statusModelName.textContent = filename;
   if (statusElementCount) statusElementCount.textContent = `${numElements.toLocaleString()} elements`;
-  if (statusBar) statusBar.style.display = "flex";
+  if (statusBar) statusBar.style.display = "none";
 }
 
 export function hideStatus() {
