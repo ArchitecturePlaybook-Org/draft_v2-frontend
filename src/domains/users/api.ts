@@ -63,6 +63,23 @@ export interface UserActivityLog {
   ip_address?: string;
 }
 
+export interface AdminDashboardStats {
+  users: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+  accounts: {
+    total: number;
+    active: number;
+  };
+  billing: {
+    active_subscriptions: number;
+    mrr_estimate: number;
+  };
+  recent_activity: UserActivityLog[];
+}
+
 export const usersApi = {
   getPublicProfile: async (uid: string) => {
     return fetchFromBff<PublicProfile>(`/api/v1/users/public/profiles/${uid}/`, {
@@ -128,5 +145,11 @@ export const usersApi = {
         }
       ];
     }
+  },
+
+  getAdminDashboardStats: async () => {
+    return fetchFromBff<AdminDashboardStats>("/api/v1/users/admin/dashboard-stats/", {
+      method: "GET",
+    });
   }
 };

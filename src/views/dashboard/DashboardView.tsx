@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { calculateProfileCompleteness } from "@/lib/utils/profile";
 import { fetchFromBff } from "@/shared/api/fetchFromBff";
+import { AdminDashboardView } from "@/views/dashboard/AdminDashboardView";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { motion, Variants } from "framer-motion";
 import { 
@@ -53,6 +54,8 @@ export function DashboardView() {
     setIsMounted(true);
   }, []);
 
+  const isSuperAdmin = Boolean((user as any)?.is_superuser) || user?.email === "superadmin@ap.com";
+
   // TanStack Queries for caching dashboard components
   const { data: dashboardStats = null, isLoading: isStatsLoading } = useQuery<any>({
     queryKey: ["dashboard-rollup"],
@@ -90,6 +93,10 @@ export function DashboardView() {
         <p className="text-surface-400 text-sm font-medium tracking-widest uppercase animate-pulse">Initializing Interface...</p>
       </div>
     );
+  }
+
+  if (isSuperAdmin) {
+    return <AdminDashboardView />;
   }
 
   const events: Event[] = Array.isArray(eventsData) ? eventsData : (eventsData?.results || []);

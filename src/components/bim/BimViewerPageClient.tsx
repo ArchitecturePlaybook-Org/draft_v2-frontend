@@ -8,6 +8,7 @@ import { initEngine, load3DModel, cleanupModelMemory, destroyEngine } from "@/co
 import { initThemeController } from "@/components/bim/engine/ui/theme";
 import { setupUIListeners } from "@/components/bim/engine/ui/toolbar";
 import { resolveAssetFileUrl } from "@/lib/resolveAssetFileUrl";
+import { getCachedModelBuffer, saveModelBufferToCache } from "@/components/bim/engine/cache/idbCache";
 
 export default function BimViewerPageClient() {
   const router = useRouter();
@@ -36,25 +37,38 @@ export default function BimViewerPageClient() {
 
         if (isCancelled) return;
 
-        // 2. Fetch Asset if assetId provided
+        // 2. Fetch Asset if assetId provided (with IndexedDB instant cache check)
         if (assetId) {
           try {
             const asset = await projectsApi.getProjectAssetDetails(Number(assetId));
             const fileUrl = asset?.file || asset?.file_url || asset?.url;
             if (asset && fileUrl) {
               setAssetName(asset.title || asset.name || "3D Model");
-              const proxyUrl = resolveAssetFileUrl(fileUrl);
+              const rawFileName = fileUrl.split("?")[0].split("/").pop() || "Model.ifc";
+              const fileNameToUse = rawFileName.includes(".") ? rawFileName : `${asset.title || "Model"}.ifc`;
 
-              const res = await fetch(proxyUrl);
-              if (res.ok) {
-                const buffer = await res.arrayBuffer();
-                const rawFileName = fileUrl.split("?")[0].split("/").pop() || "Model.ifc";
-                const fileNameToUse = rawFileName.includes(".") ? rawFileName : `${asset.title || "Model"}.ifc`;
-                if (!isCancelled) {
-                  await load3DModel(buffer, fileNameToUse);
-                }
+              // Step A: Check local IndexedDB cache first
+              let buffer = await getCachedModelBuffer(assetId);
+
+              if (buffer) {
+                console.log(`[BIM Engine] Instant load from IndexedDB cache for asset #${assetId}`);
               } else {
-                console.error("Failed to fetch 3D model asset:", res.status, res.statusText);
+                // Step B: Download over HTTP if cache miss
+                const proxyUrl = resolveAssetFileUrl(fileUrl);
+                const res = await fetch(proxyUrl);
+                if (res.ok) {
+                  buffer = await res.arrayBuffer();
+                  // Save buffer to browser IndexedDB in background
+                  saveModelBufferToCache(assetId, buffer).catch((e) =>
+                    console.warn("Failed to cache buffer in IndexedDB:", e)
+                  );
+                } else {
+                  console.error("Failed to fetch 3D model asset:", res.status, res.statusText);
+                }
+              }
+
+              if (buffer && !isCancelled) {
+                await load3DModel(buffer, fileNameToUse);
               }
             }
           } catch (err) {

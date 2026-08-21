@@ -39,7 +39,12 @@ export const Sidebar: React.FC = () => {
 
   const { unreadChatCount } = useNotificationCenter();
 
-  const workspaceLinks = [
+  const { user } = useAuthStore();
+  const isSuperAdmin = isAdmin || Boolean((user as any)?.is_superuser) || user?.email === "superadmin@ap.com";
+
+  const workspaceLinks = isSuperAdmin ? [
+    { label: "Admin Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  ] : [
     { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
     { label: "Projects", href: "/dashboard/projects", icon: <FolderKanban className="w-4 h-4" /> },
     { label: "Shared Tasks", href: "/dashboard/shared-tasks", icon: <Share2 className="w-4 h-4" /> },
@@ -47,26 +52,22 @@ export const Sidebar: React.FC = () => {
     { label: "Business Leads", href: "/dashboard/leads", icon: <Briefcase className="w-4 h-4" /> },
   ];
 
-  const showroomLinks = [
+  const showroomLinks = isSuperAdmin ? [] : [
     { label: "Discover Catalog", href: "/dashboard/showroom", icon: <ShoppingBag className="w-4 h-4" /> },
     { label: "My Orders", href: "/dashboard/showroom/orders", icon: <Package className="w-4 h-4" /> },
     { label: "Vendor Dashboard", href: "/dashboard/showroom/dashboard", icon: <Store className="w-4 h-4" /> },
     { label: "Showroom Chats", href: "/dashboard/showroom/chats", icon: <MessageSquare className="w-4 h-4" />, badge: unreadChatCount },
   ];
 
-  const opsLinks = [
+  const opsLinks = isSuperAdmin ? [] : [
     { label: "Calendar", href: "/dashboard/calendar", icon: <Calendar className="w-4 h-4" /> },
   ];
 
-  const { user } = useAuthStore();
-  const isSuperAdmin = isAdmin || Boolean((user as any)?.is_superuser) || user?.email === "superadmin@ap.com";
-
-  const orgLinks = [
+  const orgLinks = isSuperAdmin ? [
+    { label: "User Directory", href: "/dashboard/users", icon: <Users className="w-4 h-4 text-accent" /> },
+    { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> }
+  ] : [
     { label: "Team & Members", href: "/dashboard/organization", icon: <Users className="w-4 h-4" /> },
-    ...(isSuperAdmin ? [
-      { label: "User Directory", href: "/dashboard/users", icon: <Users className="w-4 h-4 text-accent" /> },
-      { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> }
-    ] : []),
     { label: "Master Catalog", href: "/dashboard/catalog", icon: <BookOpen className="w-4 h-4" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4" /> },
   ];
@@ -155,7 +156,7 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
 
-        <div>
+        {showroomLinks.length > 0 && <div>
           {!isSidebarCollapsed && (
             <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Showroom
@@ -176,9 +177,9 @@ export const Sidebar: React.FC = () => {
               </React.Fragment>
             ))}
           </div>
-        </div>
+        </div>}
 
-        <div>
+        {opsLinks.length > 0 && <div>
           {!isSidebarCollapsed && (
             <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Operations
@@ -189,9 +190,9 @@ export const Sidebar: React.FC = () => {
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
           </div>
-        </div>
+        </div>}
 
-        <div>
+        {orgLinks.length > 0 && <div>
           {!isSidebarCollapsed && (
             <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Organization
@@ -202,9 +203,9 @@ export const Sidebar: React.FC = () => {
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
           </div>
-        </div>
+        </div>}
 
-        <div>
+        {settingsLinks.length > 0 && <div>
           {!isSidebarCollapsed && (
             <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
               Account
@@ -215,7 +216,7 @@ export const Sidebar: React.FC = () => {
               <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
             ))}
           </div>
-        </div>
+        </div>}
       </nav>
 
       {!isSidebarCollapsed && <div className="shrink-0 pt-2"><ProfileBanner /></div>}
