@@ -434,28 +434,6 @@ export default function BimViewerPageClient() {
           </div>
         </div>
 
-        {/* Status Bar */}
-        <div id="status-bar" className="status-bar">
-          <span className="status-dot"></span>
-          <span id="status-model-name">{assetName}</span>
-          <span className="status-divider">|</span>
-          <span id="status-element-count">3D Model</span>
-          <span className="status-divider">|</span>
-          <span id="status-text">Ready</span>
-          <button id="btn-toggle-sidebar" className="status-action">Panel</button>
-          <button
-            id="btn-load-sample-status"
-            className="status-action"
-            style={{ color: "#a5b4fc", fontWeight: 700 }}
-            onClick={() => {
-              const b = document.getElementById("btn-load-sample");
-              if (b) b.click();
-            }}
-          >
-            ⚡ Demo Model
-          </button>
-          <button id="btn-reset" className="status-action">New File</button>
-        </div>
       </div>
     </div>
   );
