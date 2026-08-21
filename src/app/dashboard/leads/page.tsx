@@ -5,6 +5,7 @@ import { leadsApi, Lead, LeadAnalytics } from '@/domains/leads/api';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 import { communicationsApi, Message } from "@/domains/communications/api";
 import { useAuthStore } from "@/store/auth-store";
 import { useLeadWebSocket } from "@/shared/hooks/useLeadWebSocket";
@@ -439,9 +440,7 @@ export default function LeadsPage() {
       {/* 4. Leads Table */}
       <div className="flex-1">
         {isLoadingLeads ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-surface-100/50 rounded-2xl border border-surface-200">
-            <Spinner size="lg" label="Loading leads pipeline..." />
-          </div>
+          <SkeletonTable rows={6} cols={5} />
         ) : paginatedLeads.length > 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}

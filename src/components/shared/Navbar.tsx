@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { ThemeToggle } from "./ThemeToggle";
+import { LayoutDashboard } from "lucide-react";
 
 const Navbar = () => {
   const { user, isAuthenticated } = useAuthStore();
@@ -36,11 +37,13 @@ const Navbar = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 h-16 z-[2000] transition-all duration-300 border-b flex items-center overflow-hidden ${
-        scrolled
-          ? "bg-background/95 dark:bg-slate-950/95 backdrop-blur-md border-surface-200 dark:border-white/10 shadow-md"
-          : "bg-background/80 dark:bg-slate-950/80 backdrop-blur-md border-surface-200/50 dark:border-white/5"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-[2000] transition-all duration-300 flex items-center overflow-hidden ${scrolled ? "shadow-md" : ""}`}
+      style={{
+        height: 'var(--topbar-height)',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--glass-border)'
+      }}
     >
       <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-3 min-w-0">
         {/* Logo */}
@@ -84,7 +87,7 @@ const Navbar = () => {
               href="/dashboard"
               className="bg-accent text-background text-xs font-extrabold px-4 py-2 rounded-xl hover:opacity-90 transition-all shadow-md shadow-accent/20 flex items-center gap-2 uppercase tracking-wider"
             >
-              <span>📊</span>
+              <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Go to Dashboard</span>
             </Link>
           ) : (
@@ -142,7 +145,10 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
               className="px-6 py-4 text-[15px] font-bold border-b border-surface-200 bg-accent/10 text-accent flex items-center justify-between"
             >
-              <span>📊 Go to Dashboard</span>
+              <span className="flex items-center gap-2">
+                <LayoutDashboard className="w-4 h-4" />
+                Go to Dashboard
+              </span>
               <span>→</span>
             </Link>
           )}

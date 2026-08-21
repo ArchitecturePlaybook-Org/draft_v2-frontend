@@ -145,21 +145,15 @@ function TemplateCard({ template }: { template: TemplateAsset }) {
   );
 }
 
-// ─── Skeleton ───────────────────────────────────────────────────────────────
+import { AppSkeleton as Skeleton } from "@/components/ui/Skeleton";
 
 function TemplateSkeleton() {
   return (
-    <div className="bg-surface-card border border-surface-200 rounded-2xl overflow-hidden animate-pulse">
-      <div className="h-44 bg-surface-100" />
-      <div className="p-5 space-y-3">
-        <div className="h-4 bg-surface-200 rounded w-3/4" />
-        <div className="h-3 bg-surface-100 rounded w-full" />
-        <div className="h-3 bg-surface-100 rounded w-2/3" />
-        <div className="flex gap-2 mt-2">
-          <div className="h-5 bg-surface-100 rounded-md w-16" />
-          <div className="h-5 bg-surface-100 rounded-md w-12" />
-        </div>
-      </div>
+    <div className="bg-surface-card border border-surface-200/80 dark:border-white/10 rounded-2xl overflow-hidden p-4 space-y-3">
+      <Skeleton height={176} borderRadius={12} />
+      <Skeleton height={16} width="75%" borderRadius={6} />
+      <Skeleton height={12} width="100%" borderRadius={6} />
+      <Skeleton height={12} width="66%" borderRadius={6} />
     </div>
   );
 }

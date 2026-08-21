@@ -8,6 +8,7 @@ import { initEngine, load3DModel, cleanupModelMemory, destroyEngine } from "@/co
 import { initThemeController } from "@/components/bim/engine/ui/theme";
 import { setupUIListeners } from "@/components/bim/engine/ui/toolbar";
 import { resolveAssetFileUrl } from "@/lib/resolveAssetFileUrl";
+import { getCachedModelBuffer, saveModelBufferToCache } from "@/components/bim/engine/cache/idbCache";
 
 export default function BimViewerPageClient() {
   const router = useRouter();
@@ -36,25 +37,38 @@ export default function BimViewerPageClient() {
 
         if (isCancelled) return;
 
-        // 2. Fetch Asset if assetId provided
+        // 2. Fetch Asset if assetId provided (with IndexedDB instant cache check)
         if (assetId) {
           try {
             const asset = await projectsApi.getProjectAssetDetails(Number(assetId));
             const fileUrl = asset?.file || asset?.file_url || asset?.url;
             if (asset && fileUrl) {
               setAssetName(asset.title || asset.name || "3D Model");
-              const proxyUrl = resolveAssetFileUrl(fileUrl);
-              
-              const res = await fetch(proxyUrl);
-              if (res.ok) {
-                const buffer = await res.arrayBuffer();
-                const rawFileName = fileUrl.split("?")[0].split("/").pop() || "Model.ifc";
-                const fileNameToUse = rawFileName.includes(".") ? rawFileName : `${asset.title || "Model"}.ifc`;
-                if (!isCancelled) {
-                  await load3DModel(buffer, fileNameToUse);
-                }
+              const rawFileName = fileUrl.split("?")[0].split("/").pop() || "Model.ifc";
+              const fileNameToUse = rawFileName.includes(".") ? rawFileName : `${asset.title || "Model"}.ifc`;
+
+              // Step A: Check local IndexedDB cache first
+              let buffer = await getCachedModelBuffer(assetId);
+
+              if (buffer) {
+                console.log(`[BIM Engine] Instant load from IndexedDB cache for asset #${assetId}`);
               } else {
-                console.error("Failed to fetch 3D model asset:", res.status, res.statusText);
+                // Step B: Download over HTTP if cache miss
+                const proxyUrl = resolveAssetFileUrl(fileUrl);
+                const res = await fetch(proxyUrl);
+                if (res.ok) {
+                  buffer = await res.arrayBuffer();
+                  // Save buffer to browser IndexedDB in background
+                  saveModelBufferToCache(assetId, buffer).catch((e) =>
+                    console.warn("Failed to cache buffer in IndexedDB:", e)
+                  );
+                } else {
+                  console.error("Failed to fetch 3D model asset:", res.status, res.statusText);
+                }
+              }
+
+              if (buffer && !isCancelled) {
+                await load3DModel(buffer, fileNameToUse);
               }
             }
           } catch (err) {
@@ -89,9 +103,9 @@ export default function BimViewerPageClient() {
         <div className="panel-inner">
           <div className="brand">
             <svg className="brand-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="14" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.7"/>
-              <rect x="10" y="6" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.85"/>
-              <rect x="18" y="14" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <rect x="2" y="14" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.7" />
+              <rect x="10" y="6" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.85" />
+              <rect x="18" y="14" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
             </svg>
             <h1 className="brand-title">BIM Viewer</h1>
           </div>
@@ -99,9 +113,9 @@ export default function BimViewerPageClient() {
 
           <label htmlFor="ifc-file-input" className="upload-btn" id="upload-label">
             <svg className="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
             <span>Choose 3D Model</span>
           </label>

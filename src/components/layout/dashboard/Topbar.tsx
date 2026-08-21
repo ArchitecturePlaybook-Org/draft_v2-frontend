@@ -120,7 +120,7 @@ export const Topbar: React.FC = () => {
           {/* Calendar Side Panel Button */}
           <button
             onClick={() => setIsCalendarOpen(true)}
-            className="relative p-2 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 text-surface-600 dark:text-surface-300 transition-colors cursor-pointer shrink-0"
+            className="relative p-2 rounded-xl bg-surface-100 hover:bg-surface-200 text-surface-600 transition-colors cursor-pointer shrink-0"
             title={todayScheduleCount > 0 ? `Agenda (${todayScheduleCount} item${todayScheduleCount > 1 ? 's' : ''} scheduled today)` : "Agenda & Calendar"}
           >
             <Calendar className="w-4 h-4" />
@@ -137,7 +137,7 @@ export const Topbar: React.FC = () => {
           {/* Real-time Notification Bell Button */}
           <button
             onClick={() => setIsOpen(true)}
-            className="relative p-2 rounded-xl bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 text-surface-600 dark:text-surface-300 transition-colors cursor-pointer shrink-0"
+            className="relative p-2 rounded-xl bg-surface-100 hover:bg-surface-200 text-surface-600 transition-colors cursor-pointer shrink-0"
             title="Notification Center"
           >
             <Bell className="w-4 h-4" />
@@ -149,6 +149,16 @@ export const Topbar: React.FC = () => {
           </button>
 
           <ThemeToggle />
+
+          {/* Public Portfolio View Link */}
+          <Link
+            href="/portfolio"
+            className="hidden sm:flex bg-accent text-background text-xs font-extrabold px-4 py-2 rounded-xl hover:opacity-90 transition-all shadow-md shadow-accent/20 items-center gap-2 uppercase tracking-wider shrink-0"
+            title="View Public Portfolio"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>Public View</span>
+          </Link>
         </div>
       </header>
 

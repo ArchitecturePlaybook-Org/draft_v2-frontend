@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 import { billingApi, Subscription, Plan, PlanUsage } from "@/domains/billing/api";
+import { orgsApi } from "@/domains/orgs/api";
 import { PaymentHistory } from "@/components/billing/PaymentHistory";
 import { formatCurrency } from "@/lib/utils/currency";
 import { motion, Variants } from "framer-motion";
@@ -98,6 +99,7 @@ export default function SubscriptionPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [defaultAccountId, setDefaultAccountId] = useState<number | null>(null);
 
   const showToast = useCallback((type: "success" | "error", message: string) => {
     setToast({ type, message });
@@ -107,14 +109,18 @@ export default function SubscriptionPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [subscriptions, allPlans, usageData] = await Promise.all([
+        const [subscriptions, allPlans, usageData, orgsData] = await Promise.all([
           billingApi.getCurrentSubscription(),
           billingApi.getPlans(),
           billingApi.getUsage(),
+          orgsApi.listOrgs(),
         ]);
         if (subscriptions.length > 0) setSub(subscriptions[0]);
         setPlans(allPlans);
         setUsage(usageData);
+        
+        const orgList = Array.isArray(orgsData) ? orgsData : (orgsData as any).results || [];
+        if (orgList.length > 0) setDefaultAccountId(orgList[0].id);
       } catch (err) {
         console.error(err);
       } finally {
@@ -125,7 +131,7 @@ export default function SubscriptionPage() {
   }, []);
 
   const handleUpgrade = async (plan: Plan) => {
-    const accountId = sub?.account ?? null;
+    const accountId = sub?.account ?? defaultAccountId;
     if (!accountId) {
       showToast("error", "Could not determine your account. Please refresh.");
       return;
@@ -146,7 +152,7 @@ export default function SubscriptionPage() {
   };
 
   const handleCancel = async () => {
-    const accountId = sub?.account ?? null;
+    const accountId = sub?.account ?? defaultAccountId;
     if (!accountId) return;
     setIsCancelling(true);
     try {
