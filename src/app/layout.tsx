@@ -102,6 +102,25 @@ export const metadata: Metadata = {
   manifest: "/favicon_io/site.webmanifest",
 };
 
+import { ThemeProvider } from "@/providers/ThemeProvider";
+
+const themeInitScript = `
+  (function() {
+    try {
+      var saved = localStorage.getItem('ap_theme') || 'dark';
+      var root = document.documentElement;
+      root.classList.remove('theme-light', 'theme-blueprint', 'light', 'dark');
+      if (saved === 'light') {
+        root.classList.add('theme-light', 'light');
+      } else if (saved === 'blueprint') {
+        root.classList.add('theme-blueprint', 'dark');
+      } else {
+        root.classList.add('dark');
+      }
+    } catch (e) {}
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: {
@@ -110,16 +129,19 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: performancePolyfillScript }} />
         <script dangerouslySetInnerHTML={{ __html: swRegistrationScript }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <QueryProvider>
           <AuthProvider>
-            <Navbar />
-            <CommandPalette />
-            <main className="min-w-0 max-w-full overflow-x-clip">{children}</main>
-            <Toaster position="top-right" richColors />
+            <ThemeProvider>
+              <Navbar />
+              <CommandPalette />
+              <main className="min-w-0 max-w-full overflow-x-clip">{children}</main>
+              <Toaster position="top-right" richColors />
+            </ThemeProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

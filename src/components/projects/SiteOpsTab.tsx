@@ -1,22 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { projectsApi } from "@/domains/projects/api";
+import { fetchFromBff } from "@/shared/api/fetchFromBff";
+import { fieldDiaryCache } from "@/domains/projects/fieldDiaryCache";
+import { DiaryEntryDetail } from "@/components/projects/DiaryEntryDetail";
 import { toast } from "sonner";
 
-import { AlertTriangle, Camera, File } from "lucide-react";
+import { AlertTriangle, Camera, File, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { SkeletonGrid, SkeletonTable } from "@/components/ui/Skeleton";
 
-const MasterFieldDiary = dynamic(
-  () => import("@/components/projects/MasterFieldDiary").then((mod) => mod.MasterFieldDiary),
-  {
-    loading: () => <SkeletonTable rows={4} cols={3} />,
-  }
-);
+const getLocalDateString = (date: Date = new Date()) => {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
 
 type SiteOpsSubTab = "diary" | "labor" | "materials" | "delays" | "gallery";
 
@@ -34,8 +37,6 @@ const SUBTABS: { id: SiteOpsSubTab; label: string; emoji: string }[] = [
   { id: "delays",    label: "Delays & Issues",      emoji: "🚧" },
   { id: "gallery",   label: "Site Gallery",         emoji: "📸" },
 ];
-
-
 
 // ── Labor & Equipment Panel ───────────────────────────────────────────────────
 const SiteOpsLaborPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => {
@@ -408,11 +409,155 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
     (subtabParam as SiteOpsSubTab) || "diary"
   );
 
+  // Dedicated state for SiteOps Tab's Field Diary
+  const [diaryEntries, setDiaryEntries] = useState<any[]>([]);
+  const [selectedDiaryEntry, setSelectedDiaryEntry] = useState<any | null>(null);
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [loadingDiary, setLoadingDiary] = useState(false);
+
   useEffect(() => {
     if (subtabParam && subtabParam !== activeSubTab) {
       setActiveSubTab(subtabParam as SiteOpsSubTab);
     }
   }, [subtabParam]);
+
+  useEffect(() => {
+    if (activeSubTab === "diary" && projectUid) {
+      fetchDiaryEntries();
+    }
+  }, [activeSubTab, projectUid]);
+
+  const fetchDiaryEntries = async (forceRefresh = false) => {
+    if (!projectUid) return;
+    const cacheKey = `entries_${projectUid}`;
+    const cachedData = fieldDiaryCache.get<any[]>(cacheKey);
+
+    if (cachedData && !forceRefresh) {
+      setDiaryEntries(cachedData);
+      const todayStr = getLocalDateString();
+      if (!selectedDiaryEntry) {
+        handleDiaryDateClick(todayStr, cachedData);
+      }
+      fetchFromBff<any[]>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectUid}`).then(res => {
+        const fresh = Array.isArray(res) ? res : (res as any).results || [];
+        setDiaryEntries(fresh);
+        fieldDiaryCache.set(cacheKey, fresh);
+      }).catch(() => {});
+      return;
+    }
+
+    setLoadingDiary(true);
+    try {
+      const res = await fetchFromBff<any[]>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectUid}`);
+      const data = Array.isArray(res) ? res : (res as any).results || [];
+      setDiaryEntries(data);
+      fieldDiaryCache.set(cacheKey, data);
+      
+      const todayStr = getLocalDateString();
+      if (!selectedDiaryEntry) {
+        handleDiaryDateClick(todayStr, data);
+      }
+    } catch (e) {
+      console.warn("Failed to fetch diary entries", e);
+    } finally {
+      setLoadingDiary(false);
+    }
+  };
+
+  const handleDiaryDateClick = async (dateStr: string, currentEntries = diaryEntries) => {
+    let entry = currentEntries.find(e => e.entry_date === dateStr);
+
+    if (!entry) {
+      const loadId = toast.loading(`Creating diary for ${dateStr}...`);
+      try {
+        let targetId = typeof projectUid === "number" || (!isNaN(Number(projectUid)) && !isNaN(parseFloat(String(projectUid)))) ? projectUid : null;
+        if (!targetId) {
+          try {
+            const projRes = await fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/`);
+            targetId = projRes.id;
+          } catch (e) {
+            console.warn("Failed to fetch project details:", e);
+          }
+        }
+        if (!targetId) throw new Error("Project ID not found");
+
+        const res = await fetchFromBff<any>('/api/v1/projects/field-diaries/entries/', {
+          method: 'POST',
+          body: JSON.stringify({
+            project: targetId,
+            entry_date: dateStr,
+            weather: "",
+            site_conditions: ""
+          })
+        });
+        entry = res;
+        setDiaryEntries(prev => {
+          const updated = [res, ...prev];
+          fieldDiaryCache.set(`entries_${projectUid}`, updated);
+          return updated;
+        });
+        toast.dismiss(loadId);
+      } catch (err) {
+        toast.dismiss(loadId);
+        try {
+          const refetchRes = await fetchFromBff<any[]>(`/api/v1/projects/field-diaries/entries/?project_uid=${projectUid}`);
+          const data = Array.isArray(refetchRes) ? refetchRes : (refetchRes as any).results || [];
+          setDiaryEntries(data);
+          fieldDiaryCache.set(`entries_${projectUid}`, data);
+          entry = data.find((e: any) => e.entry_date === dateStr);
+          if (!entry) throw new Error("Entry not found after refetch");
+        } catch (e2) {
+          toast.error("Failed to create or fetch diary entry.");
+          return;
+        }
+      }
+    }
+
+    const detailCacheKey = `detail_${entry.id}`;
+    const cachedDetail = fieldDiaryCache.get<any>(detailCacheKey);
+    if (cachedDetail) {
+      setSelectedDiaryEntry(cachedDetail);
+      fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/${entry.id}/`).then(fresh => {
+        setSelectedDiaryEntry(fresh);
+        fieldDiaryCache.set(detailCacheKey, fresh);
+      }).catch(() => {});
+      return;
+    }
+
+    try {
+      const freshEntry = await fetchFromBff<any>(`/api/v1/projects/field-diaries/entries/${entry.id}/`);
+      setSelectedDiaryEntry(freshEntry);
+      fieldDiaryCache.set(detailCacheKey, freshEntry);
+    } catch (e) {
+      toast.error("Failed to load details");
+    }
+  };
+
+  const handleDiaryUpdate = () => {
+    fieldDiaryCache.invalidate(projectUid);
+    fetchDiaryEntries(true);
+    if (selectedDiaryEntry) {
+      handleDiaryDateClick(selectedDiaryEntry.entry_date);
+    }
+  };
+
+  const goToToday = () => {
+    setCurrentMonthDate(new Date());
+    handleDiaryDateClick(getLocalDateString());
+  };
+
+  const daysInMonthList = useMemo(() => {
+    const year = currentMonthDate.getFullYear();
+    const month = currentMonthDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const days = [];
+    for (let i = daysInMonth; i >= 1; i--) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  }, [currentMonthDate]);
 
   const handleTabChange = (tab: SiteOpsSubTab) => {
     setActiveSubTab(tab);
@@ -430,7 +575,7 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
           <button
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-extrabold text-[9px] uppercase tracking-wider transition-colors duration-300 whitespace-nowrap shrink-0 ${
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-extrabold text-[9px] uppercase tracking-wider transition-colors duration-300 whitespace-nowrap shrink-0 cursor-pointer ${
               activeSubTab === tab.id
                 ? "text-accent"
                 : "text-surface-400 hover:text-primary"
@@ -460,7 +605,28 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
             {activeSubTab === "diary" && (
-              <MasterFieldDiary projectId={projectUid} />
+              <div className="w-full">
+                {selectedDiaryEntry ? (
+                  <DiaryEntryDetail
+                    entry={selectedDiaryEntry}
+                    projectId={projectUid}
+                    onUpdate={handleDiaryUpdate}
+                    onOpenCalendar={() => setIsCalendarModalOpen(true)}
+                    onGoToToday={goToToday}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-12 text-center text-surface-400 min-h-[350px] bg-surface-50 border border-dashed border-surface-200 rounded-2xl">
+                    <CalendarIcon className="w-12 h-12 mb-3 text-surface-300" />
+                    <p className="text-sm font-bold text-surface-600">No date selected</p>
+                    <button
+                      onClick={() => setIsCalendarModalOpen(true)}
+                      className="mt-3 px-4 py-2 bg-accent text-background font-bold text-xs rounded-xl shadow-md cursor-pointer"
+                    >
+                      📅 Open Calendar Picker
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {activeSubTab === "labor" && (
@@ -479,10 +645,97 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
               <SiteOpsGalleryPanel projectUid={projectUid} />
             )}
 
-
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ── CALENDAR DATE PICKER MODAL FOR SITE OPS TAB ── */}
+      {isCalendarModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setIsCalendarModalOpen(false)}
+        >
+          <div 
+            className="bg-surface-card border border-surface-200 rounded-2xl p-4 max-w-sm w-full shadow-2xl relative flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-surface-200 mb-3">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-accent" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-primary">Field Diary Calendar</h3>
+              </div>
+              <button 
+                onClick={() => setIsCalendarModalOpen(false)}
+                className="w-6 h-6 rounded-full bg-surface-100 hover:bg-red-500 hover:text-white flex items-center justify-center text-surface-400 text-xs transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex justify-between items-center p-2 rounded-lg border border-surface-200 bg-surface-50 mb-3">
+              <button onClick={() => setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1))} className="p-1 hover:bg-surface-200 rounded-md text-surface-500 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+              <h4 className="font-extrabold text-xs text-surface-800 tracking-wide">
+                {currentMonthDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </h4>
+              <button onClick={() => setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1))} className="p-1 hover:bg-surface-200 rounded-md text-surface-500 transition-colors"><ChevronRight className="w-4 h-4" /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-1.5 p-0.5 no-scrollbar">
+              {loadingDiary && diaryEntries.length === 0 ? (
+                <div className="flex justify-center p-6"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div></div>
+              ) : (
+                daysInMonthList.map((dateObj, i) => {
+                  const dateStr = getLocalDateString(dateObj);
+                  const isToday = dateStr === getLocalDateString();
+                  const entry = diaryEntries.find(e => e.entry_date === dateStr);
+                  const isSelected = selectedDiaryEntry?.entry_date === dateStr;
+                  
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        handleDiaryDateClick(dateStr);
+                        setIsCalendarModalOpen(false);
+                      }}
+                      className={`w-full text-left p-2.5 rounded-xl border transition-all text-xs flex items-center justify-between ${
+                        isSelected 
+                          ? "bg-accent text-background border-primary shadow-sm font-bold" 
+                          : isToday
+                            ? "bg-primary/5 border-primary/30 hover:opacity-90"
+                            : "bg-surface-50 border-surface-200 hover:border-accent hover:bg-surface-100"
+                      }`}
+                    >
+                      <div>
+                        <span className={`font-bold ${isSelected ? 'text-white' : 'text-surface-800'}`}>
+                          {dateObj.toLocaleString('default', { weekday: 'short', month: 'short', day: 'numeric' })}
+                          {isToday && " (Today)"}
+                        </span>
+                        {entry && (
+                          <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-primary-100' : 'text-surface-400'}`}>
+                            {entry.activities?.length || 0} tasks · {entry.labor_entries?.length || 0} crews
+                          </p>
+                        )}
+                      </div>
+
+                      {entry ? (
+                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                          isSelected 
+                            ? 'bg-surface-100 text-white' 
+                            : entry.status === 'signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {entry.status}
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-surface-400 font-bold uppercase tracking-wider shrink-0">+ Create</span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

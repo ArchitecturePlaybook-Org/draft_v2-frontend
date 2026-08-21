@@ -2,17 +2,27 @@ import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { projectsApi } from "@/domains/projects/api";
-import { ChevronDown, ChevronUp, Plus, Sun, Cloud, CloudRain, Wind, AlertTriangle, Hammer, Package, Truck, Activity, Trash, Camera, Paperclip, File, Receipt, ImagePlus } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Sun, Cloud, CloudRain, Wind, AlertTriangle, Hammer, Package, Truck, Activity, Trash, Camera, Paperclip, File, Receipt, ImagePlus, Calendar as CalendarIcon } from "lucide-react";
 
 interface DiaryEntryDetailProps {
   entry: any;
   projectId: string;
   onUpdate: () => void;
   onClose?: () => void;
+  onOpenCalendar?: () => void;
+  onGoToToday?: () => void;
   readOnly?: boolean;
 }
 
-export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, projectId, onUpdate, onClose, readOnly = false }) => {
+export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ 
+  entry, 
+  projectId, 
+  onUpdate, 
+  onClose, 
+  onOpenCalendar,
+  onGoToToday,
+  readOnly = false 
+}) => {
   const isLocked = entry.status === "signed" || readOnly;
   
   // Section states for adding new items
@@ -148,7 +158,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
   return (
     <div className="bg-surface-100 border-surface-200 rounded-xl border shadow-sm flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-3.5 py-2 border-b border-surface-200 bg-surface-100 rounded-t-xl flex justify-between items-center shadow-xs">
+      <div className="px-3.5 py-2 border-b border-surface-200 bg-surface-100 rounded-t-xl flex flex-wrap justify-between items-center gap-2 shadow-xs">
         <div>
           <h2 className="text-sm font-black text-primary">Diary: {entry.entry_date}</h2>
           <div className="flex gap-1.5 items-center mt-0.5">
@@ -163,7 +173,28 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({ entry, proje
             )}
           </div>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-2">
+          {onOpenCalendar && (
+            <button
+              onClick={onOpenCalendar}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-background font-extrabold text-[10px] uppercase tracking-wider rounded-xl hover:opacity-90 transition-all shadow-xs cursor-pointer"
+              title="Select Date / Calendar"
+            >
+              <CalendarIcon className="w-3.5 h-3.5" />
+              <span>Select Date</span>
+            </button>
+          )}
+
+          {onGoToToday && (
+            <button
+              onClick={onGoToToday}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-200 hover:bg-surface-300 text-surface-700 font-bold text-[10px] uppercase tracking-wider rounded-xl transition-colors cursor-pointer"
+              title="Go to Today"
+            >
+              Go to Today
+            </button>
+          )}
+
           {!isLocked && (
             <Button variant="primary" size="sm" onClick={handleSign}>Sign & Lock</Button>
           )}
