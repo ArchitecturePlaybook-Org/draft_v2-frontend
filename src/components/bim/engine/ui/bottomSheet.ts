@@ -19,8 +19,10 @@ export function setBottomSheetState(targetState: string) {
 
   if (targetState === "full" || targetState === "half" || targetState === "peek") {
     rightSidebar.classList.add("visible");
+    rightSidebar.style.setProperty("display", "flex", "important");
   } else if (targetState === "closed") {
     rightSidebar.classList.remove("visible");
+    rightSidebar.style.setProperty("display", "none", "important");
   }
 }
 
