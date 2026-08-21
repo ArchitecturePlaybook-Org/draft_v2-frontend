@@ -56,10 +56,11 @@ export interface AdminUserListItem {
 
 export interface UserActivityLog {
   id: number;
+  user_email?: string;
   timestamp: string;
   action_type: string;
-  title: string;
-  details: string;
+  title?: string;
+  details?: string;
   ip_address?: string;
 }
 
