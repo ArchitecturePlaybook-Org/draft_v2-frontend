@@ -75,6 +75,7 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const rawPath = req.nextUrl.pathname;
+  const searchParams = req.nextUrl.search;
   const objectKey = decodeURIComponent(rawPath.replace(/^\/s3-assets\//, ""));
 
   if (!objectKey) {
@@ -86,12 +87,16 @@ export async function GET(
   const cfDomain = process.env.AWS_CLOUDFRONT_DOMAIN || process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN;
 
   // Use CloudFront Edge URL if configured, otherwise default to S3 endpoint
-  const s3TargetUrl = cfDomain
+  const baseUrl = cfDomain
     ? `https://${cfDomain.replace(/^https?:\/\//, "")}/${objectKey}`
     : `https://${bucketName}.s3.${region}.amazonaws.com/${objectKey}`;
 
+  // Preserve presigned query parameters (X-Amz-Signature, X-Amz-Credential, etc.) if provided
+  const s3TargetUrl = searchParams ? `${baseUrl}${searchParams}` : baseUrl;
+
   try {
-    const fetchUrl = cfDomain ? s3TargetUrl : signS3Url(s3TargetUrl);
+    const isAlreadySigned = searchParams.includes("X-Amz-Signature") || searchParams.includes("AWSAccessKeyId");
+    const fetchUrl = (cfDomain || isAlreadySigned) ? s3TargetUrl : signS3Url(s3TargetUrl);
     const s3Res = await fetch(fetchUrl, {
       method: "GET",
       cache: "no-store",
