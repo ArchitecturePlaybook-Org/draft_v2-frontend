@@ -108,6 +108,7 @@ export const Topbar: React.FC = () => {
           )}
 
 
+
           {/* Calendar Side Panel Button */}
           <button
             onClick={() => setIsCalendarOpen(true)}
