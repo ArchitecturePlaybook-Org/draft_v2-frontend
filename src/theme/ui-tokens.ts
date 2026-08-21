@@ -21,6 +21,7 @@ export const COMPACT_UI = {
   glassContainer: "p-3 rounded-xl bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-xl border border-surface-200/80 dark:border-surface-800 shadow-sm",
 
   // Inputs & Form Controls
+  label: "text-xs font-bold text-surface-500 mb-1 block",
   input: "h-8 px-3 bg-surface-100/60 dark:bg-surface-950/60 border border-surface-200/80 dark:border-surface-800 rounded-lg text-xs font-bold text-primary placeholder:text-surface-400 outline-none focus:border-accent transition-all",
   select: "h-8 px-3 bg-surface-100/60 dark:bg-surface-950/60 border border-surface-200/80 dark:border-surface-800 rounded-lg text-xs font-bold text-primary uppercase tracking-wider cursor-pointer outline-none focus:border-accent",
 

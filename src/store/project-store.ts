@@ -3,7 +3,7 @@ import { ProjectDetail, Task, ProjectStatus, SpatialZone, MilestonePhase } from 
 import { projectsApi } from '@/domains/projects/api';
 
 type TabView = "kanban" | "gantt" | "data_hub" | "matrix" | "site_ops" | "access_requests";
-type HubCategory = "sketch" | "2d_plan" | "3d_model" | "document";
+type HubCategory = "sketch" | "2d_plan" | "3d_model" | "document" | "contractor_revisions";
 
 interface ProjectState {
   // Data
