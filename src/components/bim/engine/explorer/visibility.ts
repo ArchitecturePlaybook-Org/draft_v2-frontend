@@ -161,6 +161,6 @@ export async function focusCameraOnElements(fragmentIdMap: any, targetObj?: any)
         paddingLeft: 0.15, paddingRight: 0.15,
         paddingTop: 0.15, paddingBottom: 0.15,
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 }

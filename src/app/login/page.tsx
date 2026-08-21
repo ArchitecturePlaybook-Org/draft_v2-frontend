@@ -127,6 +127,8 @@ function LoginContent() {
         if (err.data && err.data.code === "email_unverified") {
           setStep("unverified");
           setError("");
+        } else if (err.data && err.data.code === "account_inactive") {
+          setError("Your account has been deactivated. Please contact support.");
         } else {
           const rawMsg = err instanceof Error ? err.message : "Invalid email or password. Please try again.";
           setError(rawMsg.replace(/^\[.*?\]\s*/, ""));

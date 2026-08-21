@@ -61,7 +61,7 @@ export default function DashboardLayout({
             </div>
           </main>
         </div>
-        
+
         {/* Theme toggle on fullscreen pages only (estimation / editor) */}
         {hideTopbar && (
           <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[39] pointer-events-none">

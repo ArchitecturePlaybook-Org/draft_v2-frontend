@@ -43,9 +43,9 @@ body {
   --nav-width-collapsed: 54px;
 
 
-  --topbar-height: 44px;
-  --radius-lg: 12px;
-  --radius-md: 8px;
+  --topbar-height: 48px;
+  --radius-lg: 10px;
+  --radius-md: 6px;
   --radius-sm: 4px;
   
   --shadow-premium: 0 4px 20px -4px rgba(0, 0, 0, 0.3);
@@ -203,7 +203,10 @@ option {
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html {
+  font-size: 14px;
+  scroll-behavior: smooth;
+}
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -331,7 +334,7 @@ h1, h2, h3, h4, h5, h6 {
   :root {
     --nav-width: 220px;
     --nav-width-collapsed: 0px;
-    --topbar-height: 48px;
+    --topbar-height: 56px;
   }
 
   .sidebar-spacer {
