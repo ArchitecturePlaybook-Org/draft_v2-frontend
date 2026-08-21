@@ -162,75 +162,40 @@ export const DataHubTab: React.FC = () => {
 
   return (
     <>
-      {/* Contractor Revisions Notification Banner */}
-      {openMarkups.length > 0 && (
-        <div className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 mb-6">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-amber-500 text-background font-black shrink-0 flex items-center justify-center">
-              <Bell className="w-5 h-5 animate-bounce" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-sm font-black text-amber-600 dark:text-amber-400">
-                  {openMarkups.length} Contractor Revision Request{openMarkups.length > 1 ? "s" : ""} Pinned on 2D Blueprints
-                </h4>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-background font-black text-[10px] uppercase tracking-wider">
-                  Action Required
-                </span>
-              </div>
-              <p className="text-xs text-surface-600 dark:text-surface-300 font-medium mt-0.5">
-                Contractors have submitted drawing markups, change notes, and blueprint revision clouds on project tasks.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowContractorMarkupsModal(true)}
-            className="px-4 py-2 bg-amber-500 text-background font-black text-xs uppercase tracking-wider rounded-xl hover:opacity-90 transition-all shrink-0 shadow-xs flex items-center gap-2"
-          >
-            <Cloud className="w-4 h-4" />
-            <span>View Contractor Revisions ({openMarkups.length})</span>
-          </button>
-        </div>
-      )}
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="grid grid-cols-1 md:grid-cols-4 gap-8"
+        className="space-y-6 w-full"
       >
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="col-span-1 md:sticky md:top-[25vh] self-start space-y-3 z-10"
-        >
-          {[
-            { id: "sketch", label: "Creative Sketches", icon: "✏️" },
-            { id: "2d_plan", label: "2D Floor Plans", icon: "📐" },
-            { id: "3d_model", label: "3D Construction Models", icon: "🏛️" },
-            { id: "document", label: "Documents", icon: "📄" },
-          ].map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveHubCategory(cat.id as any)}
-              className={`w-full text-left px-3.5 py-2.5 rounded-xl font-extrabold text-[9px] uppercase tracking-wider transition-all duration-300 border ${activeHubCategory === cat.id
-                  ? "bg-accent/10 text-accent shadow-sm border-accent/50 backdrop-blur-md"
-                  : "bg-surface-50/50 backdrop-blur-sm border-surface-200/50 text-surface-400 hover:bg-surface-100 hover:text-primary"
+        {/* Horizontal Navigation Tabs moved to top */}
+        <div className="flex items-center justify-between gap-3 p-2 bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-2xl border border-surface-200/80 dark:border-surface-800 rounded-2xl shadow-sm overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {[
+              { id: "sketch", label: "Creative Sketches", icon: "✏️" },
+              { id: "2d_plan", label: "2D Floor Plans", icon: "📐" },
+              { id: "3d_model", label: "3D Construction Models", icon: "🏛️" },
+              { id: "document", label: "Documents", icon: "📄" },
+              { id: "contractor_revisions", label: `Contractor Revisions ${openMarkups.length ? `(${openMarkups.length})` : ''}`, icon: "☁️" },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveHubCategory(cat.id as any)}
+                className={`px-3.5 py-2 rounded-xl font-extrabold text-[9px] uppercase tracking-wider transition-all duration-300 border cursor-pointer flex items-center gap-1.5 ${
+                  activeHubCategory === cat.id
+                    ? "bg-accent/10 text-accent shadow-sm border-accent/50 backdrop-blur-md"
+                    : "bg-surface-100/50 border-surface-200/50 text-surface-400 hover:bg-surface-200 hover:text-primary"
                 }`}
-            >
-              <span className="mr-2 text-sm">{cat.icon}</span> {cat.label}
-            </button>
-          ))}
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="col-span-1 md:col-span-3"
-        >
-          <div className="bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-2xl border border-surface-200/80 dark:border-surface-800 p-3.5 sm:p-4 rounded-xl shadow-lg min-h-[300px]">
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Display Section */}
+        <div className="bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-2xl border border-surface-200/80 dark:border-surface-800 p-3.5 sm:p-4 rounded-2xl shadow-lg min-h-[300px]">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3 border-b border-surface-200/60 dark:border-surface-800 pb-2.5 min-w-0">
               <h3 className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider truncate min-w-0">
                 {activeHubCategory.replace('_', ' ')} Assets
@@ -324,9 +289,86 @@ export const DataHubTab: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {filteredAssets.length ? (
-                visibleAssets.map((asset, idx) => (
+            {activeHubCategory === "contractor_revisions" ? (
+              <div className="space-y-3">
+                {markups.length === 0 ? (
+                  <div className="py-16 text-center text-surface-400">
+                    <p className="text-xs font-bold">No contractor revision requests found.</p>
+                  </div>
+                ) : (
+                  markups.map((m, idx) => (
+                    <div
+                      key={m.id}
+                      className="p-4 rounded-2xl border border-surface-200/80 dark:border-surface-800 bg-surface-card space-y-2.5 shadow-xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[10px] font-black border border-amber-500/20">
+                            ☁️ Cloud #{idx + 1}
+                          </span>
+                          <span className="text-xs font-black text-accent uppercase">{m.category}</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                          m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                        }`}>
+                          {m.status}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xs font-bold text-primary">{m.title}</h4>
+
+                      {m.description && (
+                        <p className="text-xs text-surface-600 dark:text-surface-300 font-medium whitespace-pre-wrap bg-surface-100/50 dark:bg-surface-900/50 p-2.5 rounded-xl border border-surface-200/50 dark:border-surface-800">
+                          {m.description}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between text-[10px] text-surface-400 pt-1 flex-wrap gap-2">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-primary">👤 Submitter: {m.author_name && m.author_name !== "Contractor" ? m.author_name : (m.author_username || "Demo User")}</span>
+                          {m.task_title && <span className="text-accent font-semibold">🏗️ Task: {m.task_title}</span>}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={async () => {
+                              const nextStatus = m.status === "OPEN" ? "RESOLVED" : "OPEN";
+                              await projectsApi.updateDrawingMarkupStatus(m.id, nextStatus as any);
+                              toast.success(`Updated status to ${nextStatus}`);
+                              const updated = await projectsApi.getDrawingMarkups({ project_uid: project.uid });
+                              setMarkups(updated || []);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer ${
+                              m.status === "RESOLVED" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500 text-white"
+                            }`}
+                          >
+                            {m.status === "RESOLVED" ? "Re-Open" : "Mark Resolved"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              const matchingAsset = project?.assets?.find(a => a.canonical_uid === m.canonical_uid || a.id === m.asset);
+                              if (matchingAsset) {
+                                setCloudModalAsset(matchingAsset);
+                              } else if (project?.assets && project.assets.length > 0) {
+                                const planAsset = project.assets.find(a => a.category === "2d_plan") || project.assets[0];
+                                setCloudModalAsset(planAsset);
+                              }
+                            }}
+                            className="px-3 py-1 bg-accent text-background font-black text-[10px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+                          >
+                            <span>Open Revision Cloud</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {filteredAssets.length ? (
+                  visibleAssets.map((asset, idx) => (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 8 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -487,6 +529,7 @@ export const DataHubTab: React.FC = () => {
                 </div>
               )}
             </div>
+            )}
 
             {filteredAssets.length > 0 && (
               <div ref={assetsSentinelRef} className="col-span-full flex flex-col items-center justify-center py-6 gap-2">
@@ -510,7 +553,6 @@ export const DataHubTab: React.FC = () => {
             )}
           </div>
         </motion.div>
-      </motion.div>
 
       {historyAsset && (
         <RevisionHistoryModal

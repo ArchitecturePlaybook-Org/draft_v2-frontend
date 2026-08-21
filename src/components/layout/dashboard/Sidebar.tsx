@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useAuthStore } from "@/store/auth-store";
 import { ProfileBanner } from "@/components/layout/dashboard/ProfileBanner";
 import { useCommandPaletteStore } from "@/store/command-palette-store";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -57,8 +58,15 @@ export const Sidebar: React.FC = () => {
     { label: "Calendar", href: "/dashboard/calendar", icon: <Calendar className="w-4 h-4" /> },
   ];
 
+  const { user } = useAuthStore();
+  const isSuperAdmin = isAdmin || Boolean((user as any)?.is_superuser) || user?.email === "superadmin@ap.com";
+
   const orgLinks = [
     { label: "Team & Members", href: "/dashboard/organization", icon: <Users className="w-4 h-4" /> },
+    ...(isSuperAdmin ? [
+      { label: "User Directory", href: "/dashboard/users", icon: <Users className="w-4 h-4 text-accent" /> },
+      { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> }
+    ] : []),
     { label: "Master Catalog", href: "/dashboard/catalog", icon: <BookOpen className="w-4 h-4" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4" /> },
   ];

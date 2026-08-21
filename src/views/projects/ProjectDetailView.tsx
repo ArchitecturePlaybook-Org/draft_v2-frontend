@@ -209,49 +209,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
       />
 
 
-      <div className="flex overflow-x-auto no-scrollbar gap-1.5 p-1 bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-xl w-full shadow-inner relative mb-4 max-w-full scroll-smooth">
-        {[
-          { id: "data_hub", label: "Master Data Hub" },
-          { id: "matrix", label: "Construction Matrix" },
-          { id: "site_ops", label: "Site Operations" },
-          { id: "gantt", label: "Gantt Timeline" },
-          { 
-            id: "access_requests", 
-            label: "Task Approvals", 
-            badge: pendingRequestsCount > 0 ? pendingRequestsCount : null 
-          }
-        ].map(tab => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id as any);
-                router.push(`?tab=${tab.id}`, { scroll: false });
-              }}
-              className={`relative px-3 sm:px-4 py-2 font-black text-[9px] sm:text-[10px] uppercase tracking-wider rounded-lg transition-colors z-10 whitespace-nowrap shrink-0 ${
-                isActive ? "text-primary" : "text-surface-400 hover:text-primary hover:bg-white/5"
-              }`}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="active-tab"
-                  className="absolute inset-0 bg-white/20 dark:bg-white/10 backdrop-blur-md border border-white/30 dark:border-white/5 rounded-xl shadow-[0_0_15px_rgba(var(--color-accent),0.2)] -z-10"
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                />
-              )}
-              <span className="flex items-center gap-2">
-                {tab.label}
-                {tab.badge && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-500 text-white shadow-sm animate-pulse">
-                    {tab.badge}
-                  </span>
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+
 
       <div className="mt-6 min-w-0 max-w-full">
         {/* {activeTab === "kanban" && <KanbanTab />} */}

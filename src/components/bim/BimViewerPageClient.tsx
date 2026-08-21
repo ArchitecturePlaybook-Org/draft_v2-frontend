@@ -44,7 +44,7 @@ export default function BimViewerPageClient() {
             if (asset && fileUrl) {
               setAssetName(asset.title || asset.name || "3D Model");
               const proxyUrl = resolveAssetFileUrl(fileUrl);
-              
+
               const res = await fetch(proxyUrl);
               if (res.ok) {
                 const buffer = await res.arrayBuffer();
@@ -89,9 +89,9 @@ export default function BimViewerPageClient() {
         <div className="panel-inner">
           <div className="brand">
             <svg className="brand-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="14" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.7"/>
-              <rect x="10" y="6" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.85"/>
-              <rect x="18" y="14" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <rect x="2" y="14" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.7" />
+              <rect x="10" y="6" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.85" />
+              <rect x="18" y="14" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
             </svg>
             <h1 className="brand-title">BIM Viewer</h1>
           </div>
@@ -99,9 +99,9 @@ export default function BimViewerPageClient() {
 
           <label htmlFor="ifc-file-input" className="upload-btn" id="upload-label">
             <svg className="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
             <span>Choose 3D Model</span>
           </label>
