@@ -225,9 +225,15 @@ export default function BimViewerPageClient() {
               id="btn-close-sidebar"
               className="tree-close-btn"
               title="Close BIM Tree"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const rightSidebar = document.getElementById("right-sidebar") || document.getElementById("sidebar-right");
-                if (rightSidebar) rightSidebar.classList.remove("visible");
+                if (rightSidebar) {
+                  rightSidebar.classList.remove("visible");
+                  rightSidebar.classList.add("sheet-closed");
+                  rightSidebar.style.setProperty("display", "none", "important");
+                }
               }}
             >
               &times;

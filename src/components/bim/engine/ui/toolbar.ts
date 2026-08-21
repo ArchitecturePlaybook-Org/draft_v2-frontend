@@ -228,20 +228,30 @@ export function setupUIListeners() {
   const rightSidebar = document.getElementById("right-sidebar") || document.getElementById("sidebar-right");
 
   if (btnCloseSidebar && rightSidebar) {
-    btnCloseSidebar.onclick = () => {
+    btnCloseSidebar.onclick = (e) => {
+      e?.preventDefault();
+      e?.stopPropagation();
       rightSidebar.classList.remove("visible");
+      rightSidebar.classList.add("sheet-closed");
+      rightSidebar.style.setProperty("display", "none", "important");
       setBottomSheetState("closed");
     };
   }
 
   if (btnToggleSidebar && rightSidebar) {
-    btnToggleSidebar.onclick = () => {
-      const isVisible = rightSidebar.classList.contains("visible");
+    btnToggleSidebar.onclick = (e) => {
+      e?.preventDefault();
+      e?.stopPropagation();
+      const isVisible = rightSidebar.classList.contains("visible") && rightSidebar.style.display !== "none";
       if (isVisible) {
         rightSidebar.classList.remove("visible");
+        rightSidebar.classList.add("sheet-closed");
+        rightSidebar.style.setProperty("display", "none", "important");
         setBottomSheetState("closed");
       } else {
         rightSidebar.classList.add("visible");
+        rightSidebar.classList.remove("sheet-closed");
+        rightSidebar.style.setProperty("display", "flex", "important");
         setBottomSheetState("half");
       }
     };
