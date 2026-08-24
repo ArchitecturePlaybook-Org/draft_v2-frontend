@@ -28,6 +28,7 @@ import {
   CreditCard,
   Building2,
   Search,
+  Calculator,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -70,6 +71,7 @@ export const Sidebar: React.FC = () => {
     { label: "Team & Members", href: "/dashboard/organization", icon: <Users className="w-4 h-4" /> },
     { label: "Master Catalog", href: "/dashboard/catalog", icon: <BookOpen className="w-4 h-4" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4" /> },
+    { label: "BOQ Builder", href: "/dashboard/tools/boq-builder", icon: <Calculator className="w-4 h-4" /> },
   ];
 
   const settingsLinks = [

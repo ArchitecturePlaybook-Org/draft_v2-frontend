@@ -240,6 +240,37 @@ export const API_ROUTES: ApiRouteConfig[] = [
     auth: true,
   },
   {
+    prefix: "v1/auth/specializations",
+    target: "/api/v1/users/specializations/",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    auth: true,
+  },
+  {
+    prefix: "v1/auth/categories",
+    target: "/api/v1/users/categories/",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    auth: true,
+  },
+  // ── BOQ Estimation Studio ────────────────────────────────────────────────
+  {
+    prefix: "v1/projects/boq/calculate",
+    target: "/api/v1/projects/boq/calculate/",
+    methods: ["POST"],
+    auth: true,
+  },
+  {
+    prefix: "v1/projects/boq/sessions",
+    target: "/api/v1/projects/boq/sessions/",
+    methods: ["GET", "POST"],
+    auth: true,
+  },
+  {
+    prefix: "v1/projects/boq/export-excel",
+    target: "/api/v1/projects/boq/export-excel/",
+    methods: ["POST"],
+    auth: true,
+  },
+  {
     prefix: "v1/users/leads",
     target: "/api/v1/users/leads/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
