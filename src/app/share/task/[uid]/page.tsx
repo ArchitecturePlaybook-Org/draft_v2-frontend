@@ -412,26 +412,6 @@ export default function SharedTaskPage() {
                 )}
               </div>
 
-              {/* Subtasks Card */}
-              <div className="bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl p-6 shadow-sm">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-surface-400 mb-4">Subtasks</h3>
-                <div className="space-y-3 mb-4">
-                  {task.subtasks?.map((sub: any) => (
-                    <div key={sub.uid} onClick={() => handleToggleSubtask(sub.uid, sub.status)} className="cursor-pointer p-4 rounded-2xl border border-surface-200/50 bg-surface-50/50 hover:bg-surface-100 flex gap-3 items-start transition-colors">
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${sub.status === 'DONE' ? 'border-emerald-500 bg-emerald-500' : 'border-surface-300'}`}>
-                        {sub.status === 'DONE' && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                      </div>
-                      <div className="flex-1">
-                        <p className={`text-sm font-bold ${sub.status === 'DONE' ? 'text-surface-400 line-through' : 'text-primary'}`}>{sub.title}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {(!task.subtasks || task.subtasks.length === 0) && (
-                    <p className="text-xs text-surface-400 text-center py-2">No subtasks.</p>
-                  )}
-                </div>
-              </div>
-
               {/* Checklists Card */}
               <div className="bg-surface-100/50 backdrop-blur-xl border border-surface-200/50 rounded-3xl p-6 shadow-sm">
                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-surface-400 mb-4">QA Checklist</h3>
@@ -445,8 +425,16 @@ export default function SharedTaskPage() {
                           </svg>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <p className={`text-sm font-bold ${item.is_completed ? "text-surface-400 line-through" : "text-primary"}`}>{item.title || item.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className={`text-sm font-bold ${item.is_completed ? "text-surface-400 line-through" : "text-primary"}`}>{item.title}</p>
+                          <span className="inline-flex items-center text-[9px] font-black uppercase px-2 py-0.5 rounded border border-surface-300 dark:border-surface-700 bg-surface-200/50 dark:bg-surface-800 shrink-0">
+                            {item.type || "during"}
+                          </span>
+                        </div>
+                        {item.description && (
+                          <p className={`text-xs mt-1 ${item.is_completed ? "text-surface-400 line-through opacity-70" : "text-surface-500"}`}>{item.description}</p>
+                        )}
                       </div>
                     </div>
                   ))}

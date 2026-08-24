@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { projectsApi } from '@/domains/projects/api';
+import { authApi } from '@/domains/auth/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, CheckCircle2, User, X } from 'lucide-react';
 
@@ -23,6 +24,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [specializations, setSpecializations] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   
@@ -30,6 +32,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
 
   React.useEffect(() => {
     if (isOpen) {
+      authApi.getSpecializations().then(setSpecializations).catch(console.error);
       setTemplatesLoading(true);
       Promise.allSettled([
         projectsApi.getTemplateLibrary({ tab: 'mine', sort: '-created_at' }),
@@ -61,7 +64,8 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
     description: initialData?.description || '',
     client_name: '',
     client_phone: '',
-    client_email: ''
+    client_email: '',
+    specialization_ids: [] as number[]
   });
 
   if (!isOpen) return null;
@@ -88,6 +92,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
           client_name: formData.client_name,
           client_phone: formData.client_phone,
           client_email: formData.client_email,
+          specialization_ids: formData.specialization_ids,
         });
       } else {
         await projectsApi.createProject({
@@ -100,6 +105,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
           client_name: formData.client_name,
           client_phone: formData.client_phone,
           client_email: formData.client_email,
+          specialization_ids: formData.specialization_ids,
         });
       }
       setStep(4);
@@ -261,6 +267,35 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                     </select>
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Project Specializations</label>
+                  <div className="flex flex-wrap gap-2">
+                    {specializations.map((spec) => {
+                      const isSelected = formData.specialization_ids.includes(spec.id);
+                      return (
+                        <button
+                          key={spec.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setFormData({ ...formData, specialization_ids: formData.specialization_ids.filter(id => id !== spec.id) });
+                            } else {
+                              setFormData({ ...formData, specialization_ids: [...formData.specialization_ids, spec.id] });
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                            isSelected 
+                              ? 'bg-accent/10 border-accent/30 text-accent' 
+                              : 'bg-surface-100 border-surface-200 text-surface-500 hover:bg-surface-200 hover:text-primary'
+                          }`}
+                        >
+                          {spec.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Site Location</label>

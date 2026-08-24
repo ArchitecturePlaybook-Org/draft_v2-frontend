@@ -47,6 +47,7 @@ export const projectsApi = {
     client_email?: string;
     is_template?: boolean;
     template_scope?: string;
+    specialization_ids?: number[];
   }) => {
     return fetchFromBff<Project>("/api/v1/projects/projects/", {
       method: "POST",
@@ -61,7 +62,8 @@ export const projectsApi = {
         client_phone: data.client_phone,
         client_email: data.client_email,
         is_template: data.is_template,
-        template_scope: data.template_scope
+        template_scope: data.template_scope,
+        specialization_ids: data.specialization_ids
       })
     });
   },
@@ -191,10 +193,10 @@ export const projectsApi = {
     return unpackArray<any>(res);
   },
 
-  createChecklistItem: async (taskUid: string, title: string) => {
+  createChecklistItem: async (taskUid: string, title: string, type: "pre" | "during" | "post" = "during", description: string = "") => {
     return fetchFromBff<any>(`/api/v1/projects/task-checklists/`, {
       method: "POST",
-      body: JSON.stringify({ task: taskUid, title: title, is_completed: false })
+      body: JSON.stringify({ task: taskUid, title: title, type: type, description: description, is_completed: false })
     });
   },
 
@@ -804,18 +806,47 @@ export const projectsApi = {
 
   // ── Utilities ──────────────────────────────────────────────────────────
 
-  getTaskTemplates: async () => {
-    return fetchFromBff<any>("/api/v1/projects/task-templates/", { method: "GET" });
+  getTaskTemplates: async (specialization_ids?: number[]) => {
+    let url = "/api/v1/projects/task-templates/";
+    if (specialization_ids && specialization_ids.length > 0) {
+      url += `?specialization_ids=${specialization_ids.join(",")}`;
+    }
+    return fetchFromBff<any>(url, { method: "GET" });
   },
 
-  createTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: string[] }) => {
+  downloadTemplateSample: async (isGlobal: boolean) => {
+    const endpoint = isGlobal ? "/api/v1/projects/task-templates/sample-excel/" : "/api/v1/projects/org-task-templates/sample-excel/";
+    const res = await fetch(endpoint, { method: "GET", credentials: "include" });
+    if (!res.ok) throw new Error("Failed to download sample file");
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Template_Bulk_Import_Sample.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  },
+
+  uploadTemplateExcel: async (isGlobal: boolean, file: File) => {
+    const endpoint = isGlobal ? "/api/v1/projects/task-templates/import-excel/" : "/api/v1/projects/org-task-templates/import-excel/";
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetchFromBff<any>(endpoint, {
+      method: "POST",
+      body: formData
+    });
+  },
+
+  createTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: any[] }) => {
     return fetchFromBff<any>("/api/v1/projects/task-templates/", {
       method: "POST",
       body: JSON.stringify(data)
     });
   },
 
-  updateTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: string[] }>) => {
+  updateTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: any[] }>) => {
     return fetchFromBff<any>(`/api/v1/projects/task-templates/${templateId}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
@@ -835,18 +866,22 @@ export const projectsApi = {
     });
   },
 
-  getOrgTaskTemplates: async () => {
-    return fetchFromBff<any>("/api/v1/projects/org-task-templates/", { method: "GET" });
+  getOrgTaskTemplates: async (specialization_ids?: number[]) => {
+    let url = "/api/v1/projects/org-task-templates/";
+    if (specialization_ids && specialization_ids.length > 0) {
+      url += `?specialization_ids=${specialization_ids.join(",")}`;
+    }
+    return fetchFromBff<any>(url, { method: "GET" });
   },
 
-  createOrgTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: string[]; default_subtasks?: any[] }) => {
+  createOrgTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: any[]; default_subtasks?: any[] }) => {
     return fetchFromBff<any>("/api/v1/projects/org-task-templates/", {
       method: "POST",
       body: JSON.stringify(data)
     });
   },
 
-  updateOrgTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: string[]; default_subtasks: any[] }>) => {
+  updateOrgTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: any[]; default_subtasks: any[] }>) => {
     return fetchFromBff<any>(`/api/v1/projects/org-task-templates/${templateId}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
@@ -1176,6 +1211,7 @@ export const projectsApi = {
     title: string; account_id: number;
     description?: string; kind?: string; location?: string;
     client_name?: string; client_phone?: string; client_email?: string;
+    specialization_ids?: number[];
   }) => {
     return fetchFromBff<{ uid: string; title: string }>(
       `/api/v1/projects/templates/${templateUid}/create-project/`,

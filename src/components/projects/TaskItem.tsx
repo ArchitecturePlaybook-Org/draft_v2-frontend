@@ -222,6 +222,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               />
             )}
             <span className="shrink-0">{task.task_code || (task.uid ? task.uid.substring(0,8) : "")}</span>
+            {task.is_milestone && <span className="ml-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-purple-500/30 inline-block shrink-0" title="Milestone Task">Milestone</span>}
 
             {task.priority === "HIGH" && <span className="ml-2 bg-semantic-red/10 text-semantic-red text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-semantic-red/30 inline-block shrink-0" title="High Priority">High Priority</span>}
             {task.priority === "MEDIUM" && <span className="ml-2 bg-accent/10 text-accent text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border border-accent/30 inline-block shrink-0" title="Medium Priority">Medium Priority</span>}

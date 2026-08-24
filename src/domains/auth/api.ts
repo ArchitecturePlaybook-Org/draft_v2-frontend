@@ -66,6 +66,10 @@ export const authApi = {
     });
   },
 
+    getSpecializations: async () => {
+    return fetchFromBff<any[]>("/api/v1/auth/specializations", { method: "GET" });
+  },
+
   updateProfile: async (data: any) => {
     return fetchFromBff<User>("/api/v1/auth/profile", {
       method: "PATCH",

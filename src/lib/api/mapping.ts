@@ -107,7 +107,14 @@ export const API_ROUTES: ApiRouteConfig[] = [
   },
 
   {
+    prefix: "v1/auth/specializations",
+    target: "/api/v1/users/specializations/",
+    methods: ["GET"],
+    auth: true,
+  },
+  {
     prefix: "v1/auth/me",
+
     target: "/api/v1/users/profile/",
     methods: ["GET"],
     auth: true,

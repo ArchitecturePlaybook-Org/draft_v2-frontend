@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { authApi } from "@/domains/auth/api";
 import { Project } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { useProjectStore } from "@/store/project-store";
@@ -9,6 +10,7 @@ interface ProjectSettingsModalProps {
 }
 
 export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ project, onClose }) => {
+
   const [formData, setFormData] = useState({
     title: project.title || "",
     description: project.description || "",
@@ -19,8 +21,14 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
     client_phone: project.client_phone || "",
     client_email: project.client_email || "",
     unit_system: project.unit_system || "metric",
+    specialization_ids: project.specializations?.map((s: any) => typeof s === 'number' ? s : s.id) || [] as number[],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [specializations, setSpecializations] = useState<any[]>([]);
+
+  useEffect(() => {
+    authApi.getSpecializations().then(setSpecializations).catch(() => {});
+  }, []);
   const [error, setError] = useState("");
   const fetchProject = useProjectStore((state) => state.fetchProject);
 
@@ -208,6 +216,44 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
                   <option value="metric">Metric (meters, cm, kg)</option>
                   <option value="imperial">Imperial (feet, inches, lbs)</option>
                 </select>
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <div className="h-px bg-surface-200 my-2" />
+                <label className="block text-xs font-bold text-text-secondary">
+                  Project Specializations (Multi-Select)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {specializations.map((spec) => {
+                    const isSelected = formData.specialization_ids.includes(spec.id);
+                    return (
+                      <button
+                        key={spec.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setFormData({
+                              ...formData,
+                              specialization_ids: formData.specialization_ids.filter((id: number) => id !== spec.id),
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              specialization_ids: [...formData.specialization_ids, spec.id],
+                            });
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                          isSelected
+                            ? "bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]"
+                            : "bg-surface-50 border-surface-200 text-text-secondary hover:bg-surface-200 hover:text-text-primary"
+                        }`}
+                      >
+                        {isSelected ? "✓ " : ""}{spec.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
             </div>

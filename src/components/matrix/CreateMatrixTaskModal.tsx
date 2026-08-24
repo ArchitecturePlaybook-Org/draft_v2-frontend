@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { projectsApi } from "@/domains/projects/api";
 import { SpatialZone, MilestonePhase } from "@/types/projects";
+import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import {
   X,
@@ -27,33 +28,40 @@ interface TaskTemplate {
   default_duration_days: number;
   default_checklists: string[];
   default_subtasks?: any[];
+  is_milestone?: boolean;
 }
 
 interface CreateMatrixTaskModalProps {
+  projectUid: string;
   isOpen: boolean;
   onClose: () => void;
-  projectUid: string;
-  onTaskCreated: () => void;
+  onTaskCreated?: () => void;
+  initialZoneId?: number;
+  initialPhaseId?: number;
 }
 
-export function CreateMatrixTaskModal({
+export const CreateMatrixTaskModal: React.FC<CreateMatrixTaskModalProps> = ({
+  projectUid,
   isOpen,
   onClose,
-  projectUid,
   onTaskCreated,
-}: CreateMatrixTaskModalProps) {
+  initialZoneId,
+  initialPhaseId,
+}) => {
+  const { user } = useAuthStore();
   const [zones, setZones] = useState<SpatialZone[]>([]);
   const [phases, setPhases] = useState<MilestonePhase[]>([]);
   const [globalTemplates, setGlobalTemplates] = useState<TaskTemplate[]>([]);
   const [orgTemplates, setOrgTemplates] = useState<TaskTemplate[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  const [selectedZoneId, setSelectedZoneId] = useState<number | "">("");
-  const [selectedPhaseId, setSelectedPhaseId] = useState<number | "">("");
+  const [selectedZoneId, setSelectedZoneId] = useState<number | "">(initialZoneId ?? "");
+  const [selectedPhaseId, setSelectedPhaseId] = useState<number | "">(initialPhaseId ?? "");
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>("");
 
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
+  const [isMilestone, setIsMilestone] = useState(false);
   const [checklists, setChecklists] = useState<string[]>([]);
   const [newChecklistInput, setNewChecklistInput] = useState("");
   const [subtasks, setSubtasks] = useState<any[]>([]);
@@ -63,18 +71,42 @@ export function CreateMatrixTaskModal({
   const loadData = useCallback(async () => {
     setLoadingData(true);
     try {
+      const projectDetails = await projectsApi.getProjectDetails(projectUid).catch(() => null);
+
+      const userSpecIds = (user?.profile?.specializations || (user as any)?.specializations || [])
+        .map((s: any) => (typeof s === "number" ? s : s?.id))
+        .filter((id: any): id is number => typeof id === "number" && !isNaN(id));
+
+      const projectSpecIds = (projectDetails?.specializations || [])
+        .map((s: any) => (typeof s === "number" ? s : s?.id))
+        .filter((id: any): id is number => typeof id === "number" && !isNaN(id));
+
+      const effectiveSpecIds = Array.from(new Set([...projectSpecIds, ...userSpecIds]));
+
       const [matrixData, gRes, oRes] = await Promise.all([
         projectsApi.getMatrix(projectUid),
-        projectsApi.getTaskTemplates(),
-        projectsApi.getOrgTaskTemplates(),
+        projectsApi.getTaskTemplates(effectiveSpecIds.length > 0 ? effectiveSpecIds : undefined),
+        projectsApi.getOrgTaskTemplates(effectiveSpecIds.length > 0 ? effectiveSpecIds : undefined),
       ]);
       setZones(matrixData?.zones || []);
       setPhases(matrixData?.phases || []);
 
-      const gList: TaskTemplate[] = (Array.isArray(gRes) ? gRes : (gRes as any)?.results ?? []).map(
+      const filterTemplates = (list: any[]) => {
+        if (effectiveSpecIds.length === 0) return list;
+        return list.filter((tpl: any) => {
+          const rawSpecs = tpl.specializations || tpl.specialization_ids || [];
+          const tplSpecs = Array.isArray(rawSpecs)
+            ? rawSpecs.map((s: any) => (typeof s === "number" ? s : s?.id))
+            : [];
+          if (tplSpecs.length === 0) return true;
+          return tplSpecs.some((id: number) => effectiveSpecIds.includes(id));
+        });
+      };
+
+      const gList: TaskTemplate[] = filterTemplates(Array.isArray(gRes) ? gRes : (gRes as any)?.results ?? []).map(
         (t: any) => ({ ...t, isOrgTemplate: false })
       );
-      const oList: TaskTemplate[] = (Array.isArray(oRes) ? oRes : (oRes as any)?.results ?? []).map(
+      const oList: TaskTemplate[] = filterTemplates(Array.isArray(oRes) ? oRes : (oRes as any)?.results ?? []).map(
         (t: any) => ({ ...t, isOrgTemplate: true })
       );
 
@@ -85,7 +117,7 @@ export function CreateMatrixTaskModal({
     } finally {
       setLoadingData(false);
     }
-  }, [projectUid]);
+  }, [projectUid, user]);
 
   useEffect(() => {
     if (isOpen) loadData();
@@ -105,12 +137,14 @@ export function CreateMatrixTaskModal({
         ).filter(Boolean);
         setChecklists(cl);
         setSubtasks(Array.isArray(tpl.default_subtasks) ? tpl.default_subtasks : []);
+        setIsMilestone(!!tpl.is_milestone);
       }
     } else {
       setTaskTitle("");
       setTaskDesc("");
       setChecklists([]);
       setSubtasks([]);
+      setIsMilestone(false);
     }
   };
 
@@ -136,6 +170,7 @@ export function CreateMatrixTaskModal({
         subtasks,
         default_subtasks: subtasks,
         status: "TODO",
+        is_milestone: isMilestone,
       });
 
       if ((!created?.checklists || created.checklists.length === 0) && checklists.length > 0 && created?.uid) {
@@ -143,7 +178,7 @@ export function CreateMatrixTaskModal({
       }
 
       toast.success("Task created!");
-      onTaskCreated();
+      onTaskCreated?.();
       handleClose();
     } catch (err: any) {
       toast.error(err?.message || "Failed to create task.");
@@ -324,6 +359,18 @@ export function CreateMatrixTaskModal({
                   placeholder="e.g. Install Structural Steel Columns"
                   className="w-full h-8 px-2.5 bg-surface-100 border border-surface-300 rounded-lg text-xs font-bold text-foreground outline-none focus:border-accent transition-all"
                 />
+              </div>
+
+              {/* Milestone Task Toggle */}
+              <div className="flex items-center gap-2 pt-1 pb-1">
+                <input
+                  type="checkbox"
+                  id="modal_is_milestone"
+                  checked={isMilestone}
+                  onChange={(e) => setIsMilestone(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-purple-500 rounded border-surface-300 outline-none cursor-pointer"
+                />
+                <label htmlFor="modal_is_milestone" className="text-[10px] font-black uppercase tracking-wider text-surface-600 cursor-pointer select-none">Milestone Task</label>
               </div>
 
               {/* Description */}

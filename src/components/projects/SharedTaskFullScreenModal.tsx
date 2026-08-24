@@ -427,26 +427,6 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
                 </div>
               )}
 
-              {/* Subtasks Card */}
-              {task && (
-                <div className="bg-surface-card/90 dark:bg-surface-900/80 backdrop-blur-xl border border-surface-200/80 dark:border-surface-800 rounded-3xl p-5 shadow-sm">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-surface-400 mb-3">Subtasks</h3>
-                  <div className="space-y-2">
-                    {task.subtasks?.map((sub: any) => (
-                      <div key={sub.uid} onClick={() => handleToggleSubtask(sub.uid, sub.status)} className="cursor-pointer p-3 rounded-xl border border-surface-200/60 dark:border-surface-800 bg-surface-50 dark:bg-surface-950/50 hover:bg-surface-100 flex gap-2.5 items-start transition-all">
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${sub.status === "DONE" ? "border-emerald-500 bg-emerald-500 text-white" : "border-surface-300 dark:border-surface-700 bg-surface-card"}`}>
-                          {sub.status === "DONE" && <Check className="w-3 h-3 stroke-[3]" />}
-                        </div>
-                        <p className={`text-xs font-semibold ${sub.status === "DONE" ? "text-surface-400 line-through" : "text-primary"}`}>{sub.title}</p>
-                      </div>
-                    ))}
-                    {(!task.subtasks || task.subtasks.length === 0) && (
-                      <p className="text-xs text-surface-400 text-center py-2">No subtasks.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Checklists Card */}
               {task && (
                 <div className="bg-surface-card/90 dark:bg-surface-900/80 backdrop-blur-xl border border-surface-200/80 dark:border-surface-800 rounded-3xl p-5 shadow-sm">
@@ -457,7 +437,17 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
                         <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 mt-0.5 transition-colors ${item.is_completed ? "bg-emerald-500 text-white" : "bg-surface-200 dark:bg-surface-800"}`}>
                           {item.is_completed && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
-                        <p className={`text-xs font-semibold ${item.is_completed ? "text-surface-400 line-through" : "text-primary"}`}>{item.title || item.description}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className={`text-xs font-semibold ${item.is_completed ? "text-surface-400 line-through" : "text-primary"}`}>{item.title}</p>
+                            <span className="inline-flex items-center text-[8px] font-black uppercase px-1.5 py-0.2 rounded border border-surface-300 dark:border-surface-700 bg-surface-200/50 dark:bg-surface-850 shrink-0">
+                              {item.type || "during"}
+                            </span>
+                          </div>
+                          {item.description && (
+                            <p className={`text-[10px] leading-relaxed mt-0.5 ${item.is_completed ? "text-surface-500 line-through opacity-70" : "text-surface-500"}`}>{item.description}</p>
+                          )}
+                        </div>
                       </div>
                     ))}
                     {(!task.checklists || task.checklists.length === 0) && (
