@@ -24,9 +24,10 @@ export function ProfileHeaderBanner({
   const [isSaved, setIsSaved] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
-  const headline = profile.metadata?.headline || `${profile.category || 'Principal Architectural Consultant'} & BIM Specialist`;
-  const company = profile.metadata?.current_company || "Apex Architectural Studio";
-  const yearsExp = profile.metadata?.years_of_experience || 12;
+  const headline = profile.metadata?.headline || profile.category || '';
+  const company = profile.metadata?.current_company;
+  const yearsExp = profile.metadata?.years_of_experience;
+  const credentials = profile.metadata?.credentials || (profile.category ? profile.category : null);
 
   const handleCopyLink = () => {
     if (typeof window !== 'undefined') {
@@ -55,7 +56,7 @@ export function ProfileHeaderBanner({
                 <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center font-black text-2xl text-white/40 bg-surface-800">
-                  {profile.name.charAt(0)}
+                  {profile.name ? profile.name.charAt(0).toUpperCase() : '?'}
                 </div>
               )}
             </div>
@@ -72,31 +73,39 @@ export function ProfileHeaderBanner({
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white truncate">
                 {profile.name}
               </h1>
-              <span className="bg-accent/20 border border-accent/40 text-accent text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                AIA • LEED AP
-              </span>
+              {credentials && (
+                <span className="bg-accent/20 border border-accent/40 text-accent text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                  {credentials}
+                </span>
+              )}
             </div>
 
-            <p className="text-xs sm:text-sm text-white/80 font-medium leading-snug">
-              {headline}
-            </p>
+            {headline && (
+              <p className="text-xs sm:text-sm text-white/80 font-medium leading-snug">
+                {headline}
+              </p>
+            )}
 
             <div className="flex items-center flex-wrap gap-3 text-[11px] text-white/60 font-medium pt-0.5">
-              <span className="flex items-center gap-1 text-white/90 font-semibold">
-                <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4m0 10V4m-4 6h4m1 5h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                {company}
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                </svg>
-                {profile.city ? `${profile.city}, ` : ''}{profile.country || 'Global'}
-              </span>
-              <span>•</span>
-              <span className="text-emerald-400 font-semibold">{yearsExp} Years Experience</span>
+              {company && (
+                <span className="flex items-center gap-1 text-white/90 font-semibold">
+                  <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-10V4m0 10V4m-4 6h4m1 5h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  {company}
+                </span>
+              )}
+              {(profile.city || profile.country) && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  </svg>
+                  {profile.city ? `${profile.city}, ` : ''}{profile.country || ''}
+                </span>
+              )}
+              {yearsExp && (
+                <span className="text-emerald-400 font-semibold">{yearsExp} Years Experience</span>
+              )}
             </div>
           </div>
         </div>

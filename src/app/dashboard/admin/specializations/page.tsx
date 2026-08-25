@@ -272,22 +272,20 @@ export default function AdminSpecializationsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setActiveTab("specializations"); setCurrentPage(1); }}
-              className={`h-8 px-3.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === "specializations"
+              className={`h-8 px-3.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeTab === "specializations"
                   ? "bg-amber-500 text-white shadow-xs"
                   : "bg-surface-100 hover:bg-surface-200 text-surface-600"
-              }`}
+                }`}
             >
               <Tag className="w-3.5 h-3.5" />
               <span>Specializations ({specializations.length})</span>
             </button>
             <button
               onClick={() => { setActiveTab("categories"); setCurrentPage(1); }}
-              className={`h-8 px-3.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === "categories"
+              className={`h-8 px-3.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeTab === "categories"
                   ? "bg-blue-500 text-white shadow-xs"
                   : "bg-surface-100 hover:bg-surface-200 text-surface-600"
-              }`}
+                }`}
             >
               <FolderTree className="w-3.5 h-3.5" />
               <span>Taxonomy Categories ({categories.length})</span>

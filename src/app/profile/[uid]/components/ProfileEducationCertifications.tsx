@@ -8,42 +8,8 @@ interface ProfileEducationCertificationsProps {
 }
 
 export function ProfileEducationCertifications({ profile }: ProfileEducationCertificationsProps) {
-  const educationList = profile.metadata?.education || [
-    {
-      id: 1,
-      school: "School of Planning and Architecture (SPA)",
-      degree: "Master of Architecture (M.Arch)",
-      field: "Sustainable Urban Design",
-      dates: "2012 - 2014",
-      logo: "🎓"
-    },
-    {
-      id: 2,
-      school: "National Institute of Technology",
-      degree: "Bachelor of Architecture (B.Arch)",
-      field: "Building Construction",
-      dates: "2007 - 2012",
-      logo: "🏛️"
-    }
-  ];
-
-  const certificationsList = profile.metadata?.licenses_and_certifications || [
-    {
-      name: "LEED AP Building Design + Construction (BD+C)",
-      issuer: "USGBC",
-      credentialId: "USGBC-10948271"
-    },
-    {
-      name: "Autodesk Certified Professional: Revit",
-      issuer: "Autodesk Inc.",
-      credentialId: "ADSK-PRO-884920"
-    },
-    {
-      name: "Council of Architecture License",
-      issuer: "National Council of Architecture",
-      credentialId: "CA/2014/61902"
-    }
-  ];
+  const educationList: any[] = profile.metadata?.education || [];
+  const certificationsList: any[] = profile.metadata?.licenses_and_certifications || [];
 
   return (
     <div className="space-y-4">

@@ -115,31 +115,40 @@ export const FullCalendarView: React.FC<FullCalendarViewProps> = ({ tasks, event
   };
 
   return (
-    <div className="fullcalendar-custom-container h-full flex flex-col bg-surface-card border border-surface-200 dark:border-white/10 p-5 rounded-3xl shadow-xl overflow-hidden">
+    <div className="fullcalendar-custom-container w-full min-h-[700px] flex flex-col bg-surface-card border border-surface-200 dark:border-white/10 p-4 sm:p-6 rounded-3xl shadow-xl overflow-hidden text-foreground">
       <style jsx global>{`
         .fullcalendar-custom-container .fc {
-          --fc-border-color: rgba(255, 255, 255, 0.08);
+          --fc-border-color: rgba(128, 128, 128, 0.2);
           --fc-page-bg-color: transparent;
-          --fc-neutral-bg-color: rgba(255, 255, 255, 0.02);
-          --fc-list-event-hover-bg-color: rgba(255, 255, 255, 0.05);
+          --fc-neutral-bg-color: rgba(128, 128, 128, 0.05);
+          --fc-list-event-hover-bg-color: rgba(128, 128, 128, 0.1);
           font-family: inherit;
-          height: 100%;
+          height: auto;
           display: flex;
           flex-direction: column;
         }
         .fullcalendar-custom-container .fc-view-harness {
           flex: 1 1 auto;
+          min-height: 600px;
         }
         .fullcalendar-custom-container .fc-toolbar-title {
           font-size: 1.25rem !important;
           font-weight: 900 !important;
           text-transform: uppercase;
           letter-spacing: -0.025em;
+          color: currentColor !important;
+        }
+        .fullcalendar-custom-container .fc-daygrid-day-number,
+        .fullcalendar-custom-container .fc-col-header-cell-cushion {
+          color: currentColor !important;
+          text-decoration: none !important;
+          font-weight: 700;
+          padding: 6px 8px !important;
         }
         .fullcalendar-custom-container .fc-button {
           background: rgba(var(--accent-rgb, 99, 102, 241), 0.15) !important;
           border: 1px solid rgba(var(--accent-rgb, 99, 102, 241), 0.3) !important;
-          color: var(--color-primary, inherit) !important;
+          color: currentColor !important;
           font-weight: 800 !important;
           font-size: 0.75rem !important;
           text-transform: uppercase !important;
@@ -189,7 +198,7 @@ export const FullCalendarView: React.FC<FullCalendarViewProps> = ({ tasks, event
         selectable={true}
         dateClick={handleDateClick}
         eventClick={handleEventClick}
-        height="100%"
+        height="auto"
       />
     </div>
   );

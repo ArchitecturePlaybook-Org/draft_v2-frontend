@@ -29,6 +29,7 @@ export interface PublicProfile {
   portfolios: PublicProfilePortfolio[];
   contributed_portfolios: PublicProfilePortfolio[];
   stakeholders: Stakeholder[];
+  specializations?: any[];
   location?: string;
   metadata?: Record<string, any>;
   social_links: Record<string, string>;
