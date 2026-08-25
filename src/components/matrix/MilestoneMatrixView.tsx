@@ -437,13 +437,29 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
           </p>
         </div>
         {!readOnly && userRole === "admin" && (
-          <button
-            onClick={() => setShowWizard(true)}
-            className="mt-2 relative group overflow-hidden h-11 px-8 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_30px_-10px_var(--accent)] z-10"
-          >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
-            <span className="relative z-10">Configure Matrix</span>
-          </button>
+          <div className="flex items-center gap-3 mt-2 z-10 flex-wrap justify-center">
+            <button
+              onClick={async () => {
+                try {
+                  toast.loading("Instantiating 237+ QA/QC templates & 6 stages...", { id: "apply-preset" });
+                  await projectsApi.applyProjectPreset(projectUid, "residential-qaqc-plan");
+                  toast.success("Residential QA/QC Plan instantiated!", { id: "apply-preset" });
+                  refreshMatrix();
+                } catch (err: any) {
+                  toast.error("Failed to apply preset: " + (err.message || ""), { id: "apply-preset" });
+                }
+              }}
+              className="relative group overflow-hidden h-11 px-6 bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md shadow-purple-500/20 flex items-center gap-2"
+            >
+              <span>⚡ Apply Residential QA/QC Preset</span>
+            </button>
+            <button
+              onClick={() => setShowWizard(true)}
+              className="relative group overflow-hidden h-11 px-6 bg-surface-200 border border-surface-300 hover:bg-surface-300 text-foreground font-bold text-xs uppercase tracking-widest rounded-xl transition-all"
+            >
+              <span>Configure Custom Matrix</span>
+            </button>
+          </div>
         )}
       </div>
     );

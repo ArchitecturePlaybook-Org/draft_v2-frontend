@@ -4,6 +4,7 @@ import { projectsApi } from '@/domains/projects/api';
 import { authApi } from '@/domains/auth/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, CheckCircle2, User, X } from 'lucide-react';
+import { SpecializationMultiSelect } from '@/components/ui/SpecializationMultiSelect';
 
 interface EstablishBlueprintModalProps {
   isOpen: boolean;
@@ -30,9 +31,12 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
   
   const [projectCodeMode, setProjectCodeMode] = useState<'auto' | 'manual'>('auto');
 
+  const [presets, setPresets] = useState<any[]>([]);
+
   React.useEffect(() => {
     if (isOpen) {
       authApi.getSpecializations().then(setSpecializations).catch(console.error);
+      projectsApi.getProjectPresets().then(setPresets).catch(console.error);
       setTemplatesLoading(true);
       Promise.allSettled([
         projectsApi.getTemplateLibrary({ tab: 'mine', sort: '-created_at' }),
@@ -65,7 +69,8 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
     client_name: '',
     client_phone: '',
     client_email: '',
-    specialization_ids: [] as number[]
+    specialization_ids: [] as number[],
+    preset_slug: '',
   });
 
   if (!isOpen) return null;
@@ -106,6 +111,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
           client_phone: formData.client_phone,
           client_email: formData.client_email,
           specialization_ids: formData.specialization_ids,
+          preset_slug: formData.preset_slug,
         });
       }
       setStep(4);
@@ -121,10 +127,10 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
   const isStep1Valid = formData.title.trim() !== '' && formData.account_id !== '';
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-16 sm:pt-20 pb-6 px-3 sm:px-4 bg-black/70 backdrop-blur-md overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md overflow-hidden">
       {/* Modal Dialog Shell */}
       <div 
-        className="relative w-full max-w-3xl max-h-[calc(100vh-6rem)] bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden z-10"
+        className="relative w-full max-w-5xl max-h-[85vh] bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden z-10 my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         
@@ -267,35 +273,157 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                     </select>
                   </div>
                 </div>
+
+                {/* ── Unified Template / QA/QC Preset Selector (Optional) ── */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Project Specializations</label>
-                  <div className="flex flex-wrap gap-2">
-                    {specializations.map((spec) => {
-                      const isSelected = formData.specialization_ids.includes(spec.id);
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">
+                      Start from Template / Preset (Optional)
+                    </label>
+                    {(formData.preset_slug || selectedTemplate) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, preset_slug: '' });
+                          setSelectedTemplate(null);
+                        }}
+                        className="text-[10px] font-bold text-red-500 hover:underline flex items-center gap-1"
+                      >
+                        ✕ Start Blank (Clear)
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Active Selection Summary Badge */}
+                  {selectedTemplate ? (
+                    <div className="w-full flex items-center gap-2.5 bg-accent/10 border border-accent/30 rounded-xl px-3 py-2">
+                      <span className="text-sm">📋</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-primary truncate">{selectedTemplate.title}</p>
+                        <p className="text-[10px] text-surface-500 font-semibold">{selectedTemplate.template_category} · Custom Saved Template</p>
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-accent bg-accent/20 px-2 py-0.5 rounded">Template Active</span>
+                    </div>
+                  ) : formData.preset_slug ? (
+                    <div className="w-full flex items-center gap-2.5 bg-purple-500/10 border border-purple-500/30 rounded-xl px-3 py-2">
+                      <span className="text-sm">⚡</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-foreground truncate">
+                          {presets.find(p => p.slug === formData.preset_slug)?.name || "1-Click QA/QC Matrix Preset"}
+                        </p>
+                        <p className="text-[10px] text-surface-500 font-semibold">Pre-populated 6 Stages & IS/MORTH Checklists</p>
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded">Preset Active</span>
+                    </div>
+                  ) : (
+                    <div className="w-full flex items-center gap-2 bg-surface-100 border border-dashed border-surface-300 rounded-xl px-3 py-2 text-surface-500">
+                      <span className="text-sm">✨</span>
+                      <span className="text-xs font-medium flex-1">Blank Project — Clean setup without pre-populated tasks.</span>
+                    </div>
+                  )}
+
+                  {/* Preset / Template Choices Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 max-h-44 overflow-y-auto pr-1">
+                    {/* Blank Project Option */}
+                    <div
+                      onClick={() => {
+                        setFormData({ ...formData, preset_slug: '' });
+                        setSelectedTemplate(null);
+                      }}
+                      className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-2.5 ${
+                        !formData.preset_slug && !selectedTemplate
+                          ? 'bg-accent/15 border-accent text-foreground ring-1 ring-accent/30 font-bold'
+                          : 'bg-surface-100 dark:bg-surface-800/50 border-surface-200 dark:border-white/10 hover:border-surface-300'
+                      }`}
+                    >
+                      <span className="text-base">✨</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-foreground">Blank Project</p>
+                        <p className="text-[9px] text-surface-500 font-semibold truncate">No preset or template</p>
+                      </div>
+                    </div>
+
+                    {/* QA/QC Matrix Presets */}
+                    {presets.length > 0 ? (
+                      presets.map((p) => {
+                        const isSelected = formData.preset_slug === p.slug && !selectedTemplate;
+                        return (
+                          <div
+                            key={p.slug}
+                            onClick={() => {
+                              setFormData({ ...formData, preset_slug: p.slug });
+                              setSelectedTemplate(null);
+                            }}
+                            className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-2.5 ${
+                              isSelected
+                                ? 'bg-purple-500/15 border-purple-500/40 text-foreground ring-1 ring-purple-500/30'
+                                : 'bg-surface-100 dark:bg-surface-800/50 border-surface-200 dark:border-white/10 hover:border-surface-300'
+                            }`}
+                          >
+                            <span className="text-base">{p.icon_emoji || '🏠'}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-foreground truncate">{p.name}</p>
+                              <p className="text-[9px] text-surface-500 font-semibold truncate">1-Click Matrix Preset</p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div
+                        onClick={() => {
+                          setFormData({ ...formData, preset_slug: 'residential-qaqc-plan' });
+                          setSelectedTemplate(null);
+                        }}
+                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-2.5 ${
+                          formData.preset_slug === 'residential-qaqc-plan' && !selectedTemplate
+                            ? 'bg-purple-500/15 border-purple-500/40 text-foreground ring-1 ring-purple-500/30'
+                            : 'bg-surface-100 border-surface-200 hover:border-surface-300'
+                        }`}
+                      >
+                        <span className="text-base">🏠</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-foreground truncate">Residential QA/QC Plan</p>
+                          <p className="text-[9px] text-surface-500 font-semibold">237+ templates · 8 Stages</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom Templates from Library */}
+                    {templates.map((t) => {
+                      const isSelected = selectedTemplate?.uid === t.uid;
                       return (
-                        <button
-                          key={spec.id}
-                          type="button"
+                        <div
+                          key={t.uid}
                           onClick={() => {
-                            if (isSelected) {
-                              setFormData({ ...formData, specialization_ids: formData.specialization_ids.filter(id => id !== spec.id) });
-                            } else {
-                              setFormData({ ...formData, specialization_ids: [...formData.specialization_ids, spec.id] });
-                            }
+                            setSelectedTemplate(t);
+                            setFormData({ ...formData, preset_slug: '' });
                           }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
-                            isSelected 
-                              ? 'bg-accent/10 border-accent/30 text-accent' 
-                              : 'bg-surface-100 border-surface-200 text-surface-500 hover:bg-surface-200 hover:text-primary'
+                          className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-2.5 ${
+                            isSelected
+                              ? 'bg-blue-500/15 border-blue-500/40 text-foreground ring-1 ring-blue-500/30'
+                              : 'bg-surface-100 dark:bg-surface-800/50 border-surface-200 dark:border-white/10 hover:border-surface-300'
                           }`}
                         >
-                          {spec.name}
-                        </button>
+                          <span className="text-base">📋</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">{t.title}</p>
+                            <p className="text-[9px] text-surface-500 font-semibold truncate">Custom Saved Blueprint</p>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
                 </div>
 
+                <div>
+                  <SpecializationMultiSelect
+                    specializations={specializations}
+                    selectedIds={formData.specialization_ids}
+                    onChange={(ids) => setFormData({ ...formData, specialization_ids: ids })}
+                    label="Project Specializations"
+                    placeholder="Select project specializations..."
+                  />
+                </div>
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Site Location</label>
@@ -317,67 +445,6 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                   />
-                </div>
-
-                {/* Template Selector */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Start from Template (Optional)</label>
-                    {selectedTemplate && (
-                      <button
-                        onClick={() => setSelectedTemplate(null)}
-                        className="text-[10px] font-bold text-red-500 hover:underline"
-                      >
-                        ✕ Clear
-                      </button>
-                    )}
-                  </div>
-
-                  {selectedTemplate ? (
-                    <div className="w-full flex items-center gap-2.5 bg-accent/10 border border-accent/30 rounded-xl px-3 py-2">
-                      <span className="text-sm">📋</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-primary truncate">{selectedTemplate.title}</p>
-                        <p className="text-[10px] text-surface-500 font-semibold">{selectedTemplate.template_category} · {selectedTemplate.task_count} tasks</p>
-                      </div>
-                      <button
-                        onClick={() => setShowTemplateSelector(!showTemplateSelector)}
-                        className="text-[10px] font-bold text-accent hover:underline"
-                      >
-                        Change
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setShowTemplateSelector(!showTemplateSelector)}
-                      className="w-full flex items-center gap-2 bg-surface-100 border border-dashed border-surface-300 rounded-xl px-3 py-2 hover:border-accent/40 text-left"
-                    >
-                      <span className="text-sm opacity-60">📋</span>
-                      <span className="text-xs text-surface-500 font-medium truncate flex-1">
-                        {templatesLoading ? 'Loading templates...' : templates.length > 0 ? 'Apply template blueprint' : 'No templates available'}
-                      </span>
-                      {templates.length > 0 && (
-                        <span className="text-[10px] font-bold text-accent">Browse →</span>
-                      )}
-                    </button>
-                  )}
-
-                  {showTemplateSelector && templates.length > 0 && (
-                    <div className="mt-2 max-h-36 overflow-y-auto space-y-1 pr-1 border border-surface-200 rounded-xl p-2 bg-surface-100">
-                      {templates.map(t => (
-                        <button
-                          key={t.uid}
-                          onClick={() => { setSelectedTemplate(t); setShowTemplateSelector(false); }}
-                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-all ${
-                            selectedTemplate?.uid === t.uid ? 'bg-accent/20 text-accent font-bold' : 'hover:bg-surface-200 text-primary'
-                          }`}
-                        >
-                          <span className="text-xs">📋</span>
-                          <span className="text-xs truncate flex-1">{t.title}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             )}

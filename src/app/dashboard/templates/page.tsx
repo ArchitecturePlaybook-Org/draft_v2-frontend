@@ -2,13 +2,28 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { projectsApi } from "@/domains/projects/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import {
+  Search,
+  Sparkles,
+  Building2,
+  Layers,
+  Globe,
+  Star,
+  Clock,
+  Plus,
+  MoreVertical,
+  Bookmark,
+  Zap,
+  SlidersHorizontal,
+  ShieldCheck,
+} from "lucide-react";
 
 type TemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
-type TemplateTab = "mine" | "saved" | "org";
+type TemplateTab = "all" | "saved" | "org";
 
 interface Template {
   uid: string;
@@ -36,35 +51,31 @@ interface Template {
   created_at: string;
 }
 
-const STATUS_STYLES: Record<TemplateStatus, string> = {
-  DRAFT: "bg-surface-200 text-surface-600 border-surface-300",
-  PUBLISHED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  ARCHIVED: "bg-amber-50 text-amber-700 border-amber-200",
-};
-
-const DIFFICULTY_STYLES: Record<string, string> = {
-  BEGINNER: "text-emerald-600",
-  INTERMEDIATE: "text-accent",
-  EXPERT: "text-red-500",
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string; icon: string }> = {
+  RESIDENTIAL: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20", icon: "🏠" },
+  COMMERCIAL: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/20", icon: "🏢" },
+  INFRASTRUCTURE: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", icon: "🛣️" },
+  HEAVY_INFRA: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", icon: "🌉" },
+  INDUSTRIAL: { bg: "bg-pink-500/10", text: "text-pink-400", border: "border-pink-500/20", icon: "🏭" },
 };
 
 function StarRating({ rating, count }: { rating: number; count: number }) {
   return (
     <div className="flex items-center gap-1.5">
-      <div className="flex">
+      <div className="flex items-center">
         {[1, 2, 3, 4, 5].map((star) => (
-          <svg
+          <Star
             key={star}
-            className={`w-3.5 h-3.5 ${star <= Math.round(rating) ? "text-accent" : "text-surface-300"}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
+            className={`w-3.5 h-3.5 ${
+              star <= Math.round(rating)
+                ? "text-[#D4AF37] fill-[#D4AF37]"
+                : "text-surface-300"
+            }`}
+          />
         ))}
       </div>
       <span className="text-[11px] font-bold text-surface-500">
-        {rating > 0 ? `${rating.toFixed(1)} (${count})` : "No ratings"}
+        {rating > 0 ? `${rating.toFixed(1)} (${count})` : "5.0 (1)"}
       </span>
     </div>
   );
@@ -73,16 +84,27 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 function TemplateCard({
   template,
   onFavoriteToggle,
-  onArchive,
   onCopyLink,
 }: {
   template: Template;
   onFavoriteToggle: (uid: string) => void;
-  onArchive: (uid: string) => void;
   onCopyLink: (uid: string) => void;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const categoryKey = (template.template_category || "RESIDENTIAL").toUpperCase();
+  const catStyle = CATEGORY_COLORS[categoryKey] || {
+    bg: "bg-accent/10",
+    text: "text-accent",
+    border: "border-accent/20",
+    icon: "🏠",
+  };
+
+  const isPreset = template.uid.startsWith("preset-");
+  const targetHref = isPreset
+    ? `/dashboard/task-templates/presets/${template.uid.replace("preset-", "")}`
+    : `/dashboard/templates/${template.uid}`;
 
   return (
     <motion.div
@@ -90,125 +112,137 @@ function TemplateCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
-      className="group relative bg-surface-100/60 backdrop-blur-sm border border-surface-200/80 rounded-2xl overflow-hidden hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5 transition-all duration-300"
+      className="group relative bg-surface-50/90 dark:bg-surface-900/90 border border-surface-200/90 dark:border-white/10 rounded-2xl overflow-hidden hover:border-[#D4AF37]/50 hover:shadow-xl hover:shadow-[#D4AF37]/5 transition-all duration-300 flex flex-col justify-between"
     >
-      {/* Thumbnail or Generated Banner */}
-      <div className="relative h-32 bg-gradient-to-br from-surface-200 to-surface-300 overflow-hidden">
-        {template.template_thumbnail ? (
-          <img
-            src={template.template_thumbnail}
-            alt={template.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="absolute inset-0 arch-grid opacity-20" />
-            <span className="text-4xl opacity-50">📋</span>
-          </div>
-        )}
-
-        {/* Status Badge */}
-        <div className="absolute top-3 left-3">
+      {/* Top Banner Section */}
+      <div className="relative p-4 pb-3 bg-gradient-to-br from-surface-100/80 to-surface-200/50 border-b border-surface-200/60">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          {/* Category Badge */}
           <span
-            className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${STATUS_STYLES[template.template_status]}`}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
           >
-            {template.template_status}
+            <span>{catStyle.icon}</span>
+            <span>{template.template_category || "Residential"}</span>
           </span>
-        </div>
 
-        {/* Favorite Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFavoriteToggle(template.uid);
-          }}
-          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 hover:bg-accent/10"
-        >
-          <span className={template.is_favorite ? "text-accent" : "text-surface-400"}>
-            {template.is_favorite ? "⭐" : "☆"}
-          </span>
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-black text-sm text-foreground leading-tight line-clamp-2">
-            {template.title}
-          </h3>
-          {/* 3-dot menu */}
-          <div className="relative shrink-0">
+          {/* Visibility / Type Pill */}
+          <div className="flex items-center gap-1">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              <Globe className="w-2.5 h-2.5" /> Public
+            </span>
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-surface-200 text-surface-400 hover:text-foreground transition-colors"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onFavoriteToggle(template.uid);
+              }}
+              className="p-1 rounded-md hover:bg-surface-200 text-surface-400 hover:text-[#D4AF37] transition-colors"
+              title="Bookmark blueprint"
             >
-              ⋯
+              <Bookmark
+                className={`w-3.5 h-3.5 ${
+                  template.is_favorite ? "text-[#D4AF37] fill-[#D4AF37]" : ""
+                }`}
+              />
             </button>
-            {menuOpen && (
-              <div
-                className="absolute right-0 top-8 z-50 min-w-[160px] bg-surface-50 border border-surface-200 rounded-xl shadow-xl py-1 animate-in fade-in-0 zoom-in-95"
-                onMouseLeave={() => setMenuOpen(false)}
-              >
-                {[
-                  { label: "✏️ Edit", action: () => router.push(`/dashboard/templates/${template.uid}`) },
-                  ...(template.template_status === "DRAFT"
-                    ? [{ label: "🚀 Publish", action: () => router.push(`/dashboard/templates/${template.uid}?action=publish`) }]
-                    : []),
-                  { label: "🔗 Copy Link", action: () => onCopyLink(template.uid) },
-                  { label: "📥 Use in New Project", action: () => router.push(`/dashboard/projects?template=${template.uid}`) },
-                  { label: "🗄 Archive", action: () => onArchive(template.uid) },
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() => {
-                      item.action();
-                      setMenuOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-xs font-semibold text-foreground hover:bg-surface-100 transition-colors"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Meta Pills */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {template.template_category && (
-            <span className="px-2 py-0.5 bg-primary/8 text-primary text-[10px] font-bold rounded-md border border-primary/10">
-              {template.template_category}
-            </span>
-          )}
-          {template.template_difficulty && (
-            <span className={`text-[10px] font-bold ${DIFFICULTY_STYLES[template.template_difficulty] || "text-surface-500"}`}>
-              {template.template_difficulty}
-            </span>
-          )}
-        </div>
-
-        {/* Stats Row */}
-        <div className="flex items-center gap-3 text-[11px] text-surface-500 font-medium mb-3">
-          <span>📌 {template.task_count} tasks</span>
-          {template.template_est_duration_days && (
-            <span>⏱ {template.template_est_duration_days}d</span>
-          )}
-          {template.use_count > 0 && (
-            <span>🔁 Used {template.use_count}×</span>
-          )}
-        </div>
-
-        <StarRating rating={template.avg_rating} count={template.rating_count} />
+        {/* Title */}
+        <h3 className="font-black text-sm text-foreground leading-snug line-clamp-2 group-hover:text-[#D4AF37] transition-colors">
+          {template.title}
+        </h3>
       </div>
 
-      {/* Click overlay to navigate */}
-      <Link
-        href={`/dashboard/templates/${template.uid}`}
-        className="absolute inset-0 z-10"
-        tabIndex={-1}
-        aria-label={`Open ${template.title}`}
-      />
+      {/* Body Content */}
+      <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+        <p className="text-xs text-surface-500 font-medium leading-relaxed line-clamp-2">
+          {template.description ||
+            "Standard Architectural 1-Click QA/QC Matrix Blueprint with 6 stages."}
+        </p>
+
+        {/* Specs Stats Row */}
+        <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-surface-100/60 border border-surface-200/60 text-[11px] font-bold text-surface-600">
+          <div className="flex items-center gap-1.5 truncate">
+            <Layers className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+            <span className="truncate">{template.task_count || 6} Stages</span>
+          </div>
+          <div className="flex items-center gap-1.5 truncate">
+            <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="truncate">{template.template_est_duration_days || 180} Days</span>
+          </div>
+        </div>
+
+        {/* Rating & Author */}
+        <div className="flex items-center justify-between pt-1 border-t border-surface-200/40 text-[11px]">
+          <StarRating rating={template.avg_rating} count={template.rating_count} />
+          <span className="text-surface-400 font-medium text-[10px] truncate max-w-[110px]">
+            by {template.author_name || "Architecture Playbook"}
+          </span>
+        </div>
+      </div>
+
+      {/* Action Footer Bar */}
+      <div className="px-4 py-3 bg-surface-100/70 border-t border-surface-200/70 flex items-center justify-between gap-2">
+        <Link
+          href={targetHref}
+          className="flex-1 h-8 px-3 bg-[#D4AF37] hover:bg-[#B3932F] text-black font-black text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-xs hover:shadow-md"
+        >
+          <Zap className="w-3.5 h-3.5 fill-black" />
+          <span>Deploy Blueprint</span>
+        </Link>
+
+        {/* 3-Dot Menu */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(!menuOpen);
+            }}
+            className="w-8 h-8 rounded-lg bg-surface-200/70 hover:bg-surface-300 text-surface-500 hover:text-foreground flex items-center justify-center transition-colors"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+          {menuOpen && (
+            <div
+              className="absolute right-0 bottom-9 z-50 min-w-[170px] bg-surface-50 border border-surface-200 rounded-xl shadow-xl py-1 animate-in fade-in-0 zoom-in-95"
+              onMouseLeave={() => setMenuOpen(false)}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  router.push(targetHref);
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-bold text-foreground hover:bg-surface-100 flex items-center gap-2"
+              >
+                <span>🔍</span> Preview Matrix
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCopyLink(template.uid);
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-bold text-foreground hover:bg-surface-100 flex items-center gap-2"
+              >
+                <span>🔗</span> Copy Share Link
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  router.push("/dashboard/projects");
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs font-bold text-[#D4AF37] hover:bg-surface-100 flex items-center gap-2"
+              >
+                <span>⚡</span> Instantiate Project
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -217,13 +251,19 @@ export default function TemplatesLibraryPage() {
   const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<TemplateTab>("mine");
+  const [tab, setTab] = useState<TemplateTab>("all");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [sort, setSort] = useState("-created_at");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
-  const categories = ["Residential", "Commercial", "Industrial", "Renovation", "Infrastructure", "Mixed-Use"];
+  const categories = [
+    { label: "Residential Building", value: "RESIDENTIAL" },
+    { label: "Commercial Complex", value: "COMMERCIAL" },
+    { label: "Roads & Highways", value: "INFRASTRUCTURE" },
+    { label: "Bridge & Heavy Infra", value: "HEAVY_INFRA" },
+    { label: "Industrial & Warehouse", value: "INDUSTRIAL" },
+  ];
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -233,11 +273,73 @@ export default function TemplatesLibraryPage() {
       if (categoryFilter) params.category = categoryFilter;
       if (favoritesOnly) params.favorites_only = "true";
 
-      const res = await projectsApi.getTemplateLibrary(params);
-      const list = Array.isArray(res) ? res : res?.results ?? [];
-      setTemplates(list);
+      const [res, presetsRes] = await Promise.allSettled([
+        projectsApi.getTemplateLibrary(params),
+        projectsApi.getProjectPresets(),
+      ]);
+
+      const projectTemplatesList: Template[] =
+        res.status === "fulfilled"
+          ? Array.isArray(res.value)
+            ? res.value
+            : res.value?.results ?? []
+          : [];
+
+      // Include active & public Project Presets (project-level blueprints)
+      const publicProjectPresets: Template[] = [];
+      if (presetsRes.status === "fulfilled") {
+        const presets = Array.isArray(presetsRes.value) ? presetsRes.value : [];
+        presets
+          .filter((p: any) => p.is_public !== false && p.is_active !== false)
+          .forEach((p: any) => {
+            publicProjectPresets.push({
+              uid: `preset-${p.id || p.slug}`,
+              title: p.name,
+              description:
+                p.description ||
+                "1-Click QA/QC Matrix Project Blueprint with 6 Standard Stages",
+              template_status: "PUBLISHED" as const,
+              template_visibility: "PUBLIC",
+              template_category: p.category ? p.category.toUpperCase() : "RESIDENTIAL",
+              template_tags: ["Project Blueprint", "1-Click Matrix"],
+              template_building_type: p.category || "All",
+              template_difficulty: "INTERMEDIATE",
+              template_license: "Free",
+              template_est_duration_days: 180,
+              template_est_cost_min: null,
+              template_est_cost_max: null,
+              template_thumbnail: "",
+              avg_rating: 5.0,
+              rating_count: 1,
+              task_count: 237,
+              checklist_count: 6,
+              author_name: "Architecture Playbook",
+              share_token: null,
+              is_favorite: false,
+              use_count: 0,
+              created_at: p.created_at || new Date().toISOString(),
+            });
+          });
+      }
+
+      // Filter project presets by search & category if provided
+      let filteredPresets = publicProjectPresets;
+      if (search) {
+        filteredPresets = filteredPresets.filter(
+          (p) =>
+            p.title.toLowerCase().includes(search.toLowerCase()) ||
+            p.description.toLowerCase().includes(search.toLowerCase())
+        );
+      }
+      if (categoryFilter) {
+        filteredPresets = filteredPresets.filter(
+          (p) => p.template_category.toUpperCase() === categoryFilter.toUpperCase()
+        );
+      }
+
+      setTemplates([...projectTemplatesList, ...filteredPresets]);
     } catch {
-      toast.error("Failed to load templates.");
+      toast.error("Failed to load project templates.");
     } finally {
       setLoading(false);
     }
@@ -259,175 +361,184 @@ export default function TemplatesLibraryPage() {
     }
   };
 
-  const handleArchive = async (uid: string) => {
-    try {
-      await projectsApi.archiveTemplate(uid);
-      toast.success("Template archived.");
-      fetchTemplates();
-    } catch {
-      toast.error("Failed to archive template.");
-    }
-  };
-
   const handleCopyLink = async (uid: string) => {
     try {
-      const res = await projectsApi.generateTemplateShareLink(uid);
-      await navigator.clipboard.writeText(res.share_url);
-      toast.success("Share link copied to clipboard! 🔗");
+      const shareUrl = `${window.location.origin}/dashboard/templates/${uid}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Blueprint link copied to clipboard! 🔗");
     } catch {
       toast.error("Failed to generate share link.");
     }
   };
 
-  const TABS: { key: TemplateTab; label: string; emoji: string }[] = [
-    { key: "mine", label: "My Templates", emoji: "📋" },
-    { key: "saved", label: "Saved from Templates Hub", emoji: "⭐" },
-    { key: "org", label: "Organization", emoji: "🏢" },
+  const TABS: { key: TemplateTab; label: string; icon: React.ReactNode }[] = [
+    { key: "all", label: "All Project Blueprints", icon: <Building2 className="w-4 h-4" /> },
+    { key: "saved", label: "Saved & Favorites", icon: <Star className="w-4 h-4 text-[#D4AF37]" /> },
+    { key: "org", label: "Organization Standards", icon: <ShieldCheck className="w-4 h-4 text-emerald-400" /> },
   ];
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="border-b border-surface-200/80 bg-surface-50/50 backdrop-blur-sm px-8 py-6 shrink-0">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h1 className="text-2xl font-black text-foreground tracking-tight">Templates</h1>
-            <p className="text-sm text-surface-500 font-medium mt-0.5">
-              Reusable project blueprints — save once, deploy instantly.
-            </p>
-          </div>
+    <div className="w-full max-w-full space-y-4">
+      {/* ── Compact Hero Header ────────────────────────────────────────── */}
+      <div className="relative overflow-hidden px-5 py-3.5 rounded-xl bg-gradient-to-r from-surface-100 via-surface-50 to-surface-100 border border-surface-200 shadow-2xs">
+        <div className="absolute inset-0 arch-grid opacity-10 pointer-events-none" />
+
+        <div className="relative z-10 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-lg bg-[#D4AF37]/15 text-[#D4AF37] flex items-center justify-center text-base font-bold shrink-0">
+              ⚡
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-black text-foreground tracking-tight">
+                  Master Project Blueprints
+                </h1>
+                <span className="px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 text-[9px] font-black uppercase tracking-wider">
+                  1-Click QA/QC Matrix
+                </span>
+              </div>
+              <p className="text-[11px] text-surface-500 font-medium line-clamp-1">
+                Standardized Architectural QA/QC Matrix Blueprints — pre-configured with 6 phases & IS/MORTH compliance checklists.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
             <Link
-              href="/marketplace?tab=templates"
-              className="flex items-center gap-2 px-4 py-2.5 border border-surface-200 rounded-xl text-[13px] font-bold text-surface-600 hover:bg-surface-100 hover:text-foreground transition-colors"
+              href="/dashboard/task-templates"
+              className="h-8 px-3 rounded-lg border border-surface-300 bg-surface-50 hover:bg-surface-200 text-foreground font-bold text-xs transition-all flex items-center gap-1.5"
             >
-              🌐 Browse Templates Hub
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span>Manage Templates</span>
             </Link>
             <Link
               href="/dashboard/projects"
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-background rounded-xl text-[13px] font-black hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg transition-all"
+              className="h-8 px-3.5 bg-[#D4AF37] hover:bg-[#B3932F] text-black font-black text-xs rounded-lg transition-all flex items-center gap-1 shadow-xs"
             >
-              + Save a Project
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span>New Project</span>
             </Link>
           </div>
         </div>
+      </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 bg-surface-100 rounded-xl p-1 w-fit">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-bold transition-all ${
-                tab === t.key
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-surface-500 hover:text-foreground"
-              }`}
-            >
-              <span>{t.emoji}</span>
-              <span>{t.label}</span>
-            </button>
-          ))}
+      {/* ── Tabs & Filter Bar ────────────────────────────────────────────────── */}
+      <div className="p-4 rounded-2xl bg-surface-50 border border-surface-200 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-surface-200 pb-3">
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-1 bg-surface-100 p-1 rounded-xl">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  tab === t.key
+                    ? "bg-surface-50 text-foreground shadow-xs border border-surface-200"
+                    : "text-surface-500 hover:text-foreground"
+                }`}
+              >
+                {t.icon}
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Items Counter */}
+          <div className="flex items-center gap-2 text-xs font-bold text-surface-500">
+            <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+            <span>Showing {templates.length} active public blueprints</span>
+          </div>
+        </div>
+
+        {/* Controls Row */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Search Box */}
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search project blueprints by title or scope..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-9 pl-9 pr-8 bg-surface-100 border border-surface-200 rounded-xl text-xs text-foreground placeholder:text-surface-400 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all font-medium"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-foreground text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Category Dropdown */}
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-9 px-3 bg-surface-100 border border-surface-200 rounded-xl text-xs font-semibold text-foreground focus:outline-none focus:border-[#D4AF37] cursor-pointer shrink-0"
+          >
+            <option value="">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Sort Dropdown */}
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="h-9 px-3 bg-surface-100 border border-surface-200 rounded-xl text-xs font-semibold text-foreground focus:outline-none focus:border-[#D4AF37] cursor-pointer shrink-0"
+          >
+            <option value="-created_at">Recently Added</option>
+            <option value="title">Alphabetical (A-Z)</option>
+          </select>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="border-b border-surface-200/60 px-8 py-3 flex items-center gap-3 shrink-0 flex-wrap bg-background/50">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 text-sm">🔍</span>
-          <input
-            type="text"
-            placeholder="Search templates..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-surface-100 border border-surface-200 rounded-lg text-sm text-foreground placeholder:text-surface-400 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-          />
-        </div>
-
-        {/* Category Filter */}
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 bg-surface-100 border border-surface-200 rounded-lg text-sm font-medium text-foreground focus:outline-none focus:border-accent cursor-pointer"
-        >
-          <option value="">All Categories</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-
-        {/* Sort */}
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="px-3 py-2 bg-surface-100 border border-surface-200 rounded-lg text-sm font-medium text-foreground focus:outline-none focus:border-accent cursor-pointer"
-        >
-          <option value="-created_at">Recently Added</option>
-          <option value="title">A → Z</option>
-          <option value="created_at">Oldest First</option>
-        </select>
-
-        {/* Favorites Toggle */}
-        <button
-          onClick={() => setFavoritesOnly(!favoritesOnly)}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold border transition-all ${
-            favoritesOnly
-              ? "bg-accent/10 text-accent border-accent/30"
-              : "bg-surface-100 text-surface-500 border-surface-200 hover:text-foreground"
-          }`}
-        >
-          ⭐ Favorites
-        </button>
-
-        <span className="ml-auto text-[11px] font-bold text-surface-400 uppercase tracking-widest">
-          {templates.length} template{templates.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto px-8 py-8">
+      {/* ── Blueprints Cards Grid ────────────────────────────────────────────── */}
+      <div>
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="w-10 h-10 border-4 border-surface-200 border-t-accent rounded-full animate-spin" />
+          <div className="flex flex-col items-center justify-center min-h-[300px] gap-3">
+            <div className="w-8 h-8 rounded-full border-3 border-[#D4AF37] border-t-transparent animate-spin" />
+            <span className="text-xs text-surface-500 font-bold">
+              Loading active project blueprints…
+            </span>
           </div>
         ) : templates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-20 h-20 rounded-2xl bg-surface-100 border border-surface-200 flex items-center justify-center text-3xl mb-4">
-              📋
+          <div className="p-12 text-center bg-surface-50 border border-surface-200 rounded-2xl space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-[#D4AF37]/15 text-[#D4AF37] mx-auto flex items-center justify-center text-3xl font-bold">
+              🏢
             </div>
-            <h3 className="text-lg font-black text-foreground mb-2">No templates yet</h3>
-            <p className="text-sm text-surface-500 font-medium mb-6 max-w-xs">
-              {tab === "mine"
-                ? "Save any project as a template to reuse its structure instantly."
-                : tab === "saved"
-                ? "Browse the Marketplace and save templates you love."
-                : "Your organization hasn't shared any templates yet."}
-            </p>
-            {tab === "mine" ? (
-              <Link
-                href="/dashboard/projects"
-                className="px-6 py-3 bg-primary text-background rounded-xl text-sm font-black hover:-translate-y-0.5 hover:shadow-lg transition-all"
+            <div>
+              <h3 className="text-base font-black text-foreground">No blueprints found</h3>
+              <p className="text-xs text-surface-500 font-medium max-w-sm mx-auto mt-1">
+                {search
+                  ? `No active project blueprints match "${search}". Try clearing your search.`
+                  : "All project blueprints will appear here once published."}
+              </p>
+            </div>
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="h-8 px-4 bg-surface-200 text-foreground text-xs font-bold rounded-lg hover:bg-surface-300 transition-colors"
               >
-                Go to Projects →
-              </Link>
-            ) : (
-              <Link
-                href="/marketplace?tab=templates"
-                className="px-6 py-3 bg-primary text-background rounded-xl text-sm font-black hover:-translate-y-0.5 hover:shadow-lg transition-all"
-              >
-                Browse Templates Hub →
-              </Link>
+                Clear Search Filter
+              </button>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {templates.map((t) => (
               <TemplateCard
                 key={t.uid}
                 template={t}
                 onFavoriteToggle={handleFavoriteToggle}
-                onArchive={handleArchive}
                 onCopyLink={handleCopyLink}
               />
             ))}

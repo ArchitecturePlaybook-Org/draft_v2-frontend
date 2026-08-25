@@ -394,7 +394,7 @@ export default function ProfilePage() {
   if (!user) return <div className="p-8 text-center text-xs font-bold text-accent animate-pulse uppercase tracking-widest">Initializing User Profile...</div>;
 
   return (
-    <div className="w-full max-w-5xl mx-auto py-2 px-1 sm:px-2 space-y-4">
+    <div className="w-full max-w-full space-y-4">
       {/* Profile Header */}
       <div className="bg-surface-50/60 dark:bg-surface-900/60 backdrop-blur-xl border border-surface-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center gap-4 sm:gap-6 shadow-sm relative overflow-hidden">
         <div className="relative shrink-0">

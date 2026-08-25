@@ -262,6 +262,8 @@ export interface MilestoneBlockCompact {
   has_blockers: boolean;
   total_tasks: number;
   completed_tasks: number;
+  task_count?: number;
+  done_count?: number;
   notes?: string;
   // Manual unlock audit trail
   unlocked_by_name?: string | null;

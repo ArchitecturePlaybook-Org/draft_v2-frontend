@@ -252,7 +252,7 @@ export default function MilestoneDetailPage() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-5 space-y-5">
+    <div className="w-full max-w-full space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button

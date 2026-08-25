@@ -243,7 +243,7 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-6rem)] flex flex-col space-y-5 animate-fade-in pb-8 px-2 max-w-7xl mx-auto">
+    <div className="w-full max-w-full space-y-4 animate-fade-in">
       
       {/* 1. Header Bar */}
       <div className="bg-surface-100/90 backdrop-blur-xl border border-surface-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-wrap justify-between items-center gap-4 relative overflow-hidden">

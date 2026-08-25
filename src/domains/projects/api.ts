@@ -48,6 +48,7 @@ export const projectsApi = {
     is_template?: boolean;
     template_scope?: string;
     specialization_ids?: number[];
+    preset_slug?: string;
   }) => {
     return fetchFromBff<Project>("/api/v1/projects/projects/", {
       method: "POST",
@@ -63,8 +64,68 @@ export const projectsApi = {
         client_email: data.client_email,
         is_template: data.is_template,
         template_scope: data.template_scope,
-        specialization_ids: data.specialization_ids
+        specialization_ids: data.specialization_ids,
+        preset_slug: data.preset_slug,
       })
+    });
+  },
+
+  getProjectPresets: async () => {
+    try {
+      const res = await fetchFromBff<any>("/api/v1/projects/project-presets/", { method: "GET" });
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.results)) return res.results;
+      if (res && res.data && Array.isArray(res.data)) return res.data;
+      return [];
+    } catch (err) {
+      console.error("[getProjectPresets_ERROR]", err);
+      return [];
+    }
+  },
+
+  createProjectPreset: async (data: { name: string; category?: string; description?: string; icon_emoji?: string; is_active?: boolean; is_public?: boolean }) => {
+    return fetchFromBff<any>("/api/v1/projects/project-presets/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateProjectPreset: async (id: number | string, data: { name?: string; category?: string; description?: string; icon_emoji?: string; is_active?: boolean; is_public?: boolean }) => {
+    return fetchFromBff<any>(`/api/v1/projects/project-presets/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteProjectPreset: async (id: number | string) => {
+    return fetchFromBff<any>(`/api/v1/projects/project-presets/${id}/`, {
+      method: "DELETE",
+    });
+  },
+
+  applyProjectPreset: async (projectUid: string | number, presetSlug: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/apply-preset/`, {
+      method: "POST",
+      body: JSON.stringify({ preset_slug: presetSlug }),
+    });
+  },
+
+  getPresetMatrixPreview: async (presetSlug: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/project-presets/${presetSlug}/matrix-preview/`, { method: "GET" });
+  },
+
+  downloadPresetSampleExcel: async () => {
+    const isServer = typeof window === "undefined";
+    const baseURL = isServer ? (process.env.NEXTAUTH_URL || "http://localhost:3000") : "";
+    window.location.href = `${baseURL}/api/v1/projects/project-presets/sample-excel/`;
+  },
+
+  uploadPresetExcel: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetchFromBff<any>("/api/v1/projects/project-presets/import-excel/", {
+      method: "POST",
+      body: formData,
     });
   },
 
@@ -1153,6 +1214,50 @@ export const projectsApi = {
 
   /** Get full detail for a single template (includes task tree). */
   getTemplateDetail: async (uid: string) => {
+    if (uid.startsWith("preset-")) {
+      const slugOrId = uid.replace("preset-", "");
+      try {
+        const presets = await projectsApi.getProjectPresets();
+        const preset = presets.find((p: any) => String(p.id) === slugOrId || p.slug === slugOrId);
+        if (preset) {
+          return {
+            uid,
+            title: `${preset.icon_emoji || '🏠'} ${preset.name}`,
+            description: preset.description || "1-Click QA/QC Matrix Project Blueprint with 6 Standard Stages",
+            template_status: "PUBLISHED",
+            template_visibility: "PUBLIC",
+            template_category: preset.category ? preset.category.toUpperCase() : "PROJECT BLUEPRINT",
+            template_tags: ["Project Blueprint", "1-Click Matrix"],
+            template_building_type: preset.category || "All",
+            template_country: "India",
+            template_difficulty: "INTERMEDIATE",
+            template_license: "Free",
+            template_est_duration_days: 180,
+            template_est_cost_min: null,
+            template_est_cost_max: null,
+            template_thumbnail: "",
+            template_version: 1,
+            avg_rating: 5.0,
+            rating_count: 1,
+            task_count: 237,
+            checklist_count: 6,
+            author_name: "Architecture Playbook",
+            share_token: null,
+            share_token_expires_at: null,
+            is_in_library: true,
+            is_favorite: false,
+            use_count: 0,
+            user_rating: null,
+            created_at: preset.created_at || new Date().toISOString(),
+            tasks: [],
+            isPreset: true,
+            presetSlug: preset.slug,
+          };
+        }
+      } catch (e) {
+        console.error("Failed to resolve preset detail", e);
+      }
+    }
     return fetchFromBff<any>(`/api/v1/projects/templates/${uid}/`, { method: "GET" });
   },
 

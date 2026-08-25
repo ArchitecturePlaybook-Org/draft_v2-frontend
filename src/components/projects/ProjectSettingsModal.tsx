@@ -3,6 +3,7 @@ import { authApi } from "@/domains/auth/api";
 import { Project } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { useProjectStore } from "@/store/project-store";
+import { SpecializationMultiSelect } from "@/components/ui/SpecializationMultiSelect";
 
 interface ProjectSettingsModalProps {
   project: Project;
@@ -55,7 +56,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-surface-100 rounded-xl border border-surface-200 shadow-2xl w-full max-w-xl flex flex-col max-h-[90vh]">
+      <div className="bg-surface-100 rounded-xl border border-surface-200 shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200 bg-surface-50/50 rounded-t-xl">
           <div>
             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
@@ -218,42 +219,15 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
                 </select>
               </div>
 
-              <div className="col-span-2 space-y-2">
+              <div className="col-span-2">
                 <div className="h-px bg-surface-200 my-2" />
-                <label className="block text-xs font-bold text-text-secondary">
-                  Project Specializations (Multi-Select)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {specializations.map((spec) => {
-                    const isSelected = formData.specialization_ids.includes(spec.id);
-                    return (
-                      <button
-                        key={spec.id}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) {
-                            setFormData({
-                              ...formData,
-                              specialization_ids: formData.specialization_ids.filter((id: number) => id !== spec.id),
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              specialization_ids: [...formData.specialization_ids, spec.id],
-                            });
-                          }
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
-                          isSelected
-                            ? "bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]"
-                            : "bg-surface-50 border-surface-200 text-text-secondary hover:bg-surface-200 hover:text-text-primary"
-                        }`}
-                      >
-                        {isSelected ? "✓ " : ""}{spec.name}
-                      </button>
-                    );
-                  })}
-                </div>
+                <SpecializationMultiSelect
+                  specializations={specializations}
+                  selectedIds={formData.specialization_ids}
+                  onChange={(ids) => setFormData({ ...formData, specialization_ids: ids })}
+                  label="Project Specializations (Multi-Select)"
+                  placeholder="Select project specializations..."
+                />
               </div>
 
             </div>

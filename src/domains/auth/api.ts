@@ -67,7 +67,37 @@ export const authApi = {
   },
 
     getSpecializations: async () => {
-    return fetchFromBff<any[]>("/api/v1/auth/specializations", { method: "GET" });
+    return fetchFromBff<any[]>("/api/v1/auth/specializations/", { method: "GET" });
+  },
+
+  createSpecialization: async (name: string, category_id?: number, slug?: string) => {
+    return fetchFromBff<any>("/api/v1/auth/specializations/", {
+      method: "POST",
+      body: JSON.stringify({ name, category_id, slug }),
+    });
+  },
+
+  deleteSpecialization: async (id: number) => {
+    return fetchFromBff<any>(`/api/v1/auth/specializations/${id}/`, {
+      method: "DELETE",
+    });
+  },
+
+  getCategories: async () => {
+    return fetchFromBff<any[]>("/api/v1/auth/categories/", { method: "GET" });
+  },
+
+  createCategory: async (name: string, description?: string, slug?: string) => {
+    return fetchFromBff<any>("/api/v1/auth/categories/", {
+      method: "POST",
+      body: JSON.stringify({ name, description, slug }),
+    });
+  },
+
+  deleteCategory: async (id: number) => {
+    return fetchFromBff<any>(`/api/v1/auth/categories/${id}/`, {
+      method: "DELETE",
+    });
   },
 
   updateProfile: async (data: any) => {

@@ -1,10 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
-html,
+html {
+  font-size: 14px;
+  max-width: 100%;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   max-width: 100%;
   overflow-x: clip;
+  font-size: 0.9375rem; /* ~13.1px default body text */
 }
 
 /* --- Themes --- */
@@ -399,13 +406,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .page-content {
   padding: 1rem 1.25rem;
-  padding-top: 0.75rem;
-  max-width: min(1400px, 100%);
   width: 100%;
+  max-width: 100%;
   min-width: 0;
-  margin: 0 auto;
   box-sizing: border-box;
   overflow-x: clip;
+  flex: 1;
 }
 
 @media (max-width: 640px) {

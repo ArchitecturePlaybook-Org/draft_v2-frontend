@@ -549,11 +549,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
           </div>
 
           {/* Action bar */}
-          <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-surface-100 text-surface-500">
-              📋 Tasks
-              <span className="px-1 py-0.2 bg-surface-200 rounded text-[8px] font-black text-foreground">{safeTasksList.filter(t => !t.is_milestone).length}</span>
-            </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
             {!readOnly && !isLocked && userRole === "admin" && (
               <button
                 onClick={() => setIsBulkPlannerOpen(true)}
@@ -576,7 +572,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                   setSubtaskChecklistInputs({});
                   setIsAddingTask(true);
                 }}
-                className="ml-auto h-7 px-3 bg-accent text-background font-bold text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all flex items-center gap-1 shadow-xs"
+                className="h-7 px-3 bg-accent text-background font-bold text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all flex items-center gap-1 shadow-xs"
               >
                 + Add Task
               </button>
@@ -584,7 +580,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             <select
               value={priorityFilter || ""}
               onChange={(e) => setPriorityFilter(e.target.value || null)}
-              className={`h-7 px-2 bg-surface-100 border border-transparent hover:border-surface-200 rounded-lg outline-none text-[9px] font-bold uppercase tracking-wider text-surface-400 transition-colors ${!readOnly && userRole === "admin" ? "" : "ml-auto"}`}
+              className="ml-auto h-7 px-2 bg-surface-100 border border-transparent hover:border-surface-200 rounded-lg outline-none text-[9px] font-bold uppercase tracking-wider text-surface-400 transition-colors"
             >
               <option value="">All Priorities</option>
               <option value="HIGH">High Priority</option>

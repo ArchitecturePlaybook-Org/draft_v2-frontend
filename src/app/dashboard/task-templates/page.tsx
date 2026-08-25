@@ -28,6 +28,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { SpecializationMultiSelect } from "@/components/ui/SpecializationMultiSelect";
+
 export interface TaskTemplateChecklistItem {
   title: string;
   type: "pre" | "during" | "post";
@@ -43,6 +45,8 @@ export interface TaskTemplate {
   default_duration_days: number;
   default_checklists: (string | TaskTemplateChecklistItem)[];
   is_milestone?: boolean;
+  is_active?: boolean;
+  is_public?: boolean;
   milestone_task?: number | null;
 }
 
@@ -52,6 +56,8 @@ interface FormData {
   default_duration_days: number;
   default_checklists: (string | TaskTemplateChecklistItem)[];
   is_milestone: boolean;
+  is_active: boolean;
+  is_public: boolean;
   milestone_task_id: number | null;
   specialization_ids: number[];
 }
@@ -62,11 +68,44 @@ const EMPTY_FORM: FormData = {
   default_duration_days: 1,
   default_checklists: [],
   is_milestone: false,
+  is_active: true,
+  is_public: true,
   milestone_task_id: null,
   specialization_ids: [],
 };
 
-type TemplateTab = "global" | "my_org" | "milestones";
+const DEFAULT_FALLBACK_PRESETS = [
+  {
+    name: "Residential Building QA/QC Plan",
+    slug: "residential-qaqc-plan",
+    category: "RESIDENTIAL",
+    icon_emoji: "🏠",
+    description: "237+ QA/QC checklists, test reports, and method statements for residential apartment buildings (G+4 to G+12) and individual houses. Mapped to IS 456, IS 1786, IS 875, NBC 2016.",
+  },
+  {
+    name: "Commercial Building QA/QC Plan",
+    slug: "commercial-qaqc-plan",
+    category: "COMMERCIAL",
+    icon_emoji: "🏢",
+    description: "250+ QA/QC templates for IT parks, commercial malls, and office complexes. Covers high-grade RCC, post-tensioned slabs, MEP, fire safety, and LEED compliance.",
+  },
+  {
+    name: "Roads & Highway Infrastructure Plan",
+    slug: "roads-highway-qaqc-plan",
+    category: "INFRASTRUCTURE",
+    icon_emoji: "🛣️",
+    description: "180+ site-ready templates for flexible and rigid pavement construction. Mapped to IRC codes, MORTH specifications, and CBR compaction testing.",
+  },
+  {
+    name: "Bridge & Heavy Infrastructure Plan",
+    slug: "bridge-heavy-infra-qaqc-plan",
+    category: "HEAVY_INFRA",
+    icon_emoji: "🌉",
+    description: "200+ QA/QC templates for flyovers, bridges, and heavy concrete structures. Covers piling, pier caps, pre-stressed girders, and NDT testing.",
+  },
+];
+
+type TemplateTab = "global" | "my_org" | "milestones" | "project_presets";
 
 export default function TaskTemplatesPage() {
   const { user } = useAuthStore();
@@ -74,6 +113,48 @@ export default function TaskTemplatesPage() {
 
   const [globalTemplates, setGlobalTemplates] = useState<TaskTemplate[]>([]);
   const [orgTemplates, setOrgTemplates] = useState<TaskTemplate[]>([]);
+  const [projectPresets, setProjectPresets] = useState<any[]>(DEFAULT_FALLBACK_PRESETS);
+  const [previewPreset, setPreviewPreset] = useState<any | null>(null);
+  const [showPresetModal, setShowPresetModal] = useState(false);
+  const [editingPreset, setEditingPreset] = useState<any | null>(null);
+  const [presetForm, setPresetForm] = useState({
+    id: null as number | string | null,
+    name: "",
+    category: "RESIDENTIAL",
+    icon_emoji: "🏠",
+    description: "",
+    is_active: true,
+    is_public: true,
+  });
+
+  const openCreatePreset = () => {
+    setEditingPreset(null);
+    setPresetForm({
+      id: null,
+      name: "",
+      category: "RESIDENTIAL",
+      icon_emoji: "🏠",
+      description: "",
+      is_active: true,
+      is_public: true,
+    });
+    setShowPresetModal(true);
+  };
+
+  const openEditPreset = (preset: any) => {
+    setEditingPreset(preset);
+    setPresetForm({
+      id: preset.id || preset.slug,
+      name: preset.name || "",
+      category: preset.category || "RESIDENTIAL",
+      icon_emoji: preset.icon_emoji || "🏠",
+      description: preset.description || "",
+      is_active: preset.is_active ?? true,
+      is_public: preset.is_public ?? true,
+    });
+    setShowPresetModal(true);
+  };
+  const [savingPreset, setSavingPreset] = useState(false);
   const [loading, setLoading] = useState(true);
   const [allSpecializations, setAllSpecializations] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<TemplateTab>("global");
@@ -145,6 +226,9 @@ export default function TaskTemplatesPage() {
     authApi.getSpecializations()
       .then(setAllSpecializations)
       .catch(() => {});
+    projectsApi.getProjectPresets()
+      .then(setProjectPresets)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -213,6 +297,8 @@ export default function TaskTemplatesPage() {
         default_duration_days: form.default_duration_days,
         default_checklists: form.default_checklists,
         is_milestone: form.is_milestone,
+        is_active: form.is_active,
+        is_public: form.is_public,
         milestone_task: form.is_milestone ? null : (form.milestone_task_id ?? null),
         specialization_ids: form.specialization_ids,
       };
@@ -293,6 +379,8 @@ export default function TaskTemplatesPage() {
       default_duration_days: t.default_duration_days || 1,
       default_checklists: [...(t.default_checklists || [])],
       is_milestone: !!t.is_milestone,
+      is_active: t.is_active ?? true,
+      is_public: t.is_public ?? (t.isOrgTemplate ? false : true),
       milestone_task_id: t.milestone_task ?? null,
       specialization_ids: (t as any).specializations?.map((s: any) => typeof s === 'number' ? s : s.id) || [],
     });
@@ -417,6 +505,16 @@ export default function TaskTemplatesPage() {
                 Milestone
               </span>
             )}
+            {t.is_public && (
+              <span className="inline-flex items-center gap-0.5 px-1 py-0.2 text-[8px] font-black uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded shrink-0" title="Visible in Public Templates library">
+                🌐 Public
+              </span>
+            )}
+            {t.is_active === false && (
+              <span className="inline-flex items-center gap-0.5 px-1 py-0.2 text-[8px] font-black uppercase bg-surface-200 text-surface-500 border border-surface-300 rounded shrink-0" title="Inactive template">
+                Inactive
+              </span>
+            )}
           </div>
           {t.description && <p className="text-[10px] text-surface-500 truncate mt-0.5">{t.description}</p>}
         </div>
@@ -477,7 +575,7 @@ export default function TaskTemplatesPage() {
 
   // ── Main Render ────────────────────────────────────────────────────────────
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-5 space-y-4">
+    <div className="w-full max-w-full space-y-4">
       {/* Page header (Clean 2-Row Responsive Layout) */}
       <div className="space-y-3 bg-surface-50 border border-surface-200 p-4 rounded-xl shadow-xs">
         {/* Row 1: Title & Action Buttons */}
@@ -502,15 +600,25 @@ export default function TaskTemplatesPage() {
             </button>
             <button
               onClick={() => {
-                setForm({ ...EMPTY_FORM, is_milestone: activeTab === "milestones" });
-                setEditingTemplate(null);
-                setErrors({});
-                setShowModal(true);
+                if (activeTab === "project_presets") {
+                  setShowPresetModal(true);
+                } else {
+                  setForm({ ...EMPTY_FORM, is_milestone: activeTab === "milestones" });
+                  setEditingTemplate(null);
+                  setErrors({});
+                  setShowModal(true);
+                }
               }}
               className="h-8 px-3.5 rounded-lg bg-accent hover:bg-accent/90 text-background font-black text-xs transition-all shadow-xs flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>New {activeTab === "milestones" ? "Milestone" : "Template"}</span>
+              <span>
+                {activeTab === "project_presets"
+                  ? "Create Project Preset"
+                  : activeTab === "milestones"
+                  ? "New Milestone"
+                  : "New Template"}
+              </span>
             </button>
           </div>
         </div>
@@ -561,6 +669,20 @@ export default function TaskTemplatesPage() {
                 {[...globalTemplates, ...orgTemplates].filter((t) => t.is_milestone).length}
               </span>
             </button>
+            <button
+              onClick={() => setActiveTab("project_presets")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                activeTab === "project_presets"
+                  ? "bg-amber-500/15 text-amber-400 shadow-xs border border-amber-500/30"
+                  : "text-surface-500 hover:text-foreground"
+              }`}
+            >
+              <span className="text-xs">⚡</span>
+              <span>Project Presets</span>
+              <span className="px-1.5 py-0.2 bg-amber-500/15 text-amber-400 rounded text-[9px] font-black border border-amber-500/20">
+                {projectPresets.length}
+              </span>
+            </button>
           </div>
 
           {/* Search Input */}
@@ -599,8 +721,118 @@ export default function TaskTemplatesPage() {
           <span>Private templates for your organisation. Add custom templates or clone from Global Templates.</span>
         </div>
       )}
-            {/* ── UNIFIED TABLE CONTENT ── */}
-      <div className="rounded-xl border border-surface-300 bg-surface-50 overflow-hidden shadow-xs">
+      {activeTab === "project_presets" && (
+        <div className="flex items-center gap-2 p-2.5 bg-amber-500/5 border border-amber-500/20 rounded-lg text-[10px] text-amber-300 font-medium">
+          <span className="text-sm shrink-0">⚡</span>
+          <span>Project Presets: 1-Click QA/QC Matrix Templates with 6 standard stages (Pre-Construction, Substructure, Superstructure, Finishes, MEP, Handover).</span>
+        </div>
+      )}
+
+      {/* ── PROJECT PRESETS TAB GRID ── */}
+      {activeTab === "project_presets" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {projectPresets.map((preset) => (
+            <div
+              key={preset.slug}
+              className="p-5 bg-surface-50 border border-surface-300 rounded-2xl shadow-xs space-y-4 hover:border-amber-500/40 transition-all"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-xl font-bold">
+                    {preset.icon_emoji || "🏠"}
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-foreground">{preset.name}</h3>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                        {preset.category}
+                      </span>
+                      <span className="text-[10px] text-surface-500 font-bold">6 Stages · 237+ Templates</span>
+                      {preset.is_public !== false && (
+                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-cyan-500/15 text-cyan-400 border border-cyan-500/20">
+                          🌐 Public
+                        </span>
+                      )}
+                      {preset.is_active === false && (
+                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-surface-200 text-surface-500 border border-surface-300">
+                          Inactive
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-surface-600 font-medium leading-relaxed">
+                {preset.description}
+              </p>
+
+              {/* Stages Pill Badges */}
+              <div className="space-y-1.5 pt-2 border-t border-surface-200">
+                <label className="text-[9px] font-black uppercase tracking-wider text-surface-500">Standard Stages Included</label>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">📋 Pre-Construction</span>
+                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">🏗️ Substructure</span>
+                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-pink-500/10 text-pink-400 border border-pink-500/20">🏢 Superstructure</span>
+                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">🎨 Finishes</span>
+                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">⚡ MEP Services</span>
+                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">📂 Handover</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between gap-2.5 pt-3 border-t border-surface-200">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => openEditPreset(preset)}
+                    className="h-8 px-3 rounded-lg bg-surface-200 hover:bg-amber-500/20 hover:text-amber-400 text-foreground text-xs font-bold transition-all flex items-center gap-1"
+                    title="Edit Project Preset"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit</span>
+                  </button>
+                  {preset.id && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Delete project preset "${preset.name}"?`)) return;
+                        try {
+                          await projectsApi.deleteProjectPreset(preset.id || preset.slug);
+                          toast.success("Project preset deleted.");
+                          const fresh = await projectsApi.getProjectPresets();
+                          setProjectPresets(fresh);
+                        } catch (err: any) {
+                          toast.error(err?.message || "Failed to delete preset");
+                        }
+                      }}
+                      className="h-8 px-2.5 rounded-lg bg-surface-200 hover:bg-red-500/20 hover:text-red-400 text-surface-400 text-xs font-bold transition-all"
+                      title="Delete Project Preset"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => router.push(`/dashboard/task-templates/presets/${preset.slug}`)}
+                    className="h-8 px-3 rounded-lg border border-surface-300 hover:bg-surface-200 text-foreground text-xs font-bold transition-all flex items-center gap-1.5"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-amber-400" />
+                    <span>View Matrix Preview</span>
+                  </button>
+                  <button
+                    onClick={() => router.push("/dashboard/projects")}
+                    className="h-8 px-3.5 bg-amber-500 hover:bg-amber-600 text-white font-black text-xs rounded-lg transition-all flex items-center gap-1 shadow-md shadow-amber-500/20"
+                  >
+                    <span>⚡ Use Preset</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* ── UNIFIED TABLE CONTENT ── */
+        <div className="rounded-xl border border-surface-300 bg-surface-50 overflow-hidden shadow-xs">
         {loading ? (
           <div className="flex items-center justify-center py-12 gap-2">
             <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
@@ -666,6 +898,95 @@ export default function TaskTemplatesPage() {
           </>
         )}
       </div>
+    )}
+
+{/* ── Project Preset Preview Modal ────────────────────────────────────── */}
+      <AnimatePresence>
+        {previewPreset && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 bg-background/80 backdrop-blur-xs animate-fade-in">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              className="bg-surface-50 border border-surface-300 w-full max-w-xl rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              <div className="p-4 border-b border-surface-200 bg-surface-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg font-bold">
+                    {previewPreset.icon_emoji || "🏠"}
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-foreground">{previewPreset.name}</h3>
+                    <p className="text-[10px] text-surface-500 font-semibold">{previewPreset.category} · 6 Standard Matrix Stages</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPreviewPreset(null)}
+                  className="w-7 h-7 rounded-lg bg-surface-200 text-foreground hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center text-xs font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                <p className="text-xs text-surface-600 font-medium leading-relaxed">
+                  {previewPreset.description}
+                </p>
+
+                <div className="space-y-2 pt-2 border-t border-surface-200">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-surface-600">Standard Project Stages & Scope</label>
+                  <div className="space-y-2">
+                    <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
+                      <p className="text-xs font-bold text-blue-400">1. Pre-Construction</p>
+                      <p className="text-[11px] text-surface-500 font-medium">Site survey, soil investigation (IS 1892), SWMS, baseline schedule & approvals.</p>
+                    </div>
+                    <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
+                      <p className="text-xs font-bold text-purple-400">2. Substructure</p>
+                      <p className="text-[11px] text-surface-500 font-medium">Excavation, piling (IS 2911), raft/footings, basement retaining walls & waterproofing.</p>
+                    </div>
+                    <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
+                      <p className="text-xs font-bold text-pink-400">3. Superstructure</p>
+                      <p className="text-[11px] text-surface-500 font-medium">RCC frame columns/beams/slabs (IS 456), rebar TMT (IS 1786), masonry & structural steel.</p>
+                    </div>
+                    <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
+                      <p className="text-xs font-bold text-amber-400">4. Finishes & Joinery</p>
+                      <p className="text-[11px] text-surface-500 font-medium">Plastering (IS 1661), painting (IS 2932), tile/stone flooring, doors & windows.</p>
+                    </div>
+                    <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
+                      <p className="text-xs font-bold text-emerald-400">5. MEP Services</p>
+                      <p className="text-[11px] text-surface-500 font-medium">Plumbing, electrical wiring & DBs (IS 732), HVAC ducting, fire fighting & lifts (NBC 2016).</p>
+                    </div>
+                    <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
+                      <p className="text-xs font-bold text-cyan-400">6. Handover & QA Audits</p>
+                      <p className="text-[11px] text-surface-500 font-medium">Daily logs, quality audit checklists, snag list management & handover certificates.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 p-4 border-t border-surface-200 bg-surface-100">
+                <button
+                  type="button"
+                  onClick={() => setPreviewPreset(null)}
+                  className="h-8 px-4 rounded-lg border border-surface-300 text-foreground hover:bg-surface-200 text-xs font-bold transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewPreset(null);
+                    router.push("/dashboard/projects");
+                  }}
+                  className="h-8 px-5 bg-amber-500 hover:bg-amber-600 text-white font-black text-xs rounded-lg transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20"
+                >
+                  ⚡ Use in New Project
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
 {/* ── Template Preview Modal ─────────────────────────────────────────────── */}
       <AnimatePresence>
@@ -831,7 +1152,11 @@ export default function TaskTemplatesPage() {
                     <button
                       onClick={async () => {
                         try {
-                          await projectsApi.downloadTemplateSample(activeTab === "global");
+                          if (activeTab === "project_presets") {
+                            await projectsApi.downloadPresetSampleExcel();
+                          } else {
+                            await projectsApi.downloadTemplateSample(activeTab === "global");
+                          }
                         } catch (err: any) {
                           toast.error(err?.message || "Failed to download sample");
                         }
@@ -892,13 +1217,20 @@ export default function TaskTemplatesPage() {
                     if (!importFile) return;
                     setImporting(true);
                     try {
-                      await projectsApi.uploadTemplateExcel(activeTab === "global", importFile);
-                      toast.success("Templates imported successfully!");
+                      if (activeTab === "project_presets") {
+                        const res = await projectsApi.uploadPresetExcel(importFile);
+                        toast.success(res.message || "Project Presets imported successfully!");
+                        const freshPresets = await projectsApi.getProjectPresets();
+                        setProjectPresets(freshPresets);
+                      } else {
+                        await projectsApi.uploadTemplateExcel(activeTab === "global", importFile);
+                        toast.success("Templates imported successfully!");
+                        fetchTemplates();
+                      }
                       setShowImportModal(false);
                       setImportFile(null);
-                      fetchTemplates();
                     } catch (err: any) {
-                      toast.error(err?.message || "Failed to import templates");
+                      toast.error(err?.message || "Failed to import file");
                     } finally {
                       setImporting(false);
                     }
@@ -909,6 +1241,179 @@ export default function TaskTemplatesPage() {
                   {importing ? "Importing..." : "Start Import"}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Create Project Preset Modal ────────────────────────────────────── */}
+      <AnimatePresence>
+        {showPresetModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 bg-background/80 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
+              className="relative w-full max-w-lg bg-surface-50 border border-surface-300 rounded-2xl shadow-xl overflow-hidden flex flex-col"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-surface-200 bg-surface-100">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center font-bold text-base">
+                    ⚡
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-foreground">
+                      {editingPreset ? "Edit Project Preset" : "Create Project Preset"}
+                    </h3>
+                    <p className="text-[10px] text-surface-500">Configure a 1-click QA/QC project blueprint preset.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowPresetModal(false); setEditingPreset(null); }}
+                  className="w-7 h-7 rounded-lg bg-surface-200 text-foreground hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center text-xs font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!presetForm.name.trim()) {
+                    toast.error("Preset name is required");
+                    return;
+                  }
+                  setSavingPreset(true);
+                  try {
+                    if (editingPreset && (presetForm.id || editingPreset.id || editingPreset.slug)) {
+                      const targetId = presetForm.id || editingPreset.id || editingPreset.slug;
+                      await projectsApi.updateProjectPreset(targetId, presetForm);
+                      toast.success(`Project Preset "${presetForm.name}" updated successfully!`);
+                    } else {
+                      const newPreset = await projectsApi.createProjectPreset(presetForm);
+                      toast.success(`Project Preset "${newPreset.name}" created successfully!`);
+                    }
+                    const freshPresets = await projectsApi.getProjectPresets();
+                    setProjectPresets(freshPresets);
+                    setShowPresetModal(false);
+                    setEditingPreset(null);
+                    setPresetForm({ id: null, name: "", category: "RESIDENTIAL", icon_emoji: "🏠", description: "", is_active: true, is_public: true });
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to save project preset");
+                  } finally {
+                    setSavingPreset(false);
+                  }
+                }}
+                className="p-5 space-y-4"
+              >
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-surface-600 mb-1">
+                    Preset Title <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Industrial Warehouse QA/QC Plan"
+                    value={presetForm.name}
+                    onChange={(e) => setPresetForm({ ...presetForm, name: e.target.value })}
+                    className="w-full h-9 px-3 bg-surface-100 border border-surface-300 rounded-lg text-xs text-foreground placeholder:text-surface-400 focus:outline-none focus:border-amber-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-surface-600 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={presetForm.category}
+                      onChange={(e) => setPresetForm({ ...presetForm, category: e.target.value })}
+                      className="w-full h-9 px-3 bg-surface-100 border border-surface-300 rounded-lg text-xs text-foreground focus:outline-none focus:border-amber-500 font-medium"
+                    >
+                      <option value="RESIDENTIAL">Residential Building</option>
+                      <option value="COMMERCIAL">Commercial Building</option>
+                      <option value="INFRASTRUCTURE">Roads & Infrastructure</option>
+                      <option value="HEAVY_INFRA">Bridge & Heavy Infra</option>
+                      <option value="INDUSTRIAL">Industrial & Warehouse</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-surface-600 mb-1">
+                      Icon Emoji
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      value={presetForm.icon_emoji}
+                      onChange={(e) => setPresetForm({ ...presetForm, icon_emoji: e.target.value })}
+                      className="w-full h-9 px-3 bg-surface-100 border border-surface-300 rounded-lg text-xs text-foreground text-center focus:outline-none focus:border-amber-500 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-surface-600 mb-1">
+                    Description & Scope
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Briefly describe the QA/QC matrix scope, standards, and checklists covered."
+                    value={presetForm.description}
+                    onChange={(e) => setPresetForm({ ...presetForm, description: e.target.value })}
+                    className="w-full p-3 bg-surface-100 border border-surface-300 rounded-lg text-xs text-foreground placeholder:text-surface-400 focus:outline-none focus:border-amber-500 transition-all font-medium resize-none"
+                  />
+                </div>
+
+                {/* Active & Public Status Controls */}
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-surface-200">
+                  <label className="flex items-start gap-2.5 p-2 rounded-lg border border-surface-200 bg-surface-100 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={presetForm.is_active}
+                      onChange={(e) => setPresetForm({ ...presetForm, is_active: e.target.checked })}
+                      className="w-4 h-4 rounded border-surface-300 accent-amber-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-foreground block">Active Preset</span>
+                      <span className="text-[10px] text-surface-500 block leading-tight">Available in 1-click project matrix creation.</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 p-2 rounded-lg border border-surface-200 bg-surface-100 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={presetForm.is_public}
+                      onChange={(e) => setPresetForm({ ...presetForm, is_public: e.target.checked })}
+                      className="w-4 h-4 rounded border-surface-300 accent-amber-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <Globe className="w-3 h-3 text-cyan-400" /> Public Preset
+                      </span>
+                      <span className="text-[10px] text-surface-500 block leading-tight">Published to Public Templates (/dashboard/templates).</span>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-surface-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowPresetModal(false)}
+                    className="h-9 px-4 rounded-lg border border-surface-300 text-foreground hover:bg-surface-200 text-xs font-bold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingPreset}
+                    className="h-9 px-5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black text-xs rounded-lg transition-all flex items-center gap-2 shadow-md shadow-amber-500/20"
+                  >
+                    {savingPreset ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                    {savingPreset ? "Saving..." : "Create Preset"}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
@@ -1155,33 +1660,46 @@ export default function TaskTemplatesPage() {
                 )}
 
 
-                <div className="space-y-1 mt-2">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-surface-600">Specializations</label>
-                  <div className="flex flex-wrap gap-2">
-                    {allSpecializations.map((spec) => {
-                      const isSelected = form.specialization_ids.includes(spec.id);
-                      return (
-                        <button
-                          key={spec.id}
-                          type="button"
-                          onClick={() => {
-                            if (isSelected) {
-                              setForm({ ...form, specialization_ids: form.specialization_ids.filter(id => id !== spec.id) });
-                            } else {
-                              setForm({ ...form, specialization_ids: [...form.specialization_ids, spec.id] });
-                            }
-                          }}
-                          className={`px-2 py-1 rounded text-[10px] font-bold transition-all border ${
-                            isSelected 
-                              ? 'bg-accent/10 border-accent/30 text-accent' 
-                              : 'bg-surface-100 border-surface-300 text-surface-500 hover:bg-surface-200 hover:text-foreground'
-                          }`}
-                        >
-                          {spec.name}
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* Specializations Multi-Select Dropdown */}
+                <div className="mt-2">
+                  <SpecializationMultiSelect
+                    specializations={allSpecializations}
+                    selectedIds={form.specialization_ids}
+                    onChange={(ids) => setForm((p) => ({ ...p, specialization_ids: ids }))}
+                    label="Specializations (Multi-Select)"
+                    placeholder="Select specializations..."
+                  />
+                </div>
+
+                {/* Template Status Controls: Active & Public */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-surface-200">
+                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-surface-200 bg-surface-100 hover:bg-surface-200/50 transition-colors cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={form.is_active}
+                      onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
+                      className="w-4 h-4 rounded border-surface-300 accent-accent mt-0.5"
+                    />
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-foreground block">Active Template</span>
+                      <span className="text-[10px] text-surface-500 block leading-tight">If disabled, template is hidden from workspace task creation.</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-surface-200 bg-surface-100 hover:bg-surface-200/50 transition-colors cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={form.is_public}
+                      onChange={(e) => setForm((p) => ({ ...p, is_public: e.target.checked }))}
+                      className="w-4 h-4 rounded border-surface-300 accent-accent mt-0.5"
+                    />
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1">
+                        <Globe className="w-3 h-3 text-cyan-400" /> Public Template
+                      </span>
+                      <span className="text-[10px] text-surface-500 block leading-tight">When enabled, template is published to Public Templates (/dashboard/templates).</span>
+                    </div>
+                  </label>
                 </div>
 
                 {!form.is_milestone && (

@@ -79,11 +79,14 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({
     }
   };
 
+  const totalTasks = (block.total_tasks !== undefined && block.total_tasks !== null ? block.total_tasks : block.task_count) || 0;
+  const completedTasks = (block.completed_tasks !== undefined && block.completed_tasks !== null ? block.completed_tasks : block.done_count) || 0;
+
   const auditTitle = wasManuallyUnlocked
     ? `Manually activated by ${block.unlocked_by_name}${block.unlock_reason ? ` — "${block.unlock_reason}"` : ""}`
     : block.status === "LOCKED"
       ? isManager ? "Click the lock to activate this block" : "Locked — complete the previous phase first"
-      : `${zoneName} — ${block.completed_tasks}/${block.total_tasks} tasks done`;
+      : `${zoneName} — ${completedTasks}/${totalTasks} tasks done`;
 
   return (
     <div className="relative flex items-center justify-center">
@@ -166,10 +169,10 @@ export const MatrixBlockCell: React.FC<MatrixBlockCellProps> = ({
         </div>
 
         {/* Task count */}
-        {block.total_tasks > 0 ? (
+        {totalTasks > 0 ? (
           <div>
             <p className={`text-[10px] font-bold tabular-nums ${cfg.text}`}>
-              {block.completed_tasks}/{block.total_tasks}
+              {completedTasks}/{totalTasks}
               <span className="font-normal opacity-60 ml-1">tasks</span>
             </p>
             {block.status === "ACTIVE" && (

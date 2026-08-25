@@ -179,7 +179,7 @@ export default function SubscriptionPage() {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-10 max-w-5xl mx-auto py-8 relative"
+      className="space-y-4 w-full max-w-full relative"
     >
       {/* Toast */}
       {toast && (
