@@ -84,9 +84,10 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   const [taskTemplates, setTaskTemplates] = useState<any[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [templateDescription, setTemplateDescription] = useState("");
-  const [taskChecklists, setTaskChecklists] = useState<string[]>([]);
+  const [taskChecklists, setTaskChecklists] = useState<{ title: string; requires_visual_proof: boolean }[]>([]);
   const [taskSubtasks, setTaskSubtasks] = useState<any[]>([]);
   const [newChecklistInput, setNewChecklistInput] = useState("");
+  const [newChecklistRequiresProof, setNewChecklistRequiresProof] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newSubtaskDesc, setNewSubtaskDesc] = useState("");
   const [subtaskChecklistInputs, setSubtaskChecklistInputs] = useState<Record<number, string>>({});
@@ -218,9 +219,12 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         setNewTaskTitle(tpl.name || "");
         setTemplateDescription(tpl.description || "");
         const rawCl = Array.isArray(tpl.default_checklists) ? tpl.default_checklists : [];
-        const clList: string[] = rawCl
-          .map((c: any) => (typeof c === "string" ? c : c?.title || ""))
-          .filter(Boolean);
+        const clList = rawCl
+          .map((c: any) => {
+            if (typeof c === "string") return { title: c, requires_visual_proof: false };
+            return { title: c?.title || "", requires_visual_proof: !!c?.requires_visual_proof };
+          })
+          .filter((i: any) => i.title);
         setTaskChecklists(clList);
         setTaskSubtasks(Array.isArray(tpl.default_subtasks) ? tpl.default_subtasks : []);
       }
@@ -321,8 +325,8 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         block: block.id,
         title: newTaskTitle.trim(),
         description: templateDescription.trim(),
-        checklists: taskChecklists,
-        default_checklists: taskChecklists,
+        checklists: taskChecklists.map(c => c.title),
+        default_checklists: taskChecklists.map(c => c.title),
         subtasks: taskSubtasks,
         default_subtasks: taskSubtasks,
         status: "TODO",
@@ -333,17 +337,18 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       let taskChecklistItems = created?.checklists || [];
       if ((!taskChecklistItems || taskChecklistItems.length === 0) && taskChecklists.length > 0 && created?.uid) {
         const results = await Promise.allSettled(
-          taskChecklists.map((title, idx) => projectsApi.createChecklistItem(created.uid, title))
+          taskChecklists.map((cl) => projectsApi.createChecklistItem(created.uid, cl.title, "during", "", cl.requires_visual_proof))
         );
         taskChecklistItems = results
           .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
-          .map((r, idx) => r.value || { id: Date.now() + idx, title: taskChecklists[idx], is_completed: false });
+          .map((r, idx) => r.value || { id: Date.now() + idx, title: taskChecklists[idx].title, requires_visual_proof: taskChecklists[idx].requires_visual_proof, is_completed: false });
       }
 
       if ((!taskChecklistItems || taskChecklistItems.length === 0) && taskChecklists.length > 0) {
-        taskChecklistItems = taskChecklists.map((title, idx) => ({
+        taskChecklistItems = taskChecklists.map((cl, idx) => ({
           id: Date.now() + idx,
-          title,
+          title: cl.title,
+          requires_visual_proof: cl.requires_visual_proof,
           is_completed: false,
           order: idx,
         }));
@@ -843,11 +848,16 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                           className="flex items-center gap-2 px-3 py-1.5 bg-surface-100 border border-surface-300 rounded-lg group"
                         >
                           <span className="text-emerald-400 text-xs shrink-0 font-bold">✓</span>
-                          <span className="flex-1 text-xs font-medium text-foreground truncate">{cl}</span>
+                          <span className="flex-1 text-xs font-medium text-foreground truncate">{cl.title}</span>
+                          {cl.requires_visual_proof && (
+                            <span className="text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
+                              📷 Proof Req.
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => setTaskChecklists(prev => prev.filter((_, i) => i !== idx))}
-                            className="w-5 h-5 rounded hover:bg-red-500/15 text-surface-400 hover:text-red-400 flex items-center justify-center text-xs font-bold transition-all"
+                            className="w-5 h-5 rounded hover:bg-red-500/15 text-surface-400 hover:text-red-400 flex items-center justify-center text-xs font-bold transition-all shrink-0"
                           >
                             ✕
                           </button>
@@ -856,35 +866,50 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={newChecklistInput}
-                      onChange={(e) => setNewChecklistInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (newChecklistInput.trim()) {
-                            setTaskChecklists(prev => [...prev, newChecklistInput.trim()]);
-                            setNewChecklistInput("");
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newChecklistInput}
+                        onChange={(e) => setNewChecklistInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (newChecklistInput.trim()) {
+                              setTaskChecklists(prev => [...prev, { title: newChecklistInput.trim(), requires_visual_proof: newChecklistRequiresProof }]);
+                              setNewChecklistInput("");
+                              setNewChecklistRequiresProof(false);
+                            }
                           }
-                        }
-                      }}
-                      placeholder="Add checklist item (Press Enter)..."
-                      className="flex-1 h-8.5 px-3 bg-surface-100 border border-surface-300 rounded-lg text-xs font-medium text-foreground outline-none focus:border-accent placeholder:text-surface-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (newChecklistInput.trim()) {
-                          setTaskChecklists(prev => [...prev, newChecklistInput.trim()]);
-                          setNewChecklistInput("");
-                        }
-                      }}
-                      className="h-8.5 px-3 bg-accent text-background rounded-lg text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all shrink-0"
-                    >
-                      + Add
-                    </button>
+                        }}
+                        placeholder="Add checklist item (Press Enter)..."
+                        className="flex-1 h-8.5 px-3 bg-surface-100 border border-surface-300 rounded-lg text-xs font-medium text-foreground outline-none focus:border-accent placeholder:text-surface-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newChecklistInput.trim()) {
+                            setTaskChecklists(prev => [...prev, { title: newChecklistInput.trim(), requires_visual_proof: newChecklistRequiresProof }]);
+                            setNewChecklistInput("");
+                            setNewChecklistRequiresProof(false);
+                          }
+                        }}
+                        className="h-8.5 px-3 bg-accent text-background rounded-lg text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all shrink-0"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={newChecklistRequiresProof}
+                        onChange={(e) => setNewChecklistRequiresProof(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-surface-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span className="text-[10px] font-bold text-foreground flex items-center gap-1">
+                        📸 Photo Evidence Required for this Checkpoint
+                      </span>
+                    </label>
                   </div>
                 </div>
 

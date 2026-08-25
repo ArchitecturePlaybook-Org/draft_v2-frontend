@@ -597,9 +597,7 @@ export function EstimationView({ projectUid }: EstimationViewProps) {
       setFloorPlanId(null);
       setItems([]);
       setLastSavedItems([]);
-      Promise.resolve().then(() => {
-        setEstimations([]);
-      });
+      setEstimations([]);
     }
   }, [selectedAssetId, setFloorPlanId, setItems, setLastSavedItems]);
 

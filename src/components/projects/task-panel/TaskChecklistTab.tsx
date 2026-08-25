@@ -11,7 +11,7 @@ interface ChecklistTemplate {
 interface TaskChecklistTabProps {
   task: Task;
   checklists: TaskChecklistItem[];
-  handleAddChecklistItem: (title: string, type: "pre" | "during" | "post", description: string) => void;
+  handleAddChecklistItem: (title: string, type: "pre" | "during" | "post", description: string, requiresVisualProof?: boolean) => void;
   handleToggleChecklist: (item: TaskChecklistItem) => void;
   handleDeleteChecklist?: (item: TaskChecklistItem) => void;
   isContractor: boolean;
@@ -53,15 +53,17 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
   const [newTitle, setNewTitle] = useState("");
   const [newType, setNewType] = useState<"pre" | "during" | "post">("during");
   const [newDesc, setNewDesc] = useState("");
+  const [newRequiresProof, setNewRequiresProof] = useState(false);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!newTitle.trim()) return;
-    handleAddChecklistItem(newTitle.trim(), newType, newDesc.trim());
+    handleAddChecklistItem(newTitle.trim(), newType, newDesc.trim(), newRequiresProof);
     setNewTitle("");
     setNewType("during");
     setNewDesc("");
+    setNewRequiresProof(false);
   };
 
   // Group checklists by type
@@ -91,7 +93,7 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
                 onClick={() => !readOnly && handleToggleChecklist(item)}
                 disabled={(isContractor && task.status !== "WIP") || isUpdating || readOnly}
                 className="mt-0.5 shrink-0 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={item.is_completed ? "Mark incomplete" : "Mark complete"}
+                title={item.is_completed ? "Mark incomplete" : item.requires_visual_proof ? "Upload photo evidence to complete" : "Mark complete"}
               >
                 {item.is_completed ? (
                   <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 fill-emerald-500/10" />
@@ -115,11 +117,11 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
                       {item.title}
                     </span>
                     <span className={`inline-flex items-center text-[8px] font-black uppercase px-1.5 py-0.2 rounded border ${bgClass} shrink-0`}>
-                      {item.type || "during"}
+                      {item.type === "pre" ? "Pre-Activity" : item.type === "post" ? "Post-Activity" : "During Activity"}
                     </span>
                     {item.requires_visual_proof && (
-                      <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
-                        <Camera className="w-2.5 h-2.5" /> Proof Req.
+                      <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 shrink-0">
+                        <Camera className="w-2.5 h-2.5" /> Photo Proof Required
                       </span>
                     )}
                   </div>
@@ -152,19 +154,39 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
                   </span>
                 )}
 
+                {/* Action button for photo required when not yet completed */}
+                {!item.is_completed && item.requires_visual_proof && !readOnly && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleChecklist(item)}
+                      disabled={isUpdating}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-500/25 transition-all shadow-xs"
+                    >
+                      <Camera className="w-3 h-3" />
+                      <span>Upload Photo to Complete</span>
+                    </button>
+                  </div>
+                )}
+
                 {/* Attachments preview */}
                 {item.attachments && item.attachments.length > 0 && (
-                  <div className="flex gap-1.5 mt-1">
-                    {item.attachments.map((att: any) => (
-                      <button
-                        key={att.id}
-                        type="button"
-                        onClick={() => setLightboxImageUrl(att.file)}
-                        className="w-8 h-8 rounded-lg overflow-hidden border border-surface-300 hover:border-accent block transition-opacity cursor-pointer focus:outline-none shrink-0"
-                      >
-                        <img src={att.file} alt="Proof" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
+                  <div className="flex flex-col gap-1 mt-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-surface-400 flex items-center gap-1">
+                      <Camera className="w-2.5 h-2.5" /> Evidence ({item.attachments.length})
+                    </span>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {item.attachments.map((att: any) => (
+                        <button
+                          key={att.id}
+                          type="button"
+                          onClick={() => setLightboxImageUrl(att.file)}
+                          className="w-12 h-12 rounded-lg overflow-hidden border border-surface-300 hover:border-accent block transition-all hover:scale-105 cursor-pointer focus:outline-none shrink-0 relative group"
+                        >
+                          <img src={att.file} alt="Proof" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -178,51 +200,43 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
   return (
     <div className="space-y-4">
       {/* Progress Bar & Summary */}
-      {total > 0 && (
-        <div className="bg-surface-100 border border-surface-300 rounded-xl p-3 shadow-xs">
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="font-bold text-foreground flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              Checklist Progress
-            </span>
-            <span className="text-[11px] font-black text-accent tabular-nums">
-              {completed} of {total} completed ({percent}%)
-            </span>
-          </div>
-          <div className="w-full h-1.5 bg-surface-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-linear-to-r from-accent to-emerald-500 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
+      <div className="bg-surface-100 border border-surface-300 rounded-xl p-3 shadow-xs space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-extrabold text-foreground tracking-tight">QA/QC Checkpoints</span>
+          <span className="font-black tabular-nums text-accent">{completed}/{total} Verified ({percent}%)</span>
         </div>
-      )}
+        <div className="w-full h-2 bg-surface-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-accent transition-all duration-300 rounded-full"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      </div>
 
-      {/* Checklist Items List Grouped */}
+      {/* Checklists by stage */}
       <div className="space-y-4">
-        {checklists.length === 0 ? (
-          <div className="bg-surface-100 border border-surface-300 rounded-xl p-6 text-center">
-            <p className="text-xl mb-1">📋</p>
-            <p className="text-xs font-bold text-foreground">No checklist items yet</p>
-            <p className="text-[10px] text-surface-500 mt-0.5">Add checkpoints below or import a template.</p>
+        {renderGroup("Pre-Activity Gate", preItems, "bg-blue-400", "border-blue-500/30 text-blue-400 bg-blue-500/10")}
+        {renderGroup("During Activity", duringItems, "bg-amber-400", "border-amber-500/30 text-amber-400 bg-amber-500/10")}
+        {renderGroup("Post-Activity / Handover", postItems, "bg-emerald-400", "border-emerald-500/30 text-emerald-400 bg-emerald-500/10")}
+
+        {total === 0 && (
+          <div className="p-8 text-center bg-surface-50 border border-dashed border-surface-300 rounded-xl space-y-1">
+            <Info className="w-5 h-5 text-surface-400 mx-auto mb-1" />
+            <p className="text-xs font-bold text-foreground">No checkpoints added yet</p>
+            <p className="text-[10px] text-surface-400">Add mandatory inspection checkpoints below or import a template.</p>
           </div>
-        ) : (
-          <>
-            {renderGroup("Pre-Construction Checkpoints", preItems, "bg-purple-400", "bg-purple-500/10 text-purple-400 border-purple-500/20")}
-            {renderGroup("During Construction Checkpoints", duringItems, "bg-amber-400", "bg-amber-500/10 text-amber-400 border-amber-500/20")}
-            {renderGroup("Post-Construction Checkpoints", postItems, "bg-emerald-400", "bg-emerald-500/10 text-emerald-400 border-emerald-500/20")}
-          </>
         )}
       </div>
 
-      {/* Add Checkpoint & Import Form */}
+      {/* Add Checklist Item Form */}
       {!readOnly && (isAdmin || isArchitect || isQA) && (
-        <div className="bg-surface-100 border border-surface-300 rounded-xl p-3 shadow-xs space-y-3">
-          <h4 className="text-[10px] font-black uppercase tracking-wider text-surface-500 flex items-center gap-1">
-            <Plus className="w-3.5 h-3.5 text-accent" /> Add New Checkpoint
+        <div className="bg-surface-100 border border-surface-300 rounded-xl p-3.5 space-y-3 shadow-xs">
+          <h4 className="text-[11px] font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+            <Plus className="w-3.5 h-3.5 text-accent" />
+            <span>Add New Inspection Checkpoint</span>
           </h4>
+
           <form onSubmit={onSubmit} className="space-y-2.5">
-            {/* Title & Type Select */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="sm:col-span-2">
                 <input
@@ -242,9 +256,9 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
                   disabled={isUpdating}
                   className="w-full h-8 px-2.5 bg-surface-50 border border-surface-300 rounded-lg outline-none focus:border-accent text-xs font-semibold text-foreground appearance-none"
                 >
-                  <option value="pre" className="bg-surface-100 text-foreground">Pre-Construction</option>
-                  <option value="during" className="bg-surface-100 text-foreground">During Construction</option>
-                  <option value="post" className="bg-surface-100 text-foreground">Post-Construction</option>
+                  <option value="pre" className="bg-surface-100 text-foreground">Pre-Activity</option>
+                  <option value="during" className="bg-surface-100 text-foreground">During Activity</option>
+                  <option value="post" className="bg-surface-100 text-foreground">Post-Activity</option>
                 </select>
               </div>
             </div>
@@ -259,6 +273,28 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
                 rows={2}
                 className="w-full p-2 bg-surface-50 border border-surface-300 rounded-lg text-xs font-medium text-foreground outline-none focus:border-accent placeholder:text-surface-400 transition-all resize-none leading-relaxed"
               />
+            </div>
+
+            {/* Photo Required Toggle */}
+            <div className="p-2.5 bg-surface-50 border border-surface-200 rounded-lg flex items-center justify-between gap-3">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={newRequiresProof}
+                  onChange={(e) => setNewRequiresProof(e.target.checked)}
+                  disabled={isUpdating}
+                  className="w-4 h-4 rounded border-surface-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-blue-400" />
+                    Photo Evidence Required
+                  </span>
+                  <p className="text-[10px] text-surface-400 font-medium">
+                    Contractors must upload photo evidence to verify and complete this checkpoint
+                  </p>
+                </div>
+              </label>
             </div>
 
             <div className="flex justify-end pt-1">

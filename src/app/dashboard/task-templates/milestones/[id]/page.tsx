@@ -718,7 +718,7 @@ export default function MilestoneDetailPage() {
                                 <span className="w-3.5 h-3.5 rounded border border-accent/40 flex items-center justify-center text-[7px] text-accent shrink-0 font-bold">✓</span>
                                 <span className="font-semibold text-foreground truncate">{norm.title}</span>
                                 <span className={`inline-flex items-center text-[8px] font-black uppercase px-1.5 py-0.2 rounded border ${typeColors} shrink-0`}>
-                                  {norm.type}
+                                  {norm.type === "pre" ? "Pre-Activity" : norm.type === "post" ? "Post-Activity" : "During Activity"}
                                 </span>
                               </div>
                               <button type="button" onClick={() => removeChecklistItem(idx)} className="w-4 h-4 rounded hover:bg-red-500/15 text-surface-400 hover:text-red-400 flex items-center justify-center text-xs font-bold transition-all shrink-0">✕</button>
@@ -753,9 +753,9 @@ export default function MilestoneDetailPage() {
                           onChange={(e) => setNewChecklistType(e.target.value as any)}
                           className="w-full h-8 px-2.5 bg-surface-50 border border-surface-300 rounded-lg outline-none focus:border-purple-400 text-xs font-semibold text-foreground appearance-none"
                         >
-                          <option value="pre">Pre-Construction</option>
-                          <option value="during">During Construction</option>
-                          <option value="post">Post-Construction</option>
+                          <option value="pre">Pre-Activity</option>
+                          <option value="during">During Activity</option>
+                          <option value="post">Post-Activity</option>
                         </select>
                       </div>
                     </div>

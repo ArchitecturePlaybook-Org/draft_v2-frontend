@@ -83,17 +83,23 @@ export const projectsApi = {
     }
   },
 
-  createProjectPreset: async (data: { name: string; category?: string; description?: string; icon_emoji?: string; is_active?: boolean; is_public?: boolean }) => {
+  createProjectPreset: async (data: { name: string; slug?: string; category?: string; description?: string; icon_emoji?: string; is_active?: boolean; is_public?: boolean }) => {
+    const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `preset-${Date.now()}`;
+    const payload = { ...data, slug };
     return fetchFromBff<any>("/api/v1/projects/project-presets/", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   },
 
-  updateProjectPreset: async (id: number | string, data: { name?: string; category?: string; description?: string; icon_emoji?: string; is_active?: boolean; is_public?: boolean }) => {
+  updateProjectPreset: async (id: number | string, data: { name?: string; slug?: string; category?: string; description?: string; icon_emoji?: string; is_active?: boolean; is_public?: boolean }) => {
+    const payload = { ...data };
+    if (data.name && !data.slug) {
+      payload.slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    }
     return fetchFromBff<any>(`/api/v1/projects/project-presets/${id}/`, {
       method: "PATCH",
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   },
 
@@ -254,10 +260,23 @@ export const projectsApi = {
     return unpackArray<any>(res);
   },
 
-  createChecklistItem: async (taskUid: string, title: string, type: "pre" | "during" | "post" = "during", description: string = "") => {
+  createChecklistItem: async (
+    taskUid: string,
+    title: string,
+    type: "pre" | "during" | "post" = "during",
+    description: string = "",
+    requiresVisualProof: boolean = false
+  ) => {
     return fetchFromBff<any>(`/api/v1/projects/task-checklists/`, {
       method: "POST",
-      body: JSON.stringify({ task: taskUid, title: title, type: type, description: description, is_completed: false })
+      body: JSON.stringify({
+        task: taskUid,
+        title: title,
+        type: type,
+        description: description,
+        requires_visual_proof: requiresVisualProof,
+        is_completed: false
+      })
     });
   },
 
@@ -1032,7 +1051,7 @@ export const projectsApi = {
     return unpackArray<SpatialZone>(res);
   },
 
-  createZone: async (data: { project: number; name: string; order?: number; zone_type?: string; bim_element_id?: string }) => {
+  createZone: async (data: { project: number | string; name: string; order?: number; zone_type?: string; bim_element_id?: string }) => {
     return fetchFromBff<SpatialZone>("/api/v1/projects/zones/", { method: "POST", body: JSON.stringify(data) });
   },
 
@@ -1056,7 +1075,7 @@ export const projectsApi = {
     return unpackArray<MilestonePhase>(res);
   },
 
-  createPhase: async (data: { project: number; name: string; sequence_order: number; color_hex?: string }) => {
+  createPhase: async (data: { project: number | string; name: string; sequence_order: number; color_hex?: string }) => {
     return fetchFromBff<MilestonePhase>("/api/v1/projects/phases/", { method: "POST", body: JSON.stringify(data) });
   },
 

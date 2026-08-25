@@ -8,6 +8,7 @@ import { projectsApi } from "@/domains/projects/api";
 import { MatrixBlockCell } from "./MatrixBlockCell";
 import { KanbanDrawer } from "./KanbanDrawer";
 import { MatrixOnboardingWizard } from "./MatrixOnboardingWizard";
+import { ApplyMatrixPresetModal } from "./ApplyMatrixPresetModal";
 import { toast } from "sonner";
 import { useProjectNavStore } from "@/store/project-nav-store";
 import { TaskExecutionSidePanel } from "@/components/projects/TaskExecutionSidePanel";
@@ -45,6 +46,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   const [isAddingZone, setIsAddingZone] = useState(false);
   const [isAddingPhase, setIsAddingPhase] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [showPresetModal, setShowPresetModal] = useState(false);
 
   const [showAddZoneInput, setShowAddZoneInput] = useState(false);
   const [newZoneName, setNewZoneName] = useState("");
@@ -238,7 +240,9 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
 
   const submitAddZone = async () => {
     if (!payload) return;
-    const projectId = payload.project_id || payload.zones[0]?.project || payload.phases[0]?.project || payload.blocks[0]?.project_id;
+    const projectId = (payload.project_id && payload.project_id !== 0)
+      ? payload.project_id
+      : (payload.zones[0]?.project || payload.phases[0]?.project || payload.blocks[0]?.project_id || projectUid);
     if (!projectId || !newZoneName.trim()) return;
 
     setIsAddingZone(true);
@@ -246,7 +250,7 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
       await projectsApi.createZone({
         project: projectId,
         name: newZoneName.trim(),
-        order: payload.zones.length,
+        order: payload.zones.length + 1,
         zone_type: "custom"
       });
       refreshMatrix();
@@ -262,7 +266,9 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
 
   const submitAddPhase = async () => {
     if (!payload) return;
-    const projectId = payload.project_id || payload.phases[0]?.project || payload.zones[0]?.project || payload.blocks[0]?.project_id;
+    const projectId = (payload.project_id && payload.project_id !== 0)
+      ? payload.project_id
+      : (payload.phases[0]?.project || payload.zones[0]?.project || payload.blocks[0]?.project_id || projectUid);
     if (!projectId || !newPhaseName.trim()) return;
 
     setIsAddingPhase(true);
@@ -427,41 +433,41 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
     }
 
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center gap-4 glass-card bg-surface-100/50 backdrop-blur-md relative overflow-hidden p-8">
-        <div className="absolute inset-0 arch-grid opacity-10 pointer-events-none" />
-        <div className="w-16 h-16 rounded-2xl bg-surface-200/50 dark:bg-surface-700/50 flex items-center justify-center text-3xl shadow-inner relative z-10">🏗️</div>
-        <div className="relative z-10">
-          <h3 className="text-xl font-black text-foreground tracking-tight">No Matrix Configured</h3>
-          <p className="text-sm text-text-secondary mt-2 font-medium max-w-md mx-auto">
-            Use the Onboarding Wizard to define the spatial zones and milestone phases for this project.
-          </p>
-        </div>
-        {!readOnly && userRole === "admin" && (
-          <div className="flex items-center gap-3 mt-2 z-10 flex-wrap justify-center">
-            <button
-              onClick={async () => {
-                try {
-                  toast.loading("Instantiating 237+ QA/QC templates & 6 stages...", { id: "apply-preset" });
-                  await projectsApi.applyProjectPreset(projectUid, "residential-qaqc-plan");
-                  toast.success("Residential QA/QC Plan instantiated!", { id: "apply-preset" });
-                  refreshMatrix();
-                } catch (err: any) {
-                  toast.error("Failed to apply preset: " + (err.message || ""), { id: "apply-preset" });
-                }
-              }}
-              className="relative group overflow-hidden h-11 px-6 bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md shadow-purple-500/20 flex items-center gap-2"
-            >
-              <span>⚡ Apply Residential QA/QC Preset</span>
-            </button>
-            <button
-              onClick={() => setShowWizard(true)}
-              className="relative group overflow-hidden h-11 px-6 bg-surface-200 border border-surface-300 hover:bg-surface-300 text-foreground font-bold text-xs uppercase tracking-widest rounded-xl transition-all"
-            >
-              <span>Configure Custom Matrix</span>
-            </button>
+      <>
+        <div className="flex flex-col items-center justify-center h-64 text-center gap-4 glass-card bg-surface-100/50 backdrop-blur-md relative overflow-hidden p-8">
+          <div className="absolute inset-0 arch-grid opacity-10 pointer-events-none" />
+          <div className="w-16 h-16 rounded-2xl bg-surface-200/50 dark:bg-surface-700/50 flex items-center justify-center text-3xl shadow-inner relative z-10">🏗️</div>
+          <div className="relative z-10">
+            <h3 className="text-xl font-black text-foreground tracking-tight">No Matrix Configured</h3>
+            <p className="text-sm text-text-secondary mt-2 font-medium max-w-md mx-auto">
+              Use the Onboarding Wizard to define the spatial zones and milestone phases for this project.
+            </p>
           </div>
-        )}
-      </div>
+          {!readOnly && userRole === "admin" && (
+            <div className="flex items-center gap-3 mt-2 z-10 flex-wrap justify-center">
+              <button
+                onClick={() => setShowPresetModal(true)}
+                className="relative group overflow-hidden h-11 px-6 bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md shadow-purple-500/20 flex items-center gap-2 cursor-pointer"
+              >
+                <span>⚡ Select QA/QC Preset or Template</span>
+              </button>
+              <button
+                onClick={() => setShowWizard(true)}
+                className="relative group overflow-hidden h-11 px-6 bg-surface-200 border border-surface-300 hover:bg-surface-300 text-foreground font-bold text-xs uppercase tracking-widest rounded-xl transition-all"
+              >
+                <span>Configure Custom Matrix</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        <ApplyMatrixPresetModal
+          isOpen={showPresetModal}
+          onClose={() => setShowPresetModal(false)}
+          projectUid={projectUid}
+          onSuccess={refreshMatrix}
+        />
+      </>
     );
   }
 
@@ -987,6 +993,14 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Preset & Template Selector Modal */}
+      <ApplyMatrixPresetModal
+        isOpen={showPresetModal}
+        onClose={() => setShowPresetModal(false)}
+        projectUid={projectUid}
+        onSuccess={refreshMatrix}
+      />
     </>
   );
 };

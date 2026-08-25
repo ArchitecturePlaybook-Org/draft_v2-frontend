@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { projectsApi } from "@/domains/projects/api";
 import { authApi } from "@/domains/auth/api";
 import { useAuthStore } from "@/store/auth-store";
@@ -107,7 +107,7 @@ const DEFAULT_FALLBACK_PRESETS = [
 
 type TemplateTab = "global" | "my_org" | "milestones" | "project_presets";
 
-export default function TaskTemplatesPage() {
+function TaskTemplatesPageContent() {
   const { user } = useAuthStore();
   const isSuperAdmin = !!((user as any)?.is_staff || (user as any)?.is_superuser);
 
@@ -157,12 +157,43 @@ export default function TaskTemplatesPage() {
   const [savingPreset, setSavingPreset] = useState(false);
   const [loading, setLoading] = useState(true);
   const [allSpecializations, setAllSpecializations] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<TemplateTab>("global");
+
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get("tab");
+
+  const [activeTab, setActiveTab] = useState<TemplateTab>(() => {
+    if (tabParam === "project_presets" || tabParam === "project" || tabParam === "presets" || tabParam === "project_preset") {
+      return "project_presets";
+    }
+    if (tabParam === "my_org" || tabParam === "org") return "my_org";
+    if (tabParam === "milestones" || tabParam === "milestone") return "milestones";
+    return "global";
+  });
+
+  useEffect(() => {
+    if (tabParam) {
+      if (tabParam === "project_presets" || tabParam === "project" || tabParam === "presets" || tabParam === "project_preset") {
+        setActiveTab("project_presets");
+      } else if (tabParam === "my_org" || tabParam === "org") {
+        setActiveTab("my_org");
+      } else if (tabParam === "milestones" || tabParam === "milestone") {
+        setActiveTab("milestones");
+      } else if (tabParam === "global") {
+        setActiveTab("global");
+      }
+    }
+  }, [tabParam]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
   const router = useRouter();
+
+  const handleTabChange = (tab: TemplateTab) => {
+    setActiveTab(tab);
+    router.replace(`/dashboard/task-templates?tab=${tab}`, { scroll: false });
+  };
 
   // Modals state
   const [showModal, setShowModal] = useState(false);
@@ -628,7 +659,7 @@ export default function TaskTemplatesPage() {
           {/* Tabs */}
           <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-surface-100/70 border border-surface-200">
             <button
-              onClick={() => setActiveTab("global")}
+              onClick={() => handleTabChange("global")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                 activeTab === "global"
                   ? "bg-surface-50 text-foreground shadow-xs border border-surface-200"
@@ -642,7 +673,7 @@ export default function TaskTemplatesPage() {
               </span>
             </button>
             <button
-              onClick={() => setActiveTab("my_org")}
+              onClick={() => handleTabChange("my_org")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                 activeTab === "my_org"
                   ? "bg-surface-50 text-foreground shadow-xs border border-surface-200"
@@ -656,30 +687,30 @@ export default function TaskTemplatesPage() {
               </span>
             </button>
             <button
-              onClick={() => setActiveTab("milestones")}
+              onClick={() => handleTabChange("milestones")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                 activeTab === "milestones"
-                  ? "bg-purple-500/15 text-purple-400 shadow-xs border border-purple-500/30"
+                  ? "bg-surface-50 text-foreground shadow-xs border border-surface-200"
                   : "text-surface-500 hover:text-foreground"
               }`}
             >
               <span className="text-xs">🎯</span>
               <span>Milestones</span>
-              <span className="px-1.5 py-0.2 bg-purple-500/15 text-purple-400 rounded text-[9px] font-black border border-purple-500/20">
+              <span className="px-1.5 py-0.2 bg-surface-200 text-surface-600 rounded text-[9px] font-black border border-surface-300">
                 {[...globalTemplates, ...orgTemplates].filter((t) => t.is_milestone).length}
               </span>
             </button>
             <button
-              onClick={() => setActiveTab("project_presets")}
+              onClick={() => handleTabChange("project_presets")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                 activeTab === "project_presets"
-                  ? "bg-amber-500/15 text-amber-400 shadow-xs border border-amber-500/30"
+                  ? "bg-surface-50 text-foreground shadow-xs border border-surface-200"
                   : "text-surface-500 hover:text-foreground"
               }`}
             >
-              <span className="text-xs">⚡</span>
+              <Layers className="w-3 h-3 text-surface-500" />
               <span>Project Presets</span>
-              <span className="px-1.5 py-0.2 bg-amber-500/15 text-amber-400 rounded text-[9px] font-black border border-amber-500/20">
+              <span className="px-1.5 py-0.2 bg-surface-200 text-surface-600 rounded text-[9px] font-black border border-surface-300">
                 {projectPresets.length}
               </span>
             </button>
@@ -722,9 +753,9 @@ export default function TaskTemplatesPage() {
         </div>
       )}
       {activeTab === "project_presets" && (
-        <div className="flex items-center gap-2 p-2.5 bg-amber-500/5 border border-amber-500/20 rounded-lg text-[10px] text-amber-300 font-medium">
-          <span className="text-sm shrink-0">⚡</span>
-          <span>Project Presets: 1-Click QA/QC Matrix Templates with 6 standard stages (Pre-Construction, Substructure, Superstructure, Finishes, MEP, Handover).</span>
+        <div className="flex items-center gap-2 p-2.5 bg-surface-100 border border-surface-300 rounded-lg text-[10px] text-surface-500 font-medium">
+          <Layers className="w-3.5 h-3.5 text-accent shrink-0" />
+          <span>Project Presets: Standard 6-stage QA/QC Matrix blueprints for turnkey project configuration.</span>
         </div>
       )}
 
@@ -734,27 +765,27 @@ export default function TaskTemplatesPage() {
           {projectPresets.map((preset) => (
             <div
               key={preset.slug}
-              className="p-5 bg-surface-50 border border-surface-300 rounded-2xl shadow-xs space-y-4 hover:border-amber-500/40 transition-all"
+              className="p-4 bg-surface-50 border border-surface-300 rounded-xl shadow-xs space-y-3.5 hover:border-surface-400 transition-all"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-xl font-bold">
+                  <span className="w-9 h-9 rounded-xl bg-surface-100 border border-surface-200 text-foreground flex items-center justify-center text-lg font-bold shrink-0">
                     {preset.icon_emoji || "🏠"}
                   </span>
                   <div>
-                    <h3 className="text-sm font-black text-foreground">{preset.name}</h3>
+                    <h3 className="text-sm font-extrabold text-foreground">{preset.name}</h3>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-surface-100 text-surface-600 border border-surface-200">
                         {preset.category}
                       </span>
-                      <span className="text-[10px] text-surface-500 font-bold">6 Stages · 237+ Templates</span>
+                      <span className="text-[10px] text-surface-400 font-semibold">6 Stages · 237+ Templates</span>
                       {preset.is_public !== false && (
-                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-cyan-500/15 text-cyan-400 border border-cyan-500/20">
-                          🌐 Public
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-surface-100 text-surface-500 border border-surface-200">
+                          Public
                         </span>
                       )}
                       {preset.is_active === false && (
-                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-surface-200 text-surface-500 border border-surface-300">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-surface-200 text-surface-500 border border-surface-300">
                           Inactive
                         </span>
                       )}
@@ -763,32 +794,32 @@ export default function TaskTemplatesPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-surface-600 font-medium leading-relaxed">
+              <p className="text-xs text-surface-500 font-medium leading-relaxed line-clamp-2">
                 {preset.description}
               </p>
 
               {/* Stages Pill Badges */}
               <div className="space-y-1.5 pt-2 border-t border-surface-200">
-                <label className="text-[9px] font-black uppercase tracking-wider text-surface-500">Standard Stages Included</label>
+                <label className="text-[9px] font-black uppercase tracking-wider text-surface-400">Standard Stages Included</label>
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">📋 Pre-Construction</span>
-                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">🏗️ Substructure</span>
-                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-pink-500/10 text-pink-400 border border-pink-500/20">🏢 Superstructure</span>
-                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">🎨 Finishes</span>
-                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">⚡ MEP Services</span>
-                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">📂 Handover</span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-100 text-surface-600 border border-surface-200">1. Pre-Activity</span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-100 text-surface-600 border border-surface-200">2. Substructure</span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-100 text-surface-600 border border-surface-200">3. Superstructure</span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-100 text-surface-600 border border-surface-200">4. Finishes</span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-100 text-surface-600 border border-surface-200">5. MEP Services</span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-100 text-surface-600 border border-surface-200">6. Handover</span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between gap-2.5 pt-3 border-t border-surface-200">
+              <div className="flex items-center justify-between gap-2.5 pt-2.5 border-t border-surface-200">
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => openEditPreset(preset)}
-                    className="h-8 px-3 rounded-lg bg-surface-200 hover:bg-amber-500/20 hover:text-amber-400 text-foreground text-xs font-bold transition-all flex items-center gap-1"
+                    className="h-7.5 px-2.5 rounded-lg bg-surface-100 hover:bg-surface-200 border border-surface-300 text-foreground text-xs font-bold transition-all flex items-center gap-1"
                     title="Edit Project Preset"
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
+                    <Edit3 className="w-3.5 h-3.5 text-surface-500" />
                     <span>Edit</span>
                   </button>
                   {preset.id && (
@@ -804,7 +835,7 @@ export default function TaskTemplatesPage() {
                           toast.error(err?.message || "Failed to delete preset");
                         }
                       }}
-                      className="h-8 px-2.5 rounded-lg bg-surface-200 hover:bg-red-500/20 hover:text-red-400 text-surface-400 text-xs font-bold transition-all"
+                      className="h-7.5 px-2.5 rounded-lg bg-surface-100 hover:bg-red-500/10 hover:text-red-400 border border-surface-300 text-surface-400 text-xs font-bold transition-all"
                       title="Delete Project Preset"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -814,16 +845,16 @@ export default function TaskTemplatesPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => router.push(`/dashboard/task-templates/presets/${preset.slug}`)}
-                    className="h-8 px-3 rounded-lg border border-surface-300 hover:bg-surface-200 text-foreground text-xs font-bold transition-all flex items-center gap-1.5"
+                    className="h-7.5 px-3 rounded-lg border border-surface-300 hover:bg-surface-200 text-foreground text-xs font-bold transition-all flex items-center gap-1.5"
                   >
-                    <Layers className="w-3.5 h-3.5 text-amber-400" />
-                    <span>View Matrix Preview</span>
+                    <Layers className="w-3.5 h-3.5 text-surface-500" />
+                    <span>Preview Matrix</span>
                   </button>
                   <button
                     onClick={() => router.push("/dashboard/projects")}
-                    className="h-8 px-3.5 bg-amber-500 hover:bg-amber-600 text-white font-black text-xs rounded-lg transition-all flex items-center gap-1 shadow-md shadow-amber-500/20"
+                    className="h-7.5 px-3.5 bg-accent hover:opacity-90 text-background font-black text-xs uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 shadow-xs"
                   >
-                    <span>⚡ Use Preset</span>
+                    <span>Use Preset</span>
                   </button>
                 </div>
               </div>
@@ -912,7 +943,7 @@ export default function TaskTemplatesPage() {
             >
               <div className="p-4 border-b border-surface-200 bg-surface-100 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg font-bold">
+                  <span className="w-8 h-8 rounded-lg bg-surface-200 text-foreground flex items-center justify-center text-base font-bold">
                     {previewPreset.icon_emoji || "🏠"}
                   </span>
                   <div>
@@ -937,27 +968,27 @@ export default function TaskTemplatesPage() {
                   <label className="text-[10px] font-black uppercase tracking-wider text-surface-600">Standard Project Stages & Scope</label>
                   <div className="space-y-2">
                     <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
-                      <p className="text-xs font-bold text-blue-400">1. Pre-Construction</p>
+                      <p className="text-xs font-bold text-foreground">1. Pre-Activity</p>
                       <p className="text-[11px] text-surface-500 font-medium">Site survey, soil investigation (IS 1892), SWMS, baseline schedule & approvals.</p>
                     </div>
                     <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
-                      <p className="text-xs font-bold text-purple-400">2. Substructure</p>
+                      <p className="text-xs font-bold text-foreground">2. Substructure</p>
                       <p className="text-[11px] text-surface-500 font-medium">Excavation, piling (IS 2911), raft/footings, basement retaining walls & waterproofing.</p>
                     </div>
                     <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
-                      <p className="text-xs font-bold text-pink-400">3. Superstructure</p>
+                      <p className="text-xs font-bold text-foreground">3. Superstructure</p>
                       <p className="text-[11px] text-surface-500 font-medium">RCC frame columns/beams/slabs (IS 456), rebar TMT (IS 1786), masonry & structural steel.</p>
                     </div>
                     <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
-                      <p className="text-xs font-bold text-amber-400">4. Finishes & Joinery</p>
+                      <p className="text-xs font-bold text-foreground">4. Finishes & Joinery</p>
                       <p className="text-[11px] text-surface-500 font-medium">Plastering (IS 1661), painting (IS 2932), tile/stone flooring, doors & windows.</p>
                     </div>
                     <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
-                      <p className="text-xs font-bold text-emerald-400">5. MEP Services</p>
+                      <p className="text-xs font-bold text-foreground">5. MEP Services</p>
                       <p className="text-[11px] text-surface-500 font-medium">Plumbing, electrical wiring & DBs (IS 732), HVAC ducting, fire fighting & lifts (NBC 2016).</p>
                     </div>
                     <div className="p-3 bg-surface-100 border border-surface-200 rounded-xl space-y-1">
-                      <p className="text-xs font-bold text-cyan-400">6. Handover & QA Audits</p>
+                      <p className="text-xs font-bold text-foreground">6. Handover & QA Audits</p>
                       <p className="text-[11px] text-surface-500 font-medium">Daily logs, quality audit checklists, snag list management & handover certificates.</p>
                     </div>
                   </div>
@@ -1285,12 +1316,15 @@ export default function TaskTemplatesPage() {
                   }
                   setSavingPreset(true);
                   try {
+                    const generatedSlug = (presetForm as any).slug || presetForm.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `preset-${Date.now()}`;
+                    const payload = { ...presetForm, slug: generatedSlug };
+
                     if (editingPreset && (presetForm.id || editingPreset.id || editingPreset.slug)) {
                       const targetId = presetForm.id || editingPreset.id || editingPreset.slug;
-                      await projectsApi.updateProjectPreset(targetId, presetForm);
+                      await projectsApi.updateProjectPreset(targetId, payload);
                       toast.success(`Project Preset "${presetForm.name}" updated successfully!`);
                     } else {
-                      const newPreset = await projectsApi.createProjectPreset(presetForm);
+                      const newPreset = await projectsApi.createProjectPreset(payload);
                       toast.success(`Project Preset "${newPreset.name}" created successfully!`);
                     }
                     const freshPresets = await projectsApi.getProjectPresets();
@@ -1735,7 +1769,7 @@ export default function TaskTemplatesPage() {
                                     <span className="w-3.5 h-3.5 rounded border border-accent/40 flex items-center justify-center text-[7px] text-accent shrink-0 font-bold">✓</span>
                                     <span className="font-semibold text-foreground truncate">{norm.title}</span>
                                     <span className={`inline-flex items-center text-[8px] font-black uppercase px-1.5 py-0.2 rounded border ${typeColors} shrink-0`}>
-                                      {norm.type}
+                                      {norm.type === "pre" ? "Pre-Activity" : norm.type === "post" ? "Post-Activity" : "During Activity"}
                                     </span>
                                   </div>
                                   <button type="button" onClick={() => removeChecklistItem(idx)} className="w-4 h-4 rounded hover:bg-red-500/15 text-surface-400 hover:text-red-400 flex items-center justify-center text-xs font-bold transition-all shrink-0">✕</button>
@@ -1770,9 +1804,9 @@ export default function TaskTemplatesPage() {
                               onChange={(e) => setNewChecklistType(e.target.value as any)}
                               className="w-full h-8 px-2.5 bg-surface-50 border border-surface-300 rounded-lg outline-none focus:border-accent text-xs font-semibold text-foreground appearance-none"
                             >
-                              <option value="pre">Pre-Construction</option>
-                              <option value="during">During Construction</option>
-                              <option value="post">Post-Construction</option>
+                              <option value="pre">Pre-Activity</option>
+                              <option value="during">During Activity</option>
+                              <option value="post">Post-Activity</option>
                             </select>
                           </div>
                         </div>
@@ -1833,5 +1867,20 @@ export default function TaskTemplatesPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function TaskTemplatesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+          <div className="w-8 h-8 rounded-full border-3 border-amber-500 border-t-transparent animate-spin" />
+          <p className="text-xs font-bold text-surface-400">Loading templates & presets…</p>
+        </div>
+      }
+    >
+      <TaskTemplatesPageContent />
+    </Suspense>
   );
 }

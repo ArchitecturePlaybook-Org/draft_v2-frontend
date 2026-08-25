@@ -88,6 +88,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
   const photoRef = useRef<HTMLInputElement>(null);
 
   const [checklistProofModal, setChecklistProofModal] = useState<TaskChecklistItem | null>(null);
+  const [proofFiles, setProofFiles] = useState<File[]>([]);
   const checklistPhotoRef = useRef<HTMLInputElement>(null);
 
   const [zones, setZones] = useState<SpatialZone[]>([]);
@@ -257,7 +258,9 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
   const handleConfirmChecklistProof = async () => {
     if (!checklistProofModal) return;
-    const files = checklistPhotoRef.current?.files ? Array.from(checklistPhotoRef.current.files) : [];
+    const files = proofFiles.length > 0
+      ? proofFiles
+      : (checklistPhotoRef.current?.files ? Array.from(checklistPhotoRef.current.files) : []);
     if (files.length === 0) {
       toast.error("Please upload at least one photo as proof.");
       return;
@@ -267,7 +270,8 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
       await projectsApi.updateChecklistItemWithAttachments(checklistProofModal.id, true, files);
       await refreshTask();
       setChecklistProofModal(null);
-      toast.success("Checklist item verified with proof.");
+      setProofFiles([]);
+      toast.success("Checklist item verified with photo proof.");
     } catch (err: any) {
       toast.error(err.message || "Failed to complete checklist with proof.");
     } finally {
@@ -275,11 +279,16 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     }
   };
 
-  const handleAddChecklistItem = async (title: string, type: "pre" | "during" | "post", description: string) => {
+  const handleAddChecklistItem = async (
+    title: string,
+    type: "pre" | "during" | "post",
+    description: string,
+    requiresVisualProof: boolean = false
+  ) => {
     if (!title.trim() || isUpdating) return;
     setIsUpdating(true);
     try {
-      await projectsApi.createChecklistItem(task.uid, title.trim(), type, description.trim());
+      await projectsApi.createChecklistItem(task.uid, title.trim(), type, description.trim(), requiresVisualProof);
       await refreshTask();
       toast.success("Checklist item added.");
     } catch (err: any) {
@@ -1345,27 +1354,102 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
       {/* Checklist Proof Modal */}
       {checklistProofModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface-100 border-surface-200 w-full max-w-md rounded-2xl flex flex-col overflow-hidden shadow-2xl relative p-6 space-y-6">
-            <h3 className="text-xl font-bold text-primary tracking-tight">Visual Proof Required</h3>
-            <p className="text-sm text-surface-600 text-surface-300 leading-relaxed">
-              To verify <strong className="text-primary">"{checklistProofModal.title}"</strong>, please upload photo evidence of the completed work.
-            </p>
-            <div>
-              <input type="file" ref={checklistPhotoRef} accept="image/*" multiple className="w-full text-sm font-bold text-surface-500 text-surface-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-100 file:text-primary hover:file:bg-surface-200" />
+          <div className="bg-surface-100 border border-surface-300 w-full max-w-md rounded-2xl flex flex-col overflow-hidden shadow-2xl relative p-6 space-y-5">
+            <div className="flex items-center gap-3 border-b border-surface-200 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center text-xl shrink-0">
+                📷
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-foreground tracking-tight">Photo Evidence Required</h3>
+                <p className="text-xs text-surface-400 font-medium">Verify checkpoint compliance</p>
+              </div>
             </div>
-            <div className="flex justify-end gap-3 pt-2">
+
+            <p className="text-xs text-surface-600 leading-relaxed font-medium">
+              To verify and complete <strong className="text-foreground">"{checklistProofModal.title}"</strong>, please upload photo evidence of the completed work.
+            </p>
+
+            {/* Photo Upload Zone */}
+            <div className="space-y-3">
+              <input
+                type="file"
+                ref={checklistPhotoRef}
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setProofFiles(Array.from(e.target.files));
+                  }
+                }}
+                className="hidden"
+              />
+
+              <div
+                onClick={() => checklistPhotoRef.current?.click()}
+                className="border-2 border-dashed border-surface-300 hover:border-blue-500 rounded-xl p-5 text-center cursor-pointer transition-all bg-surface-50 hover:bg-surface-200/50 flex flex-col items-center justify-center gap-2"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg">
+                  📸
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-foreground">Click to browse or take photos</span>
+                  <p className="text-[10px] text-surface-400 mt-0.5">Supports JPG, PNG, WEBP (Multiple allowed)</p>
+                </div>
+              </div>
+
+              {/* Photo Previews */}
+              {proofFiles.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-surface-400">
+                    Selected Photos ({proofFiles.length})
+                  </span>
+                  <div className="flex gap-2 flex-wrap max-h-36 overflow-y-auto p-1 bg-surface-50 rounded-xl border border-surface-200">
+                    {proofFiles.map((file, idx) => (
+                      <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-surface-300 group shrink-0">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt="Proof preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProofFiles(prev => prev.filter((_, i) => i !== idx));
+                          }}
+                          className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center opacity-80 hover:opacity-100"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2 border-t border-surface-200">
               <button
-                onClick={() => setChecklistProofModal(null)}
-                className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest text-surface-500 text-surface-400 hover:bg-surface-100 transition-colors"
+                type="button"
+                onClick={() => {
+                  setChecklistProofModal(null);
+                  setProofFiles([]);
+                }}
+                className="px-4 py-2 rounded-xl font-bold text-xs text-surface-400 hover:bg-surface-200 hover:text-foreground transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleConfirmChecklistProof}
-                disabled={isUpdating}
-                className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest bg-accent text-background shadow-lg shadow-accent/20 hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+                disabled={isUpdating || proofFiles.length === 0}
+                className="px-5 py-2 rounded-xl font-black text-xs uppercase tracking-wider bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isUpdating ? "Verifying..." : "Verify & Complete"}
+                {isUpdating ? (
+                  <span className="animate-spin">⟳</span>
+                ) : (
+                  <span>Verify & Complete ({proofFiles.length})</span>
+                )}
               </button>
             </div>
           </div>
