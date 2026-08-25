@@ -7,9 +7,12 @@ import BOQParametricForm from "@/components/boq/BOQParametricForm";
 import BOQLineItemsTable from "@/components/boq/BOQLineItemsTable";
 import BOQSummaryCard from "@/components/boq/BOQSummaryCard";
 
+import BOQAutoPlanVisualizer from "@/components/boq/BOQAutoPlanVisualizer";
+
 export default function BOQBuilderPage() {
   const [params, setParams] = useState<BOQParameters>(DEFAULT_PARAMS);
   const [result, setResult] = useState<BOQResult | null>(null);
+  const [centerTab, setCenterTab] = useState<"both" | "plan" | "boq">("both");
   const [exporting, setExporting] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -123,7 +126,7 @@ export default function BOQBuilderPage() {
         @keyframes boq-toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Responsive */
-        @media (max-width: 900px) {
+        @media (max-width: 1080px) {
           .boq-layout { grid-template-columns: 1fr; height: auto; overflow: visible; }
           .boq-panel { border-right: none; border-bottom: 1px solid var(--border, #2a3045); height: auto; overflow: visible; }
         }
@@ -134,15 +137,15 @@ export default function BOQBuilderPage() {
         <div className="boq-header-top">
           <div>
             <div className="boq-header-eyebrow">🧮 BOQ Estimation Studio</div>
-            <h1 className="boq-header-title">Parametric BOQ Builder</h1>
+            <h1 className="boq-header-title">Parametric BOQ & 2D/3D Plan Builder</h1>
             <p className="boq-header-subtitle">
-              IS 1200 compliant measurements · CPWD DSR 2023 rates · Internal partition walls included ·
+              Live Auto-Generated 2D Floor Plan, Elevation & Section · IS 1200 compliant measurements · CPWD DSR 2023 rates ·
               Instant reactive calculation · Formula-bound Excel export
             </p>
             <div className="boq-header-badges">
-              <span className="boq-badge boq-badge-green">✓ IS 1200 Deductions</span>
+              <span className="boq-badge boq-badge-green">📐 Auto-Generated Plan & Elevation</span>
               <span className="boq-badge boq-badge-blue">✓ CPWD DSR 2023</span>
-              <span className="boq-badge boq-badge-amber">✓ Internal Wall Calc</span>
+              <span className="boq-badge boq-badge-amber">✓ IS 1200 Deductions</span>
               <span className="boq-badge boq-badge-green">✓ Dual-Sheet Excel</span>
             </div>
           </div>
@@ -172,25 +175,79 @@ export default function BOQBuilderPage() {
         {/* Panel 1: Parameters */}
         <div className="boq-panel">
           <div className="boq-panel-header">
-            <span>📐</span> Parameters
+            <span>📐</span> Parameters & Dimensions
           </div>
           <div className="boq-panel-content">
             <BOQParametricForm params={params} onChange={handleParamChange} />
           </div>
         </div>
 
-        {/* Panel 2: BOQ Line Items */}
+        {/* Panel 2: Plan Visualizer & BOQ Line Items */}
         <div className="boq-panel">
-          <div className="boq-panel-header">
-            <span>📋</span> Bill of Quantities
-            {result && (
-              <span style={{ marginLeft: "auto", fontWeight: 400, fontSize: "10px", color: "#4ade80" }}>
-                ● Live · {result.line_items.length} items
-              </span>
-            )}
+          <div className="boq-panel-header flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span>📐</span>
+              <span>Architectural Views & BOQ</span>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-1 bg-surface-200/50 p-0.5 rounded-lg border border-border">
+              <button
+                type="button"
+                onClick={() => setCenterTab("both")}
+                className={`px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer ${centerTab === "both"
+                    ? "bg-accent text-background shadow-xs"
+                    : "text-text-3 hover:text-text-1"
+                  }`}
+              >
+                All-In-One
+              </button>
+              <button
+                type="button"
+                onClick={() => setCenterTab("plan")}
+                className={`px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer ${centerTab === "plan"
+                    ? "bg-accent text-background shadow-xs"
+                    : "text-text-3 hover:text-text-1"
+                  }`}
+              >
+                Plan & Elevation
+              </button>
+              <button
+                type="button"
+                onClick={() => setCenterTab("boq")}
+                className={`px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer ${centerTab === "boq"
+                    ? "bg-accent text-background shadow-xs"
+                    : "text-text-3 hover:text-text-1"
+                  }`}
+              >
+                BOQ Table
+              </button>
+            </div>
           </div>
-          <div className="boq-panel-content">
-            <BOQLineItemsTable result={result} />
+
+          <div className="boq-panel-content space-y-4">
+            {/* Auto-Generated Plan, Elevation & Section Component */}
+            {(centerTab === "both" || centerTab === "plan") && (
+              <BOQAutoPlanVisualizer params={params} />
+            )}
+
+            {/* Detailed BOQ Line Items Table */}
+            {(centerTab === "both" || centerTab === "boq") && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                    <span>📋</span>
+                    <span>Bill of Quantities (CPWD DSR 2023)</span>
+                  </h4>
+                  {result && (
+                    <span className="text-[10px] font-bold text-emerald-400">
+                      ● Live Reactive · {result.line_items.length} items
+                    </span>
+                  )}
+                </div>
+                <BOQLineItemsTable result={result} />
+              </div>
+            )}
           </div>
         </div>
 
