@@ -4,6 +4,9 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { projectsApi } from "@/domains/projects/api";
 import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
+import { EstablishBlueprintModal } from "@/components/projects/EstablishBlueprintModal";
+import { UpgradeModal } from "@/components/billing/UpgradeModal";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { ChevronLeft, Sparkles, Layers } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,6 +17,9 @@ export default function PresetMatrixPreviewPage() {
 
   const [payload, setPayload] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const planLimits = usePlanLimits();
 
   const fetchPreset = () => {
     if (!slug) return;
@@ -41,6 +47,8 @@ export default function PresetMatrixPreviewPage() {
       </div>
     );
   }
+
+  const activePresetSlug = payload?.preset_slug || payload?.slug || slug;
 
   return (
     <div className="w-full max-w-full space-y-3.5">
@@ -71,7 +79,13 @@ export default function PresetMatrixPreviewPage() {
 
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => router.push("/dashboard/projects")}
+            onClick={() => {
+              if (!planLimits.isLoading && !planLimits.canCreateProject) {
+                setShowUpgradeModal(true);
+              } else {
+                setShowCreateModal(true);
+              }
+            }}
             className="h-8 px-4 bg-accent hover:opacity-90 text-background font-black text-xs uppercase tracking-wider rounded-lg transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -98,6 +112,34 @@ export default function PresetMatrixPreviewPage() {
           initialPayload={payload}
         />
       )}
+
+      {/* Project Establishment Modal */}
+      <EstablishBlueprintModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={(created) => {
+          setShowCreateModal(false);
+          const targetId = created?.id || created?.uid || created?.slug;
+          if (targetId) {
+            router.push(`/dashboard/projects/${targetId}`);
+          } else {
+            router.push("/dashboard/projects");
+          }
+        }}
+        initialData={{
+          title: payload?.project_name ? `${payload.project_name}` : "",
+          description: payload?.description || "",
+          preset_slug: activePresetSlug,
+          kind: payload?.category || "Residential",
+        }}
+      />
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        limitType="project"
+        currentPlan={planLimits.subscription?.plan?.name}
+      />
     </div>
   );
 }

@@ -1,17 +1,26 @@
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { projectsApi } from '@/domains/projects/api';
 import { authApi } from '@/domains/auth/api';
+import { orgsApi } from '@/domains/orgs/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, CheckCircle2, User, X } from 'lucide-react';
+import { Building2, CheckCircle2, User, X, Sparkles, ArrowRight } from 'lucide-react';
 import { SpecializationMultiSelect } from '@/components/ui/SpecializationMultiSelect';
 
 interface EstablishBlueprintModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
-  orgs: { id: number; name: string; account_type?: string }[];
-  initialData?: { title: string; description: string };
+  onSuccess?: (createdProject?: any) => void;
+  orgs?: { id: number; name: string; account_type?: string }[];
+  initialData?: {
+    title?: string;
+    description?: string;
+    preset_slug?: string;
+    kind?: string;
+    account_id?: string | number;
+    specialization_ids?: number[];
+  };
 }
 
 export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = ({
@@ -21,8 +30,11 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
   orgs,
   initialData
 }) => {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdProject, setCreatedProject] = useState<any>(null);
+  const [internalOrgs, setInternalOrgs] = useState<{ id: number; name: string; account_type?: string }[]>(orgs || []);
   const [templates, setTemplates] = useState<any[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [specializations, setSpecializations] = useState<any[]>([]);
@@ -32,6 +44,31 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
   const [projectCodeMode, setProjectCodeMode] = useState<'auto' | 'manual'>('auto');
 
   const [presets, setPresets] = useState<any[]>([]);
+
+  const [formData, setFormData] = useState({
+    title: initialData?.title || '',
+    account_id: initialData?.account_id ? String(initialData.account_id) : '',
+    project_code: '',
+    kind: initialData?.kind || 'Residential',
+    location: '',
+    description: initialData?.description || '',
+    client_name: '',
+    client_phone: '',
+    client_email: '',
+    specialization_ids: (initialData?.specialization_ids || []) as number[],
+    preset_slug: initialData?.preset_slug || '',
+  });
+
+  React.useEffect(() => {
+    if (orgs && orgs.length > 0) {
+      setInternalOrgs(orgs);
+    } else if (isOpen) {
+      orgsApi.listOrgs().then(data => {
+        const list = Array.isArray(data) ? data : (data as any).results || [];
+        setInternalOrgs(list);
+      }).catch(console.error);
+    }
+  }, [isOpen, orgs]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -56,26 +93,34 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
         });
         setTemplates(all);
       }).catch(console.error).finally(() => setTemplatesLoading(false));
-    }
-  }, [isOpen]);
 
-  const [formData, setFormData] = useState({
-    title: initialData?.title || '',
-    account_id: '',
-    project_code: '',
-    kind: 'Residential',
-    location: '',
-    description: initialData?.description || '',
-    client_name: '',
-    client_phone: '',
-    client_email: '',
-    specialization_ids: [] as number[],
-    preset_slug: '',
-  });
+      const fallbackOrgId = initialData?.account_id
+        ? String(initialData.account_id)
+        : (orgs?.[0]?.id ? String(orgs[0].id) : (internalOrgs?.[0]?.id ? String(internalOrgs[0].id) : ''));
+
+      setFormData(prev => ({
+        ...prev,
+        title: initialData?.title || '',
+        description: initialData?.description || '',
+        preset_slug: initialData?.preset_slug || '',
+        kind: initialData?.kind || 'Residential',
+        specialization_ids: initialData?.specialization_ids || [],
+        account_id: fallbackOrgId || prev.account_id,
+      }));
+      setStep(1);
+      setCreatedProject(null);
+    }
+  }, [isOpen, initialData]);
+
+  React.useEffect(() => {
+    if (internalOrgs.length > 0 && !formData.account_id) {
+      setFormData(prev => ({ ...prev, account_id: String(internalOrgs[0].id) }));
+    }
+  }, [internalOrgs, formData.account_id]);
 
   if (!isOpen) return null;
 
-  const selectedOrg = orgs.find(o => o.id === parseInt(formData.account_id));
+  const selectedOrg = internalOrgs.find(o => o.id === parseInt(formData.account_id));
   const orgPart = selectedOrg ? selectedOrg.name.substring(0, 3).toUpperCase().padEnd(3, 'X') : 'ORG';
   const kindPart = formData.kind ? formData.kind.substring(0, 3).toUpperCase().padEnd(3, 'X') : 'GEN';
   const clientPart = formData.client_name ? formData.client_name.substring(0, 3).toUpperCase().padEnd(3, 'X') : 'NON';
@@ -87,8 +132,9 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
     try {
       const finalProjectCode = projectCodeMode === 'manual' ? `${manualPrefix}${formData.project_code}` : undefined;
       
+      let resProject: any = null;
       if (selectedTemplate) {
-        await projectsApi.createProjectFromTemplate(selectedTemplate.uid, {
+        resProject = await projectsApi.createProjectFromTemplate(selectedTemplate.uid, {
           title: formData.title,
           account_id: parseInt(formData.account_id),
           description: formData.description,
@@ -100,7 +146,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
           specialization_ids: formData.specialization_ids,
         });
       } else {
-        await projectsApi.createProject({
+        resProject = await projectsApi.createProject({
           title: formData.title,
           description: formData.description,
           account_id: parseInt(formData.account_id),
@@ -114,10 +160,11 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
           preset_slug: formData.preset_slug,
         });
       }
+      setCreatedProject(resProject);
       setStep(4);
     } catch (err) {
       const error = err as { message?: string };
-      const msg = error.message || "System failure. Please ensure you are logged in.";
+      const msg = error.message || "Submission failed. Please check required fields.";
       alert(`Submission failed: ${msg}`);
     } finally {
       setIsSubmitting(false);
@@ -221,7 +268,7 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                     onChange={(e) => setFormData({...formData, account_id: e.target.value})}
                   >
                     <option value="" disabled className="bg-surface-50 dark:bg-surface-800 text-primary dark:text-white">Select Firm / Tenant...</option>
-                    {orgs.map(org => (
+                    {internalOrgs.map(org => (
                       <option key={org.id} value={org.id} className="bg-surface-50 dark:bg-surface-800 text-primary dark:text-white">{org.name} ({org.account_type})</option>
                     ))}
                   </select>
@@ -294,34 +341,6 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                     )}
                   </div>
 
-                  {/* Active Selection Summary Badge */}
-                  {selectedTemplate ? (
-                    <div className="w-full flex items-center gap-2.5 bg-accent/10 border border-accent/30 rounded-xl px-3 py-2">
-                      <span className="text-sm">📋</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-primary truncate">{selectedTemplate.title}</p>
-                        <p className="text-[10px] text-surface-500 font-semibold">{selectedTemplate.template_category} · Custom Saved Template</p>
-                      </div>
-                      <span className="text-[10px] font-black uppercase text-accent bg-accent/20 px-2 py-0.5 rounded">Template Active</span>
-                    </div>
-                  ) : formData.preset_slug ? (
-                    <div className="w-full flex items-center gap-2.5 bg-purple-500/10 border border-purple-500/30 rounded-xl px-3 py-2">
-                      <span className="text-sm">⚡</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-foreground truncate">
-                          {presets.find(p => p.slug === formData.preset_slug)?.name || "1-Click QA/QC Matrix Preset"}
-                        </p>
-                        <p className="text-[10px] text-surface-500 font-semibold">Pre-populated 6 Stages & IS/MORTH Checklists</p>
-                      </div>
-                      <span className="text-[10px] font-black uppercase text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded">Preset Active</span>
-                    </div>
-                  ) : (
-                    <div className="w-full flex items-center gap-2 bg-surface-100 border border-dashed border-surface-300 rounded-xl px-3 py-2 text-surface-500">
-                      <span className="text-sm">✨</span>
-                      <span className="text-xs font-medium flex-1">Blank Project — Clean setup without pre-populated tasks.</span>
-                    </div>
-                  )}
-
                   {/* Preset / Template Choices Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 max-h-44 overflow-y-auto pr-1">
                     {/* Blank Project Option */}
@@ -349,87 +368,63 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                         const isSelected = formData.preset_slug === p.slug && !selectedTemplate;
                         return (
                           <div
-                            key={p.slug}
+                            key={p.id || p.slug}
                             onClick={() => {
                               setFormData({ ...formData, preset_slug: p.slug });
                               setSelectedTemplate(null);
                             }}
                             className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-2.5 ${
                               isSelected
-                                ? 'bg-purple-500/15 border-purple-500/40 text-foreground ring-1 ring-purple-500/30'
+                                ? 'bg-purple-500/15 border-purple-500 text-foreground ring-1 ring-purple-500/30 font-bold'
                                 : 'bg-surface-100 dark:bg-surface-800/50 border-surface-200 dark:border-white/10 hover:border-surface-300'
                             }`}
                           >
-                            <span className="text-base">{p.icon_emoji || '🏠'}</span>
+                            <span className="text-base">{p.icon_emoji || '⚡'}</span>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-foreground truncate">{p.name}</p>
-                              <p className="text-[9px] text-surface-500 font-semibold truncate">1-Click Matrix Preset</p>
+                              <p className="text-[9px] text-purple-500 font-semibold truncate">QA/QC Preset · {p.category || '6 Stages'}</p>
                             </div>
                           </div>
                         );
                       })
-                    ) : (
-                      <div
-                        onClick={() => {
-                          setFormData({ ...formData, preset_slug: 'residential-qaqc-plan' });
-                          setSelectedTemplate(null);
-                        }}
-                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-2.5 ${
-                          formData.preset_slug === 'residential-qaqc-plan' && !selectedTemplate
-                            ? 'bg-purple-500/15 border-purple-500/40 text-foreground ring-1 ring-purple-500/30'
-                            : 'bg-surface-100 border-surface-200 hover:border-surface-300'
-                        }`}
-                      >
-                        <span className="text-base">🏠</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-foreground truncate">Residential QA/QC Plan</p>
-                          <p className="text-[9px] text-surface-500 font-semibold">237+ templates · 8 Stages</p>
-                        </div>
-                      </div>
-                    )}
+                    ) : null}
 
-                    {/* Custom Templates from Library */}
-                    {templates.map((t) => {
-                      const isSelected = selectedTemplate?.uid === t.uid;
-                      return (
-                        <div
-                          key={t.uid}
-                          onClick={() => {
-                            setSelectedTemplate(t);
-                            setFormData({ ...formData, preset_slug: '' });
-                          }}
-                          className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-2.5 ${
-                            isSelected
-                              ? 'bg-blue-500/15 border-blue-500/40 text-foreground ring-1 ring-blue-500/30'
-                              : 'bg-surface-100 dark:bg-surface-800/50 border-surface-200 dark:border-white/10 hover:border-surface-300'
-                          }`}
-                        >
-                          <span className="text-base">📋</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-foreground truncate">{t.title}</p>
-                            <p className="text-[9px] text-surface-500 font-semibold truncate">Custom Saved Blueprint</p>
+                    {/* Saved Templates */}
+                    {templatesLoading ? (
+                      <div className="col-span-full py-2 text-center text-[10px] text-surface-400">Loading templates...</div>
+                    ) : (
+                      templates.map((t) => {
+                        const isSelected = selectedTemplate?.uid === t.uid;
+                        return (
+                          <div
+                            key={t.uid}
+                            onClick={() => {
+                              setSelectedTemplate(t);
+                              setFormData({ ...formData, preset_slug: '' });
+                            }}
+                            className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-2.5 ${
+                              isSelected
+                                ? 'bg-accent/15 border-accent text-foreground ring-1 ring-accent/30 font-bold'
+                                : 'bg-surface-100 dark:bg-surface-800/50 border-surface-200 dark:border-white/10 hover:border-surface-300'
+                            }`}
+                          >
+                            <span className="text-base">📋</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-foreground truncate">{t.title}</p>
+                              <p className="text-[9px] text-surface-500 font-semibold truncate">{t.template_category || 'Saved Template'}</p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
-                <div>
-                  <SpecializationMultiSelect
-                    specializations={specializations}
-                    selectedIds={formData.specialization_ids}
-                    onChange={(ids) => setFormData({ ...formData, specialization_ids: ids })}
-                    label="Project Specializations"
-                    placeholder="Select project specializations..."
-                  />
-                </div>
-
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Site Location</label>
+                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Project Location</label>
                   <input 
                     type="text" 
-                    placeholder="City, Region, or Coordinates"
+                    placeholder="E.g. Bangalore, KA"
                     className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-primary outline-none focus:border-accent"
                     value={formData.location}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
@@ -440,10 +435,19 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                   <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Description</label>
                   <textarea 
                     rows={2}
-                    placeholder="Briefly describe the architectural scope..."
+                    placeholder="Brief description of the architectural project..."
                     className="w-full bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl p-3 text-xs font-semibold text-primary outline-none focus:border-accent resize-none"
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Required Specializations</label>
+                  <SpecializationMultiSelect 
+                    specializations={specializations}
+                    selectedIds={formData.specialization_ids}
+                    onChange={(ids) => setFormData({...formData, specialization_ids: ids})}
                   />
                 </div>
               </div>
@@ -452,10 +456,10 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
             {step === 2 && (
               <div className="space-y-3.5">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Client / Owner Name</label>
+                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Client Full Name</label>
                   <input 
                     type="text" 
-                    placeholder="Name of the primary stakeholder"
+                    placeholder="E.g. Rahul Sharma"
                     className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-primary outline-none focus:border-accent"
                     value={formData.client_name}
                     onChange={(e) => setFormData({...formData, client_name: e.target.value})}
@@ -463,10 +467,10 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Contact Phone</label>
+                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Client Phone</label>
                   <input 
                     type="text" 
-                    placeholder="+1 (555) 000-0000"
+                    placeholder="E.g. +91 98765 43210"
                     className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-primary outline-none focus:border-accent"
                     value={formData.client_phone}
                     onChange={(e) => setFormData({...formData, client_phone: e.target.value})}
@@ -474,10 +478,10 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Email Address</label>
+                  <label className="text-xs font-bold text-surface-500 uppercase tracking-wider">Client Email</label>
                   <input 
                     type="email" 
-                    placeholder="contact@client.com"
+                    placeholder="E.g. client@example.com"
                     className="w-full h-10 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-primary outline-none focus:border-accent"
                     value={formData.client_email}
                     onChange={(e) => setFormData({...formData, client_email: e.target.value})}
@@ -487,9 +491,9 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
             )}
 
             {step === 3 && (
-              <div className="space-y-3.5 text-xs">
+              <div className="space-y-4">
                 <div className="bg-surface-100 p-3 rounded-xl border border-surface-200 space-y-2">
-                  <h4 className="font-bold text-accent uppercase text-[10px] tracking-wider">Project Core Specs</h4>
+                  <h4 className="font-bold text-accent uppercase text-[10px] tracking-wider">Project Specification</h4>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div><span className="text-surface-400 font-bold">Title:</span> <p className="font-bold text-primary truncate">{formData.title}</p></div>
                     <div><span className="text-surface-400 font-bold">Code:</span> <p className="font-bold font-mono text-primary">{projectCodeMode === 'auto' ? autoPrefix : `${manualPrefix}${formData.project_code}`}</p></div>
@@ -514,9 +518,16 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                 <div className="w-16 h-16 bg-emerald-500 text-white rounded-2xl flex items-center justify-center text-2xl mx-auto shadow-md">
                   ✓
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <h3 className="text-xl font-black text-primary">Blueprint Established!</h3>
-                  <p className="text-xs text-surface-500 font-medium">Project has been initialized in your registry.</p>
+                  <p className="text-xs text-surface-500 font-medium">
+                    {createdProject?.title ? `Project "${createdProject.title}" initialized successfully.` : "Project has been initialized in your registry."}
+                  </p>
+                  {formData.preset_slug && (
+                    <span className="inline-block mt-1 px-3 py-1 bg-purple-500/10 text-purple-600 border border-purple-500/20 text-[10px] font-black uppercase rounded-full">
+                      ⚡ QA/QC Preset Matrix Applied
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -573,15 +584,33 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
             )}
 
             {step === 4 && (
-              <Button 
-                onClick={() => {
-                  onClose();
-                  onSuccess();
-                }} 
-                className="w-full h-10 bg-primary text-background font-bold text-xs uppercase rounded-xl"
-              >
-                Return to Registry
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-2.5">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    onClose();
+                    onSuccess?.(createdProject);
+                  }} 
+                  className="w-full sm:w-auto h-10 px-5 font-bold text-xs uppercase rounded-xl border-surface-300"
+                >
+                  Return to Registry
+                </Button>
+                <Button 
+                  onClick={() => {
+                    onClose();
+                    onSuccess?.(createdProject);
+                    const targetId = createdProject?.id || createdProject?.uid || createdProject?.slug;
+                    if (targetId) {
+                      router.push(`/dashboard/projects/${targetId}`);
+                    } else {
+                      router.push('/dashboard/projects');
+                    }
+                  }} 
+                  className="w-full sm:w-auto h-10 px-6 bg-accent hover:bg-accent/90 text-background font-black text-xs uppercase tracking-wider rounded-xl shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <span>Open Project Blueprint →</span>
+                </Button>
+              </div>
             )}
           </div>
 

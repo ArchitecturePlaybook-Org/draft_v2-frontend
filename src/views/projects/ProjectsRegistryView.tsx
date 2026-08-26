@@ -16,14 +16,16 @@ import { toast } from "sonner";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { UpgradeModal } from "@/components/billing/UpgradeModal";
 
-function SearchParamsReader({ onParams }: { onParams: (leadId: string | null, title: string | null, clientName: string | null) => void }) {
+function SearchParamsReader({ onParams }: { onParams: (params: { leadId: string | null; title: string | null; clientName: string | null; preset: string | null; create: string | null }) => void }) {
   const searchParams = useSearchParams();
   useEffect(() => {
-    onParams(
-      searchParams.get('lead_id'),
-      searchParams.get('title'),
-      searchParams.get('client_name'),
-    );
+    onParams({
+      leadId: searchParams.get('lead_id'),
+      title: searchParams.get('title'),
+      clientName: searchParams.get('client_name'),
+      preset: searchParams.get('preset'),
+      create: searchParams.get('create'),
+    });
   }, [searchParams]);
   return null;
 }
@@ -39,7 +41,7 @@ export function ProjectsRegistryView() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [orgs, setOrgs] = useState<any[]>([]);
-  const [initialData, setInitialData] = useState({ title: "", description: "" });
+  const [initialData, setInitialData] = useState<{ title?: string; description?: string; preset_slug?: string; kind?: string }>({ title: "", description: "" });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -90,12 +92,22 @@ export function ProjectsRegistryView() {
     },
   });
 
-  const handleSearchParams = (leadId: string | null, leadTitle: string | null, clientName: string | null) => {
-    if (leadId) {
+  const handleSearchParams = (params: { leadId: string | null; title: string | null; clientName: string | null; preset: string | null; create: string | null }) => {
+    if (params.leadId) {
       setInitialData({
-        title: leadTitle ? `Blueprint: ${leadTitle}` : `New Project for ${clientName}`,
-        description: `Originating from Business Lead ID: ${leadId}`
+        title: params.title ? `Blueprint: ${params.title}` : `New Project for ${params.clientName}`,
+        description: `Originating from Business Lead ID: ${params.leadId}`,
+        preset_slug: '',
       });
+      setShowCreateModal(true);
+    } else if (params.preset) {
+      setInitialData({
+        title: params.title || '',
+        description: '',
+        preset_slug: params.preset,
+      });
+      setShowCreateModal(true);
+    } else if (params.create === 'true') {
       setShowCreateModal(true);
     }
   };
@@ -408,6 +420,21 @@ export function ProjectsRegistryView() {
         onClose={() => setShowUpgradeModal(false)}
         limitType="project"
         currentPlan={planLimits.subscription?.plan?.name}
+      />
+
+      <EstablishBlueprintModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={(created) => {
+          setShowCreateModal(false);
+          queryClient.invalidateQueries({ queryKey: ["projects"] });
+          const targetId = created?.id || created?.uid || created?.slug;
+          if (targetId) {
+            router.push(`/dashboard/projects/${targetId}`);
+          }
+        }}
+        orgs={orgs}
+        initialData={initialData}
       />
 
       {/* Shared Tasks Section */}
