@@ -8,7 +8,8 @@ import {
 import { projectsApi } from "@/domains/projects/api";
 import { TaskItem } from "../projects/TaskItem";
 import { toast } from "sonner";
-import { getWebSocketUrl } from "@/lib/api/constants";
+import { useAuthStore } from "@/store/auth-store";
+import { Search, Loader2 } from "lucide-react";
 
 interface KanbanDrawerProps {
   block: MilestoneBlockExpanded;
@@ -70,6 +71,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   readOnly = false,
   onUnlockClick,
 }) => {
+  const { user } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>(block.tasks || []);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
@@ -82,12 +84,86 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   const [taskTemplates, setTaskTemplates] = useState<any[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [templateDescription, setTemplateDescription] = useState("");
-  const [taskChecklists, setTaskChecklists] = useState<string[]>([]);
+  const [taskChecklists, setTaskChecklists] = useState<{ title: string; requires_visual_proof: boolean }[]>([]);
   const [taskSubtasks, setTaskSubtasks] = useState<any[]>([]);
   const [newChecklistInput, setNewChecklistInput] = useState("");
+  const [newChecklistRequiresProof, setNewChecklistRequiresProof] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newSubtaskDesc, setNewSubtaskDesc] = useState("");
   const [subtaskChecklistInputs, setSubtaskChecklistInputs] = useState<Record<number, string>>({});
+
+  // ── Milestone task allocation ─────────────────────────────────────────────
+  const [projectMilestoneTasks, setProjectMilestoneTasks] = useState<Task[]>([]);
+  const [milestoneTaskId, setMilestoneTaskId] = useState<number | null>(null);
+  const [currentProject, setCurrentProject] = useState<any>(null);
+
+  // ── Bulk planning from milestone templates ─────────────────────────
+  const [selectedMilestoneTplId, setSelectedMilestoneTplId] = useState<number | "">("");
+  const [tplTasksToCreate, setTplTasksToCreate] = useState<{ id: number; name: string; checked: boolean; default_checklists: any[] }[]>([]);
+  const [generatingTasks, setGeneratingTasks] = useState(false);
+  const [isBulkPlannerOpen, setIsBulkPlannerOpen] = useState(false);
+
+  // ── Advanced Search & Filter States for Bulk Milestone Planner ─────────────
+  const [milestoneSearchQuery, setMilestoneSearchQuery] = useState("");
+  const [bulkTaskSearchQuery, setBulkTaskSearchQuery] = useState("");
+
+  // Compute specializations: intersection of user profile specializations and project specializations
+  const userSpecIds = React.useMemo(() => {
+    const specs = user?.profile?.specializations || (user as any)?.specializations || [];
+    return specs
+      .map((s: any) => (typeof s === "number" ? s : s?.id))
+      .filter((id: any): id is number => typeof id === "number" && !isNaN(id));
+  }, [user]);
+
+  const projectSpecIds = React.useMemo(() => {
+    const specs = currentProject?.specializations || [];
+    return specs
+      .map((s: any) => (typeof s === "number" ? s : s?.id))
+      .filter((id: any): id is number => typeof id === "number" && !isNaN(id));
+  }, [currentProject]);
+
+  const effectiveSpecIds = React.useMemo(() => {
+    return Array.from(new Set([...projectSpecIds, ...userSpecIds]));
+  }, [userSpecIds, projectSpecIds]);
+
+  // Client-side filtered templates matching user & project specializations
+  const filteredTaskTemplates = React.useMemo(() => {
+    if (effectiveSpecIds.length === 0) return taskTemplates;
+    return taskTemplates.filter((tpl: any) => {
+      const rawSpecs = tpl.specializations || tpl.specialization_ids || [];
+      const tplSpecs = Array.isArray(rawSpecs)
+        ? rawSpecs.map((s: any) => (typeof s === "number" ? s : s?.id))
+        : [];
+      if (tplSpecs.length === 0) return true; // General template available to all
+      return tplSpecs.some((id: number) => effectiveSpecIds.includes(id));
+    });
+  }, [taskTemplates, effectiveSpecIds]);
+
+  // Milestone templates matching user & project specializations
+  const availableMilestoneTemplates = React.useMemo(() => {
+    const milestones = filteredTaskTemplates.filter((t: any) => t.is_milestone);
+    if (!milestoneSearchQuery.trim()) return milestones;
+    const query = milestoneSearchQuery.toLowerCase();
+    return milestones.filter(
+      (t: any) =>
+        t.name.toLowerCase().includes(query) ||
+        (t.description && t.description.toLowerCase().includes(query))
+    );
+  }, [filteredTaskTemplates, milestoneSearchQuery]);
+
+  // Memoized search filtering for tasks inside selected milestone
+  const filteredTplTasksToCreate = React.useMemo(() => {
+    if (!bulkTaskSearchQuery.trim()) return tplTasksToCreate;
+    const query = bulkTaskSearchQuery.toLowerCase();
+    return tplTasksToCreate.filter(
+      (t) =>
+        t.name.toLowerCase().includes(query) ||
+        (t.default_checklists &&
+          t.default_checklists.some((c: any) =>
+            (typeof c === "string" ? c : c?.title || "").toLowerCase().includes(query)
+          ))
+    );
+  }, [tplTasksToCreate, bulkTaskSearchQuery]);
 
   // Sync tasks whenever block or block.tasks prop updates, and fetch fresh task data
   React.useEffect(() => {
@@ -101,19 +177,39 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             setTasks(fetchedTasks.filter((t: any) => t && !t.is_deleted));
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [block?.id, block?.tasks]);
 
-  // Fetch task templates on mount
+  // Fetch project details for specializations filtering
   React.useEffect(() => {
-    projectsApi.getTaskTemplates()
-      .then((data: any) => {
-        const list = Array.isArray(data) ? data : (data?.results ?? []);
-        setTaskTemplates(list);
-      })
-      .catch(() => {});
+    if (projectUid) {
+      projectsApi.getProjectDetails(projectUid).then(setCurrentProject).catch(() => { });
+    }
+  }, [projectUid]);
+
+  // Fetch all task templates so milestone packages and all allocated sub-tasks are loaded into memory
+  React.useEffect(() => {
+    Promise.all([
+      projectsApi.getTaskTemplates(),
+      projectsApi.getOrgTaskTemplates()
+    ]).then(([gData, oData]) => {
+      const gList = Array.isArray(gData) ? gData : (gData?.results ?? []);
+      const oList = Array.isArray(oData) ? oData : (oData?.results ?? []);
+      setTaskTemplates([...gList, ...oList]);
+    }).catch(() => { });
   }, []);
+
+  // Fetch milestone tasks for this project so users can allocate tasks to one
+  React.useEffect(() => {
+    if (projectUid) {
+      projectsApi.getTasks({ project: projectUid })
+        .then((all: Task[]) => {
+          setProjectMilestoneTasks(all.filter((t: any) => t.is_milestone && !t.is_deleted));
+        })
+        .catch(() => { });
+    }
+  }, [projectUid]);
 
   const handleSelectTemplate = (id: string) => {
     setSelectedTemplateId(id);
@@ -123,9 +219,12 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         setNewTaskTitle(tpl.name || "");
         setTemplateDescription(tpl.description || "");
         const rawCl = Array.isArray(tpl.default_checklists) ? tpl.default_checklists : [];
-        const clList: string[] = rawCl
-          .map((c: any) => (typeof c === "string" ? c : c?.title || ""))
-          .filter(Boolean);
+        const clList = rawCl
+          .map((c: any) => {
+            if (typeof c === "string") return { title: c, requires_visual_proof: false };
+            return { title: c?.title || "", requires_visual_proof: !!c?.requires_visual_proof };
+          })
+          .filter((i: any) => i.title);
         setTaskChecklists(clList);
         setTaskSubtasks(Array.isArray(tpl.default_subtasks) ? tpl.default_subtasks : []);
       }
@@ -226,33 +325,35 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         block: block.id,
         title: newTaskTitle.trim(),
         description: templateDescription.trim(),
-        checklists: taskChecklists,
-        default_checklists: taskChecklists,
+        checklists: taskChecklists.map(c => c.title),
+        default_checklists: taskChecklists.map(c => c.title),
         subtasks: taskSubtasks,
         default_subtasks: taskSubtasks,
         status: "TODO",
+        milestone_task_id: milestoneTaskId ?? undefined,
       });
 
       // Ensure checklists are present on the created task
       let taskChecklistItems = created?.checklists || [];
       if ((!taskChecklistItems || taskChecklistItems.length === 0) && taskChecklists.length > 0 && created?.uid) {
         const results = await Promise.allSettled(
-          taskChecklists.map((title, idx) => projectsApi.createChecklistItem(created.uid, title))
+          taskChecklists.map((cl) => projectsApi.createChecklistItem(created.uid, cl.title, "during", "", cl.requires_visual_proof))
         );
         taskChecklistItems = results
           .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
-          .map((r, idx) => r.value || { id: Date.now() + idx, title: taskChecklists[idx], is_completed: false });
+          .map((r, idx) => r.value || { id: Date.now() + idx, title: taskChecklists[idx].title, requires_visual_proof: taskChecklists[idx].requires_visual_proof, is_completed: false });
       }
 
       if ((!taskChecklistItems || taskChecklistItems.length === 0) && taskChecklists.length > 0) {
-        taskChecklistItems = taskChecklists.map((title, idx) => ({
+        taskChecklistItems = taskChecklists.map((cl, idx) => ({
           id: Date.now() + idx,
-          title,
+          title: cl.title,
+          requires_visual_proof: cl.requires_visual_proof,
           is_completed: false,
           order: idx,
         }));
       }
-      
+
       const createdTask: Task = {
         ...created,
         description: templateDescription.trim() || created.description || "",
@@ -265,7 +366,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       const updatedTasks = exists
         ? currentTasks.map(t => (t.uid === createdTask.uid || (t.id && t.id === createdTask.id)) ? createdTask : t)
         : [...currentTasks, createdTask];
-      
+
       setTasks(updatedTasks);
       onBlockUpdated(getUpdatedBlock(block, updatedTasks));
       setNewTaskTitle("");
@@ -273,6 +374,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
       setTemplateDescription("");
       setTaskChecklists([]);
       setNewChecklistInput("");
+      setMilestoneTaskId(null);
       setIsAddingTask(false);
       toast.success("Task added.");
     } catch (err: any) {
@@ -295,9 +397,101 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     onBlockUpdated(getUpdatedBlock(block, newTasks));
   };
 
+  // ── Create Milestone Task removed ──────────────────────
+
+  const handleSelectMilestoneTpl = (milestoneTplId: number | "") => {
+    setSelectedMilestoneTplId(milestoneTplId);
+    setBulkTaskSearchQuery("");
+    if (milestoneTplId) {
+      const targetId = Number(milestoneTplId);
+      const allocated = taskTemplates.filter((t: any) => {
+        if (t.is_milestone) return false;
+        const mTask = t.milestone_task !== undefined ? t.milestone_task : t.milestone_task_id;
+        const parentId = typeof mTask === "object" && mTask !== null ? mTask.id : mTask;
+        return parentId != null && Number(parentId) === targetId;
+      });
+      setTplTasksToCreate(allocated.map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        checked: true,
+        default_checklists: t.default_checklists || [],
+      })));
+    } else {
+      setTplTasksToCreate([]);
+    }
+  };
+
+  const handleBulkCreateTasks = async () => {
+    const selected = tplTasksToCreate.filter(t => t.checked);
+    if (selected.length === 0) return;
+    setGeneratingTasks(true);
+    try {
+      const targetProjectId = block.project_id || (projectUid ? (isNaN(Number(projectUid)) ? projectUid : parseInt(projectUid)) : undefined);
+
+      // Parallel batch creation of tasks
+      const createPromises = selected.map(async (tpl) => {
+        const checklists = (tpl.default_checklists || []).map((item: any) =>
+          typeof item === "string" ? item : item.title || ""
+        ).filter(Boolean);
+
+        const created = await projectsApi.createTask({
+          project: targetProjectId,
+          block: block.id,
+          title: tpl.name,
+          description: "",
+          checklists: checklists,
+          default_checklists: checklists,
+          status: "TODO",
+        });
+
+        let taskChecklistItems = created?.checklists || [];
+        if ((!taskChecklistItems || taskChecklistItems.length === 0) && checklists.length > 0 && created?.uid) {
+          const results = await Promise.allSettled(
+            checklists.map((title) => projectsApi.createChecklistItem(created.uid, title))
+          );
+          taskChecklistItems = results
+            .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
+            .map((r, idx) => r.value || { id: Date.now() + idx, title: checklists[idx], is_completed: false });
+        }
+
+        return {
+          ...created,
+          checklists: taskChecklistItems,
+          status: created.status || "TODO",
+        };
+      });
+
+      const results = await Promise.allSettled(createPromises);
+      const createdTasksList: Task[] = results
+        .filter((r): r is PromiseFulfilledResult<Task> => r.status === "fulfilled")
+        .map(r => r.value);
+
+      const currentTasks = Array.isArray(tasks) ? tasks : [];
+      const newTasks = [...currentTasks];
+      for (const ct of createdTasksList) {
+        if (!newTasks.some(t => (ct.uid && t.uid === ct.uid) || (ct.id && t.id === ct.id))) {
+          newTasks.push(ct);
+        }
+      }
+      setTasks(newTasks);
+      onBlockUpdated(getUpdatedBlock(block, newTasks));
+
+      setSelectedMilestoneTplId("");
+      setTplTasksToCreate([]);
+      setMilestoneSearchQuery("");
+      setBulkTaskSearchQuery("");
+      setIsBulkPlannerOpen(false);
+      toast.success(`Generated ${createdTasksList.length} tasks from milestone template.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to bulk generate tasks.");
+    } finally {
+      setGeneratingTasks(false);
+    }
+  };
+
   const safeTasksList = Array.isArray(tasks) ? tasks.filter(t => t && !t.is_deleted) : [];
   const filteredTasks = safeTasksList.filter(t => t && (!priorityFilter || t.priority === priorityFilter));
-  
+
   const tasksByStatus = (status: TaskStatus) => filteredTasks.filter(t => {
     if (!t) return false;
     const taskStatus = (t.status || "TODO").toUpperCase();
@@ -332,9 +526,10 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
         className="fixed top-0 bottom-0 h-screen bg-background border-r border-surface-200 shadow-premium z-[45] flex flex-col min-w-0 overflow-hidden w-full md:w-auto"
       >
         {/* Drawer Header */}
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-2.5 border-b border-surface-100 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50 shrink-0 min-w-0 w-full">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+        <div className="px-3 sm:px-4 py-2.5 border-b border-surface-100 bg-surface-50 shrink-0">
+          {/* Top row: location badges + close */}
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
               <span
                 className="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shrink-0"
                 style={{ backgroundColor: phase.color_hex }}
@@ -343,32 +538,31 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
               </span>
               <span className="text-surface-300 text-xs shrink-0">›</span>
               <span className="text-[8px] font-bold text-surface-500 uppercase tracking-wider truncate">{zone.name}</span>
-              <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${
-                block.status === "DONE" ? "bg-emerald-100 text-emerald-700" :
+              <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${block.status === "DONE" ? "bg-emerald-100 text-emerald-700" :
                 block.status === "ACTIVE" ? "bg-accent/10 text-accent" :
-                "bg-surface-100 text-surface-400"
-              }`}>
+                  "bg-surface-100 text-surface-400"
+                }`}>
                 {block.status}
               </span>
             </div>
-            <h2 className="text-sm sm:text-base font-extrabold text-primary dark:text-white tracking-tight truncate">
-              {zone.name} — Kanban Board
-            </h2>
-            <p className="text-[11px] text-surface-400 dark:text-surface-500 font-medium mt-0.5">
-              {tasks.length} tasks · {block.completed_tasks}/{block.total_tasks} done
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap sm:justify-end w-full sm:w-auto max-w-full overflow-x-auto no-scrollbar">
-            <select
-              value={priorityFilter || ""}
-              onChange={(e) => setPriorityFilter(e.target.value || null)}
-              className="h-8 px-2 bg-surface-100 dark:bg-surface-800 border border-transparent hover:border-surface-200 dark:hover:border-surface-700 rounded-lg outline-none focus:border-accent text-[9px] font-bold uppercase tracking-wider text-surface-400 transition-colors shrink-0 max-w-full"
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-xl bg-surface-100 hover:bg-red-500 hover:text-white text-surface-400 flex items-center justify-center transition-all font-bold shrink-0 text-xs"
             >
-              <option value="">All Priorities</option>
-              <option value="HIGH">High Priority</option>
-              <option value="MEDIUM">Medium Priority</option>
-              <option value="LOW">Low Priority</option>
-            </select>
+              ✕
+            </button>
+          </div>
+
+          {/* Action bar */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {!readOnly && !isLocked && userRole === "admin" && (
+              <button
+                onClick={() => setIsBulkPlannerOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all bg-purple-500/15 text-purple-400 border border-purple-500/30 hover:bg-purple-500/25"
+              >
+                <span>⚡</span> Add from Milestone
+              </button>
+            )}
             {!readOnly && userRole === "admin" && (
               <button
                 onClick={() => {
@@ -383,186 +577,129 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                   setSubtaskChecklistInputs({});
                   setIsAddingTask(true);
                 }}
-                className="h-8 px-3 bg-accent text-background font-bold text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all shrink-0 whitespace-nowrap flex items-center gap-1 shadow-xs"
+                className="h-7 px-3 bg-accent text-background font-bold text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all flex items-center gap-1 shadow-xs"
               >
-                <span>+ Add Task</span>
+                + Add Task
               </button>
             )}
-            <button
-              onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-surface-100 hover:bg-red-500 hover:text-white text-surface-400 flex items-center justify-center transition-all font-bold shrink-0 text-xs"
+            <select
+              value={priorityFilter || ""}
+              onChange={(e) => setPriorityFilter(e.target.value || null)}
+              className="ml-auto h-7 px-2 bg-surface-100 border border-transparent hover:border-surface-200 rounded-lg outline-none text-[9px] font-bold uppercase tracking-wider text-surface-400 transition-colors"
             >
-              ✕
-            </button>
+              <option value="">All Priorities</option>
+              <option value="HIGH">High Priority</option>
+              <option value="MEDIUM">Medium Priority</option>
+              <option value="LOW">Low Priority</option>
+            </select>
           </div>
         </div>
-
-        {/* Block Notes */}
-        <div className="px-7 py-3 border-b border-surface-200 bg-surface-50 shrink-0">
-          <textarea
-            className="w-full text-xs text-foreground bg-surface-100 hover:bg-surface-100/80 border border-surface-300 focus:border-accent rounded-lg p-2.5 outline-none resize-none transition-all placeholder:text-surface-400 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-            rows={2}
-            disabled={readOnly}
-            placeholder={readOnly ? "No notes added for this block." : "Add notes for this block... (e.g. key blockers, handover instructions)"}
-            defaultValue={block.notes || ""}
-            onBlur={async (e) => {
-              if (e.target.value !== block.notes) {
-                try {
-                  const updated = await projectsApi.updateBlock(block.id, { notes: e.target.value });
-                  onBlockUpdated({ ...block, notes: updated.notes });
-                  toast.success("Notes saved.");
-                } catch (err) {
-                  toast.error("Failed to save notes.");
+        {/* ── TASKS VIEW ── */}
+        <>
+          {/* Block Notes */}
+          <div className="px-4 py-2.5 border-b border-surface-200 bg-surface-50 shrink-0">
+            <textarea
+              className="w-full text-xs text-foreground bg-surface-100 hover:bg-surface-100/80 border border-surface-300 focus:border-accent rounded-lg p-2.5 outline-none resize-none transition-all placeholder:text-surface-400 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+              rows={2}
+              disabled={readOnly}
+              placeholder={readOnly ? "No notes added for this block." : "Add notes for this block..."}
+              defaultValue={block.notes || ""}
+              onBlur={async (e) => {
+                if (e.target.value !== block.notes) {
+                  try {
+                    const updated = await projectsApi.updateBlock(block.id, { notes: e.target.value });
+                    onBlockUpdated({ ...block, notes: updated.notes });
+                    toast.success("Notes saved.");
+                  } catch {
+                    toast.error("Failed to save notes.");
+                  }
                 }
-              }
-            }}
-          />
-        </div>
-
-        {/* Locked banner */}
-        {isLocked && (
-          <div className="px-7 py-3 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <p className="text-xs font-bold text-amber-400">
-                This block is <strong>Locked</strong> — complete the previous milestone phase first to unlock.
-              </p>
-            </div>
-            {userRole === "admin" && !readOnly && onUnlockClick && (
-              <button
-                onClick={onUnlockClick}
-                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-lg shadow-amber-500/20 transition-all hover:scale-105"
-              >
-                Force Activate
-              </button>
-            )}
+              }}
+            />
           </div>
-        )}
 
-        {/* Kanban columns */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
-          <div className="flex gap-4 h-full min-w-[720px]">
-            {COLUMNS.map(col => {
-              const colTasks = tasksByStatus(col.id);
-              const isDragTarget = dragOverColumn === col.id;
+          {/* Locked banner */}
+          {isLocked && (
+            <div className="px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <p className="text-xs font-bold text-amber-400">This block is <strong>Locked</strong>.</p>
+              </div>
+              {userRole === "admin" && !readOnly && onUnlockClick && (
+                <button onClick={onUnlockClick} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest rounded-md transition-all">
+                  Force Activate
+                </button>
+              )}
+            </div>
+          )}
 
-              return (
-                <div
-                  key={col.id}
-                  onDragOver={e => handleDragOver(e, col.id)}
-                  onDragLeave={() => setDragOverColumn(null)}
-                  onDrop={e => handleDrop(e, col.id)}
-                  className={`
-                    flex flex-col flex-1 min-w-[180px] max-w-[260px]
-                    rounded-t-sm
-                    ${isDragTarget
-                      ? "border-semantic-blue bg-surface-100/50"
-                      : `${col.color} ${isLocked ? "opacity-60" : ""}`
-                    }
-                  `}
-                >
-                  {/* Column header */}
-                  <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-surface-200">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
-                      <span className="text-[10px] font-black uppercase tracking-wider text-surface-600">{col.label}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-black tabular-nums bg-surface-200 px-2 py-0.5 rounded-full border border-surface-300 text-foreground">
-                        {colTasks.length}
-                      </span>
-                      {col.id === "TODO" && !readOnly && userRole === "admin" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedTemplateId("");
-                            setNewTaskTitle("");
-                            setTemplateDescription("");
-                            setTaskChecklists([]);
-                            setTaskSubtasks([]);
-                            setNewChecklistInput("");
-                            setNewSubtaskTitle("");
-                            setNewSubtaskDesc("");
-                            setSubtaskChecklistInputs({});
-                            setIsAddingTask(true);
-                          }}
-                          className="w-5 h-5 rounded bg-accent/15 hover:bg-accent/30 text-accent flex items-center justify-center text-xs font-black transition-colors"
-                          title="Add Task to To Do"
-                        >
-                          +
-                        </button>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Cards scroll area */}
-                  <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
-                    {tasksByStatus(col.id).map(task => (
-                      <TaskItem
-                        key={task.uid}
-                        task={task}
-                        isLocked={isLocked}
-                        onDragStart={(e) => handleDragStart(e, task.uid)}
-                        onClick={() => onTaskSelect?.(task)}
-                      />
-                    ))}
 
-                    {colTasks.length === 0 && (
-                      <div className={`
-                        h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1
-                        ${isDragTarget
-                          ? "border-accent bg-accent/10"
-                          : "border-surface-300 bg-surface-50/50"
-                        }
-                      `}>
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-surface-400">
-                          {isDragTarget ? "Drop here" : "Empty"}
-                        </span>
+          {/* Kanban columns */}
+          <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
+            <div className="flex gap-4 h-full min-w-[720px]">
+              {COLUMNS.map(col => {
+                const colTasks = tasksByStatus(col.id);
+                const isDragTarget = dragOverColumn === col.id;
+                return (
+                  <div
+                    key={col.id}
+                    onDragOver={e => handleDragOver(e, col.id)}
+                    onDragLeave={() => setDragOverColumn(null)}
+                    onDrop={e => handleDrop(e, col.id)}
+                    className={`flex flex-col flex-1 min-w-[180px] max-w-[260px] rounded-t-sm ${isDragTarget ? "border-semantic-blue bg-surface-100/50" : `${col.color} ${isLocked ? "opacity-60" : ""}`
+                      }`}
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-surface-200">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-surface-600">{col.label}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black tabular-nums bg-surface-200 px-2 py-0.5 rounded-full border border-surface-300 text-foreground">{colTasks.length}</span>
                         {col.id === "TODO" && !readOnly && userRole === "admin" && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedTemplateId("");
-                              setNewTaskTitle("");
-                              setTemplateDescription("");
-                              setTaskChecklists([]);
-                              setTaskSubtasks([]);
-                              setNewChecklistInput("");
-                              setNewSubtaskTitle("");
-                              setNewSubtaskDesc("");
-                              setSubtaskChecklistInputs({});
-                              setIsAddingTask(true);
-                            }}
-                            className="text-[10px] font-bold text-accent hover:underline flex items-center gap-1"
-                          >
-                            + Add Task
+                          <button type="button" onClick={() => { setSelectedTemplateId(""); setNewTaskTitle(""); setTemplateDescription(""); setTaskChecklists([]); setTaskSubtasks([]); setNewChecklistInput(""); setNewSubtaskTitle(""); setNewSubtaskDesc(""); setSubtaskChecklistInputs({}); setIsAddingTask(true); }}
+                            className="w-5 h-5 rounded bg-accent/15 hover:bg-accent/30 text-accent flex items-center justify-center text-xs font-black transition-colors" title="Add Task">
+                            +
                           </button>
                         )}
                       </div>
-                    )}
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
+                      {tasksByStatus(col.id).map(task => (
+                        <TaskItem key={task.uid} task={task} isLocked={isLocked} onDragStart={(e) => handleDragStart(e, task.uid)} onClick={() => onTaskSelect?.(task)} />
+                      ))}
+                      {colTasks.length === 0 && (
+                        <div className={`h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 ${isDragTarget ? "border-accent bg-accent/10" : "border-surface-300 bg-surface-50/50"
+                          }`}>
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-surface-400">{isDragTarget ? "Drop here" : "Empty"}</span>
+                          {col.id === "TODO" && !readOnly && userRole === "admin" && (
+                            <button type="button" onClick={() => { setSelectedTemplateId(""); setNewTaskTitle(""); setTemplateDescription(""); setTaskChecklists([]); setTaskSubtasks([]); setNewChecklistInput(""); setNewSubtaskTitle(""); setNewSubtaskDesc(""); setSubtaskChecklistInputs({}); setIsAddingTask(true); }}
+                              className="text-[10px] font-bold text-accent hover:underline">+ Add Task</button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Summary footer */}
-        <div className="px-7 py-3 border-t border-surface-200 bg-surface-100 shrink-0 flex items-center gap-6">
-          {COLUMNS.map(col => (
-            <div key={col.id} className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
-              <span className="text-[9px] font-bold text-surface-600">{col.label}</span>
-              <span className="text-[9px] font-black tabular-nums text-foreground">{tasksByStatus(col.id).length}</span>
+                );
+              })}
             </div>
-          ))}
-          <div className="ml-auto">
-            <span className="text-[9px] font-bold text-accent">{block.progress_percent}% complete</span>
           </div>
-        </div>
 
+          {/* Summary footer */}
+          <div className="px-4 py-2.5 border-t border-surface-200 bg-surface-100 shrink-0 flex items-center gap-4">
+            {COLUMNS.map(col => (
+              <div key={col.id} className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
+                <span className="text-[9px] font-bold text-surface-600">{col.label}</span>
+                <span className="text-[9px] font-black tabular-nums text-foreground">{tasksByStatus(col.id).length}</span>
+              </div>
+            ))}
+            <div className="ml-auto"><span className="text-[9px] font-bold text-accent">{block.progress_percent}% complete</span></div>
+          </div>
+        </>
         {/* ── Create Task Modal with Templates, Checklists & Subtasks ──────────── */}
         {isAddingTask && (
           <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-fade-in">
@@ -601,7 +738,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
               {/* Body */}
               <div className="px-6 py-5 space-y-5 overflow-y-auto custom-scrollbar flex-1">
                 {/* Template Selector Card */}
-                {taskTemplates.length > 0 && (
+                {filteredTaskTemplates.length > 0 && (
                   <div className="p-3 bg-surface-100 border border-surface-300 rounded-xl space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-wider text-surface-600 flex items-center justify-between">
                       <span>Pre-fill from Architectural Template</span>
@@ -621,12 +758,32 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                       className="w-full h-9 px-3 bg-surface-50 border border-surface-300 rounded-lg outline-none focus:border-accent text-xs font-bold text-foreground transition-colors appearance-none"
                     >
                       <option value="" className="bg-surface-100 text-foreground">— Choose a standard template (optional) —</option>
-                      {taskTemplates.map((tpl: any) => (
+                      {filteredTaskTemplates.map((tpl: any) => (
                         <option key={tpl.id} value={String(tpl.id)} className="bg-surface-100 text-foreground">
                           {tpl.name} ({tpl.default_duration_days || 1}d) • {tpl.default_checklists?.length || 0} checkpoints • {tpl.default_subtasks?.length || 0} subtasks
                         </option>
                       ))}
                     </select>
+                  </div>
+                )}
+
+                {/* Milestone Allocation — simple one-liner */}
+                {projectMilestoneTasks.length > 0 && (
+                  <div className="flex items-center gap-2 p-2.5 bg-purple-500/5 border border-purple-500/20 rounded-xl">
+                    <span className="text-purple-400 text-sm shrink-0">🎯</span>
+                    <select
+                      value={milestoneTaskId ?? ""}
+                      onChange={(e) => setMilestoneTaskId(e.target.value ? Number(e.target.value) : null)}
+                      className="flex-1 h-8 px-2.5 bg-transparent border-0 outline-none text-xs font-bold text-foreground"
+                    >
+                      <option value="">— Allocate to a Milestone Task (optional) —</option>
+                      {projectMilestoneTasks.map((t) => (
+                        <option key={t.uid} value={t.id}>{t.title}</option>
+                      ))}
+                    </select>
+                    {milestoneTaskId && (
+                      <button type="button" onClick={() => setMilestoneTaskId(null)} className="text-purple-400 hover:text-red-400 text-xs font-bold shrink-0">✕</button>
+                    )}
                   </div>
                 )}
 
@@ -691,11 +848,16 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                           className="flex items-center gap-2 px-3 py-1.5 bg-surface-100 border border-surface-300 rounded-lg group"
                         >
                           <span className="text-emerald-400 text-xs shrink-0 font-bold">✓</span>
-                          <span className="flex-1 text-xs font-medium text-foreground truncate">{cl}</span>
+                          <span className="flex-1 text-xs font-medium text-foreground truncate">{cl.title}</span>
+                          {cl.requires_visual_proof && (
+                            <span className="text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
+                              📷 Proof Req.
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => setTaskChecklists(prev => prev.filter((_, i) => i !== idx))}
-                            className="w-5 h-5 rounded hover:bg-red-500/15 text-surface-400 hover:text-red-400 flex items-center justify-center text-xs font-bold transition-all"
+                            className="w-5 h-5 rounded hover:bg-red-500/15 text-surface-400 hover:text-red-400 flex items-center justify-center text-xs font-bold transition-all shrink-0"
                           >
                             ✕
                           </button>
@@ -704,35 +866,50 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={newChecklistInput}
-                      onChange={(e) => setNewChecklistInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (newChecklistInput.trim()) {
-                            setTaskChecklists(prev => [...prev, newChecklistInput.trim()]);
-                            setNewChecklistInput("");
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newChecklistInput}
+                        onChange={(e) => setNewChecklistInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (newChecklistInput.trim()) {
+                              setTaskChecklists(prev => [...prev, { title: newChecklistInput.trim(), requires_visual_proof: newChecklistRequiresProof }]);
+                              setNewChecklistInput("");
+                              setNewChecklistRequiresProof(false);
+                            }
                           }
-                        }
-                      }}
-                      placeholder="Add checklist item (Press Enter)..."
-                      className="flex-1 h-8.5 px-3 bg-surface-100 border border-surface-300 rounded-lg text-xs font-medium text-foreground outline-none focus:border-accent placeholder:text-surface-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (newChecklistInput.trim()) {
-                          setTaskChecklists(prev => [...prev, newChecklistInput.trim()]);
-                          setNewChecklistInput("");
-                        }
-                      }}
-                      className="h-8.5 px-3 bg-accent text-background rounded-lg text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all shrink-0"
-                    >
-                      + Add
-                    </button>
+                        }}
+                        placeholder="Add checklist item (Press Enter)..."
+                        className="flex-1 h-8.5 px-3 bg-surface-100 border border-surface-300 rounded-lg text-xs font-medium text-foreground outline-none focus:border-accent placeholder:text-surface-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newChecklistInput.trim()) {
+                            setTaskChecklists(prev => [...prev, { title: newChecklistInput.trim(), requires_visual_proof: newChecklistRequiresProof }]);
+                            setNewChecklistInput("");
+                            setNewChecklistRequiresProof(false);
+                          }
+                        }}
+                        className="h-8.5 px-3 bg-accent text-background rounded-lg text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-all shrink-0"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={newChecklistRequiresProof}
+                        onChange={(e) => setNewChecklistRequiresProof(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-surface-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span className="text-[10px] font-bold text-foreground flex items-center gap-1">
+                        📸 Photo Evidence Required for this Checkpoint
+                      </span>
+                    </label>
                   </div>
                 </div>
 
@@ -908,10 +1085,197 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                   Create Task
                 </button>
               </div>
+
             </motion.div>
           </div>
         )}
 
+        {/* ── Bulk Plan from Milestone Template Modal (Advanced Searchable & Optimized) ── */}
+        {isBulkPlannerOpen && (
+          <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-fade-in">
+            <div className="bg-surface-50 border border-surface-300 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-surface-200 bg-surface-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center font-bold text-base">
+                    ⚡
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-foreground">Bulk Plan from Milestone</h3>
+                    <p className="text-[10px] text-surface-500 font-semibold">Search templates and select tasks to generate into block</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsBulkPlannerOpen(false)}
+                  className="w-7 h-7 rounded-lg bg-surface-200 text-foreground hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center text-xs font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                {/* Milestone Search Bar */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-surface-600 flex items-center justify-between">
+                    <span>Select Milestone Template</span>
+                    <span className="text-[9px] text-surface-400 font-bold">{availableMilestoneTemplates.length} Available</span>
+                  </label>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-surface-400" />
+                    <input
+                      type="text"
+                      value={milestoneSearchQuery}
+                      onChange={(e) => setMilestoneSearchQuery(e.target.value)}
+                      placeholder="Search milestone templates..."
+                      className="w-full h-8 pl-8 pr-7 bg-surface-100 border border-surface-300 rounded-lg text-xs font-semibold text-foreground outline-none focus:border-purple-400 placeholder:text-surface-400"
+                    />
+                    {milestoneSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setMilestoneSearchQuery("")}
+                        className="absolute right-2.5 top-2 text-surface-400 hover:text-foreground text-xs font-bold"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <select
+                    value={selectedMilestoneTplId}
+                    onChange={(e) => handleSelectMilestoneTpl(e.target.value ? Number(e.target.value) : "")}
+                    className="w-full h-9 px-3 bg-surface-100 border border-surface-300 rounded-xl text-xs font-bold text-foreground outline-none focus:border-purple-400"
+                  >
+                    <option value="">— Choose a milestone template ({availableMilestoneTemplates.length}) —</option>
+                    {availableMilestoneTemplates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedMilestoneTplId !== "" && (
+                  <div className="space-y-3 pt-3 border-t border-surface-200">
+                    {/* Task Search Bar inside selected milestone */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase tracking-wider text-surface-600">
+                          Tasks in Milestone ({tplTasksToCreate.filter((t) => t.checked).length}/{tplTasksToCreate.length} Selected)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setTplTasksToCreate((prev) => prev.map((t) => ({ ...t, checked: true })))}
+                            className="text-[10px] text-purple-400 hover:underline font-bold"
+                          >
+                            Select All
+                          </button>
+                          <span className="text-surface-300 text-xs">|</span>
+                          <button
+                            type="button"
+                            onClick={() => setTplTasksToCreate((prev) => prev.map((t) => ({ ...t, checked: false })))}
+                            className="text-[10px] text-surface-400 hover:underline font-bold"
+                          >
+                            Deselect All
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-surface-400" />
+                        <input
+                          type="text"
+                          value={bulkTaskSearchQuery}
+                          onChange={(e) => setBulkTaskSearchQuery(e.target.value)}
+                          placeholder="Filter tasks or checkpoints..."
+                          className="w-full h-8 pl-8 pr-7 bg-surface-100 border border-surface-300 rounded-lg text-xs font-semibold text-foreground outline-none focus:border-purple-400 placeholder:text-surface-400"
+                        />
+                        {bulkTaskSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setBulkTaskSearchQuery("")}
+                            className="absolute right-2.5 top-2 text-surface-400 hover:text-foreground text-xs font-bold"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {filteredTplTasksToCreate.length === 0 ? (
+                      <p className="text-[11px] text-surface-500 italic py-3 text-center">
+                        {bulkTaskSearchQuery ? "No matching tasks found for filter query." : "No sub-templates allocated to this milestone template."}
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                        {filteredTplTasksToCreate.map((tpl) => {
+                          const checkpointCount = (tpl.default_checklists || []).length;
+                          return (
+                            <label
+                              key={tpl.id}
+                              className={`flex items-center gap-2.5 p-2.5 border rounded-xl cursor-pointer transition-colors ${tpl.checked
+                                  ? "bg-purple-500/10 border-purple-500/30 text-foreground"
+                                  : "bg-surface-100 border-surface-200 text-surface-400 hover:bg-surface-200"
+                                }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={tpl.checked}
+                                onChange={(e) =>
+                                  setTplTasksToCreate((prev) =>
+                                    prev.map((t) => (t.id === tpl.id ? { ...t, checked: e.target.checked } : t))
+                                  )
+                                }
+                                className="w-4 h-4 rounded border-surface-300 text-purple-500 focus:ring-purple-500 cursor-pointer"
+                              />
+                              <span className="text-xs font-bold truncate flex-1">{tpl.name}</span>
+                              {checkpointCount > 0 && (
+                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-accent/15 text-accent border border-accent/25 shrink-0">
+                                  ✓ {checkpointCount} checkpoints
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-t border-surface-200 bg-surface-100">
+                <span className="text-[10px] font-extrabold text-surface-500 uppercase tracking-wider">
+                  {tplTasksToCreate.filter((t) => t.checked).length} tasks queued for generation
+                </span>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkPlannerOpen(false)}
+                    className="h-8 px-4 rounded-lg border border-surface-300 text-foreground hover:bg-surface-200 text-xs font-bold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={generatingTasks || tplTasksToCreate.filter((t) => t.checked).length === 0}
+                    onClick={handleBulkCreateTasks}
+                    className="h-8 px-5 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-black rounded-lg transition-all flex items-center gap-1.5 shadow-md shadow-purple-500/20"
+                  >
+                    {generatingTasks ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <span>Create {tplTasksToCreate.filter((t) => t.checked).length} Tasks</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* On Hold Prompt Modal */}
         {onHoldPromptTask && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-fade-in">
@@ -966,6 +1330,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             </div>
           </div>
         )}
+
       </motion.div>
 
     </>

@@ -47,6 +47,8 @@ export const projectsApi = {
     client_email?: string;
     is_template?: boolean;
     template_scope?: string;
+    specialization_ids?: number[];
+    preset_slug?: string;
   }) => {
     return fetchFromBff<Project>("/api/v1/projects/projects/", {
       method: "POST",
@@ -61,8 +63,75 @@ export const projectsApi = {
         client_phone: data.client_phone,
         client_email: data.client_email,
         is_template: data.is_template,
-        template_scope: data.template_scope
+        template_scope: data.template_scope,
+        specialization_ids: data.specialization_ids,
+        preset_slug: data.preset_slug,
       })
+    });
+  },
+
+  getProjectPresets: async () => {
+    try {
+      const res = await fetchFromBff<any>("/api/v1/projects/project-presets/", { method: "GET" });
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.results)) return res.results;
+      if (res && res.data && Array.isArray(res.data)) return res.data;
+      return [];
+    } catch (err) {
+      console.error("[getProjectPresets_ERROR]", err);
+      return [];
+    }
+  },
+
+  createProjectPreset: async (data: { name: string; slug?: string; category?: string; description?: string; icon_emoji?: string; is_active?: boolean; is_public?: boolean }) => {
+    const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `preset-${Date.now()}`;
+    const payload = { ...data, slug };
+    return fetchFromBff<any>("/api/v1/projects/project-presets/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateProjectPreset: async (id: number | string, data: { name?: string; slug?: string; category?: string; description?: string; icon_emoji?: string; is_active?: boolean; is_public?: boolean }) => {
+    const payload = { ...data };
+    if (data.name && !data.slug) {
+      payload.slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    }
+    return fetchFromBff<any>(`/api/v1/projects/project-presets/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteProjectPreset: async (id: number | string) => {
+    return fetchFromBff<any>(`/api/v1/projects/project-presets/${id}/`, {
+      method: "DELETE",
+    });
+  },
+
+  applyProjectPreset: async (projectUid: string | number, presetSlug: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectUid}/apply-preset/`, {
+      method: "POST",
+      body: JSON.stringify({ preset_slug: presetSlug }),
+    });
+  },
+
+  getPresetMatrixPreview: async (presetSlug: string) => {
+    return fetchFromBff<any>(`/api/v1/projects/project-presets/${presetSlug}/matrix-preview/`, { method: "GET" });
+  },
+
+  downloadPresetSampleExcel: async () => {
+    const isServer = typeof window === "undefined";
+    const baseURL = isServer ? (process.env.NEXTAUTH_URL || "http://localhost:3000") : "";
+    window.location.href = `${baseURL}/api/v1/projects/project-presets/sample-excel/`;
+  },
+
+  uploadPresetExcel: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetchFromBff<any>("/api/v1/projects/project-presets/import-excel/", {
+      method: "POST",
+      body: formData,
     });
   },
 
@@ -191,23 +260,53 @@ export const projectsApi = {
     return unpackArray<any>(res);
   },
 
-  createChecklistItem: async (taskUid: string, title: string) => {
+  createChecklistItem: async (
+    taskUid: string,
+    title: string,
+    type: "pre" | "during" | "post" = "during",
+    description: string = "",
+    requiresVisualProof: boolean = false
+  ) => {
     return fetchFromBff<any>(`/api/v1/projects/task-checklists/`, {
       method: "POST",
-      body: JSON.stringify({ task: taskUid, title: title, is_completed: false })
+      body: JSON.stringify({
+        task: taskUid,
+        title: title,
+        type: type,
+        description: description,
+        requires_visual_proof: requiresVisualProof,
+        is_completed: false
+      })
     });
   },
 
   updateChecklistItem: async (itemId: number, isCompleted: boolean) => {
     return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
       method: "PATCH",
-      body: JSON.stringify({ is_completed: isCompleted })
+      body: JSON.stringify({ is_completed: isCompleted, is_na: false })
     });
   },
 
-  updateChecklistItemWithAttachments: async (itemId: number, isCompleted: boolean, files?: File[]) => {
+  toggleChecklistNA: async (itemId: number, isNa: boolean) => {
+    return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_na: isNa, is_completed: isNa ? true : false })
+    });
+  },
+
+  uploadChecklistPhoto: async (itemId: number, file: File) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/upload-photo/`, {
+      method: "POST",
+      body: formData
+    });
+  },
+
+  updateChecklistItemWithAttachments: async (itemId: number, isCompleted: boolean, files?: File[], isNa: boolean = false) => {
     const formData = new FormData();
     formData.append("is_completed", isCompleted ? "true" : "false");
+    formData.append("is_na", isNa ? "true" : "false");
     if (files && files.length > 0) {
       files.forEach(f => formData.append("attachments", f));
     }
@@ -804,18 +903,47 @@ export const projectsApi = {
 
   // ── Utilities ──────────────────────────────────────────────────────────
 
-  getTaskTemplates: async () => {
-    return fetchFromBff<any>("/api/v1/projects/task-templates/", { method: "GET" });
+  getTaskTemplates: async (specialization_ids?: number[]) => {
+    let url = "/api/v1/projects/task-templates/";
+    if (specialization_ids && specialization_ids.length > 0) {
+      url += `?specialization_ids=${specialization_ids.join(",")}`;
+    }
+    return fetchFromBff<any>(url, { method: "GET" });
   },
 
-  createTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: string[] }) => {
+  downloadTemplateSample: async (isGlobal: boolean) => {
+    const endpoint = isGlobal ? "/api/v1/projects/task-templates/sample-excel/" : "/api/v1/projects/org-task-templates/sample-excel/";
+    const res = await fetch(endpoint, { method: "GET", credentials: "include" });
+    if (!res.ok) throw new Error("Failed to download sample file");
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Template_Bulk_Import_Sample.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  },
+
+  uploadTemplateExcel: async (isGlobal: boolean, file: File) => {
+    const endpoint = isGlobal ? "/api/v1/projects/task-templates/import-excel/" : "/api/v1/projects/org-task-templates/import-excel/";
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetchFromBff<any>(endpoint, {
+      method: "POST",
+      body: formData
+    });
+  },
+
+  createTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: any[] }) => {
     return fetchFromBff<any>("/api/v1/projects/task-templates/", {
       method: "POST",
       body: JSON.stringify(data)
     });
   },
 
-  updateTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: string[] }>) => {
+  updateTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: any[] }>) => {
     return fetchFromBff<any>(`/api/v1/projects/task-templates/${templateId}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
@@ -835,18 +963,22 @@ export const projectsApi = {
     });
   },
 
-  getOrgTaskTemplates: async () => {
-    return fetchFromBff<any>("/api/v1/projects/org-task-templates/", { method: "GET" });
+  getOrgTaskTemplates: async (specialization_ids?: number[]) => {
+    let url = "/api/v1/projects/org-task-templates/";
+    if (specialization_ids && specialization_ids.length > 0) {
+      url += `?specialization_ids=${specialization_ids.join(",")}`;
+    }
+    return fetchFromBff<any>(url, { method: "GET" });
   },
 
-  createOrgTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: string[]; default_subtasks?: any[] }) => {
+  createOrgTaskTemplate: async (data: { name: string; description?: string; default_duration_days?: number; default_checklists?: any[]; default_subtasks?: any[] }) => {
     return fetchFromBff<any>("/api/v1/projects/org-task-templates/", {
       method: "POST",
       body: JSON.stringify(data)
     });
   },
 
-  updateOrgTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: string[]; default_subtasks: any[] }>) => {
+  updateOrgTaskTemplate: async (templateId: number, data: Partial<{ name: string; description: string; default_duration_days: number; default_checklists: any[]; default_subtasks: any[] }>) => {
     return fetchFromBff<any>(`/api/v1/projects/org-task-templates/${templateId}/`, {
       method: "PATCH",
       body: JSON.stringify(data)
@@ -936,7 +1068,7 @@ export const projectsApi = {
     return unpackArray<SpatialZone>(res);
   },
 
-  createZone: async (data: { project: number; name: string; order?: number; zone_type?: string; bim_element_id?: string }) => {
+  createZone: async (data: { project: number | string; name: string; order?: number; zone_type?: string; bim_element_id?: string }) => {
     return fetchFromBff<SpatialZone>("/api/v1/projects/zones/", { method: "POST", body: JSON.stringify(data) });
   },
 
@@ -960,7 +1092,7 @@ export const projectsApi = {
     return unpackArray<MilestonePhase>(res);
   },
 
-  createPhase: async (data: { project: number; name: string; sequence_order: number; color_hex?: string }) => {
+  createPhase: async (data: { project: number | string; name: string; sequence_order: number; color_hex?: string }) => {
     return fetchFromBff<MilestonePhase>("/api/v1/projects/phases/", { method: "POST", body: JSON.stringify(data) });
   },
 
@@ -1118,6 +1250,50 @@ export const projectsApi = {
 
   /** Get full detail for a single template (includes task tree). */
   getTemplateDetail: async (uid: string) => {
+    if (uid.startsWith("preset-")) {
+      const slugOrId = uid.replace("preset-", "");
+      try {
+        const presets = await projectsApi.getProjectPresets();
+        const preset = presets.find((p: any) => String(p.id) === slugOrId || p.slug === slugOrId);
+        if (preset) {
+          return {
+            uid,
+            title: `${preset.icon_emoji || '🏠'} ${preset.name}`,
+            description: preset.description || "1-Click QA/QC Matrix Project Blueprint with 6 Standard Stages",
+            template_status: "PUBLISHED",
+            template_visibility: "PUBLIC",
+            template_category: preset.category ? preset.category.toUpperCase() : "PROJECT BLUEPRINT",
+            template_tags: ["Project Blueprint", "1-Click Matrix"],
+            template_building_type: preset.category || "All",
+            template_country: "India",
+            template_difficulty: "INTERMEDIATE",
+            template_license: "Free",
+            template_est_duration_days: 180,
+            template_est_cost_min: null,
+            template_est_cost_max: null,
+            template_thumbnail: "",
+            template_version: 1,
+            avg_rating: 5.0,
+            rating_count: 1,
+            task_count: 237,
+            checklist_count: 6,
+            author_name: "Architecture Playbook",
+            share_token: null,
+            share_token_expires_at: null,
+            is_in_library: true,
+            is_favorite: false,
+            use_count: 0,
+            user_rating: null,
+            created_at: preset.created_at || new Date().toISOString(),
+            tasks: [],
+            isPreset: true,
+            presetSlug: preset.slug,
+          };
+        }
+      } catch (e) {
+        console.error("Failed to resolve preset detail", e);
+      }
+    }
     return fetchFromBff<any>(`/api/v1/projects/templates/${uid}/`, { method: "GET" });
   },
 
@@ -1176,6 +1352,7 @@ export const projectsApi = {
     title: string; account_id: number;
     description?: string; kind?: string; location?: string;
     client_name?: string; client_phone?: string; client_email?: string;
+    specialization_ids?: number[];
   }) => {
     return fetchFromBff<{ uid: string; title: string }>(
       `/api/v1/projects/templates/${templateUid}/create-project/`,

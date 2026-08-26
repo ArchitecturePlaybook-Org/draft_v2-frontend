@@ -29,6 +29,7 @@ import {
   Building2,
   Search,
   Calculator,
+  Tag,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -66,7 +67,9 @@ export const Sidebar: React.FC = () => {
 
   const orgLinks = isSuperAdmin ? [
     { label: "User Directory", href: "/dashboard/users", icon: <Users className="w-4 h-4 text-accent" /> },
-    { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> }
+    { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> },
+    { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4 text-accent" /> },
+    { label: "Trade Specializations", href: "/dashboard/admin/specializations", icon: <Tag className="w-4 h-4 text-accent" /> },
   ] : [
     { label: "Team & Members", href: "/dashboard/organization", icon: <Users className="w-4 h-4" /> },
     { label: "Master Catalog", href: "/dashboard/catalog", icon: <BookOpen className="w-4 h-4" /> },
@@ -88,18 +91,18 @@ export const Sidebar: React.FC = () => {
         title={isSidebarCollapsed ? "Expand Sidebar (⌘B)" : "Collapse Sidebar (⌘B)"}
         aria-label={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
       >
-        <svg 
+        <svg
           width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
           className={`transform transition-transform duration-300 ${isSidebarCollapsed ? "rotate-180" : "rotate-0"}`}
         >
-          <path d="m15 18-6-6 6-6"/>
+          <path d="m15 18-6-6 6-6" />
         </svg>
       </button>
 
       {/* Brand Logo & Notification Bell */}
       <div className={`flex items-center mb-2.5 min-w-0 gap-2 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-1'}`}>
         <div className={`flex items-center gap-2 min-w-0 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-          <div 
+          <div
             className="w-7 h-7 shrink-0 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-xs shadow-2xs text-accent cursor-pointer hover:scale-105 transition-transform"
             title={isSidebarCollapsed ? "Architecture Playbook" : undefined}
           >
@@ -120,7 +123,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Quick Search Bar */}
       <div className="px-0.5 mb-2.5 flex gap-2 min-w-0">
-        <button 
+        <button
           onClick={() => setIsCommandPaletteOpen(true)}
           className={`flex items-center min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 p-0 mx-auto' : 'w-full px-2 py-1 justify-between'} bg-surface-100/70 dark:bg-surface-800/50 hover:bg-surface-200/80 dark:hover:bg-surface-800 border border-surface-200/80 dark:border-white/10 rounded-lg transition-all text-[11px] text-surface-400 shadow-2xs shrink-0`}
           title={isSidebarCollapsed ? "Quick Search (⌘K)" : undefined}
@@ -236,8 +239,8 @@ interface SidebarLinkProps {
 }
 
 const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, icon, active, isCollapsed, badge }) => (
-  <Link 
-    href={href} 
+  <Link
+    href={href}
     className={`nav-item relative ${active ? "active" : ""} ${isCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto text-xs' : ''}`}
     title={isCollapsed ? label : undefined}
   >

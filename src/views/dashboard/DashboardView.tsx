@@ -162,7 +162,7 @@ export function DashboardView() {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-4 pb-8 w-full max-w-7xl mx-auto text-xs"
+      className="flex flex-col gap-4 w-full max-w-full text-xs"
     >
       {/* COMPACT EXECUTIVE HEADER SECTION */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-surface-200/80 dark:border-white/10 pb-3">

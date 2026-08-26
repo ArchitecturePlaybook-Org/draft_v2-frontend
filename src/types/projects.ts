@@ -42,6 +42,8 @@ export interface Project {
   budget_total?: number;
   created_at: string;
   updated_at: string;
+  specializations?: any[];
+  specialization_ids?: number[];
 }
 
 export type TaskStatus = "TODO" | "ON_HOLD" | "WIP" | "QA" | "DONE";
@@ -157,9 +159,19 @@ export interface Task {
   is_deleted?: boolean;
   deleted_at?: string | null;
   on_hold_reason?: string | null;
+  is_milestone?: boolean;
+  milestone_task?: number | null;
+  milestone_task_id?: number | null;
+  specializations?: Specialization[];
+  specialization_ids?: number[];
 }
 
-
+export interface Specialization {
+  id: number;
+  name: string;
+  slug: string;
+  category?: number | null;
+}
 
 export interface TaskTag {
   id: number;
@@ -180,8 +192,13 @@ export interface TaskTemplate {
   name: string;
   description: string;
   default_duration_days: number;
-  default_checklists: string[];
+  default_checklists: any[];
   default_subtasks?: SubtaskTemplateItem[];
+  is_milestone?: boolean;
+  milestone_task?: number | null;
+  milestone_task_id?: number | null;
+  specializations?: any[];
+  specialization_ids?: number[];
 }
 
 export interface ProjectMembership {
@@ -245,6 +262,8 @@ export interface MilestoneBlockCompact {
   has_blockers: boolean;
   total_tasks: number;
   completed_tasks: number;
+  task_count?: number;
+  done_count?: number;
   notes?: string;
   // Manual unlock audit trail
   unlocked_by_name?: string | null;
@@ -303,6 +322,9 @@ export interface TaskChecklistItem {
   task: string;
   title: string;
   is_completed: boolean;
+  is_na?: boolean;
+  type: "pre" | "during" | "post";
+  description: string;
   requires_visual_proof: boolean;
   completed_at: string | null;
   completed_by: User | null;

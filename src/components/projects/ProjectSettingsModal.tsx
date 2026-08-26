@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { authApi } from "@/domains/auth/api";
 import { Project } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
 import { useProjectStore } from "@/store/project-store";
+import { SpecializationMultiSelect } from "@/components/ui/SpecializationMultiSelect";
 
 interface ProjectSettingsModalProps {
   project: Project;
@@ -9,6 +11,7 @@ interface ProjectSettingsModalProps {
 }
 
 export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ project, onClose }) => {
+
   const [formData, setFormData] = useState({
     title: project.title || "",
     description: project.description || "",
@@ -19,8 +22,14 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
     client_phone: project.client_phone || "",
     client_email: project.client_email || "",
     unit_system: project.unit_system || "metric",
+    specialization_ids: project.specializations?.map((s: any) => typeof s === 'number' ? s : s.id) || [] as number[],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [specializations, setSpecializations] = useState<any[]>([]);
+
+  useEffect(() => {
+    authApi.getSpecializations().then(setSpecializations).catch(() => {});
+  }, []);
   const [error, setError] = useState("");
   const fetchProject = useProjectStore((state) => state.fetchProject);
 
@@ -47,7 +56,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-surface-100 rounded-xl border border-surface-200 shadow-2xl w-full max-w-xl flex flex-col max-h-[90vh]">
+      <div className="bg-surface-100 rounded-xl border border-surface-200 shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200 bg-surface-50/50 rounded-t-xl">
           <div>
             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
@@ -208,6 +217,17 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ proj
                   <option value="metric">Metric (meters, cm, kg)</option>
                   <option value="imperial">Imperial (feet, inches, lbs)</option>
                 </select>
+              </div>
+
+              <div className="col-span-2">
+                <div className="h-px bg-surface-200 my-2" />
+                <SpecializationMultiSelect
+                  specializations={specializations}
+                  selectedIds={formData.specialization_ids}
+                  onChange={(ids) => setFormData({ ...formData, specialization_ids: ids })}
+                  label="Project Specializations (Multi-Select)"
+                  placeholder="Select project specializations..."
+                />
               </div>
 
             </div>

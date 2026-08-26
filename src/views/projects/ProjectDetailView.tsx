@@ -238,16 +238,6 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
                   Expanded Milestone Feed
                 </button>
               </div>
-              {matrixView === 'grid' && canManageProject(project) && (
-                <button
-                  id="create-matrix-task-btn"
-                  onClick={() => setShowCreateTaskModal(true)}
-                  className="h-8 px-4 bg-accent text-background font-black text-[10px] uppercase tracking-wider rounded-xl hover:opacity-90 transition-all shadow-md shadow-accent/20 flex items-center gap-1.5 shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Create Task
-                </button>
-              )}
             </div>
             {matrixView === 'grid' ? (
               <MilestoneMatrixView projectUid={project.uid} onTaskChange={() => fetchProject(project.uid)} projectTasks={project.tasks} />

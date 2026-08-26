@@ -35,6 +35,7 @@ export interface UserProfile {
   } | null;
   website?: string;
   social_links?: Record<string, unknown>;
+  specializations?: any[];
   is_public?: boolean;
 }
 

@@ -21,7 +21,7 @@ export function TenantManagementView() {
 
   const [tenants, setTenants] = useState<AdminTenantListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
@@ -136,7 +136,7 @@ export function TenantManagementView() {
 
       {/* Top Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        
+
         <div className="p-4 rounded-xl bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-xl border border-surface-200/80 dark:border-surface-800 shadow-xs flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 font-black text-lg flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5" />
@@ -181,7 +181,7 @@ export function TenantManagementView() {
 
       {/* Filter and Search Bar */}
       <div className="p-3.5 rounded-xl bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-xl border border-surface-200/80 dark:border-surface-800 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-        
+
         {/* Search */}
         <div className="relative w-full md:w-80">
           <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-surface-400" />
@@ -196,18 +196,17 @@ export function TenantManagementView() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2 w-full md:w-auto items-center">
-          
+
           {/* Status Buttons */}
           <div className="flex items-center gap-1 bg-surface-100/60 dark:bg-surface-950/60 p-0.5 rounded-lg border border-surface-200/80 dark:border-surface-800">
             {(["ALL", "ACTIVE", "INACTIVE"] as const).map(status => (
               <button
                 key={status}
                 onClick={() => { setStatusFilter(status); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  statusFilter === status
+                className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${statusFilter === status
                     ? "bg-accent text-background shadow-xs"
                     : "text-surface-400 hover:text-primary"
-                }`}
+                  }`}
               >
                 {status}
               </button>
@@ -232,7 +231,7 @@ export function TenantManagementView() {
 
       {/* Tenants Table */}
       <div className="bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-xl border border-surface-200/80 dark:border-surface-800 rounded-xl shadow-md overflow-hidden">
-        
+
         {isLoading ? (
           <div className="p-8 space-y-3">
             {[1, 2, 3, 4].map(i => (
@@ -261,7 +260,7 @@ export function TenantManagementView() {
               <tbody className="divide-y divide-surface-200/60 dark:divide-surface-800 text-xs font-semibold">
                 {paginatedTenants.map((t) => (
                   <tr key={t.id} className="hover:bg-surface-100/50 dark:hover:bg-surface-800/30 transition-colors">
-                    
+
                     {/* Info */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
@@ -279,11 +278,10 @@ export function TenantManagementView() {
                     <td className="py-3 px-3">
                       <button
                         onClick={() => handleToggleStatus(t.id, t.is_active)}
-                        className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer border ${
-                          t.is_active
+                        className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer border ${t.is_active
                             ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20"
                             : "bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20"
-                        }`}
+                          }`}
                         title="Click to toggle Active status"
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${t.is_active ? "bg-emerald-500" : "bg-rose-500"}`} />
@@ -333,7 +331,7 @@ export function TenantManagementView() {
         {/* Pagination Footer */}
         {filteredTenants.length > 0 && (
           <div className="p-3 border-t border-surface-200/80 dark:border-surface-800 bg-surface-100/30 dark:bg-surface-950/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            
+
             <div className="flex items-center gap-2 text-surface-400 font-semibold text-[11px]">
               <span>
                 Showing <strong className="text-primary">{Math.min((currentPage - 1) * itemsPerPage + 1, filteredTenants.length)}</strong> to{" "}

@@ -16,14 +16,16 @@ import { toast } from "sonner";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { UpgradeModal } from "@/components/billing/UpgradeModal";
 
-function SearchParamsReader({ onParams }: { onParams: (leadId: string | null, title: string | null, clientName: string | null) => void }) {
+function SearchParamsReader({ onParams }: { onParams: (params: { leadId: string | null; title: string | null; clientName: string | null; preset: string | null; create: string | null }) => void }) {
   const searchParams = useSearchParams();
   useEffect(() => {
-    onParams(
-      searchParams.get('lead_id'),
-      searchParams.get('title'),
-      searchParams.get('client_name'),
-    );
+    onParams({
+      leadId: searchParams.get('lead_id'),
+      title: searchParams.get('title'),
+      clientName: searchParams.get('client_name'),
+      preset: searchParams.get('preset'),
+      create: searchParams.get('create'),
+    });
   }, [searchParams]);
   return null;
 }
@@ -39,7 +41,7 @@ export function ProjectsRegistryView() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [orgs, setOrgs] = useState<any[]>([]);
-  const [initialData, setInitialData] = useState({ title: "", description: "" });
+  const [initialData, setInitialData] = useState<{ title?: string; description?: string; preset_slug?: string; kind?: string }>({ title: "", description: "" });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -90,12 +92,22 @@ export function ProjectsRegistryView() {
     },
   });
 
-  const handleSearchParams = (leadId: string | null, leadTitle: string | null, clientName: string | null) => {
-    if (leadId) {
+  const handleSearchParams = (params: { leadId: string | null; title: string | null; clientName: string | null; preset: string | null; create: string | null }) => {
+    if (params.leadId) {
       setInitialData({
-        title: leadTitle ? `Blueprint: ${leadTitle}` : `New Project for ${clientName}`,
-        description: `Originating from Business Lead ID: ${leadId}`
+        title: params.title ? `Blueprint: ${params.title}` : `New Project for ${params.clientName}`,
+        description: `Originating from Business Lead ID: ${params.leadId}`,
+        preset_slug: '',
       });
+      setShowCreateModal(true);
+    } else if (params.preset) {
+      setInitialData({
+        title: params.title || '',
+        description: '',
+        preset_slug: params.preset,
+      });
+      setShowCreateModal(true);
+    } else if (params.create === 'true') {
       setShowCreateModal(true);
     }
   };
@@ -134,16 +146,14 @@ export function ProjectsRegistryView() {
   const completedCount = projects.filter(p => p.status === "Completed").length;
 
   return (
-    <div className="space-y-4 animate-fade-in pb-8">
+    <div className="w-full max-w-full space-y-4 animate-fade-in">
       <Suspense fallback={null}>
         <SearchParamsReader onParams={handleSearchParams} />
       </Suspense>
 
       {/* Header Banner with Quick Stats */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-surface-50/60 dark:bg-surface-800/40 backdrop-blur-2xl p-4 sm:p-5 border border-surface-200/80 dark:border-surface-700/60 rounded-2xl shadow-lg relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-r from-accent/10 via-transparent to-transparent opacity-60 pointer-events-none" />
-        
-        <div className="relative z-10 space-y-1">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-surface-50 border border-surface-200 rounded-xl p-4 sm:p-5 shadow-xs">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Project Registry</h1>
             <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
@@ -158,12 +168,12 @@ export function ProjectsRegistryView() {
         </div>
 
         {/* Quick Stats Pill Row + Primary CTA */}
-        <div className="flex flex-wrap items-center gap-2 relative z-10 w-full lg:w-auto">
-          <div className="flex items-center gap-1.5 bg-surface-100/80 dark:bg-surface-700/60 px-3 py-1.5 rounded-xl border border-surface-200/60 dark:border-surface-700/50">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+          <div className="flex items-center gap-1.5 bg-surface-100 px-3 py-1.5 rounded-xl border border-surface-200">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
             <span className="text-[10px] font-extrabold text-foreground">{inProgressCount} In Progress</span>
           </div>
-          <div className="flex items-center gap-1.5 bg-surface-100/80 dark:bg-surface-700/60 px-3 py-1.5 rounded-xl border border-surface-200/60 dark:border-surface-700/50">
+          <div className="flex items-center gap-1.5 bg-surface-100 px-3 py-1.5 rounded-xl border border-surface-200">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
             <span className="text-[10px] font-extrabold text-foreground">{completedCount} Completed</span>
           </div>
@@ -176,9 +186,10 @@ export function ProjectsRegistryView() {
                 setShowCreateModal(true);
               }
             }}
-            className="h-9 px-4 bg-gradient-to-r from-accent to-accent-hover text-background font-black text-[10px] uppercase tracking-widest rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-md shadow-accent/20 shrink-0 ml-auto lg:ml-0"
+            className="h-9 px-4 bg-accent hover:bg-accent/90 text-background font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0 ml-auto lg:ml-0"
           >
-            <span className="text-sm leading-none">+</span> Establish Blueprint
+            <span>+</span>
+            <span>Establish Blueprint</span>
           </button>
         </div>
       </div>
@@ -409,6 +420,21 @@ export function ProjectsRegistryView() {
         onClose={() => setShowUpgradeModal(false)}
         limitType="project"
         currentPlan={planLimits.subscription?.plan?.name}
+      />
+
+      <EstablishBlueprintModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={(created) => {
+          setShowCreateModal(false);
+          queryClient.invalidateQueries({ queryKey: ["projects"] });
+          const targetUid = created?.uid || (created?.id ? String(created.id) : '');
+          if (targetUid) {
+            router.push(`/dashboard/projects/${targetUid}`);
+          }
+        }}
+        orgs={orgs}
+        initialData={initialData}
       />
 
       {/* Shared Tasks Section */}

@@ -69,7 +69,7 @@ export const EstimationGrid = () => {
   const totalQuantitySum = items.reduce((acc, item) => acc + (Number(item.net_qty) || 0), 0);
   const totalCostSum = items.reduce((acc, item) => acc + (Number(item.total_cost) || 0), 0);
 
-  const columns: ColumnDef<TakeoffItem>[] = [
+  const columns = React.useMemo<ColumnDef<TakeoffItem>[]>(() => [
     {
       header: 'Code',
       accessorKey: 'item_code',
@@ -134,7 +134,7 @@ export const EstimationGrid = () => {
         </button>
       )
     }
-  ];
+  ], [deleteItem]);
 
   const [grouping, setGrouping] = useState<GroupingState>([]);
 
@@ -148,6 +148,8 @@ export const EstimationGrid = () => {
     getCoreRowModel: getCoreRowModel(),
     getGroupedRowModel: getGroupedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
+    autoResetPageIndex: false,
+    autoResetExpanded: false,
     meta: {
       updateData: (itemId: string, columnId: string, value: any) => {
         updateItem(itemId, { [columnId]: value });

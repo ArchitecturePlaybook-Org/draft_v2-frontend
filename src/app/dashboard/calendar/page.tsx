@@ -58,7 +58,7 @@ export default function CalendarPage() {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-8 max-w-7xl mx-auto py-8"
+      className="space-y-4 w-full max-w-full"
     >
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>

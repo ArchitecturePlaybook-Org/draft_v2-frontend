@@ -26,6 +26,8 @@ export default function ProfilePage() {
   const [organizations, setOrganizations] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [allSpecializations, setAllSpecializations] = useState<any[]>([]);
+  const [selectedSpecializations, setSelectedSpecializations] = useState<number[]>([]);
   const [metadata, setMetadata] = useState<Record<string, unknown>>({});
   const [name, setName] = useState("");
   const [headline, setHeadline] = useState("");
@@ -77,9 +79,19 @@ export default function ProfilePage() {
     return CATEGORY_SCHEMAS[categorySlug] || [];
   }, [categorySlug]);
 
+  async function loadSpecializations() {
+    try {
+      const data = await authApi.getSpecializations();
+      setAllSpecializations(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   useEffect(() => {
     loadOrgs();
     loadPortfolio();
+    loadSpecializations();
   }, []);
 
   useEffect(() => {
@@ -134,6 +146,10 @@ export default function ProfilePage() {
           portfolio: String(user.profile.social_links?.portfolio || ""),
           ...user.profile.social_links
         });
+        
+        if (user.profile.specializations) {
+          setSelectedSpecializations(user.profile.specializations.map((s: any) => s.id));
+        }
       }
     }
   }, [user]);
@@ -154,6 +170,7 @@ export default function ProfilePage() {
         city,
         country,
         social_links: socialLinks,
+        specialization_ids: selectedSpecializations,
         metadata: {
           ...metadata,
           headline,
@@ -377,7 +394,7 @@ export default function ProfilePage() {
   if (!user) return <div className="p-8 text-center text-xs font-bold text-accent animate-pulse uppercase tracking-widest">Initializing User Profile...</div>;
 
   return (
-    <div className="w-full max-w-5xl mx-auto py-2 px-1 sm:px-2 space-y-4">
+    <div className="w-full max-w-full space-y-4">
       {/* Profile Header */}
       <div className="bg-surface-50/60 dark:bg-surface-900/60 backdrop-blur-xl border border-surface-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center gap-4 sm:gap-6 shadow-sm relative overflow-hidden">
         <div className="relative shrink-0">
@@ -418,37 +435,39 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="w-full md:w-56 space-y-2 bg-surface-100/60 dark:bg-surface-800/40 p-3 rounded-xl border border-surface-200/60 dark:border-white/10 shrink-0">
-          <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-wider">
+        <div className="w-full md:w-80 space-y-3 bg-surface-100/70 dark:bg-surface-800/50 p-4 rounded-xl border border-surface-200 dark:border-white/10 shrink-0">
+          <div className="flex justify-between items-center text-xs font-extrabold uppercase tracking-wider">
              <span className="text-surface-400">Profile Completeness</span>
-             <span className="text-accent">{completionPercentage}%</span>
+             <span className="text-accent font-black text-xs">{completionPercentage}%</span>
           </div>
-          <div className="h-1.5 w-full bg-surface-200/60 dark:bg-surface-700 rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
             <div 
               className="h-full bg-accent transition-all duration-700 ease-out" 
               style={{ width: `${completionPercentage}%` }}
             />
           </div>
-          <div className="flex gap-2 w-full pt-1">
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full pt-1">
             <button
               onClick={() => {
                 setActiveTab("overview");
                 setIsEditing(!isEditing);
               }}
-              className={`flex-1 py-1.5 border rounded-lg flex items-center justify-center gap-1 text-[9px] font-extrabold uppercase tracking-wider transition-all ${
+              className={`w-full sm:flex-1 h-8 border rounded-lg flex items-center justify-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
                 isEditing
                   ? 'bg-amber-500/20 border-amber-400 text-amber-300'
-                  : 'bg-accent text-background border-accent hover:opacity-90 shadow-sm'
+                  : 'bg-accent text-background border-accent hover:opacity-90 shadow-2xs'
               }`}
             >
               {isEditing ? "Cancel Edit" : "✏️ Edit Profile"}
             </button>
 
             <Link 
-              href="/portfolio" 
-              className="flex-1 py-1.5 bg-surface-200/70 dark:bg-surface-700/60 hover:bg-surface-300/80 border border-surface-300/40 dark:border-white/10 rounded-lg flex items-center justify-center gap-1 text-[9px] font-bold text-primary uppercase tracking-wider transition-all"
+              href={`/profile/${user.uid || user.id}`} 
+              className="w-full sm:flex-1 h-8 bg-surface-200/80 hover:bg-surface-300 border border-surface-300/60 dark:border-white/10 rounded-lg flex items-center justify-center gap-1.5 text-[10px] font-bold text-foreground uppercase tracking-wider transition-all truncate"
+              title="View Public Profile Page"
             >
-              Public View
+              <span>🌐</span>
+              <span className="truncate">Public View</span>
             </Link>
           </div>
         </div>
@@ -587,6 +606,48 @@ export default function ProfilePage() {
                                 <p className="font-semibold text-primary text-xs bg-surface-100/40 dark:bg-surface-800/40 p-2.5 rounded-lg border border-surface-200/50 dark:border-white/5">{metadata.years_of_experience ? `${metadata.years_of_experience} Years` : "Unspecified"}</p>
                             )}
                         </div>
+                    </div>
+
+                    {/* Specializations */}
+                    <div className="space-y-2 mt-4 pt-4 border-t border-surface-200 dark:border-white/10">
+                        <label className="text-[9px] font-bold text-surface-400 uppercase tracking-wider">Specializations</label>
+                        {isEditing ? (
+                            <div className="flex flex-wrap gap-2">
+                                {allSpecializations.map((spec) => {
+                                    const isSelected = selectedSpecializations.includes(spec.id);
+                                    return (
+                                        <button
+                                            key={spec.id}
+                                            onClick={() => {
+                                                if (isSelected) {
+                                                    setSelectedSpecializations(prev => prev.filter(id => id !== spec.id));
+                                                } else {
+                                                    setSelectedSpecializations(prev => [...prev, spec.id]);
+                                                }
+                                            }}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${isSelected ? 'bg-accent/10 border-accent/30 text-accent' : 'bg-surface-100 border-surface-200 text-surface-500 hover:bg-surface-200 hover:text-foreground'}`}
+                                        >
+                                            {spec.name}
+                                        </button>
+                                    );
+                                })}
+                                {allSpecializations.length === 0 && (
+                                    <p className="text-xs text-surface-400">Loading specializations...</p>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {(user?.profile?.specializations || []).length > 0 ? (
+                                    (user.profile?.specializations as any[]).map((spec: any) => (
+                                        <span key={spec.id} className="px-2 py-1 rounded-md bg-surface-100/40 border border-surface-200/50 text-primary text-[10px] font-bold">
+                                            {spec.name}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <p className="font-semibold text-primary text-xs bg-surface-100/40 p-2.5 rounded-lg border border-surface-200/50">Unspecified</p>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

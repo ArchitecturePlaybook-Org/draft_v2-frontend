@@ -12,51 +12,7 @@ interface ProfileSidebarProps {
 export function ProfileSidebar({ profile, onOpenContactModal }: ProfileSidebarProps) {
   const [connectedState, setConnectedState] = useState<Record<number, boolean>>({});
 
-  const similarArchitects = [
-    {
-      id: 201,
-      name: "Ar. Ananya Sharma",
-      category: "Senior Urban Masterplanner",
-      location: "Bengaluru, KA",
-      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80",
-      uid: "ananya-sharma-blr"
-    },
-    {
-      id: 202,
-      name: "Er. Vikramaditya Rao",
-      category: "Principal Structural Consultant",
-      location: "Bengaluru, KA",
-      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80",
-      uid: "vikram-rao-blr"
-    },
-    {
-      id: 203,
-      name: "Ar. Priya Venkatesh",
-      category: "BIM Integration Director",
-      location: "Bengaluru, KA",
-      avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80",
-      uid: "priya-v-blr"
-    }
-  ];
-
-  const stakeholders: Stakeholder[] = profile.stakeholders?.length > 0
-    ? profile.stakeholders
-    : [
-      {
-        id: 301,
-        uid: "sh-101",
-        name: "Sobha Structural Consultants",
-        avatar: "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=100&q=80",
-        category: "Structural Consultants"
-      },
-      {
-        id: 302,
-        uid: "sh-102",
-        name: "Prestige Group Developers",
-        avatar: "https://images.unsplash.com/photo-1554469384-e58fac16e23a?auto=format&fit=crop&w=100&q=80",
-        category: "Client Developer"
-      }
-    ];
+  const stakeholders: Stakeholder[] = profile.stakeholders || [];
 
   const toggleConnect = (id: number) => {
     setConnectedState((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -81,81 +37,47 @@ export function ProfileSidebar({ profile, onOpenContactModal }: ProfileSidebarPr
         </p>
       </div>
 
-      {/* People Also Viewed */}
-      <div className="bg-surface-100/90 backdrop-blur-xl rounded-2xl border border-surface-200 p-4 shadow-sm space-y-3">
-        <h3 className="font-bold text-primary text-xs flex items-center justify-between">
-          <span>People Also Viewed</span>
-        </h3>
-
-        <div className="space-y-3">
-          {similarArchitects.map((person) => {
-            const isConn = connectedState[person.id];
-
-            return (
-              <div key={person.id} className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-surface-200 shrink-0 border border-surface-300">
-                    <img src={person.avatar} alt={person.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-primary text-xs truncate hover:text-blue-600 cursor-pointer">
-                      {person.name}
-                    </h4>
-                    <p className="text-[10px] text-surface-500 truncate">{person.category}</p>
-                  </div>
-                </div>
-
-                <Link
-                  href={`/profile/${person.uid}`}
-                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-surface-300 text-primary hover:bg-surface-200 transition-all shrink-0"
-                >
-                  View
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Project Collaborators */}
-      <div className="bg-surface-100/90 backdrop-blur-xl rounded-2xl border border-surface-200 p-4 shadow-sm space-y-3">
-        <h3 className="font-bold text-primary text-xs flex items-center justify-between">
-          <span>Project Collaborators</span>
-          <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
-            {stakeholders.length}
-          </span>
-        </h3>
+      {stakeholders.length > 0 && (
+        <div className="bg-surface-100/90 backdrop-blur-xl rounded-2xl border border-surface-200 p-4 shadow-sm space-y-3">
+          <h3 className="font-bold text-primary text-xs flex items-center justify-between">
+            <span>Project Collaborators</span>
+            <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+              {stakeholders.length}
+            </span>
+          </h3>
 
-        <div className="space-y-2">
-          {stakeholders.map((sh) => (
-            <Link
-              key={sh.id}
-              href={`/profile/${sh.uid}`}
-              className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-surface-200/50 transition-all group"
-            >
-              <div className="w-8 h-8 rounded-xl overflow-hidden bg-surface-200 shrink-0 border border-surface-300">
-                {sh.avatar ? (
-                  <img src={sh.avatar} alt={sh.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center font-bold text-xs text-surface-400">
-                    {sh.name.charAt(0)}
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="font-bold text-primary text-xs truncate group-hover:text-accent transition-colors">
-                  {sh.name}
-                </p>
-                {sh.category && (
-                  <p className="text-[10px] text-surface-500 font-medium truncate">
-                    {sh.category}
+          <div className="space-y-2">
+            {stakeholders.map((sh) => (
+              <Link
+                key={sh.id}
+                href={`/profile/${sh.uid}`}
+                className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-surface-200/50 transition-all group"
+              >
+                <div className="w-8 h-8 rounded-xl overflow-hidden bg-surface-200 shrink-0 border border-surface-300">
+                  {sh.avatar ? (
+                    <img src={sh.avatar} alt={sh.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-bold text-xs text-surface-400">
+                      {sh.name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-primary text-xs truncate group-hover:text-accent transition-colors">
+                    {sh.name}
                   </p>
-                )}
-              </div>
-            </Link>
-          ))}
+                  {sh.category && (
+                    <p className="text-[10px] text-surface-500 font-medium truncate">
+                      {sh.category}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Compact Pro Banner */}
       <div className="rounded-2xl p-4 bg-gradient-to-br from-accent/20 via-amber-500/10 to-primary/20 border border-accent/30 text-center space-y-2 shadow-sm">

@@ -8,30 +8,7 @@ interface ProfileExperienceSectionProps {
 }
 
 export function ProfileExperienceSection({ profile }: ProfileExperienceSectionProps) {
-  const experiences = profile.metadata?.experiences || [
-    {
-      id: 1,
-      title: "Principal Architectural Consultant",
-      company: "Apex Architectural Studio",
-      type: "Full-time",
-      dates: "Jan 2021 - Present • 3 yrs 8 mos",
-      location: "San Francisco, CA",
-      logo: "🏢",
-      description: "Directing principal design teams on high-rise commercial developments (₹120 Cr+ project valuation). Leading BIM implementation across 14 active site teams.",
-      skills: ["Revit", "BIM Management", "LEED AP BD+C"]
-    },
-    {
-      id: 2,
-      title: "Senior Project Architect",
-      company: "Metropolitan Urban Design Group",
-      type: "Full-time",
-      dates: "Mar 2017 - Dec 2020 • 3 yrs 10 mos",
-      location: "New York, NY",
-      logo: "🏛️",
-      description: "Managed structural layout designs and municipal zoning compliance for mixed-use residential towers.",
-      skills: ["Navisworks", "Urban Planning", "Rhino 3D"]
-    }
-  ];
+  const experiences: any[] = profile.metadata?.experiences || [];
 
   return (
     <div className="bg-surface-100/90 backdrop-blur-xl rounded-2xl border border-surface-200 p-5 sm:p-6 shadow-sm space-y-4">
@@ -39,7 +16,10 @@ export function ProfileExperienceSection({ profile }: ProfileExperienceSectionPr
         <h2 className="text-base font-bold text-primary">Experience</h2>
       </div>
 
-      <div className="space-y-6 relative before:absolute before:left-5 sm:before:left-5 before:top-3 before:bottom-3 before:w-0.5 before:bg-surface-200">
+      {experiences.length === 0 ? (
+        <p className="text-xs text-surface-400 font-medium">No experience details recorded yet.</p>
+      ) : (
+        <div className="space-y-6 relative before:absolute before:left-5 sm:before:left-5 before:top-3 before:bottom-3 before:w-0.5 before:bg-surface-200">
         {experiences.map((exp: any, idx: number) => (
           <div key={exp.id || idx} className="relative flex items-start gap-3.5 group">
             <div className="w-10 h-10 rounded-xl bg-surface-50 border border-surface-300 flex items-center justify-center text-lg shrink-0 z-10 shadow-2xs group-hover:border-accent transition-colors">
@@ -80,11 +60,11 @@ export function ProfileExperienceSection({ profile }: ProfileExperienceSectionPr
                   ))}
                 </div>
               )}
+              </div>
             </div>
-
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
