@@ -20,6 +20,7 @@ const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
 
 import { TaskFieldDiaryTab } from "@/components/projects/TaskFieldDiaryTab";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import { AudioPlayer } from "@/components/audio/AudioPlayer";
 
 export default function SharedTaskPage() {
   const params = useParams();
@@ -513,7 +514,9 @@ export default function SharedTaskPage() {
                         <span className="font-bold text-primary text-sm">{comment.user?.name || "User"}</span>
                         <span className="text-[10px] text-surface-400 font-medium">{format(new Date(comment.created_at), "dd MMM, HH:mm")}</span>
                       </div>
-                      <p className="text-sm text-surface-600 whitespace-pre-wrap">{comment.content}</p>
+                      {comment.content && (
+                        <p className="text-sm text-surface-600 dark:text-surface-300 whitespace-pre-wrap">{comment.content}</p>
+                      )}
                     </div>
                   </div>
                 ))
