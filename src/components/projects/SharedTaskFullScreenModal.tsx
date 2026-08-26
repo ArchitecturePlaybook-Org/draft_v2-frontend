@@ -433,19 +433,24 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
                   <h3 className="text-xs font-black uppercase tracking-widest text-surface-400 mb-3">QA Checklist</h3>
                   <div className="space-y-2">
                     {task.checklists?.map((item: any) => (
-                      <div key={item.id} onClick={() => handleToggleChecklist(item.id, item.is_completed)} className="cursor-pointer flex items-start gap-2.5 p-3 bg-surface-50 dark:bg-surface-950/50 hover:bg-surface-100 rounded-xl border border-surface-200/60 dark:border-surface-800 transition-all">
-                        <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 mt-0.5 transition-colors ${item.is_completed ? "bg-emerald-500 text-white" : "bg-surface-200 dark:bg-surface-800"}`}>
-                          {item.is_completed && <Check className="w-3 h-3 stroke-[3]" />}
+                      <div key={item.id} onClick={() => !item.is_na && handleToggleChecklist(item.id, item.is_completed)} className={`cursor-pointer flex items-start gap-2.5 p-3 rounded-xl border transition-all ${item.is_na ? "bg-amber-500/5 border-amber-500/30" : "bg-surface-50 dark:bg-surface-950/50 hover:bg-surface-100 border-surface-200/60 dark:border-surface-800"}`}>
+                        <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 mt-0.5 transition-colors ${item.is_na ? "bg-amber-500/20 text-amber-500 text-[9px] font-bold" : item.is_completed ? "bg-emerald-500 text-white" : "bg-surface-200 dark:bg-surface-800"}`}>
+                          {item.is_na ? "-" : item.is_completed && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className={`text-xs font-semibold ${item.is_completed ? "text-surface-400 line-through" : "text-primary"}`}>{item.title}</p>
+                            <p className={`text-xs font-semibold ${item.is_na || item.is_completed ? "text-surface-400 line-through" : "text-primary"}`}>{item.title}</p>
                             <span className="inline-flex items-center text-[8px] font-black uppercase px-1.5 py-0.2 rounded border border-surface-300 dark:border-surface-700 bg-surface-200/50 dark:bg-surface-850 shrink-0">
                               {item.type || "during"}
                             </span>
+                            {item.is_na && (
+                              <span className="inline-flex items-center text-[8px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-500 border border-amber-500/30 shrink-0">
+                                N/A
+                              </span>
+                            )}
                           </div>
                           {item.description && (
-                            <p className={`text-[10px] leading-relaxed mt-0.5 ${item.is_completed ? "text-surface-500 line-through opacity-70" : "text-surface-500"}`}>{item.description}</p>
+                            <p className={`text-[10px] leading-relaxed mt-0.5 ${item.is_na || item.is_completed ? "text-surface-500 line-through opacity-70" : "text-surface-500"}`}>{item.description}</p>
                           )}
                         </div>
                       </div>

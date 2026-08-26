@@ -599,9 +599,9 @@ export const EstablishBlueprintModal: React.FC<EstablishBlueprintModalProps> = (
                   onClick={() => {
                     onClose();
                     onSuccess?.(createdProject);
-                    const targetId = createdProject?.id || createdProject?.uid || createdProject?.slug;
-                    if (targetId) {
-                      router.push(`/dashboard/projects/${targetId}`);
+                    const targetUid = createdProject?.uid || (createdProject?.id ? String(createdProject.id) : '');
+                    if (targetUid) {
+                      router.push(`/dashboard/projects/${targetUid}`);
                     } else {
                       router.push('/dashboard/projects');
                     }

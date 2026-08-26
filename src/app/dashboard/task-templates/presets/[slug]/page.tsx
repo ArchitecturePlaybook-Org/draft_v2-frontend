@@ -119,9 +119,9 @@ export default function PresetMatrixPreviewPage() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={(created) => {
           setShowCreateModal(false);
-          const targetId = created?.id || created?.uid || created?.slug;
-          if (targetId) {
-            router.push(`/dashboard/projects/${targetId}`);
+          const targetUid = created?.uid || (created?.id ? String(created.id) : '');
+          if (targetUid) {
+            router.push(`/dashboard/projects/${targetUid}`);
           } else {
             router.push("/dashboard/projects");
           }

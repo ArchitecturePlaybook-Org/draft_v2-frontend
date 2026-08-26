@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Task, TaskChecklistItem } from "@/types/projects";
-import { CheckCircle2, Circle, Trash2, Plus, Camera, Info } from "lucide-react";
+import { CheckCircle2, Circle, Trash2, Plus, Camera, Info, Upload } from "lucide-react";
 
 interface ChecklistTemplate {
   id: number;
@@ -13,6 +13,8 @@ interface TaskChecklistTabProps {
   checklists: TaskChecklistItem[];
   handleAddChecklistItem: (title: string, type: "pre" | "during" | "post", description: string, requiresVisualProof?: boolean) => void;
   handleToggleChecklist: (item: TaskChecklistItem) => void;
+  handleToggleNA?: (item: TaskChecklistItem) => void;
+  handleUploadChecklistPhoto?: (item: TaskChecklistItem, file: File) => void;
   handleDeleteChecklist?: (item: TaskChecklistItem) => void;
   isContractor: boolean;
   isUpdating: boolean;
@@ -32,6 +34,8 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
   checklists,
   handleAddChecklistItem,
   handleToggleChecklist,
+  handleToggleNA,
+  handleUploadChecklistPhoto,
   handleDeleteChecklist,
   isContractor,
   isUpdating,
@@ -46,8 +50,10 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
   readOnly = false,
 }) => {
   const total = checklists.length;
-  const completed = checklists.filter(i => i.is_completed).length;
-  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const naCount = checklists.filter(i => i.is_na).length;
+  const completed = checklists.filter(i => i.is_completed && !i.is_na).length;
+  const verifiedCount = completed + naCount;
+  const percent = total > 0 ? Math.round((verifiedCount / total) * 100) : 0;
 
   // Local state for the new advanced checklist item form
   const [newTitle, setNewTitle] = useState("");
@@ -84,18 +90,22 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
             <div
               key={item.id || idx}
               className={`flex items-start gap-2.5 px-3.5 py-3 hover:bg-surface-200/50 transition-colors group ${
-                item.is_completed ? "bg-surface-50/50" : ""
+                item.is_na ? "bg-amber-500/5 border-l-2 border-l-amber-500" : item.is_completed ? "bg-surface-50/50" : ""
               }`}
             >
               {/* Checkbox Button */}
               <button
                 type="button"
                 onClick={() => !readOnly && handleToggleChecklist(item)}
-                disabled={(isContractor && task.status !== "WIP") || isUpdating || readOnly}
+                disabled={(isContractor && task.status !== "WIP") || isUpdating || readOnly || item.is_na}
                 className="mt-0.5 shrink-0 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={item.is_completed ? "Mark incomplete" : item.requires_visual_proof ? "Upload photo evidence to complete" : "Mark complete"}
+                title={item.is_na ? "Item is marked Not Applicable" : item.is_completed ? "Mark incomplete" : item.requires_visual_proof ? "Upload photo evidence to complete" : "Mark complete"}
               >
-                {item.is_completed ? (
+                {item.is_na ? (
+                  <span className="w-4.5 h-4.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-500 flex items-center justify-center text-[9px] font-black">
+                    -
+                  </span>
+                ) : item.is_completed ? (
                   <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 fill-emerald-500/10" />
                 ) : (
                   <Circle className="w-4.5 h-4.5 text-surface-400 group-hover:text-accent transition-colors" />
@@ -107,9 +117,11 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
                 <div className="flex items-start gap-2 justify-between">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span
-                      onClick={() => !readOnly && handleToggleChecklist(item)}
+                      onClick={() => !readOnly && !item.is_na && handleToggleChecklist(item)}
                       className={`text-xs font-semibold cursor-pointer transition-colors leading-snug ${
-                        item.is_completed
+                        item.is_na
+                          ? "line-through text-surface-400 opacity-60 italic"
+                          : item.is_completed
                           ? "line-through text-surface-400 opacity-75"
                           : "text-foreground group-hover:text-accent"
                       }`}
@@ -119,43 +131,100 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
                     <span className={`inline-flex items-center text-[8px] font-black uppercase px-1.5 py-0.2 rounded border ${bgClass} shrink-0`}>
                       {item.type === "pre" ? "Pre-Activity" : item.type === "post" ? "Post-Activity" : "During Activity"}
                     </span>
-                    {item.requires_visual_proof && (
+                    {item.is_na && (
+                      <span className="inline-flex items-center text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/30 shrink-0">
+                        N/A
+                      </span>
+                    )}
+                    {item.requires_visual_proof && !item.is_na && (
                       <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 shrink-0">
-                        <Camera className="w-2.5 h-2.5" /> Photo Proof Required
+                        <Camera className="w-2.5 h-2.5" /> Photo Required
                       </span>
                     )}
                   </div>
 
-                  {/* Delete button */}
-                  {!readOnly && handleDeleteChecklist && (isAdmin || isArchitect) && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteChecklist(item)}
-                      disabled={isUpdating}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-surface-400 hover:text-red-400 transition-all rounded hover:bg-red-500/10 shrink-0"
-                      title="Remove checkpoint"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
+                  {/* Actions Row: N/A Button, Photo Upload Button, Delete Button */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* N/A Toggle Button */}
+                    {!readOnly && handleToggleNA && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleNA(item);
+                        }}
+                        disabled={isUpdating}
+                        className={`h-6 px-2 rounded-md text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 border ${
+                          item.is_na
+                            ? "bg-amber-500 text-black border-amber-500 shadow-xs ring-1 ring-amber-500/50"
+                            : "bg-surface-200/80 hover:bg-amber-500/20 text-surface-500 hover:text-amber-500 border-surface-300"
+                        }`}
+                        title={item.is_na ? "Click to unmark N/A" : "Click to mark as Not Applicable (N/A)"}
+                      >
+                        <span>{item.is_na ? "✓ N/A" : "N/A"}</span>
+                      </button>
+                    )}
+
+                    {/* Optional Photo Upload Button */}
+                    {!readOnly && handleUploadChecklistPhoto && (
+                      <label
+                        className="h-6 px-2 rounded-md text-[9px] font-black uppercase tracking-wider bg-surface-200/80 hover:bg-blue-500/20 text-surface-500 hover:text-blue-500 border border-surface-300 hover:border-blue-500/40 transition-all flex items-center gap-1 cursor-pointer"
+                        title="Upload photo evidence"
+                      >
+                        <Camera className="w-3 h-3 text-blue-400" />
+                        <span className="hidden sm:inline">Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUpdating}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleUploadChecklistPhoto(item, file);
+                              e.target.value = "";
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+
+                    {/* Delete button */}
+                    {!readOnly && handleDeleteChecklist && (isAdmin || isArchitect) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteChecklist(item)}
+                        disabled={isUpdating}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-surface-400 hover:text-red-400 transition-all rounded hover:bg-red-500/10 shrink-0"
+                        title="Remove checkpoint"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Description */}
                 {item.description && (
-                  <p className={`text-[10px] leading-relaxed font-medium ${item.is_completed ? "text-surface-400 line-through opacity-70" : "text-surface-500"}`}>
+                  <p className={`text-[10px] leading-relaxed font-medium ${item.is_completed || item.is_na ? "text-surface-400 line-through opacity-70" : "text-surface-500"}`}>
                     {item.description}
                   </p>
                 )}
 
                 {/* Subtext info */}
-                {item.is_completed && item.completed_by && (
+                {item.is_completed && item.completed_by && !item.is_na && (
                   <span className="text-[9px] text-surface-400 font-medium">
                     Completed by {item.completed_by.email || item.completed_by.name}
                   </span>
                 )}
+                {item.is_na && item.completed_by && (
+                  <span className="text-[9px] text-amber-500/80 font-medium">
+                    Marked N/A by {item.completed_by.email || item.completed_by.name}
+                  </span>
+                )}
 
                 {/* Action button for photo required when not yet completed */}
-                {!item.is_completed && item.requires_visual_proof && !readOnly && (
+                {!item.is_completed && !item.is_na && item.requires_visual_proof && !readOnly && (
                   <div className="pt-1">
                     <button
                       type="button"
@@ -164,7 +233,7 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-500/25 transition-all shadow-xs"
                     >
                       <Camera className="w-3 h-3" />
-                      <span>Upload Photo to Complete</span>
+                      <span>Upload Mandatory Photo Proof</span>
                     </button>
                   </div>
                 )}
@@ -181,7 +250,7 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
                           key={att.id}
                           type="button"
                           onClick={() => setLightboxImageUrl(att.file)}
-                          className="w-12 h-12 rounded-lg overflow-hidden border border-surface-300 hover:border-accent block transition-all hover:scale-105 cursor-pointer focus:outline-none shrink-0 relative group"
+                          className="w-12 h-12 rounded-lg overflow-hidden border border-surface-300 hover:border-accent block transition-all hover:scale-105 cursor-pointer focus:outline-none shrink-0 relative group shadow-xs"
                         >
                           <img src={att.file} alt="Proof" className="w-full h-full object-cover" />
                         </button>
@@ -203,7 +272,9 @@ export const TaskChecklistTab: React.FC<TaskChecklistTabProps> = ({
       <div className="bg-surface-100 border border-surface-300 rounded-xl p-3 shadow-xs space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="font-extrabold text-foreground tracking-tight">QA/QC Checkpoints</span>
-          <span className="font-black tabular-nums text-accent">{completed}/{total} Verified ({percent}%)</span>
+          <span className="font-black tabular-nums text-accent">
+            {verifiedCount}/{total} Verified {naCount > 0 ? `(${naCount} N/A)` : ""} ({percent}%)
+          </span>
         </div>
         <div className="w-full h-2 bg-surface-200 rounded-full overflow-hidden">
           <div

@@ -256,6 +256,32 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
     }
   };
 
+  const handleToggleNA = async (item: TaskChecklistItem) => {
+    setIsUpdating(true);
+    try {
+      await projectsApi.toggleChecklistNA(item.id, !item.is_na);
+      await refreshTask();
+      toast.success(item.is_na ? "Checkpoint un-marked as N/A." : "Checkpoint marked as Not Applicable (N/A).");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update N/A status.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUploadChecklistPhoto = async (item: TaskChecklistItem, file: File) => {
+    setIsUpdating(true);
+    try {
+      await projectsApi.uploadChecklistPhoto(item.id, file);
+      await refreshTask();
+      toast.success("Photo attachment uploaded successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload photo attachment.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleConfirmChecklistProof = async () => {
     if (!checklistProofModal) return;
     const files = proofFiles.length > 0
@@ -943,6 +969,8 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                         checklists={checklists}
                         handleAddChecklistItem={handleAddChecklistItem}
                         handleToggleChecklist={handleToggleChecklist}
+                        handleToggleNA={handleToggleNA}
+                        handleUploadChecklistPhoto={handleUploadChecklistPhoto}
                         handleDeleteChecklist={handleDeleteChecklist}
                         isContractor={isContractor}
                         isUpdating={isUpdating}
@@ -973,6 +1001,8 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                   checklists={checklists}
                   handleAddChecklistItem={handleAddChecklistItem}
                   handleToggleChecklist={handleToggleChecklist}
+                  handleToggleNA={handleToggleNA}
+                  handleUploadChecklistPhoto={handleUploadChecklistPhoto}
                   handleDeleteChecklist={handleDeleteChecklist}
                   isContractor={isContractor}
                   isUpdating={isUpdating}

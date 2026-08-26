@@ -428,9 +428,9 @@ export function ProjectsRegistryView() {
         onSuccess={(created) => {
           setShowCreateModal(false);
           queryClient.invalidateQueries({ queryKey: ["projects"] });
-          const targetId = created?.id || created?.uid || created?.slug;
-          if (targetId) {
-            router.push(`/dashboard/projects/${targetId}`);
+          const targetUid = created?.uid || (created?.id ? String(created.id) : '');
+          if (targetUid) {
+            router.push(`/dashboard/projects/${targetUid}`);
           }
         }}
         orgs={orgs}

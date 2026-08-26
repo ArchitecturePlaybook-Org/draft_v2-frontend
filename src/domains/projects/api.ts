@@ -283,13 +283,30 @@ export const projectsApi = {
   updateChecklistItem: async (itemId: number, isCompleted: boolean) => {
     return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
       method: "PATCH",
-      body: JSON.stringify({ is_completed: isCompleted })
+      body: JSON.stringify({ is_completed: isCompleted, is_na: false })
     });
   },
 
-  updateChecklistItemWithAttachments: async (itemId: number, isCompleted: boolean, files?: File[]) => {
+  toggleChecklistNA: async (itemId: number, isNa: boolean) => {
+    return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_na: isNa, is_completed: isNa ? true : false })
+    });
+  },
+
+  uploadChecklistPhoto: async (itemId: number, file: File) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return fetchFromBff<any>(`/api/v1/projects/task-checklists/${itemId}/upload-photo/`, {
+      method: "POST",
+      body: formData
+    });
+  },
+
+  updateChecklistItemWithAttachments: async (itemId: number, isCompleted: boolean, files?: File[], isNa: boolean = false) => {
     const formData = new FormData();
     formData.append("is_completed", isCompleted ? "true" : "false");
+    formData.append("is_na", isNa ? "true" : "false");
     if (files && files.length > 0) {
       files.forEach(f => formData.append("attachments", f));
     }

@@ -322,6 +322,7 @@ export interface TaskChecklistItem {
   task: string;
   title: string;
   is_completed: boolean;
+  is_na?: boolean;
   type: "pre" | "during" | "post";
   description: string;
   requires_visual_proof: boolean;
