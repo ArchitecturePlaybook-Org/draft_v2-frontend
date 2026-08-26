@@ -544,11 +544,22 @@ export const projectsApi = {
     const res = await fetchFromBff<any>(`/api/v1/projects/task-comments/?task=${taskUid}`, { method: "GET" });
     return unpackArray<TaskComment>(res);
   },
-  createTaskComment: async (taskUid: string, content: string) => {
+
+  createTaskComment: async (taskUid: string, content: string, language: string = "en") => {
     return fetchFromBff<TaskComment>(`/api/v1/projects/task-comments/`, {
       method: "POST",
-      body: JSON.stringify({ task: taskUid, content })
+      body: JSON.stringify({ task: taskUid, content, language, comment_type: "COMMENT" })
     });
+  },
+
+  translateTaskComment: async (commentId: number, targetLang: string) => {
+    return fetchFromBff<{ id: number; target_lang: string; translated_text: string; original_text: string }>(
+      `/api/v1/projects/task-comments/${commentId}/translate/`,
+      {
+        method: "POST",
+        body: JSON.stringify({ target_lang: targetLang })
+      }
+    );
   },
 
   createTaskAccessRequest: async (taskUid: string, reason: string) => {

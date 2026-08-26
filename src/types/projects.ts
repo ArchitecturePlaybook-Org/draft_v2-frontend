@@ -356,6 +356,12 @@ export interface TaskComment {
   task: string;
   user: User;
   content: string;
+  original_content?: string;
+  original_language?: string;
+  language?: string;
+  comment_type?: "COMMENT" | "AUDIT";
+  translations?: Record<string, string>;
+  metadata?: Record<string, any>;
   created_at: string;
 }
 

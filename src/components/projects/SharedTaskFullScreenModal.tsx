@@ -5,6 +5,7 @@ import { projectsApi } from "@/domains/projects/api";
 import { Task, TaskComment } from "@/types/projects";
 import { toast } from "sonner";
 import { FloorPlanGridViewer } from "@/components/projects/FloorPlanGridViewer";
+import { AudioPlayer } from "@/components/audio/AudioPlayer";
 import { format } from "date-fns";
 import dynamic from "next/dynamic";
 import {
@@ -523,10 +524,12 @@ export function SharedTaskFullScreenModal({ taskUid, onClose }: SharedTaskFullSc
                     </div>
                     <div className="flex-1 bg-surface-50 dark:bg-surface-950/50 p-3.5 rounded-2xl rounded-tl-none border border-surface-200/60 dark:border-surface-800">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="font-bold text-primary text-xs">{comment.user?.name || "User"}</span>
+                        <span className="font-bold text-primary dark:text-white text-xs">{comment.user?.name || "User"}</span>
                         <span className="text-[10px] text-surface-400 font-medium">{format(new Date(comment.created_at), "dd MMM, HH:mm")}</span>
                       </div>
-                      <p className="text-xs text-surface-600 dark:text-surface-300 whitespace-pre-wrap">{comment.content}</p>
+                      {comment.content && (
+                        <p className="text-xs text-surface-600 dark:text-surface-300 whitespace-pre-wrap">{comment.content}</p>
+                      )}
                     </div>
                   </div>
                 ))
