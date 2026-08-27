@@ -1,10 +1,11 @@
 "use client";
 import React from "react";
-import { BOQParameters, TYPOLOGY_OPTIONS, TYPOLOGY_PRESETS, DEFAULT_PARAMS } from "@/domains/boq/types";
+import { BOQParameters, BOQTypologyDB, TYPOLOGY_OPTIONS, TYPOLOGY_PRESETS, DEFAULT_PARAMS } from "@/domains/boq/types";
 
 interface Props {
   params: BOQParameters;
   onChange: (params: BOQParameters) => void;
+  typologies?: BOQTypologyDB[];
 }
 
 function Field({
@@ -54,15 +55,20 @@ function SliderInput({
   );
 }
 
-export default function BOQParametricForm({ params, onChange }: Props) {
+export default function BOQParametricForm({ params, onChange, typologies }: Props) {
   const set = <K extends keyof BOQParameters>(key: K, val: BOQParameters[K]) =>
     onChange({ ...params, [key]: val });
 
-  const handleTypologySelect = (val: BOQParameters["typology"]) => {
-    const preset = TYPOLOGY_PRESETS[val] || DEFAULT_PARAMS;
+  const handleTypologySelect = (val: string) => {
+    const dbTypology = typologies?.find(t => t.slug === val);
+    const dbDefaults = dbTypology?.default_parameters || {};
+    const staticPreset = (TYPOLOGY_PRESETS as any)[val] || DEFAULT_PARAMS;
+
     onChange({
-      ...preset,
-      typology: val,
+      ...DEFAULT_PARAMS,
+      ...staticPreset,
+      ...dbDefaults,
+      typology: val as any,
     });
   };
 
@@ -124,15 +130,23 @@ export default function BOQParametricForm({ params, onChange }: Props) {
       {/* Typology Selection */}
       <div className="boq-section">
         <div className="boq-section-title">🏗️ Structure Typology Template</div>
-        <Field label="Select Structure Type" hint="Auto-loads engineering parameters & DSR schedule">
+        <Field label="Select Structure Type" hint="Auto-loads engineering parameters & DSR schedule from Database">
           <select
             className="boq-select"
             value={params.typology}
-            onChange={(e) => handleTypologySelect(e.target.value as BOQParameters["typology"])}
+            onChange={(e) => handleTypologySelect(e.target.value)}
           >
-            {TYPOLOGY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
+            {typologies && typologies.length > 0 ? (
+              typologies.map((t) => (
+                <option key={t.slug} value={t.slug}>
+                  {t.name}
+                </option>
+              ))
+            ) : (
+              TYPOLOGY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))
+            )}
           </select>
         </Field>
         <button
@@ -140,7 +154,7 @@ export default function BOQParametricForm({ params, onChange }: Props) {
           className="boq-reset-btn"
           onClick={() => handleTypologySelect(params.typology)}
         >
-          Reset {TYPOLOGY_OPTIONS.find(t => t.value === params.typology)?.label.split(" (")[0]} to defaults
+          Reset parameters to database defaults
         </button>
       </div>
 

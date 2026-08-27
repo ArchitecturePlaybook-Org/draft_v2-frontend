@@ -30,6 +30,7 @@ import {
   Search,
   Calculator,
   Tag,
+  Box,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -39,6 +40,7 @@ export const Sidebar: React.FC = () => {
   const { recentProjects, setProjectContext, isSidebarCollapsed, toggleSidebar } = useProjectNavStore();
   const router = useRouter();
 
+  // Notification center hook for live badge count
   const { unreadChatCount } = useNotificationCenter();
 
   const { user } = useAuthStore();
@@ -68,6 +70,8 @@ export const Sidebar: React.FC = () => {
   const orgLinks = isSuperAdmin ? [
     { label: "User Directory", href: "/dashboard/users", icon: <Users className="w-4 h-4 text-accent" /> },
     { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> },
+    { label: "CPWD Rate Master", href: "/dashboard/admin/cpwd-rates", icon: <BookOpen className="w-4 h-4 text-accent" /> },
+    { label: "BOQ Rules & Rates", href: "/dashboard/admin/boq-rules", icon: <Calculator className="w-4 h-4 text-accent" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4 text-accent" /> },
     { label: "Trade Specializations", href: "/dashboard/admin/specializations", icon: <Tag className="w-4 h-4 text-accent" /> },
   ] : [

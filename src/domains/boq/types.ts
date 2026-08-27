@@ -79,6 +79,72 @@ export interface BOQResult {
   line_items: BOQLineItem[];
 }
 
+export interface BOQTypologyDB {
+  slug: string;
+  name: string;
+  category: "building" | "infrastructure" | "wall" | "sanitation" | "interior";
+  category_display?: string;
+  description: string;
+  icon: string;
+  default_parameters: Partial<BOQParameters>;
+  display_order: number;
+  is_active?: boolean;
+  rule_count?: number;
+}
+
+export const STATE_OPTIONS = [
+  { value: "all", label: "All States & National" },
+  { value: "national", label: "National / CPWD (All India)" },
+  { value: "karnataka", label: "Karnataka (KPWD SOR 2023-24)" },
+  { value: "tamil_nadu", label: "Tamil Nadu (TNPWD Schedule 2023-24)" },
+  { value: "maharashtra", label: "Maharashtra (PWD SOR 2023-24)" },
+  { value: "delhi", label: "Delhi (CPWD DSR 2023)" },
+  { value: "telangana", label: "Telangana (TSSOR 2023-24)" },
+  { value: "andhra_pradesh", label: "Andhra Pradesh (APSOR 2023-24)" },
+  { value: "kerala", label: "Kerala (KPWD PRICE 2023)" },
+  { value: "gujarat", label: "Gujarat (GWSSB / R&B SOR)" },
+  { value: "west_bengal", label: "West Bengal (PWD SOR)" },
+] as const;
+
+export interface DSRRateMasterDB {
+  id?: number;
+  item_code: string;
+  state?: string;
+  state_sor_name?: string;
+  chapter_no?: number;
+  chapter_name?: string;
+  description: string;
+  unit: string;
+  rate: number;
+  labor_component?: number;
+  material_component?: number;
+  stage: string;
+  is_code_ref: string;
+  state_multiplier: number;
+  is_active: boolean;
+  updated_at?: string;
+}
+
+export interface BOQCalculationRuleDB {
+  id?: number;
+  typology: string;
+  item: number | string;
+  item_code?: string;
+  item_description?: string;
+  item_unit?: string;
+  item_rate?: number;
+  stage: string;
+  quantity_formula: string;
+  deduction_formula: string;
+  condition_expression: string;
+  coefficient: number;
+  waste_margin_percent: number;
+  deductions_note_template: string;
+  display_order: number;
+  is_active: boolean;
+  updated_at?: string;
+}
+
 export interface BOQSessionSummary {
   id: number;
   name: string;
@@ -89,6 +155,17 @@ export interface BOQSessionSummary {
   built_up_area: number;
   total_cost_estimate: number | null;
   created_at: string;
+}
+
+export interface BOQTypologyPresetDB {
+  id: number;
+  typology: string;
+  typology_name?: string;
+  name: string;
+  description: string;
+  parameters: BOQParameters;
+  is_default: boolean;
+  display_order: number;
 }
 
 export const TYPOLOGY_PRESETS: Record<TypologyValue, BOQParameters> = {

@@ -2,25 +2,54 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { calculateBOQ } from "@/domains/boq/engine";
 import { boqApi } from "@/domains/boq/api";
-import { BOQParameters, BOQResult, DEFAULT_PARAMS, TYPOLOGY_OPTIONS } from "@/domains/boq/types";
+import { BOQParameters, BOQResult, BOQTypologyDB, DEFAULT_PARAMS, TYPOLOGY_OPTIONS } from "@/domains/boq/types";
 import BOQParametricForm from "@/components/boq/BOQParametricForm";
 import BOQLineItemsTable from "@/components/boq/BOQLineItemsTable";
 import BOQSummaryCard from "@/components/boq/BOQSummaryCard";
-
 import BOQAutoPlanVisualizer from "@/components/boq/BOQAutoPlanVisualizer";
+import Link from "next/link";
+import { Shield } from "lucide-react";
 
 export default function BOQBuilderPage() {
   const [params, setParams] = useState<BOQParameters>(DEFAULT_PARAMS);
+  const [typologies, setTypologies] = useState<BOQTypologyDB[]>([]);
   const [result, setResult] = useState<BOQResult | null>(null);
   const [centerTab, setCenterTab] = useState<"both" | "plan" | "boq">("both");
   const [exporting, setExporting] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Recalculate instantly on every param change (client-side engine = 0ms)
+  // Load active structure types dynamically from DB
   useEffect(() => {
-    const res = calculateBOQ(params);
-    setResult(res);
+    boqApi.getTypologies().then((data) => {
+      if (data && data.length > 0) {
+        setTypologies(data);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Recalculate using server-side database rules (with optimistic 0ms fallback)
+  useEffect(() => {
+    // 1. Optimistic immediate preview
+    const immediateRes = calculateBOQ(params);
+    setResult(immediateRes);
+
+    // 2. Debounced DB-driven calculation from backend
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const dbResult = await boqApi.calculate(params);
+        if (dbResult && dbResult.line_items) {
+          setResult(dbResult);
+        }
+      } catch (err) {
+        // Graceful fallback to client calculation
+      }
+    }, 150);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [params]);
 
   const handleParamChange = useCallback((newParams: BOQParameters) => {
@@ -48,7 +77,8 @@ export default function BOQBuilderPage() {
     }
   };
 
-  const typologyLabel = TYPOLOGY_OPTIONS.find((o) => o.value === params.typology)?.label ?? params.typology;
+  const currentTypology = typologies.find((o) => o.slug === params.typology);
+  const typologyLabel = currentTypology?.name || TYPOLOGY_OPTIONS.find((o) => o.value === params.typology)?.label || params.typology;
 
   return (
     <div className="boq-page">
@@ -140,14 +170,24 @@ export default function BOQBuilderPage() {
             <h1 className="boq-header-title">Parametric BOQ & 2D/3D Plan Builder</h1>
             <p className="boq-header-subtitle">
               Live Auto-Generated 2D Floor Plan, Elevation & Section · IS 1200 compliant measurements · CPWD DSR 2023 rates ·
-              Instant reactive calculation · Formula-bound Excel export
+              Database-driven calculation engine · Formula-bound Excel export
             </p>
             <div className="boq-header-badges">
               <span className="boq-badge boq-badge-green">📐 Auto-Generated Plan & Elevation</span>
-              <span className="boq-badge boq-badge-blue">✓ CPWD DSR 2023</span>
+              <span className="boq-badge boq-badge-blue">✓ CPWD DSR 2023 DB</span>
               <span className="boq-badge boq-badge-amber">✓ IS 1200 Deductions</span>
               <span className="boq-badge boq-badge-green">✓ Dual-Sheet Excel</span>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard/admin/boq-rules"
+              className="h-8.5 px-3.5 rounded-lg border border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Super Admin: Edit DB Rules & Rates</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -178,7 +218,7 @@ export default function BOQBuilderPage() {
             <span>📐</span> Parameters & Dimensions
           </div>
           <div className="boq-panel-content">
-            <BOQParametricForm params={params} onChange={handleParamChange} />
+            <BOQParametricForm params={params} onChange={handleParamChange} typologies={typologies} />
           </div>
         </div>
 
@@ -237,7 +277,7 @@ export default function BOQBuilderPage() {
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
                     <span>📋</span>
-                    <span>Bill of Quantities (CPWD DSR 2023)</span>
+                    <span>Bill of Quantities (CPWD DSR 2023 DB)</span>
                   </h4>
                   {result && (
                     <span className="text-[10px] font-bold text-emerald-400">
@@ -251,10 +291,10 @@ export default function BOQBuilderPage() {
           </div>
         </div>
 
-        {/* Panel 3: Summary & Actions */}
+        {/* Panel 3: Cost Summary & Export */}
         <div className="boq-panel">
           <div className="boq-panel-header">
-            <span>💰</span> Cost Summary
+            <span>📊</span> Cost Analysis & Export
           </div>
           <div className="boq-panel-content">
             <BOQSummaryCard
@@ -267,10 +307,11 @@ export default function BOQBuilderPage() {
         </div>
       </div>
 
-      {/* Toast */}
+      {/* Saved Toast */}
       {savedToast && (
         <div className="boq-toast">
-          ✅ BOQ session saved successfully!
+          <span>✓</span>
+          <span>BOQ calculation session saved to database.</span>
         </div>
       )}
     </div>
