@@ -198,6 +198,8 @@ export interface StockLedgerEntry {
   created_at: string;
 }
 
+export type OnboardingStatus = "NOT_ONBOARDED" | "INVITED" | "ONBOARDED";
+
 export interface Vendor {
   id: string;
   account: number;
@@ -212,6 +214,11 @@ export interface Vendor {
   rating: string | number;
   payment_terms_days: number;
   is_active: boolean;
+  onboarding_status?: OnboardingStatus;
+  onboarded_user?: number | null;
+  onboarded_user_email?: string;
+  onboarded_user_name?: string;
+  onboarded_at?: string | null;
   created_at: string;
   updated_at: string;
 }

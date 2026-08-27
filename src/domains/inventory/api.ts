@@ -370,6 +370,22 @@ export const inventoryApi = {
   deleteVendor: async (id: string): Promise<void> =>
     fetchFromBff<void>(`/api/v1/inventory/vendors/${id}/`, { method: "DELETE" }),
 
+  onboardVendor: async (
+    id: string,
+    data?: { admin_email?: string; admin_name?: string }
+  ): Promise<{
+    success: boolean;
+    message: string;
+    vendor: Vendor;
+    email_sent_to: string;
+    role: string;
+  }> => {
+    return fetchFromBff<any>(`/api/v1/inventory/vendors/${id}/onboard/`, {
+      method: "POST",
+      body: JSON.stringify(data || {}),
+    });
+  },
+
   getPurchaseOrders: async (): Promise<PurchaseOrder[]> => {
     const res = await fetchFromBff<any>("/api/v1/inventory/purchase-orders/", { method: "GET" });
     return unpackArray<PurchaseOrder>(res);
