@@ -302,6 +302,12 @@ export const API_ROUTES: ApiRouteConfig[] = [
     auth: true,
   },
   {
+    prefix: "v1/inventory",
+    target: "/api/v1/inventory/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  {
     prefix: "v1/ai",
     target: "/api/v1/ai/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],

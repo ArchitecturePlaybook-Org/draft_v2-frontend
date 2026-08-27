@@ -23,6 +23,7 @@ const ModelViewer = dynamic(() => import("@/components/ModelViewer"), {
 
 import { TaskFieldDiaryTab } from "./TaskFieldDiaryTab";
 import { TaskChecklistTab } from "./task-panel/TaskChecklistTab";
+import { TaskInventoryTrackerTab } from "@/components/inventory/TaskInventoryTrackerTab";
 import Link from "next/link";
 import { useProjectNavStore } from "@/store/project-nav-store";
 
@@ -46,7 +47,7 @@ interface TaskExecutionSidePanelProps {
   isSubtaskPanel?: boolean;
 }
 
-type TaskTab = "execution" | "subtasks" | "checklist" | "drawing" | "diary";
+type TaskTab = "execution" | "subtasks" | "checklist" | "drawing" | "diary" | "inventory";
 
 
 export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
@@ -476,6 +477,7 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
 
   const tabs: { id: TaskTab; label: string; hidden?: boolean }[] = [
     { id: "execution", label: isMatrixTask ? "Timeline & Directives" : "Execution Details" },
+    { id: "inventory", label: "Inventory & BOM" },
     { id: "checklist", label: "Checklists & QA" },
     { id: "diary", label: "Field Diary" },
     { id: "drawing", label: "Floorplans & Models", hidden: !isMatrixTask },
@@ -1289,8 +1291,16 @@ export const TaskExecutionSidePanel: React.FC<TaskExecutionSidePanelProps> = ({
                 </div>
               )}
 
-
-
+              {/* INVENTORY / BOM TAB */}
+              {activeTab === "inventory" && (
+                <div className="flex-1 overflow-y-auto p-2">
+                  <TaskInventoryTrackerTab
+                    taskId={task.id}
+                    taskTitle={task.title}
+                    projectId={projectId}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -30,7 +30,13 @@ import {
   Search,
   Calculator,
   Tag,
+  Award,
   Box,
+  Warehouse,
+  Layers,
+  Truck,
+  ArrowUpRight,
+  Wrench,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -54,6 +60,18 @@ export const Sidebar: React.FC = () => {
     { label: "Shared Tasks", href: "/dashboard/shared-tasks", icon: <Share2 className="w-4 h-4" /> },
     { label: "Templates", href: "/dashboard/templates", icon: <FileSpreadsheet className="w-4 h-4" /> },
     { label: "Business Leads", href: "/dashboard/leads", icon: <Briefcase className="w-4 h-4" /> },
+  ];
+
+  const inventoryLinks = [
+    { label: "Stock Overview", href: "/dashboard/inventory", icon: <Warehouse className="w-4 h-4" /> },
+    { label: "Master Materials", href: "/dashboard/materials", icon: <Layers className="w-4 h-4 text-accent" /> },
+    { label: "Material Categories", href: "/dashboard/materials/categories", icon: <Tag className="w-4 h-4 text-accent" /> },
+    { label: "Approved Brands", href: "/dashboard/materials/brands", icon: <Award className="w-4 h-4 text-accent" /> },
+    { label: "Material Calc Engine", href: "/dashboard/materials/calculator", icon: <Calculator className="w-4 h-4 text-accent" /> },
+    { label: "Gate Receipts & GRN", href: "/dashboard/inventory/deliveries", icon: <Truck className="w-4 h-4" /> },
+    { label: "Trade Issues", href: "/dashboard/inventory/issues", icon: <ArrowUpRight className="w-4 h-4" /> },
+    { label: "Equipment & Tools", href: "/dashboard/inventory/equipment", icon: <Wrench className="w-4 h-4" /> },
+    { label: "Purchase Orders", href: "/dashboard/inventory/purchase-orders", icon: <FileSpreadsheet className="w-4 h-4" /> },
   ];
 
   const showroomLinks = isSuperAdmin ? [] : [
@@ -164,6 +182,31 @@ export const Sidebar: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {inventoryLinks.length > 0 && (
+          <div>
+            {!isSidebarCollapsed && (
+              <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
+                Inventory
+              </h4>
+            )}
+            <div className="flex flex-col gap-1">
+              {inventoryLinks.map((link) => (
+                <React.Fragment key={link.href}>
+                  <SidebarLink
+                    {...link}
+                    active={
+                      link.href === "/dashboard/inventory"
+                        ? pathname === "/dashboard/inventory"
+                        : pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href))
+                    }
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        )}
 
         {showroomLinks.length > 0 && <div>
           {!isSidebarCollapsed && (
