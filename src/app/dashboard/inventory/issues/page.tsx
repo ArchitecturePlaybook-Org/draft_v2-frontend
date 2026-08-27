@@ -55,7 +55,7 @@ export default function MaterialIssuesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-emerald-600/10 text-emerald-400 border border-emerald-500/20">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <ArrowUpRight className="w-6 h-6" />
             </div>
             <div>
@@ -81,7 +81,7 @@ export default function MaterialIssuesPage() {
           <button
             type="button"
             onClick={() => setShowIssueModal(true)}
-            className="h-8 px-3 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-colors shadow-sm"
+            className="h-8 px-3 text-xs font-black rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 flex items-center gap-1.5 transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             New Issue Slip
@@ -105,7 +105,7 @@ export default function MaterialIssuesPage() {
         </Link>
         <Link
           href="/dashboard/inventory/issues"
-          className="px-3 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500 text-blue-300 font-semibold flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-300 font-semibold flex items-center gap-1.5"
         >
           <ArrowUpRight className="w-3.5 h-3.5" /> Trade Issues
         </Link>

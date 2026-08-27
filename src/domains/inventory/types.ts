@@ -469,3 +469,147 @@ export interface MultiWallConfig {
   wastage_percent?: number;
 }
 
+// ─── NEW TYPES ────────────────────────────────────────────────────────────────
+
+export type RequisitionStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "APPROVED"
+  | "REJECTED"
+  | "PO_RAISED"
+  | "FULFILLED";
+
+export type RequisitionPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
+
+export interface MaterialRequisitionItem {
+  id: string;
+  requisition: string;
+  material: string;
+  material_name: string;
+  material_unit: MaterialUnit;
+  material_item_code: string;
+  qty_requested: string | number;
+  qty_approved: string | number;
+  purpose?: string;
+  remarks?: string;
+}
+
+export interface MaterialRequisition {
+  id: string;
+  account: number;
+  mrn_number: string;
+  site: string;
+  site_name: string;
+  project?: number | null;
+  status: RequisitionStatus;
+  priority: RequisitionPriority;
+  required_by_date?: string | null;
+  purpose?: string;
+  requested_by?: number | null;
+  requested_by_name?: string | null;
+  approved_by?: number | null;
+  approved_by_name?: string | null;
+  approved_at?: string | null;
+  rejection_reason?: string;
+  notes?: string;
+  total_items: number;
+  items: MaterialRequisitionItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export type ServiceType =
+  | "SCHEDULED"
+  | "BREAKDOWN"
+  | "CALIBRATION"
+  | "INSPECTION"
+  | "OVERHAUL";
+
+export type EquipmentCondition = "GOOD" | "FAIR" | "POOR" | "CRITICAL";
+
+export interface EquipmentMaintenanceLog {
+  id: string;
+  account: number;
+  equipment: string;
+  equipment_name: string;
+  equipment_code: string;
+  service_type: ServiceType;
+  service_date: string;
+  next_service_due?: string | null;
+  service_by?: string;
+  service_cost: string | number;
+  parts_replaced?: string;
+  odometer_hours?: number | null;
+  downtime_days: number;
+  condition_before?: EquipmentCondition | "";
+  condition_after?: EquipmentCondition | "";
+  description?: string;
+  logged_by?: number | null;
+  logged_by_name?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type AuditStatus = "OPEN" | "REVIEW" | "POSTED" | "CANCELLED";
+export type VarianceAction = "SURPLUS" | "SHORTAGE" | "MATCH";
+
+export interface StockAuditItem {
+  id: string;
+  audit: string;
+  material: string;
+  material_name: string;
+  material_unit: MaterialUnit;
+  material_item_code: string;
+  system_qty: string | number;
+  physical_qty: string | number;
+  variance_qty: string | number;
+  variance_action: VarianceAction;
+  variance_reason?: string;
+  ledger_entry_id?: string | null;
+}
+
+export interface StockAudit {
+  id: string;
+  account: number;
+  audit_number: string;
+  site: string;
+  site_name: string;
+  status: AuditStatus;
+  audit_date: string;
+  notes?: string;
+  conducted_by?: number | null;
+  conducted_by_name?: string | null;
+  reviewed_by?: number | null;
+  posted_at?: string | null;
+  items: StockAuditItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StockBalance {
+  site_id: string;
+  site_name: string;
+  site_code: string;
+  material_id: string;
+  material_name: string;
+  item_code: string;
+  category: MaterialCategory;
+  unit: MaterialUnit;
+  current_balance: number;
+  total_value: number;
+  min_stock: number;
+  max_stock: number;
+  reorder_level: number;
+  health_status: "HEALTHY" | "REORDER_WARNING" | "CRITICAL_LOW" | "OVERSTOCKED";
+}
+
+export interface SiteTransferResult {
+  status: string;
+  from_site: string;
+  to_site: string;
+  material: string;
+  qty: string;
+  unit: string;
+  out_ledger_id: string;
+  in_ledger_id: string;
+}

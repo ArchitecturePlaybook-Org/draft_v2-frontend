@@ -58,7 +58,7 @@ export default function EquipmentTrackingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-purple-600/10 text-purple-400 border border-purple-500/20">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <Wrench className="w-6 h-6" />
             </div>
             <div>
@@ -106,7 +106,7 @@ export default function EquipmentTrackingPage() {
         </Link>
         <Link
           href="/dashboard/inventory/equipment"
-          className="px-3 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500 text-blue-300 font-semibold flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-300 font-semibold flex items-center gap-1.5"
         >
           <Wrench className="w-3.5 h-3.5" /> Equipment & Tools
         </Link>

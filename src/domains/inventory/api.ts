@@ -14,6 +14,13 @@ import {
   MaterialIssue,
   Equipment,
   EquipmentMovement,
+  MaterialRequisition,
+  MaterialRequisitionItem,
+  EquipmentMaintenanceLog,
+  StockAudit,
+  StockAuditItem,
+  StockBalance,
+  SiteTransferResult,
 } from "./types";
 
 function unpackArray<T>(res: any): T[] {
@@ -99,10 +106,15 @@ export const inventoryApi = {
   },
 
   // ── Materials ─────────────────────────────────────────────────────────────
-  getMaterials: async (category?: string): Promise<MasterMaterial[]> => {
-    const url = category
-      ? `/api/v1/inventory/materials/?category=${category}`
-      : "/api/v1/inventory/materials/";
+  getMaterials: async (params?: string | { search?: string; category?: string }): Promise<MasterMaterial[]> => {
+    const q = new URLSearchParams();
+    if (typeof params === "string") {
+      if (params) q.append("category", params);
+    } else if (params) {
+      if (params.search) q.append("search", params.search);
+      if (params.category) q.append("category", params.category);
+    }
+    const url = q.toString() ? `/api/v1/inventory/materials/?${q}` : "/api/v1/inventory/materials/";
     const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<MasterMaterial>(res);
   },
@@ -128,8 +140,12 @@ export const inventoryApi = {
   },
 
   // ── Sites & Balances ──────────────────────────────────────────────────────
-  getSites: async (): Promise<Site[]> => {
-    const res = await fetchFromBff<any>("/api/v1/inventory/sites/", { method: "GET" });
+  getSites: async (params?: { search?: string; is_active?: boolean }): Promise<Site[]> => {
+    const q = new URLSearchParams();
+    if (params?.search) q.append("search", params.search);
+    if (params?.is_active !== undefined) q.append("is_active", String(params.is_active));
+    const url = q.toString() ? `/api/v1/inventory/sites/?${q}` : "/api/v1/inventory/sites/";
+    const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<Site>(res);
   },
 
@@ -142,14 +158,14 @@ export const inventoryApi = {
 
   getAllBalances: async (siteId?: string): Promise<SiteBalance[]> => {
     const url = siteId
-      ? `/api/v1/inventory/sites/all-balances/?site_id=${siteId}`
-      : "/api/v1/inventory/sites/all-balances/";
+      ? `/api/v1/inventory/stock-balance/?site=${siteId}`
+      : "/api/v1/inventory/stock-balance/";
     const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<SiteBalance>(res);
   },
 
   getSiteBalances: async (siteId: string): Promise<SiteBalance[]> => {
-    const res = await fetchFromBff<any>(`/api/v1/inventory/sites/${siteId}/balances/`, {
+    const res = await fetchFromBff<any>(`/api/v1/inventory/stock-balance/?site=${siteId}`, {
       method: "GET",
     });
     return unpackArray<SiteBalance>(res);
@@ -181,11 +197,14 @@ export const inventoryApi = {
     });
   },
 
-  // ── Task Material Requirements ────────────────────────────────────────────
-  getTaskRequirements: async (taskId: number): Promise<TaskMaterialRequirement[]> => {
-    const res = await fetchFromBff<any>(`/api/v1/inventory/task-requirements/?task_id=${taskId}`, {
-      method: "GET",
-    });
+  getTaskRequirements: async (params?: number | { project?: string }): Promise<TaskMaterialRequirement[]> => {
+    let url = "/api/v1/inventory/task-requirements/";
+    if (typeof params === "number") {
+      url += `?task_id=${params}`;
+    } else if (params?.project) {
+      url += `?project=${params.project}`;
+    }
+    const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<TaskMaterialRequirement>(res);
   },
 
@@ -330,14 +349,151 @@ export const inventoryApi = {
   },
 
   // ── Vendors & Purchase Orders ─────────────────────────────────────────────
-  getVendors: async (): Promise<Vendor[]> => {
-    const res = await fetchFromBff<any>("/api/v1/inventory/vendors/", { method: "GET" });
+  getVendors: async (params?: { search?: string; is_active?: boolean }): Promise<Vendor[]> => {
+    const q = new URLSearchParams();
+    if (params?.search) q.append("search", params.search);
+    if (params?.is_active !== undefined) q.append("is_active", String(params.is_active));
+    const url = q.toString() ? `/api/v1/inventory/vendors/?${q}` : "/api/v1/inventory/vendors/";
+    const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<Vendor>(res);
   },
+
+  getVendor: async (id: string): Promise<Vendor> =>
+    fetchFromBff<Vendor>(`/api/v1/inventory/vendors/${id}/`, { method: "GET" }),
+
+  createVendor: async (data: Partial<Vendor>): Promise<Vendor> =>
+    fetchFromBff<Vendor>("/api/v1/inventory/vendors/", { method: "POST", body: JSON.stringify(data) }),
+
+  updateVendor: async (id: string, data: Partial<Vendor>): Promise<Vendor> =>
+    fetchFromBff<Vendor>(`/api/v1/inventory/vendors/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  deleteVendor: async (id: string): Promise<void> =>
+    fetchFromBff<void>(`/api/v1/inventory/vendors/${id}/`, { method: "DELETE" }),
 
   getPurchaseOrders: async (): Promise<PurchaseOrder[]> => {
     const res = await fetchFromBff<any>("/api/v1/inventory/purchase-orders/", { method: "GET" });
     return unpackArray<PurchaseOrder>(res);
+  },
+
+  // ── Sites / Godowns (Extensions) ─────────────────────────────────────────
+  getSite: async (id: string): Promise<any> =>
+    fetchFromBff<any>(`/api/v1/inventory/sites/${id}/`, { method: "GET" }),
+
+  updateSite: async (id: string, data: Record<string, any>): Promise<any> =>
+    fetchFromBff<any>(`/api/v1/inventory/sites/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  deleteSite: async (id: string): Promise<void> =>
+    fetchFromBff<void>(`/api/v1/inventory/sites/${id}/`, { method: "DELETE" }),
+
+  // ── Live Stock Balance ─────────────────────────────────────────────────────
+  getStockBalance: async (params?: { site?: string; category?: string; low_stock?: boolean }): Promise<StockBalance[]> => {
+    const q = new URLSearchParams();
+    if (params?.site) q.append("site", params.site);
+    if (params?.category) q.append("category", params.category);
+    if (params?.low_stock) q.append("low_stock", "true");
+    const url = q.toString() ? `/api/v1/inventory/stock-balance/?${q}` : "/api/v1/inventory/stock-balance/";
+    return fetchFromBff<StockBalance[]>(url, { method: "GET" });
+  },
+
+  getStockAlerts: async (): Promise<StockBalance[]> =>
+    fetchFromBff<StockBalance[]>("/api/v1/inventory/stock-alerts/", { method: "GET" }),
+
+  // ── Inter-Site Transfers ───────────────────────────────────────────────────
+  createTransfer: async (data: {
+    from_site: string;
+    to_site: string;
+    material: string;
+    qty: number;
+    remarks?: string;
+    batch_no?: string;
+  }): Promise<SiteTransferResult> =>
+    fetchFromBff<SiteTransferResult>("/api/v1/inventory/transfers/", { method: "POST", body: JSON.stringify(data) }),
+
+  // ── Material Requisitions (MRN) ────────────────────────────────────────────
+  getRequisitions: async (params?: { site?: string; status?: string }): Promise<MaterialRequisition[]> => {
+    const q = new URLSearchParams();
+    if (params?.site) q.append("site", params.site);
+    if (params?.status) q.append("status", params.status);
+    const url = q.toString() ? `/api/v1/inventory/requisitions/?${q}` : "/api/v1/inventory/requisitions/";
+    const res = await fetchFromBff<any>(url, { method: "GET" });
+    return unpackArray<MaterialRequisition>(res);
+  },
+
+  getRequisition: async (id: string): Promise<MaterialRequisition> =>
+    fetchFromBff<MaterialRequisition>(`/api/v1/inventory/requisitions/${id}/`, { method: "GET" }),
+
+  createRequisition: async (data: Record<string, any>): Promise<MaterialRequisition> =>
+    fetchFromBff<MaterialRequisition>("/api/v1/inventory/requisitions/", { method: "POST", body: JSON.stringify(data) }),
+
+  updateRequisition: async (id: string, data: Record<string, any>): Promise<MaterialRequisition> =>
+    fetchFromBff<MaterialRequisition>(`/api/v1/inventory/requisitions/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  submitRequisition: async (id: string): Promise<MaterialRequisition> =>
+    fetchFromBff<MaterialRequisition>(`/api/v1/inventory/requisitions/${id}/submit/`, { method: "POST" }),
+
+  approveRequisition: async (id: string): Promise<MaterialRequisition> =>
+    fetchFromBff<MaterialRequisition>(`/api/v1/inventory/requisitions/${id}/approve/`, { method: "POST" }),
+
+  rejectRequisition: async (id: string, reason: string): Promise<MaterialRequisition> =>
+    fetchFromBff<MaterialRequisition>(`/api/v1/inventory/requisitions/${id}/reject/`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  // ── Equipment Maintenance Logs ─────────────────────────────────────────────
+  getMaintenanceLogs: async (params?: { equipment?: string }): Promise<EquipmentMaintenanceLog[]> => {
+    const q = new URLSearchParams();
+    if (params?.equipment) q.append("equipment", params.equipment);
+    const url = q.toString() ? `/api/v1/inventory/maintenance/?${q}` : "/api/v1/inventory/maintenance/";
+    const res = await fetchFromBff<any>(url, { method: "GET" });
+    return unpackArray<EquipmentMaintenanceLog>(res);
+  },
+
+  createMaintenanceLog: async (data: Record<string, any>): Promise<EquipmentMaintenanceLog> =>
+    fetchFromBff<EquipmentMaintenanceLog>("/api/v1/inventory/maintenance/", { method: "POST", body: JSON.stringify(data) }),
+
+  updateMaintenanceLog: async (id: string, data: Record<string, any>): Promise<EquipmentMaintenanceLog> =>
+    fetchFromBff<EquipmentMaintenanceLog>(`/api/v1/inventory/maintenance/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  deleteMaintenanceLog: async (id: string): Promise<void> =>
+    fetchFromBff<void>(`/api/v1/inventory/maintenance/${id}/`, { method: "DELETE" }),
+
+  // ── Physical Stock Audits ──────────────────────────────────────────────────
+  getStockAudits: async (): Promise<StockAudit[]> => {
+    const res = await fetchFromBff<any>("/api/v1/inventory/stock-audits/", { method: "GET" });
+    return unpackArray<StockAudit>(res);
+  },
+
+  getStockAudit: async (id: string): Promise<StockAudit> =>
+    fetchFromBff<StockAudit>(`/api/v1/inventory/stock-audits/${id}/`, { method: "GET" }),
+
+  createStockAudit: async (data: Record<string, any>): Promise<StockAudit> =>
+    fetchFromBff<StockAudit>("/api/v1/inventory/stock-audits/", { method: "POST", body: JSON.stringify(data) }),
+
+  updateStockAudit: async (id: string, data: Record<string, any>): Promise<StockAudit> =>
+    fetchFromBff<StockAudit>(`/api/v1/inventory/stock-audits/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  postAuditVariances: async (id: string): Promise<StockAudit> =>
+    fetchFromBff<StockAudit>(`/api/v1/inventory/stock-audits/${id}/post_variances/`, { method: "POST" }),
+
+  // ── Convenience Aliases ────────────────────────────────────────────────────
+  getEquipment: async (params?: { search?: string; site_id?: string; status?: string }): Promise<Equipment[]> => {
+    const q = new URLSearchParams();
+    if (params?.search) q.append("search", params.search);
+    if (params?.site_id) q.append("site_id", params.site_id);
+    if (params?.status) q.append("status", params.status);
+    const url = q.toString() ? `/api/v1/inventory/equipment/?${q}` : "/api/v1/inventory/equipment/";
+    const res = await fetchFromBff<any>(url, { method: "GET" });
+    return unpackArray<Equipment>(res);
+  },
+
+  getStockLedger: async (params?: { site_id?: string; txn_type?: string }): Promise<StockLedgerEntry[]> => {
+    const q = new URLSearchParams();
+    if (params?.site_id) q.append("site_id", params.site_id);
+    if (params?.txn_type) q.append("txn_type", params.txn_type);
+    const url = q.toString() ? `/api/v1/inventory/stock-ledger/?${q}` : "/api/v1/inventory/stock-ledger/";
+    const res = await fetchFromBff<any>(url, { method: "GET" });
+    return unpackArray<StockLedgerEntry>(res);
   },
 
   // ── Calculator Engine API ─────────────────────────────────────────────────
@@ -348,3 +504,5 @@ export const inventoryApi = {
     });
   },
 };
+
+

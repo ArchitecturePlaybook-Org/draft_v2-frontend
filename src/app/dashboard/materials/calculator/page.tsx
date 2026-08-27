@@ -12,6 +12,7 @@ import {
   Copy,
   Printer,
   ChevronRight,
+  ChevronDown,
   Info,
   CheckCircle2,
   ArrowRight,
@@ -19,6 +20,10 @@ import {
   Sliders,
   DollarSign,
   Package,
+  BookOpen,
+  FileText,
+  HelpCircle,
+  ShieldCheck,
 } from "lucide-react";
 import {
   calculateMasonryMaterials,
@@ -761,6 +766,222 @@ export default function AdvancedMaterialCalcEnginePage() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* 📚 DETAILED ENGINEERING CALCULATION FORMULAS & STANDARDS GUIDE */}
+      <div className="pt-6 border-t border-zinc-800 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                Detailed Civil Engineering Calculation Standards & Mathematical Formulas Guide
+              </h2>
+              <p className="text-xs text-zinc-400">
+                Authoritative mathematical formulas, Indian Standard (IS) codes, dry factors, void ratios, and structural density rules used in this calculation engine.
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-purple-300 font-mono font-bold text-xs w-fit">
+            IS Code Governed (IS 2212 / 456 / 1786 / 1661)
+          </span>
+        </div>
+
+        {/* Trade Formula Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+          {/* 1. Masonry Guide */}
+          <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3 hover:border-zinc-700 transition-colors">
+            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
+              <div className="font-bold text-white flex items-center gap-2">
+                <span>🧱 Wall Masonry Trade</span>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                IS 2212 & IS 1077
+              </span>
+            </div>
+            <div className="space-y-2 text-zinc-300">
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">1. Gross & Net Geometry</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Gross Vol = Length × Height × Thickness<br/>
+                  Openings Area = Σ (Width × Height × Qty)<br/>
+                  Net Masonry Vol = (Gross Vol - Openings Vol) - Lintel Beam Vol
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">2. Brick / Block Calculation</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Modular Brick (190×90×90mm + 10mm joint): 500 pcs/m³<br/>
+                  Traditional Brick (230×115×75mm + 10mm joint): 471 pcs/m³<br/>
+                  AAC Block (600×200×200mm + 3mm adhesive): 40.2 pcs/m³
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">3. Dry Mortar Factor (1.33)</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Wet Mortar Vol = Net Masonry Vol - (Brick Qty × Actual Brick Vol)<br/>
+                  Dry Mortar Vol = Wet Mortar Vol × 1.33 (+33% voids & shrinkage)<br/>
+                  Cement Bags = (Dry Vol × Cement Ratio / Sum Ratio) × 1440 / 50
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Concrete Guide */}
+          <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3 hover:border-zinc-700 transition-colors">
+            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
+              <div className="font-bold text-white flex items-center gap-2">
+                <span>🏗️ Concrete RCC Trade</span>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                IS 456:2000
+              </span>
+            </div>
+            <div className="space-y-2 text-zinc-300">
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">1. Wet-to-Dry Expansion Multiplier (1.54)</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Dry Bulk Volume = Wet Concrete Vol × 1.54<br/>
+                  Accounts for 54% air void displacement and plastic compaction.
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">2. Concrete Mix Proportions</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  M10 (1:3:6) • M15 (1:2:4) • M20 (1:1.5:3) • M25 (1:1:2)<br/>
+                  M30 Design Mix: Standard minimum 400 kg/m³ OPC cement.
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">3. Coarse Aggregate Grading Split</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  20mm Blue Metal Coarse Aggregate = 60% of Aggregate Vol<br/>
+                  10mm Granite Infill Aggregate = 40% of Aggregate Vol
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Rebar Steel Guide */}
+          <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3 hover:border-zinc-700 transition-colors">
+            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
+              <div className="font-bold text-white flex items-center gap-2">
+                <span>🔩 Rebar Steel Trade</span>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                IS 1786 & SP 34
+              </span>
+            </div>
+            <div className="space-y-2 text-zinc-300">
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">1. Rebar Bar Weight Formula</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Unit Weight (kg/m) = (D² / 162) [where D is bar dia in mm]<br/>
+                  Steel Density = 7850 kg/m³
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">2. Structural Member Densities</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Footing / Raft: 80–130 kg/m³ • Slab: 90 kg/m³<br/>
+                  Beams: 120 kg/m³ • Columns: 160 kg/m³
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">3. Binding Wire & Cover Blocks</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  GI Annealed Binding Wire = 10 kg per MT of rebar steel<br/>
+                  Concrete Cover Blocks = 100 pcs per 15 m³ RCC
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Plaster Guide */}
+          <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3 hover:border-zinc-700 transition-colors">
+            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
+              <div className="font-bold text-white flex items-center gap-2">
+                <span>🪜 Plastering Mortar</span>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                IS 1661 & IS 2402
+              </span>
+            </div>
+            <div className="space-y-2 text-zinc-300">
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">1. Plaster Thickness & Mix Rules</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Ceiling (6mm 1:3) • Internal Wall (12mm 1:6)<br/>
+                  External Wall (15mm 1:5 single coat or 20mm 1:4 double coat)
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">2. Substrate Void Multiplier (1.33)</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Dry Plaster Vol = (Surface Area × Thickness) × 1.33<br/>
+                  Accounts for brick joint filling & surface roughness.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Flooring Guide */}
+          <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3 hover:border-zinc-700 transition-colors">
+            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
+              <div className="font-bold text-white flex items-center gap-2">
+                <span>📐 Flooring & Tiling</span>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                IS 1443
+              </span>
+            </div>
+            <div className="space-y-2 text-zinc-300">
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">1. Tile Coverage & Cutting Waste</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Required Tile Area = Net Floor Area × (1 + Wastage % / 100)<br/>
+                  Tile Boxes = Required Tile Area / Coverage per Box
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">2. Bedding Mortar vs. Adhesive</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Polymer Thin-Set Adhesive = 4.5 kg/m²<br/>
+                  40mm Cement Mortar Bedding = 0.040 m³ mortar/m²
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 6. Paint Guide */}
+          <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3 hover:border-zinc-700 transition-colors">
+            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
+              <div className="font-bold text-white flex items-center gap-2">
+                <span>🎨 Paint & Surface Finishing</span>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                IS 2395
+              </span>
+            </div>
+            <div className="space-y-2 text-zinc-300">
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">1. Acrylic Wall Care Putty</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Putty Rate = 1.20 kg/m² for 2 coats (40kg Bag = 33.3 m²)
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-200 block text-[11px] mb-0.5">2. Primer & Emulsion Coverage</span>
+                <p className="font-mono text-[10px] text-zinc-400 bg-zinc-900/60 p-2 rounded border border-zinc-800/80">
+                  Wall Primer (1 Coat) = 9.30 m²/L (100 sq.ft/L)<br/>
+                  Luxury Emulsion (2 Coats) = 6.00 m²/L (65 sq.ft/L)
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

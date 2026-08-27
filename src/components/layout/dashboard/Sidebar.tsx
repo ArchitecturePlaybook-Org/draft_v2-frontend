@@ -37,6 +37,9 @@ import {
   Truck,
   ArrowUpRight,
   Wrench,
+  ArrowLeftRight,
+  ClipboardCheck,
+  BarChart3,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -64,14 +67,21 @@ export const Sidebar: React.FC = () => {
 
   const inventoryLinks = [
     { label: "Stock Overview", href: "/dashboard/inventory", icon: <Warehouse className="w-4 h-4" /> },
+    { label: "Vendors Master", href: "/dashboard/inventory/vendors", icon: <Building2 className="w-4 h-4" /> },
+    { label: "Sites & Godowns", href: "/dashboard/inventory/sites", icon: <Warehouse className="w-4 h-4" /> },
     { label: "Master Materials", href: "/dashboard/materials", icon: <Layers className="w-4 h-4 text-accent" /> },
     { label: "Material Categories", href: "/dashboard/materials/categories", icon: <Tag className="w-4 h-4 text-accent" /> },
     { label: "Approved Brands", href: "/dashboard/materials/brands", icon: <Award className="w-4 h-4 text-accent" /> },
-    { label: "Material Calc Engine", href: "/dashboard/materials/calculator", icon: <Calculator className="w-4 h-4 text-accent" /> },
+    { label: "Material Requisitions", href: "/dashboard/inventory/requisitions", icon: <ClipboardList className="w-4 h-4" /> },
+    { label: "Purchase Orders", href: "/dashboard/inventory/purchase-orders", icon: <FileSpreadsheet className="w-4 h-4" /> },
     { label: "Gate Receipts & GRN", href: "/dashboard/inventory/deliveries", icon: <Truck className="w-4 h-4" /> },
     { label: "Trade Issues", href: "/dashboard/inventory/issues", icon: <ArrowUpRight className="w-4 h-4" /> },
+    { label: "Inter-Site Transfers", href: "/dashboard/inventory/transfers", icon: <ArrowLeftRight className="w-4 h-4" /> },
+    { label: "Physical Stock Audit", href: "/dashboard/inventory/audit", icon: <ClipboardCheck className="w-4 h-4" /> },
     { label: "Equipment & Tools", href: "/dashboard/inventory/equipment", icon: <Wrench className="w-4 h-4" /> },
-    { label: "Purchase Orders", href: "/dashboard/inventory/purchase-orders", icon: <FileSpreadsheet className="w-4 h-4" /> },
+    { label: "Equipment Maintenance", href: "/dashboard/inventory/maintenance", icon: <Wrench className="w-4 h-4 text-accent" /> },
+    { label: "Calc Engine", href: "/dashboard/materials/calculator", icon: <Calculator className="w-4 h-4 text-accent" /> },
+    { label: "Reports Hub", href: "/dashboard/inventory/reports", icon: <BarChart3 className="w-4 h-4 text-accent" /> },
   ];
 
   const showroomLinks = isSuperAdmin ? [] : [

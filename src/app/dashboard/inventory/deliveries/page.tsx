@@ -92,7 +92,7 @@ export default function DeliveriesGRNPage() {
         </Link>
         <Link
           href="/dashboard/inventory/deliveries"
-          className="px-3 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500 text-blue-300 font-semibold flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-300 font-semibold flex items-center gap-1.5"
         >
           <Truck className="w-3.5 h-3.5" /> Digital GRN & Gate
         </Link>
