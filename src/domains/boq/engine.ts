@@ -1,483 +1,965 @@
 /**
- * Client-Side Reactive BOQ Calculation Engine
- * =============================================
- * Mirrors CPWD DSR 2023 rates and IS 1200 / NBC 2016 measurement rules.
- * Dynamically computes accurate Bill of Quantities across all 15 typologies:
- * - Residential & Multi-Storey RCC Buildings
- * - Boundary & Compound Walls
- * - Cantilever Retaining Walls
- * - Bituminous & Concrete PQC Roads
- * - RCC Storm Drains
- * - Septic Tanks (IS 2470)
- * - Community Toilet Blocks (SBM-G)
- * - Interior Packages (Modular Kitchen, Bathrooms, False Ceiling, Vitrified Flooring)
+ * Physics-Based & IS 1200 Compliant Multi-Module BOQ Calculation Engine
+ * ====================================================================
+ * Encodes actual civil construction sequences, net centerline with T-junction
+ * deductions, strict opening deductions (IS 1200 Pt 3), plastering rules (IS 1200 Pt 12),
+ * disjoint concrete accounting (IS 456), element-wise rebar densities, and stage opt-in/opt-out.
  */
-import { BOQParameters, BOQLineItem, BOQResult } from "./types";
+
+import { BOQParameters, BOQLineItem, BOQResult, StageScopeFilters, DEFAULT_STAGE_SCOPES, STAGE_LABELS } from "./types";
+import { BOQ_TEMPLATES } from "./catalog";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CPWD DSR 2023 Rate Schedule
+// Official CPWD DSR 2023 Rate Schedule & Metadata
 // ─────────────────────────────────────────────────────────────────────────────
-const DSR_RATES: Record<string, { desc: string; unit: string; rate: number; isRef: string }> = {
-  // Earthwork
-  "EW-1": { desc: "Earthwork in excavation in trenches/foundations — soft/medium soil (lead up to 50m)", unit: "m³", rate: 260.30, isRef: "IS 1200 Pt 1" },
-  "EW-2": { desc: "Earthwork in excavation — hard soil / rocky strata / murrum", unit: "m³", rate: 385.50, isRef: "IS 1200 Pt 1" },
-  "EW-3": { desc: "Disposal of surplus excavated earth with mechanical transport (lead 50m)", unit: "m³", rate: 95.00, isRef: "IS 1200 Pt 1" },
-  "EW-BACKFILL": { desc: "Earth/Sand filling under plinth & foundation trenches with watering and compaction", unit: "m³", rate: 320.00, isRef: "CPWD 2.25" },
+export const DSR_RATES: Record<
+  string,
+  { desc: string; unit: string; rate: number; isRef: string; stage: string; chapter: string }
+> = {
+  // ── Chapter 2: Earthwork ──
+  "2.8.1": {
+    desc: "Earth work in excavation by mechanical/manual means in foundation trenches (not exceeding 1.5m width or 10 sqm on plan), incl. dressing & ramming — All kinds of soil",
+    unit: "m³",
+    rate: 260.30,
+    isRef: "IS 1200 Pt 1",
+    stage: "earthwork",
+    chapter: "2.0 Earthwork",
+  },
+  "2.8.2": {
+    desc: "Earth work in excavation in foundation trenches in ordinary rock / hard strata (lead up to 50m)",
+    unit: "m³",
+    rate: 385.50,
+    isRef: "IS 1200 Pt 1",
+    stage: "earthwork",
+    chapter: "2.0 Earthwork",
+  },
+  "2.25": {
+    desc: "Filling available excavated earth (excluding rock) in trenches, plinth, sides of foundations etc. in layers not exceeding 20cm in depth, consolidating each deposited layer by ramming and watering",
+    unit: "m³",
+    rate: 320.00,
+    isRef: "CPWD 2.25",
+    stage: "earthwork",
+    chapter: "2.0 Earthwork",
+  },
+  "2.26": {
+    desc: "Extra for disposal of surplus excavated soil with mechanical transport (lead 50m)",
+    unit: "m³",
+    rate: 95.00,
+    isRef: "IS 1200 Pt 1",
+    stage: "earthwork",
+    chapter: "2.0 Earthwork",
+  },
+  "2.34": {
+    desc: "Diluting and injecting chemical emulsion for post/pre-construction anti-termite treatment @ 5 L/sqm",
+    unit: "m²",
+    rate: 185.00,
+    isRef: "IS 6313 Pt 2",
+    stage: "earthwork",
+    chapter: "2.0 Earthwork",
+  },
 
-  // Concrete & Foundation
-  "CC-1": { desc: "PCC 1:4:8 (M10) foundation bed with 40mm graded stone aggregate", unit: "m³", rate: 5850.00, isRef: "IS 456" },
-  "CC-2": { desc: "PCC 1:2:4 (M15) for plinth flooring bed / apron", unit: "m³", rate: 6450.00, isRef: "IS 456" },
-  "RC-FTG": { desc: "RCC M25 in isolated/strip footings excluding shuttering & steel", unit: "m³", rate: 9250.00, isRef: "IS 456" },
-  "RC-1": { desc: "RCC M20/M25 in columns, plinth beams, tie beams & lintels", unit: "m³", rate: 9850.00, isRef: "IS 456, IS 13920" },
-  "RC-SLAB": { desc: "RCC M25 in suspended floor & roof slabs up to floor 5", unit: "m³", rate: 10450.00, isRef: "IS 456" },
-  "RC-2": { desc: "Thermo-Mechanically Treated (TMT) Fe500D steel rebar incl. binding & lap", unit: "kg", rate: 92.50, isRef: "IS 1786" },
-  "SH-1": { desc: "Centering and shuttering including strutting & propping (footings & columns)", unit: "m²", rate: 540.00, isRef: "IS 1200 Pt 5" },
-  "SH-2": { desc: "Centering and shuttering for suspended slabs, beams and stairs", unit: "m²", rate: 620.00, isRef: "IS 1200 Pt 5" },
+  // ── Chapter 4: Concrete Work & Foundation ──
+  "4.1.8": {
+    desc: "Providing and laying in position cement concrete 1:4:8 (1 cement : 4 coarse sand : 8 graded stone aggregate 40mm nominal size) in foundation bed up to plinth level",
+    unit: "m³",
+    rate: 6812.00,
+    isRef: "IS 456",
+    stage: "substructure",
+    chapter: "4.0 Concrete Work",
+  },
+  "4.1.3": {
+    desc: "Providing and laying in position cement concrete 1:2:4 (1 cement : 2 coarse sand : 4 graded stone aggregate 20mm) for plinth apron & bed",
+    unit: "m³",
+    rate: 7450.00,
+    isRef: "IS 456",
+    stage: "substructure",
+    chapter: "4.0 Concrete Work",
+  },
+  "4.10": {
+    desc: "Providing and laying Damp Proof Course (DPC) 50mm thick with cement concrete 1:2:4 (1 cement : 2 coarse sand : 4 graded stone aggregate 12.5mm) with integral waterproofing compound",
+    unit: "m²",
+    rate: 380.00,
+    isRef: "CPWD 4.10",
+    stage: "substructure",
+    chapter: "4.0 Concrete Work",
+  },
+  "4.17": {
+    desc: "Making plinth protection 50mm thick of cement concrete 1:3:6 over 75mm bed of dry brick ballast 40mm nominal size, consolidated and finished smooth",
+    unit: "m²",
+    rate: 749.30,
+    isRef: "CPWD 4.17",
+    stage: "substructure",
+    chapter: "4.0 Concrete Work",
+  },
 
-  // Masonry
-  "BW-1": { desc: "Brickwork with common burnt clay F.P.S. bricks class 7.5 in CM 1:6 (230mm outer wall)", unit: "m³", rate: 5450.00, isRef: "IS 1200 Pt 3" },
-  "BW-2": { desc: "Half brick masonry with clay F.P.S. bricks in CM 1:4 with hoop iron (115mm partition)", unit: "m²", rate: 890.00, isRef: "IS 1200 Pt 3" },
-  "DPC-1": { desc: "Damp Proof Course (DPC) 50mm thick in concrete 1:2:4 with waterproofing compound", unit: "m²", rate: 380.00, isRef: "CPWD 4.11" },
+  // ── Chapter 5: RCC & Steel ──
+  "5.1.2": {
+    desc: "Reinforced cement concrete work in isolated / strip footings, raft and foundation beams up to plinth level with 1:1.5:3 (M20/M25)",
+    unit: "m³",
+    rate: 9850.00,
+    isRef: "IS 456",
+    stage: "substructure",
+    chapter: "5.0 RCC Work",
+  },
+  "5.2": {
+    desc: "Reinforced cement concrete work in columns, plinth beams, tie beams & lintels complete up to floor five level with 1:1.5:3",
+    unit: "m³",
+    rate: 10850.00,
+    isRef: "IS 456, IS 13920",
+    stage: "rcc",
+    chapter: "5.0 RCC Work",
+  },
+  "5.3": {
+    desc: "Reinforced cement concrete work in beams, suspended floors, roof slabs having slope up to 15°, balconies, chajjas, lintels and staircases with 1:1.5:3",
+    unit: "m³",
+    rate: 11505.50,
+    isRef: "IS 456",
+    stage: "rcc",
+    chapter: "5.0 RCC Work",
+  },
+  "5.9.1": {
+    desc: "Centering and shuttering including strutting, propping etc. for foundations, footings, bases of columns",
+    unit: "m²",
+    rate: 540.00,
+    isRef: "IS 1200 Pt 5",
+    stage: "substructure",
+    chapter: "5.0 RCC Work",
+  },
+  "5.9.2": {
+    desc: "Centering and shuttering for columns, pillars, piers, posts and struts",
+    unit: "m²",
+    rate: 680.00,
+    isRef: "IS 1200 Pt 5",
+    stage: "rcc",
+    chapter: "5.0 RCC Work",
+  },
+  "5.9.3": {
+    desc: "Centering and shuttering including strutting, propping and removal of form for suspended floors, roofs, landings, balconies and access platforms",
+    unit: "m²",
+    rate: 927.25,
+    isRef: "IS 1200 Pt 5",
+    stage: "rcc",
+    chapter: "5.0 RCC Work",
+  },
+  "5.9.5": {
+    desc: "Centering and shuttering for beams, plinth beams, girders, bressummers and cantilevers",
+    unit: "m²",
+    rate: 620.00,
+    isRef: "IS 1200 Pt 5",
+    stage: "rcc",
+    chapter: "5.0 RCC Work",
+  },
+  "5.22.6": {
+    desc: "Steel reinforcement for R.C.C. work including straightening, cutting, bending, placing in position and binding all complete — Thermo-Mechanically Treated (TMT) bars Fe-500D",
+    unit: "kg",
+    rate: 107.85,
+    isRef: "IS 1786",
+    stage: "rcc",
+    chapter: "5.0 RCC Work",
+  },
 
-  // Plastering & Pointing
-  "PL-1": { desc: "12mm cement plaster (1:6) on internal walls (smooth trowel finish)", unit: "m²", rate: 195.00, isRef: "IS 1200 Pt 12" },
-  "PL-2": { desc: "18mm cement plaster (1:4) two-coat rough cast / sand face on exterior", unit: "m²", rate: 245.00, isRef: "IS 1200 Pt 12" },
-  "PL-WP": { desc: "15mm cement plaster (1:3) mixed with integral waterproofing compound", unit: "m²", rate: 310.00, isRef: "IS 2645" },
+  // ── Chapter 6: Masonry Work ──
+  "6.1.2": {
+    desc: "Brick work with common burnt clay F.P.S. (non modular) bricks of class designation 7.5 in foundation and plinth in Cement mortar 1:6 (1 cement : 6 coarse sand)",
+    unit: "m³",
+    rate: 7650.00,
+    isRef: "IS 1200 Pt 3",
+    stage: "substructure",
+    chapter: "6.0 Masonry",
+  },
+  "6.4.2": {
+    desc: "Brick work with common burnt clay F.P.S. bricks class 7.5 in superstructure above plinth level up to floor V level in Cement mortar 1:6 (230mm main walls)",
+    unit: "m³",
+    rate: 9105.95,
+    isRef: "IS 1200 Pt 3, IS 1905",
+    stage: "superstructure",
+    chapter: "6.0 Masonry",
+  },
+  "6.13": {
+    desc: "Half brick masonry with clay F.P.S. bricks in cement mortar 1:4 with 2 nos 6mm dia M.S. bars / hoop iron reinforcement at every 3rd course (115mm partition walls)",
+    unit: "m²",
+    rate: 945.00,
+    isRef: "IS 1200 Pt 3",
+    stage: "superstructure",
+    chapter: "6.0 Masonry",
+  },
+  "6.28": {
+    desc: "Autoclaved Aerated Concrete (AAC) block masonry with 200mm blocks in superstructure with polymer modified thin bed adhesive",
+    unit: "m³",
+    rate: 6850.00,
+    isRef: "IS 2185 Pt 3",
+    stage: "superstructure",
+    chapter: "6.0 Masonry",
+  },
 
-  // Flooring & Finishes
-  "FL-1": { desc: "Vitrified tile flooring 600×600mm / 800×800mm with polymer adhesive bed", unit: "m²", rate: 750.00, isRef: "IS 1200 Pt 11" },
-  "FL-2": { desc: "Matching vitrified tile skirting 100mm height", unit: "m", rate: 135.00, isRef: "IS 1200 Pt 11" },
-  "FL-CERAMIC": { desc: "Ceramic anti-skid floor tiles 300×300mm in toilets/utility", unit: "m²", rate: 580.00, isRef: "IS 1200 Pt 11" },
-  "FL-DADO": { desc: "Glazed ceramic wall tiles (dado) up to 2.1m height in CM 1:3", unit: "m²", rate: 640.00, isRef: "IS 1200 Pt 11" },
+  // ── Chapter 9 & 10: Woodwork, Steel & Aluminium ──
+  "9.5.1.1": {
+    desc: "Providing and fixing panelled or panelled & glazed shutters for doors (35mm thick) with second class teak wood / hardwood frame, butt hinges & brass fittings",
+    unit: "m²",
+    rate: 4111.95,
+    isRef: "IS 2202",
+    stage: "doors_windows",
+    chapter: "9.0 Woodwork",
+  },
+  "9.21.1": {
+    desc: "Providing and fixing 35mm thick solid core flush door shutters (commercial type) with hardwood lipping and SS mortise lock with lever handles",
+    unit: "m²",
+    rate: 2850.00,
+    isRef: "IS 2202 Pt 1",
+    stage: "doors_windows",
+    chapter: "9.0 Woodwork",
+  },
+  "10.31": {
+    desc: "Providing and fixing mild steel angle iron / tube frames for doors, windows and ventilators (35x35x5 mm) with dash fasteners & priming coat",
+    unit: "kg",
+    rate: 130.50,
+    isRef: "CPWD 10.31",
+    stage: "doors_windows",
+    chapter: "10.0 Steel Work",
+  },
+  "10.25": {
+    desc: "Mild steel structural work in entrance gates, railings, roof trusses and framework with gusset plates, welding and red oxide primer",
+    unit: "kg",
+    rate: 145.00,
+    isRef: "IS 800",
+    stage: "doors_windows",
+    chapter: "10.0 Steel Work",
+  },
+  "10.28": {
+    desc: "Mild steel safety window grills with square/flat bars welded to angle frame @ 12-15 kg/sqm with anti-corrosive primer",
+    unit: "kg",
+    rate: 135.00,
+    isRef: "CPWD 10.28",
+    stage: "doors_windows",
+    chapter: "10.0 Steel Work",
+  },
+  "12.1.2": {
+    desc: "Providing corrugated G.I. sheet roofing 0.63mm thick fixed with polymer coated J or L hooks, limpet washers and bitumen washers",
+    unit: "m²",
+    rate: 850.00,
+    isRef: "IS 277",
+    stage: "rcc",
+    chapter: "12.0 Roofing",
+  },
 
-  // Painting
-  "PT-1": { desc: "Premium acrylic emulsion paint (2 coats) over primer and wall putty", unit: "m²", rate: 110.00, isRef: "CPWD 13.46" },
-  "PT-2": { desc: "Exterior weather-shield elastomeric emulsion (2 coats) over exterior primer", unit: "m²", rate: 130.00, isRef: "CPWD 13.48" },
+  // ── Chapter 11: Flooring ──
+  "11.39": {
+    desc: "Providing and laying rectified glazed ceramic floor tiles 300x300mm conforming to IS 15622 over 20mm cement mortar 1:4 with cement slurry & grouting",
+    unit: "m²",
+    rate: 1330.00,
+    isRef: "IS 1200 Pt 11",
+    stage: "flooring",
+    chapter: "11.0 Flooring",
+  },
+  "11.41": {
+    desc: "Providing and laying polished vitrified floor tiles 600x600mm / 800x800mm (group Bla) conforming to IS 15622 on 20mm cement mortar 1:4",
+    unit: "m²",
+    rate: 1540.00,
+    isRef: "IS 1200 Pt 11",
+    stage: "flooring",
+    chapter: "11.0 Flooring",
+  },
+  "11.42": {
+    desc: "Providing matching vitrified tile skirting 100mm height embedded in cement mortar with neat cement slurry",
+    unit: "m",
+    rate: 145.00,
+    isRef: "IS 1200 Pt 11",
+    stage: "flooring",
+    chapter: "11.0 Flooring",
+  },
+  "11.45": {
+    desc: "Ceramic glazed wall tiles (dado) 300x450mm in toilets and kitchen up to 2.1m height over 12mm cement plaster 1:3",
+    unit: "m²",
+    rate: 1250.00,
+    isRef: "IS 1200 Pt 11",
+    stage: "flooring",
+    chapter: "11.0 Flooring",
+  },
 
-  // Openings
-  "DW-1": { desc: "Solid core flush door (35mm) with hardwood frame, SS hinges & mortise lock", unit: "nos", rate: 11500.00, isRef: "IS 2202" },
-  "DW-2": { desc: "UPVC 3-track sliding window with float glass and stainless steel mosquito mesh", unit: "nos", rate: 9200.00, isRef: "IS 14610" },
-  "DW-GATE": { desc: "Mild steel structural entrance gate with primer & synthetic enamel paint", unit: "m²", rate: 3850.00, isRef: "CPWD 10.25" },
+  // ── Chapter 13: Plastering & Painting ──
+  "13.1.2": {
+    desc: "12 mm cement plaster of mix 1:6 (1 cement : 6 fine sand) on internal brick walls with smooth trowel finish",
+    unit: "m²",
+    rate: 333.35,
+    isRef: "IS 1200 Pt 12",
+    stage: "plaster",
+    chapter: "13.0 Finishing",
+  },
+  "13.5.2": {
+    desc: "15 mm to 18 mm cement plaster on rough side of external walls of mix 1:6 (1 cement : 6 coarse sand) with sand face finish",
+    unit: "m²",
+    rate: 395.35,
+    isRef: "IS 1200 Pt 12",
+    stage: "plaster",
+    chapter: "13.0 Finishing",
+  },
+  "13.41.1": {
+    desc: "Distempering with 1st quality acrylic washable distemper (two or more coats) over priming coat with cement primer",
+    unit: "m²",
+    rate: 185.65,
+    isRef: "CPWD 13.41",
+    stage: "painting",
+    chapter: "13.0 Finishing",
+  },
+  "13.46.1": {
+    desc: "Finishing walls with Acrylic Smooth exterior weather-shield paint of required shade (Two or more coats over exterior primer)",
+    unit: "m²",
+    rate: 160.60,
+    isRef: "CPWD 13.46",
+    stage: "painting",
+    chapter: "13.0 Finishing",
+  },
+  "13.60": {
+    desc: "Applying two coats of wall care putty (1.5mm thickness) to provide smooth white leveling surface before painting",
+    unit: "m²",
+    rate: 95.00,
+    isRef: "CPWD 13.60",
+    stage: "painting",
+    chapter: "13.0 Finishing",
+  },
 
-  // Infrastructure: Road Works
-  "RD-SUBGRADE": { desc: "Preparation of sub-grade, scarifying, watering & rolling with 8-10T roller", unit: "m²", rate: 45.00, isRef: "MoRTH 301" },
-  "RD-GSB": { desc: "Granular Sub-Base (GSB) with graded crushed stone 150mm thick compacted", unit: "m³", rate: 1850.00, isRef: "MoRTH 401" },
-  "RD-WMM": { desc: "Wet Mix Macadam (WMM) 150mm thick mechanically spread and compacted", unit: "m³", rate: 2200.00, isRef: "MoRTH 406" },
-  "RD-TACK": { desc: "Applying bituminous prime/tack coat with emulsion @ 0.75 kg/sqm", unit: "m²", rate: 42.00, isRef: "MoRTH 502" },
-  "RD-DBM": { desc: "Dense Bituminous Macadam (DBM) 50mm compacted with paver", unit: "m³", rate: 8400.00, isRef: "MoRTH 505" },
-  "RD-BC": { desc: "Bituminous Concrete (BC) 30mm thick wearing course with 60/70 grade bitumen", unit: "m³", rate: 9600.00, isRef: "MoRTH 507" },
-  "RD-DLC": { desc: "Dry Lean Concrete (DLC) M10 grade 100mm thick over GSB", unit: "m³", rate: 4600.00, isRef: "IRC SP 49" },
-  "RD-PQC": { desc: "Pavement Quality Concrete (PQC) M30 200mm thick with dowel bars & joints", unit: "m³", rate: 8200.00, isRef: "IRC 58" },
-  "RD-KERB": { desc: "Precast cement concrete kerb stone 300x200x450mm bedded on M10 concrete", unit: "m", rate: 480.00, isRef: "CPWD 16.5" },
+  // ── Chapter 17 & 19: Sanitary & Drainage ──
+  "17.1.1": {
+    desc: "Providing and fixing white vitreous china water closet (Orissa pan / European WC) with PVC low level cistern, seat cover & CP fittings",
+    unit: "nos",
+    rate: 6850.00,
+    isRef: "IS 2556",
+    stage: "mep",
+    chapter: "17.0 Sanitary",
+  },
+  "17.7.1": {
+    desc: "Providing and fixing wash basin 550x400mm with single hole pillar tap, CP brass waste coupling & PVC bottle trap",
+    unit: "nos",
+    rate: 3450.00,
+    isRef: "IS 2556",
+    stage: "mep",
+    chapter: "17.0 Sanitary",
+  },
+  "19.1.1": {
+    desc: "Constructing brick masonry septic tank 5-50 users with 230mm brickwork in CM 1:4, precast RCC slab cover, baffle wall & ventilation pipe",
+    unit: "nos",
+    rate: 28500.00,
+    isRef: "IS 2470 Pt 1",
+    stage: "mep",
+    chapter: "19.0 Drainage",
+  },
+  "19.2.1": {
+    desc: "Constructing soak pit 1.5m dia and 3.0m deep lined with dry brickwork and filled with brick bats & 40mm aggregate complete",
+    unit: "nos",
+    rate: 14500.00,
+    isRef: "IS 2470 Pt 2",
+    stage: "mep",
+    chapter: "19.0 Drainage",
+  },
 
-  // Drainage & Retaining Wall
-  "DR-EXCAV": { desc: "Excavation for storm drains / septic tank in all soils", unit: "m³", rate: 280.00, isRef: "IS 1200 Pt 1" },
-  "DR-PCC": { desc: "PCC M15 (1:2:4) for drain base / retaining wall apron", unit: "m³", rate: 6450.00, isRef: "IS 456" },
-  "DR-RCC": { desc: "RCC M20 in drain walls / bed slab with formwork & reinforcement", unit: "m³", rate: 12500.00, isRef: "IS 456" },
-  "DR-COVER": { desc: "SFRC / Cast iron heavy duty drain cover grating with frame", unit: "m", rate: 1450.00, isRef: "IS 12592" },
-  "RW-STEM": { desc: "RCC M25 in cantilever retaining wall stem and base slab complete with rebar", unit: "m³", rate: 14200.00, isRef: "IS 456" },
-  "RW-WEEP": { desc: "PVC weep holes 100mm dia with non-woven geotextile wrap and gravel filter", unit: "nos", rate: 350.00, isRef: "IS 14458" },
-
-  // Septic Tank & Sanitation
-  "ST-WALL": { desc: "Brickwork in CM 1:4 with waterproof additive for septic tank & baffles", unit: "m³", rate: 6200.00, isRef: "IS 2470" },
-  "ST-SLAB": { desc: "Precast RCC M25 cover slabs 100mm thick with MS lifting hooks", unit: "m²", rate: 1650.00, isRef: "IS 2470" },
-  "ST-SOAK": { desc: "Soak pit 1.5m dia, 3.0m deep lined with dry brickwork & brick aggregate", unit: "nos", rate: 18500.00, isRef: "IS 2470" },
-  "SAN-WC": { desc: "Orissa pan / European water closet with PVC cistern, seat & CP fixtures", unit: "nos", rate: 6800.00, isRef: "CPWD 17.1" },
-  "SAN-URINAL": { desc: "Half stall urinal with auto flushing cistern and CP waste coupling", unit: "nos", rate: 4500.00, isRef: "CPWD 17.4" },
-  "SAN-PIPE": { desc: "CPVC water supply & PVC SWR drainage pipe package with fittings", unit: "m", rate: 380.00, isRef: "IS 13592" },
-
-  // Interior Packages
-  "INT-CARCASS": { desc: "BWP Marine ply (IS 710) carcass with anti-termite treatment & acrylic shutters", unit: "m²", rate: 3800.00, isRef: "IS 710" },
-  "INT-COUNTER": { desc: "20mm thick Granite / Quartz kitchen counter with machine polished edge & sink cutout", unit: "m²", rate: 2600.00, isRef: "CPWD 8.2" },
-  "INT-SINK": { desc: "304 grade stainless steel double bowl sink with swan-neck swivel tap", unit: "nos", rate: 7500.00, isRef: "IS 13983" },
-  "INT-FC-GRID": { desc: "GI channel framing & suspension system for false ceiling (per NBC)", unit: "m²", rate: 480.00, isRef: "IS 2095" },
-  "INT-FC-BOARD": { desc: "12.5mm Gypsum / PVC ceiling board with taped joints and 2-coat primer/paint", unit: "m²", rate: 620.00, isRef: "IS 2095" },
-  "INT-BATH-WP": { desc: "Polymer modified cementitious 2-coat waterproofing on bathroom sunken slabs", unit: "m²", rate: 340.00, isRef: "IS 3067" },
-  "INT-BATH-CP": { desc: "Premium CP bathroom package: diverter, rain shower, basin mixer & health faucet", unit: "nos", rate: 16500.00, isRef: "IS 8931" },
+  // ── Specialized Infrastructure & Interiors ──
+  "INT-KIT-CARCASS": {
+    desc: "Providing and fixing modular kitchen base & wall carcass with 16mm Boiling Water Proof (IS 710 BWP) Marine Ply & 0.8mm liner",
+    unit: "m²",
+    rate: 3800.00,
+    isRef: "IS 710",
+    stage: "finishes",
+    chapter: "Interiors",
+  },
+  "INT-KIT-TOP": {
+    desc: "Providing and fixing 20mm thick polished Jet Black Granite countertop with machine-molded nosing, sink and hob cutouts",
+    unit: "m²",
+    rate: 2850.00,
+    isRef: "CPWD 8.2",
+    stage: "finishes",
+    chapter: "Interiors",
+  },
+  "INT-FC-GYP": {
+    desc: "Providing and fixing suspended false ceiling with ultra-light GI framework, 12.5mm gypsum board, jointing compound, paper tape & primer",
+    unit: "m²",
+    rate: 1150.00,
+    isRef: "IS 2095",
+    stage: "finishes",
+    chapter: "Interiors",
+  },
+  "DR-U-DRAIN": {
+    desc: "Constructing RCC roadside U-storm drain with M20/M25 concrete, formwork, rebar and precast heavy-duty SFRC cover slabs complete",
+    unit: "m",
+    rate: 3450.00,
+    isRef: "IS 4111",
+    stage: "external",
+    chapter: "Infrastructure",
+  },
 };
 
-function r2(val: number): number {
-  return Math.round(val * 100) / 100;
+function round2(val: number): number {
+  return Math.round((val + Number.EPSILON) * 100) / 100;
 }
 
-function makeItem(code: string, quantity: number, stage: string, deductionsNote = ""): BOQLineItem {
-  const meta = DSR_RATES[code] || { desc: code, unit: "nos", rate: 100, isRef: "IS 1200" };
-  const qty = r2(quantity);
+export function makeDSRItem(
+  code: string,
+  quantity: number,
+  deductionsNote = "",
+  overrideDesc = "",
+  sourceModuleSlug = "",
+  sourceModuleName = ""
+): BOQLineItem {
+  const meta = DSR_RATES[code] || {
+    desc: overrideDesc || code,
+    unit: "nos",
+    rate: 100,
+    isRef: "IS 1200",
+    stage: "superstructure",
+    chapter: "General",
+  };
+  const qty = round2(quantity);
   return {
     item_code: code,
-    description: meta.desc,
+    description: overrideDesc || meta.desc,
     unit: meta.unit,
     quantity: qty,
     rate: meta.rate,
-    amount: r2(qty * meta.rate),
-    stage,
+    amount: round2(qty * meta.rate),
+    stage: meta.stage,
     is_code_ref: meta.isRef,
     deductions_note: deductionsNote,
+    source_module: sourceModuleSlug,
+    source_module_name: sourceModuleName,
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Specialized Typology Engines
+// Physical Calculations by Calculator Module
 // ─────────────────────────────────────────────────────────────────────────────
 
-// 1. Residential & Multi-Storey RCC Buildings
-function calcBuildingBOQ(p: BOQParameters): BOQLineItem[] {
+export function calculateModuleBOQ(
+  slug: string,
+  params: Record<string, any>,
+  scopes: StageScopeFilters = DEFAULT_STAGE_SCOPES,
+  floorMultiplier: number = 1
+): BOQLineItem[] {
+  const template = BOQ_TEMPLATES[slug];
   const items: BOQLineItem[] = [];
-  const outerTM = (p.outer_wall_thickness_mm || 230) / 1000;
-  const innerTM = (p.inner_wall_thickness_mm || 115) / 1000;
-  const perimeter = 2 * (p.outer_length + p.outer_width);
-  const floorArea = p.outer_length * p.outer_width;
-  const totalBua = floorArea * p.num_floors;
+  const modName = template?.name || slug;
 
-  // Earthwork
-  const excavVol = perimeter * (outerTM + 0.6) * (p.excavation_depth || 1.5);
-  items.push(makeItem(p.soil_type === "hard" ? "EW-2" : "EW-1", excavVol, "earthwork"));
-  items.push(makeItem("EW-3", excavVol * 0.75, "earthwork", "Surplus disposal"));
-  items.push(makeItem("EW-BACKFILL", excavVol * 0.4, "earthwork", "Trench & plinth backfill"));
+  const push = (code: string, qty: number, note: string = "", overrideDesc: string = "") => {
+    if (qty <= 0) return;
+    const rateInfo = DSR_RATES[code];
+    const stage = rateInfo?.stage || "superstructure";
 
-  // Foundation & PCC
-  const pccVol = perimeter * (outerTM + 0.3) * 0.1;
-  items.push(makeItem("CC-1", pccVol, "substructure"));
+    // Stage Opt-Out Check
+    if (stage === "earthwork" && !scopes.earthwork) return;
+    if (stage === "substructure" && !scopes.foundation) return;
+    if (stage === "superstructure" && !scopes.superstructure) return;
+    if (stage === "rcc" && !scopes.rcc) return;
+    if (stage === "plaster" && !scopes.finishes) return;
+    if (stage === "flooring" && !scopes.finishes) return;
+    if (stage === "painting" && !scopes.finishes) return;
+    if (stage === "doors_windows" && !scopes.openings) return;
+    if (stage === "mep" && !scopes.mep) return;
 
-  // Columns & Footings (approx bay <= 4.0m)
-  const xBays = Math.max(2, Math.round(p.outer_length / 4.0));
-  const yBays = Math.max(2, Math.round(p.outer_width / 4.0));
-  const numColumns = (xBays + 1) * (yBays + 1);
+    items.push(makeDSRItem(code, qty, note, overrideDesc, slug, modName));
+  };
 
-  const footingVol = numColumns * (1.4 * 1.4 * 0.45);
-  items.push(makeItem("RC-FTG", footingVol, "substructure"));
-  items.push(makeItem("SH-1", numColumns * (1.4 * 4 * 0.45), "substructure"));
+  // ── 1. PMAY-G Rural House (1BHK, 25 m²) ──
+  if (slug === "pmay-g-rural-house") {
+    const L = Number(params.length_m ?? 6.0);
+    const W = Number(params.width_m ?? 4.5);
+    const H = Number(params.height_m ?? 2.7);
+    const wallThkMm = Number(params.wall_thk_mm ?? 230);
+    const wallThkM = wallThkMm / 1000;
+    const roofType = params.roof_type ?? "rcc";
+    const withVerandah = params.with_verandah ?? true;
+    const withFinishes = params.with_finishes ?? true;
 
-  // Superstructure RCC: Columns + Beams + Slabs
-  const colVol = numColumns * 0.35 * 0.35 * (p.floor_height * p.num_floors);
-  const beamLength = (perimeter + (p.inner_wall_length || 0) * 0.5) * p.num_floors;
-  const beamVol = beamLength * 0.25 * 0.35;
-  const slabVol = totalBua * 0.15;
-  const totalSuperRcc = colVol + beamVol + slabVol;
+    // Derived Physical Metrics
+    const footprintM2 = L * W + (withVerandah ? 5.0 : 0);
+    const perimeterM = 2 * (L + W);
+    const nIntWalls = 2; // 1 hall partition + 1 bath/toilet partition
+    const intWallLenM = nIntWalls * W * 0.7; // ~6.3m
+    const trenchLM = perimeterM + intWallLenM - (4 * 0.3); // net centerline with T-junction deduction
+    const trenchWM = wallThkM + 0.30;
+    const foundationDM = 0.75;
+    const plinthHM = 0.45;
 
-  items.push(makeItem("RC-1", colVol + beamVol, "rcc"));
-  items.push(makeItem("RC-SLAB", slabVol, "rcc"));
-  items.push(makeItem("SH-2", totalBua + beamLength * 0.7, "rcc"));
-  items.push(makeItem("RC-2", (footingVol + totalSuperRcc) * 125, "rcc", "Fe500D rebar @ 125 kg/m³"));
+    // Earthwork & Foundation
+    const excavVolM3 = trenchLM * trenchWM * (foundationDM + 0.10);
+    const pccVolM3 = trenchLM * (wallThkM + 0.15) * 0.10;
+    const brickFoundVolM3 = trenchLM * wallThkM * (foundationDM + plinthHM);
+    const dpcAreaM2 = (perimeterM - 0.9) * wallThkM; // excludes door opening
 
-  // DPC
-  items.push(makeItem("DPC-1", perimeter * outerTM, "substructure"));
+    push("2.8.1", excavVolM3, `Net Centerline (${trenchLM.toFixed(1)}m × ${trenchWM.toFixed(2)}m × 0.85m depth)`);
+    push("4.1.8", pccVolM3, `Foundation Base PCC 1:4:8 M10 (100mm thick)`);
+    push("6.1.2", brickFoundVolM3, `Stepped Brick Foundation & Plinth in CM 1:6`);
+    push("4.10", dpcAreaM2, `50mm DPC with Waterproof Compound (excluding doors)`);
 
-  // Masonry Walls (Outer & Inner)
-  const wallH = p.floor_height * p.num_floors;
-  const grossOuterMasonry = perimeter * wallH * outerTM;
-  const doorDeduct = (p.outer_door_count || 2) * (p.outer_door_size_m2 || 2.1) * outerTM;
-  const winDeduct = (p.outer_window_count || 8) * (p.outer_window_size_m2 || 1.44) * outerTM;
-  const netOuterMasonry = Math.max(0, grossOuterMasonry - doorDeduct - winDeduct);
-  items.push(makeItem("BW-1", netOuterMasonry, "superstructure"));
+    // Superstructure Masonry (with IS 1200 deductions)
+    const grossExtBrick = perimeterM * wallThkM * H;
+    const grossIntBrick = intWallLenM * 0.115 * H;
+    const doorDeduction = 3 * (0.85 * 2.0 * wallThkM); // 3 doors
+    const winDeduction = 4 * (1.2 * 1.0 * wallThkM); // 4 windows
+    const netBrickAboveM3 = grossExtBrick + grossIntBrick - (doorDeduction + winDeduction);
+    push("6.4.2", netBrickAboveM3, `Net Superstructure Brickwork (IS 1200 Opening Deductions: -${(doorDeduction + winDeduction).toFixed(2)}m³)`);
 
-  if (p.inner_wall_length > 0) {
-    const innerPartitionArea = p.inner_wall_length * wallH;
-    const innerDoorDeduct = (p.inner_door_count || 4) * (p.inner_door_size_m2 || 1.89);
-    items.push(makeItem("BW-2", Math.max(0, innerPartitionArea - innerDoorDeduct), "superstructure"));
+    // Roof & Structure
+    if (roofType === "rcc") {
+      const slabAreaM2 = (L + 0.3) * (W + 0.3);
+      const rccSlabVolM3 = slabAreaM2 * 0.10;
+      const steelKg = rccSlabVolM3 * 80;
+      push("5.3", rccSlabVolM3, `RCC Roof Slab 100mm (M20 1:1.5:3)`);
+      push("5.9.3", slabAreaM2, `Roof Slab Centering & Shuttering`);
+      push("5.22.6", steelKg, `Fe500D TMT Rebar (80 kg/m³ slab concrete)`);
+    } else {
+      const giRoofAreaM2 = footprintM2 * 1.15;
+      const msTrussKg = footprintM2 * 8.0;
+      push("10.31", msTrussKg, `MS Angle Roof Truss & Purlins`);
+      push("12.1.2", giRoofAreaM2, `Corrugated GI Sheet Roofing 0.63mm`);
+    }
+
+    // Finishes (Plaster, Paint, Flooring, Doors/Windows)
+    if (withFinishes) {
+      const intPlasterM2 = (perimeterM + intWallLenM * 2) * H + footprintM2 - (3 * 0.85 * 2.0 + 4 * 1.2 * 1.0);
+      const extPlasterM2 = perimeterM * (H + plinthHM) - (3 * 0.85 * 2.0 + 4 * 1.2 * 1.0);
+      push("13.1.2", intPlasterM2, `12mm Internal Cement Plaster (1:6)`);
+      push("13.5.2", extPlasterM2, `15mm External Sand-Face Plaster (1:6)`);
+      push("13.41.1", intPlasterM2, `Internal Distemper (2 Coats over Primer)`);
+      push("13.46.1", extPlasterM2, `External Weather-Shield Acrylic Paint`);
+      push("11.39", footprintM2, `Glazed Ceramic Floor Tiles 300x300mm`);
+      push("9.5.1.1", 3 * 0.85 * 2.0, `Solid Teak/Hardwood Panelled Doors (3 Nos)`);
+      push("10.31", 4 * 14.0, `MS Angle Window Frames with Safety Grills (4 Nos)`);
+      push("4.17", perimeterM * 0.60, `50mm CC Plinth Protection Apron with 1:25 slope`);
+    }
   }
 
-  // Plastering
-  const extPlasterArea = perimeter * (wallH + (p.plinth_height || 0.6));
-  items.push(makeItem("PL-2", extPlasterArea, "plaster"));
-  const intPlasterArea = (perimeter * 2 + (p.inner_wall_length || 0) * 2) * wallH;
-  items.push(makeItem("PL-1", intPlasterArea, "plaster"));
+  // ── 2. Residential Villa / Multi-Storey RCC Frame (G+1 to G+5) ──
+  else if (slug === "g1-residential-house" || slug === "multi-storey-rcc-frame") {
+    const isMultiStorey = slug === "multi-storey-rcc-frame";
+    const defaultFloors = isMultiStorey ? 4 : 2;
+    const defaultLength = isMultiStorey ? 24.0 : 12.0;
+    const defaultWidth = isMultiStorey ? 15.0 : 9.0;
+    const L = Number(params.length_m ?? defaultLength);
+    const W = Number(params.width_m ?? defaultWidth);
+    const numFloors = Math.max(1, Number(params.num_floors ?? defaultFloors)) * floorMultiplier;
+    const H = Number(params.height_m ?? (isMultiStorey ? 3.15 : 3.0));
+    const soil = params.soil_type ?? "medium";
+    const masonry = params.masonry_type ?? "brick";
 
-  // Flooring & Finishes
-  items.push(makeItem("FL-1", totalBua * 0.82, "flooring"));
-  items.push(makeItem("FL-CERAMIC", totalBua * 0.18, "flooring", "Toilets & balcony"));
-  items.push(makeItem("FL-2", perimeter + (p.inner_wall_length || 0), "flooring"));
+    const outerTM = 0.23;
+    const innerTM = 0.115;
+    const perimeter = 2 * (L + W);
+    const floorArea = L * W;
+    const totalBua = floorArea * numFloors;
+    const excavDepth = soil === "hard" ? 1.2 : soil === "soft" ? 1.8 : 1.5;
 
-  // Painting
-  items.push(makeItem("PT-1", intPlasterArea, "painting"));
-  items.push(makeItem("PT-2", extPlasterArea, "painting"));
+    // Columns & Footings layout (<= 4.0m bays)
+    const xBays = Math.max(2, Math.round(L / 4.0));
+    const yBays = Math.max(2, Math.round(W / 4.0));
+    const numColumns = (xBays + 1) * (yBays + 1);
 
-  // Doors & Windows
-  if (p.outer_door_count + p.inner_door_count > 0) {
-    items.push(makeItem("DW-1", p.outer_door_count + p.inner_door_count, "doors_windows"));
+    // Earthwork & Foundation
+    const footingPitVol = numColumns * (1.5 * 1.5 * excavDepth);
+    const plinthTrenchVol = perimeter * 0.6 * 0.6;
+    const totalExcav = footingPitVol + plinthTrenchVol;
+    push("2.8.1", totalExcav, `Excavation for ${numColumns} Footings & Plinth Beams`);
+    push("2.25", totalExcav * 0.40, `Backfilling around footings & plinth consolidation`);
+    push("2.26", totalExcav * 0.60, `Surplus soil mechanical disposal`);
+
+    const pccVol = numColumns * (1.5 * 1.5 * 0.10) + perimeter * 0.5 * 0.10;
+    push("4.1.8", pccVol, `PCC 1:4:8 M10 Footing & Plinth Bed`);
+
+    const footingConcrete = numColumns * (1.3 * 1.3 * 0.40);
+    push("5.1.2", footingConcrete, `[Footings] RCC M25 Stepped/Trapezoidal Footings (${numColumns} Nos × 1.3×1.3×0.40m)`);
+    push("5.9.1", numColumns * (1.3 * 4 * 0.40), `[Footing Shutt.] Footing Formwork ${numColumns} Nos`);
+    push("5.22.6", footingConcrete * 85, `[Footing Steel] Fe500D TMT Rebar 85 kg/m³ × ${footingConcrete.toFixed(1)} m³ footings`);
+
+    // RCC Frame (Columns, Plinth Beams, Floor Slabs)
+    const totalColConcrete = numColumns * (0.23 * 0.38) * (H * numFloors + 1.2);
+    push("5.2", totalColConcrete, `[Columns] RCC M25 Columns (${numColumns} Nos × 230×380mm)`);
+    push("5.9.2", numColumns * 2 * (0.23 + 0.38) * (H * numFloors), `[Col Shuttering] Column Formwork`);
+    push("5.22.6", totalColConcrete * 145, `[Col Steel] Fe500D TMT Rebar 145 kg/m³ × ${totalColConcrete.toFixed(1)} m³ columns (IS 13920 confinement)`);
+
+    const plinthBeamVol = (perimeter + (xBays - 1) * W + (yBays - 1) * L) * (0.23 * 0.35);
+    push("5.2", plinthBeamVol, `[Plinth Beams] RCC M25 Plinth Beams (230×350mm)`);
+    push("5.9.5", plinthBeamVol / 0.35 * 0.70, `[Beam Shuttering] Plinth Beam Side Formwork`);
+    push("5.22.6", plinthBeamVol * 115, `[Beam Steel] Fe500D TMT Rebar 115 kg/m³ × ${plinthBeamVol.toFixed(1)} m³ beams`);
+
+    const slabVol = totalBua * 0.125;
+    push("5.3", slabVol, `[Slab] RCC M25 Suspended Slabs 125mm (${totalBua.toFixed(0)} m² BUA)`);
+    push("5.9.3", totalBua, `[Slab] Soffit Centering & Shuttering`);
+    push("5.22.6", slabVol * 90, `[Slab Steel] Fe500D TMT Rebar 90 kg/m³ × ${slabVol.toFixed(1)} m³ slab`);
+
+    // Masonry (Deducting openings & embedded columns)
+    const extWallArea = perimeter * H * numFloors;
+    const intWallArea = (perimeter * 0.65) * H * numFloors;
+    const doorCount = Number(params.outer_door_count ?? 2) + Number(params.inner_door_count ?? 6);
+    const winCount = Number(params.window_count ?? 8);
+    const openingArea = doorCount * 1.8 + winCount * 1.44;
+
+    const netExtBrickVol = (extWallArea - openingArea * 0.7) * outerTM;
+    const netIntBrickArea = intWallArea - openingArea * 0.3;
+
+    if (masonry === "aac") {
+      push("6.28", netExtBrickVol + netIntBrickArea * innerTM, `AAC Block Masonry 200mm in Superstructure`);
+    } else {
+      push("6.4.2", netExtBrickVol, `230mm Main Brickwork (IS 1200 Openings Deducted)`);
+      push("6.13", netIntBrickArea, `115mm Partition Brickwork with Hoop Iron`);
+    }
+
+    // Finishes (Plaster, Vitrified Tiles, Doors, Paint)
+    const intPlasterArea = (extWallArea + intWallArea * 2 + totalBua) - openingArea;
+    const extPlasterArea = extWallArea - openingArea;
+
+    push("13.1.2", intPlasterArea, `12mm Internal Plaster 1:6`);
+    push("13.5.2", extPlasterArea, `18mm External Sand-Face Waterproof Plaster 1:6`);
+    push("13.60", intPlasterArea, `Wall Putty 2-Coats Internal`);
+    push("13.41.1", intPlasterArea, `Premium Washable Acrylic Emulsion Paint`);
+    push("13.46.1", extPlasterArea, `Exterior Weather-Shield Elastomeric Paint`);
+    
+    // Flooring — respects finish_quality setting
+    const fq = params.finish_quality ?? "standard";
+    const floorTileCode = fq === "economy" ? "11.39" : "11.41";
+    const floorTileDesc = fq === "economy"
+      ? `Glazed Ceramic Floor Tiles 300x300mm (Economy Grade) ${(totalBua * 0.85).toFixed(1)} m²`
+      : fq === "luxury"
+        ? `Large Format Polished Vitrified Tiles 800x800mm (Luxury) ${(totalBua * 0.85).toFixed(1)} m²`
+        : `Polished Vitrified Floor Tiles 600x600mm (Standard) ${(totalBua * 0.85).toFixed(1)} m²`;
+    push(floorTileCode, totalBua * 0.85, floorTileDesc);
+    
+    // Skirting: linear perimeter of all rooms = approx (perimeter + internal wall runs) × floors × 0.9
+    const skirtingLm = (perimeter + intWallArea / (H * numFloors)) * numFloors * 0.9;
+    push("11.42", skirtingLm, `Matching Vitrified Tile Skirting 100mm (${skirtingLm.toFixed(1)} lin.m)`);
+    push("9.21.1", doorCount * 1.89, `35mm Flush Doors with Hardwood Frame & Mortise Lock`);
+    push("10.28", winCount * 18.0, `MS Safety Window Grills with Enamel Paint`);
+
+    // Luxury extras
+    if (fq === "luxury") {
+      push("INT-FC-GYP", totalBua * 0.60, `Gypsum False Ceiling in Living & Bedrooms (Luxury)`);
+      push("INT-KIT-TOP", 3.0, `20mm Granite Kitchen Countertop (Luxury)`);
+    }
+
+    // MEP & Sanitary
+    const bathCount = Math.max(1, Number(params.bathroom_count ?? Math.max(2, Math.floor(numFloors * 2))));
+    push("17.1.1", bathCount, `Water Closets (European WC / Orissa Pan) in ${bathCount} Toilets`);
+    push("17.7.1", bathCount, `Wash Basins with CP Pillar Taps in ${bathCount} Bathrooms`);
+    push("19.1.1", 1, `Brick Masonry Septic Tank (15 Users per IS 2470)`);
+    push("19.2.1", 1, `Connected Soak Pit 1.5m dia, 3m depth`);
   }
-  if (p.outer_window_count > 0) {
-    items.push(makeItem("DW-2", p.outer_window_count, "doors_windows"));
+
+  // ── 3. Boundary Wall ──
+  else if (slug === "boundary-wall") {
+    const len = Number(params.wall_length_m ?? 60.0);
+    const h = Number(params.wall_height_m ?? 2.1);
+    const wallThk = Number(params.wall_thk_mm ?? 230) / 1000;
+    const withGate = params.with_gate_opening ?? true;
+    const netLen = withGate ? Math.max(1, len - 3.5) : len;
+
+    const trenchW = wallThk + 0.35;
+    const excavVol = netLen * trenchW * 0.75;
+    push("2.8.1", excavVol, `Trench Excavation for ${netLen.toFixed(1)}m Boundary Wall`);
+    push("4.1.8", netLen * trenchW * 0.10, `PCC 1:4:8 M10 Foundation Bed 100mm`);
+    push("6.1.2", netLen * wallThk * 0.60, `Brick Masonry in Foundation & Plinth`);
+    push("4.10", netLen * wallThk, `50mm Damp Proof Course with Bitumen Coating`);
+
+    // Columns spaced @ 3.0m
+    const numCols = Math.ceil(netLen / 3.0) + 1;
+    const colVol = numCols * (0.23 * 0.23) * (h + 0.6);
+    push("5.2", colVol, `RCC M20 Stiffener Columns (${numCols} Nos @ 3m c/c)`);
+    push("5.22.6", colVol * 110, `Column Rebar Fe500D (110 kg/m³)`);
+
+    const brickVol = netLen * wallThk * h - colVol;
+    push("6.4.2", brickVol, `230mm Brick Wall Superstructure`);
+    push("13.5.2", netLen * h * 2, `15mm Plaster on Both Sides (1:6)`);
+    push("13.46.1", netLen * h * 2, `Exterior Weather-Shield Paint on Both Sides`);
+  }
+
+  // ── 4. Cantilever Retaining Wall ──
+  else if (slug === "cantilever-retaining-wall") {
+    const len = Number(params.wall_length_m ?? 25.0);
+    const h = Number(params.retained_height_m ?? 3.5);
+    const baseW = Number(params.base_width_m ?? 2.4);
+
+    const excavVol = len * (baseW + 0.6) * 1.5;
+    push("2.8.1", excavVol, `Retaining Wall Trench Excavation`);
+    push("4.1.8", len * baseW * 0.10, `PCC M10 Leveling Bed`);
+
+    const baseSlabVol = len * baseW * 0.40;
+    const stemAvgThk = 0.35;
+    const stemVol = len * stemAvgThk * h;
+    const totalRcc = baseSlabVol + stemVol;
+
+    push("5.1.2", totalRcc, `RCC M25 in Retaining Wall Stem & Base Slab`);
+    push("5.9.1", len * 2 * (h + baseW), `Formwork for Stem & Base Slab`);
+    push("5.22.6", totalRcc * 110, `TMT Fe500D Rebar (110 kg/m³)`);
+    push("2.25", len * (baseW - stemAvgThk) * h * 0.8, `Graded Filter Sand/Gravel Backfilling`);
+  }
+
+  // ── 5. Septic Tank (IS 2470) ──
+  else if (slug === "septic-tank") {
+    const users = Number(params.users_count ?? 10);
+    const L = Number(params.length_m ?? 2.3);
+    const W = Number(params.width_m ?? 1.1);
+    const D = Number(params.liquid_depth_m ?? 1.4) + 0.3; // +0.3m freeboard
+    const withSoak = params.with_soak_pit ?? true;
+
+    const pitL = L + 0.8;
+    const pitW = W + 0.8;
+    const pitD = D + 0.4;
+    push("2.8.1", pitL * pitW * pitD, `Excavation for ${users}-User Septic Tank Pit`);
+    push("4.1.8", pitL * pitW * 0.10, `PCC M10 Base Bed 100mm`);
+    push("6.1.2", (2 * (L + W) + W) * 0.23 * D, `Brickwork in CM 1:4 with Baffle Wall`);
+    push("13.1.2", (2 * (L + W) * D + L * W) * 1.2, `15mm Waterproof Plaster (1:3) with Neat Cement Floating`);
+    push("5.3", L * W * 0.10, `Precast RCC M25 Cover Slabs with Lifting Hooks`);
+    push("5.22.6", L * W * 0.10 * 85, `Cover Slab Steel Rebar`);
+
+    if (withSoak) {
+      push("19.2.1", 1, `Connected Soak Pit (1.5m dia, 3m depth with brick bats)`);
+    }
+  }
+
+  // ── 6. Modular Kitchen ──
+  else if (slug === "modular-kitchen") {
+    const rft = Number(params.running_length_rft ?? 18.0);
+    const mLen = rft * 0.3048; // convert to metres
+    const hasOverhead = params.has_overhead_cabinets ?? true;
+    const hasGranite = params.has_granite_top ?? true;
+
+    const baseCarcassM2 = mLen * 0.85; // base unit
+    const wallCarcassM2 = hasOverhead ? mLen * 0.60 : 0;
+    push("INT-KIT-CARCASS", baseCarcassM2 + wallCarcassM2, `BWP Marine Ply (IS 710) Kitchen Cabinets (${rft} Rft)`);
+
+    if (hasGranite) {
+      push("INT-KIT-TOP", mLen * 0.65, `20mm Polished Jet Black Granite Countertop`);
+    }
+    push("11.45", mLen * 0.60, `Kitchen Dado Ceramic Wall Tiles 300x450mm`);
+    push("17.7.1", 1, `SS304 Double Bowl Sink with Swivel CP Tap`);
+  }
+
+  // ── 7. False Ceiling ──
+  else if (slug === "false-ceiling-package") {
+    const area = Number(params.ceiling_area_m2 ?? 120.0);
+    const cove = Number(params.cove_perimeter_m ?? 48.0);
+
+    push("INT-FC-GYP", area, `12.5mm Gypsum False Ceiling on GI Suspension Grid`);
+    push("13.60", area + cove * 0.4, `Joint Taping & Wall Putty on False Ceiling`);
+    push("13.41.1", area + cove * 0.4, `2-Coat Ceiling Acrylic Emulsion Paint`);
+  }
+
+  // ── 8. Full Home Painting ──
+  else if (slug === "painting-full-home") {
+    const carpet = Number(params.carpet_area_sqft ?? 1200.0);
+    const carpetM2 = carpet * 0.0929;
+    const intPaintArea = carpetM2 * 3.5;
+    const extPaintArea = params.include_exterior ? carpetM2 * 1.2 : 0;
+    const nos = Number(params.doors_windows_nos ?? 10);
+
+    push("13.60", intPaintArea, `Full Internal Wall Putty Surface Preparation`);
+    push("13.41.1", intPaintArea, `Internal Premium Acrylic Washable Emulsion`);
+    if (extPaintArea > 0) {
+      push("13.46.1", extPaintArea, `Exterior Weather-Shield Elastomeric Emulsion`);
+    }
+    push("10.28", nos * 15.0, `Synthetic Enamel Paint on Window Grills & Gates`);
+  }
+
+  // ── 9. RCC Storm Drain ──
+  else if (slug === "rcc-drain") {
+    const len = Number(params.drain_length_m ?? 100.0);
+    const w = Number(params.internal_width_m ?? 0.60);
+    const d = Number(params.internal_depth_m ?? 0.75);
+
+    const totalW = w + 0.30;
+    const totalD = d + 0.25;
+    push("2.8.1", len * totalW * totalD, `Excavation for Storm Drain Trench`);
+    push("4.1.8", len * totalW * 0.10, `PCC M10 Base Bed 100mm`);
+
+    const rccVol = len * (totalW * 0.15 + 2 * d * 0.15);
+    push("5.2", rccVol, `RCC M25 in Drain Bed & Wall Sections`);
+    push("5.9.1", len * 2 * (d + 0.15), `Formwork for Drain Walls`);
+    push("5.22.6", rccVol * 95, `Drain Steel Reinforcement Fe500D`);
+    push("DR-U-DRAIN", len, `Precast Heavy Duty SFRC Drain Cover Grating Slabs`);
+  }
+
+  // ── Generic Family Fallback (only fires when no matching slug found) ──
+  else if (items.length === 0) {
+    const family = template?.family || "residential";
+    if (family === "residential" || family === "institutional" || family === "specialty") {
+      const L = Number(params.length_m ?? 15.0);
+      const W = Number(params.width_m ?? 10.0);
+      const fl = Math.max(1, Number(params.num_floors ?? 2)) * floorMultiplier;
+      const H = Number(params.height_m ?? 3.15);
+      const bua = L * W * fl;
+      const perim = 2 * (L + W);
+
+      push("2.8.1", perim * 0.7 * 1.2, `Trench Excavation for ${modName}`);
+      push("4.1.8", perim * 0.7 * 0.10, `PCC 1:4:8 M10 Foundation Bed`);
+      push("5.1.2", bua * 0.04, `RCC Footings & Foundation`);
+      push("5.2", bua * 0.06, `RCC Columns & Plinth Beams`);
+      push("5.3", bua * 0.125, `RCC Floor & Roof Slabs (125mm)`);
+      push("5.22.6", bua * 0.225 * 115, `Fe500D TMT Reinforcement (115 kg/m³)`);
+      push("6.4.2", perim * H * fl * 0.23 * 0.75, `230mm Masonry Walls`);
+      push("13.1.2", bua * 2.8, `12mm Internal Cement Plaster`);
+      push("13.5.2", perim * H * fl * 0.9, `18mm External Sand Face Plaster`);
+      push("11.41", bua * 0.85, `Vitrified Floor Tile Flooring`);
+      push("13.41.1", bua * 2.8, `Internal Acrylic Emulsion Paint`);
+      push("17.1.1", Math.max(2, Math.round(fl * 2)), `Sanitary Water Closets`);
+      push("17.7.1", Math.max(2, Math.round(fl * 2)), `Wash Basins with CP Fittings`);
+    } else if (family === "walls") {
+      const len = Number(params.wall_length_m ?? 50.0);
+      const h = Number(params.wall_height_m ?? 2.1);
+      push("2.8.1", len * 0.6 * 0.75, `Trench Excavation for ${modName}`);
+      push("4.1.8", len * 0.6 * 0.10, `PCC 1:4:8 Base Bed`);
+      push("6.1.2", len * 0.23 * 0.60, `Foundation Brickwork`);
+      push("6.4.2", len * 0.23 * h, `Superstructure Masonry`);
+      push("13.5.2", len * h * 2, `15mm Plaster on Both Sides`);
+    } else if (family === "interiors") {
+      const area = Number(params.ceiling_area_m2 ?? (params.carpet_area_sqft ? params.carpet_area_sqft * 0.0929 : 100));
+      push("11.41", area, `Flooring / Interior Package in ${modName}`);
+      push("INT-FC-GYP", area, `Suspended Ceiling in ${modName}`);
+      push("13.41.1", area * 2.5, `Premium Painting in ${modName}`);
+    }
   }
 
   return items;
 }
 
-// 2. Boundary & Compound Walls
-function calcWallBOQ(p: BOQParameters): BOQLineItem[] {
-  const len = p.outer_length || 60;
-  const h = p.floor_height || 2.1;
-  const thk = (p.outer_wall_thickness_mm || 230) / 1000;
-  const numColumns = Math.max(2, Math.floor(len / 3.0) + 1);
-
-  const excavVol = len * (thk + 0.4) * (p.excavation_depth || 0.9);
-  const pccVol = len * (thk + 0.2) * 0.1;
-  const colRccVol = numColumns * (0.23 * 0.23 * (h + (p.excavation_depth || 0.9)));
-  const copingBeamVol = len * 0.23 * 0.15;
-  const brickVol = len * h * thk;
-  const plasterArea = len * h * 2;
-
-  return [
-    makeItem("EW-1", excavVol, "earthwork"),
-    makeItem("EW-3", excavVol * 0.5, "earthwork"),
-    makeItem("CC-1", pccVol, "substructure"),
-    makeItem("RC-1", colRccVol + copingBeamVol, "rcc"),
-    makeItem("RC-2", (colRccVol + copingBeamVol) * 110, "rcc"),
-    makeItem("SH-1", numColumns * (0.23 * 4 * h) + len * 0.3, "rcc"),
-    makeItem("BW-1", brickVol, "superstructure"),
-    makeItem("PL-2", plasterArea, "plaster"),
-    makeItem("PT-2", plasterArea, "painting"),
-    ...(p.outer_door_count > 0 ? [makeItem("DW-GATE", p.outer_door_count * (p.outer_door_size_m2 || 3.6), "doors_windows")] : []),
-  ];
-}
-
-// 3. Cantilever Retaining Wall
-function calcRetainingWallBOQ(p: BOQParameters): BOQLineItem[] {
-  const len = p.outer_length || 30;
-  const h = p.floor_height || 3.5;
-  const baseW = h * 0.6; // Base slab width ~ 0.6 H
-  const stemThkAvg = 0.35;
-  const baseThk = 0.4;
-
-  const excavVol = len * (baseW + 0.6) * (p.excavation_depth || 1.8);
-  const pccVol = len * baseW * 0.1;
-  const stemRccVol = len * h * stemThkAvg;
-  const baseRccVol = len * baseW * baseThk;
-  const totalRcc = stemRccVol + baseRccVol;
-  const rebarKg = totalRcc * 135;
-  const numWeepholes = Math.floor(len / 1.5) * Math.floor(h / 1.2);
-
-  return [
-    makeItem("EW-2", excavVol, "earthwork", "Hard strata / rock excavation"),
-    makeItem("EW-3", excavVol * 0.8, "earthwork"),
-    makeItem("CC-1", pccVol, "substructure"),
-    makeItem("RW-STEM", totalRcc, "rcc", "M25 RCC stem & base slab complete"),
-    makeItem("RC-2", rebarKg, "rcc", "Fe500D heavy retaining rebar"),
-    makeItem("SH-2", len * h * 2 + len * baseThk * 2, "rcc"),
-    makeItem("RW-WEEP", numWeepholes, "external", "100mm PVC weep holes with filter"),
-    makeItem("EW-BACKFILL", len * h * 1.2, "earthwork", "Graded gravel backfill behind wall"),
-  ];
-}
-
-// 4. Roads (Bituminous BT & Concrete CC / PQC)
-function calcRoadBOQ(p: BOQParameters): BOQLineItem[] {
-  const len = p.outer_length || 100;
-  const w = p.outer_width || 7.0;
-  const roadArea = len * w;
-  const isConcrete = p.typology === "internal_road_cc";
-
-  if (isConcrete) {
-    const gsbVol = roadArea * 0.15;
-    const dlcVol = roadArea * 0.10;
-    const pqcVol = roadArea * 0.20;
-    return [
-      makeItem("RD-SUBGRADE", roadArea, "earthwork"),
-      makeItem("RD-GSB", gsbVol, "substructure", "150mm Granular Sub-Base"),
-      makeItem("RD-DLC", dlcVol, "substructure", "100mm Dry Lean Concrete M10"),
-      makeItem("RD-PQC", pqcVol, "rcc", "200mm PQC M30 with dowel & tie bars"),
-      makeItem("RD-KERB", len * 2, "external", "Precast kerb stones along road edges"),
-    ];
-  } else {
-    // Bituminous Road
-    const gsbVol = roadArea * 0.15;
-    const wmmVol = roadArea * 0.15;
-    const dbmVol = roadArea * 0.05;
-    const bcVol = roadArea * 0.03;
-    return [
-      makeItem("RD-SUBGRADE", roadArea, "earthwork"),
-      makeItem("RD-GSB", gsbVol, "substructure", "150mm GSB"),
-      makeItem("RD-WMM", wmmVol, "substructure", "150mm WMM"),
-      makeItem("RD-TACK", roadArea * 2, "superstructure", "Prime coat & Tack coat"),
-      makeItem("RD-DBM", dbmVol, "superstructure", "50mm Dense Bituminous Macadam"),
-      makeItem("RD-BC", bcVol, "superstructure", "30mm Bituminous Concrete wearing course"),
-      makeItem("RD-KERB", len * 2, "external"),
-    ];
-  }
-}
-
-// 5. RCC Storm Drain
-function calcDrainBOQ(p: BOQParameters): BOQLineItem[] {
-  const len = p.outer_length || 100;
-  const w = p.outer_width || 1.0;
-  const depth = p.floor_height || 1.2;
-  const wallThk = 0.15;
-
-  const excavVol = len * (w + 0.4) * (depth + 0.2);
-  const pccVol = len * (w + 0.2) * 0.1;
-  const rccVol = len * (w * wallThk + depth * wallThk * 2);
-
-  return [
-    makeItem("DR-EXCAV", excavVol, "earthwork"),
-    makeItem("EW-3", excavVol * 0.8, "earthwork"),
-    makeItem("DR-PCC", pccVol, "substructure"),
-    makeItem("DR-RCC", rccVol, "rcc", "M20 RCC bed & side walls"),
-    makeItem("RC-2", rccVol * 95, "rcc"),
-    makeItem("PL-WP", len * (w + depth * 2), "plaster", "Waterproof plaster inside drain"),
-    makeItem("DR-COVER", len, "external", "SFRC / Cast Iron grating covers"),
-  ];
-}
-
-// 6. Septic Tank (IS 2470)
-function calcSepticTankBOQ(p: BOQParameters): BOQLineItem[] {
-  const len = p.outer_length || 4.5;
-  const w = p.outer_width || 2.0;
-  const depth = p.floor_height || 2.2;
-  const wallThk = 0.23;
-
-  const excavVol = (len + 1.0) * (w + 1.0) * (depth + 0.4);
-  const pccVol = (len + 0.6) * (w + 0.6) * 0.1;
-  const baseRccVol = (len + 0.4) * (w + 0.4) * 0.15;
-  const brickVol = 2 * (len + w) * depth * wallThk + w * depth * 0.115; // with baffle
-  const coverSlabArea = len * w;
-  const plasterArea = 2 * (len + w) * depth + len * w;
-
-  return [
-    makeItem("DR-EXCAV", excavVol, "earthwork"),
-    makeItem("EW-3", excavVol * 0.7, "earthwork"),
-    makeItem("CC-1", pccVol, "substructure"),
-    makeItem("RC-1", baseRccVol, "rcc", "RCC M25 bottom base slab"),
-    makeItem("RC-2", baseRccVol * 110, "rcc"),
-    makeItem("ST-WALL", brickVol, "superstructure", "Brickwork in CM 1:4 with waterproof additive"),
-    makeItem("PL-WP", plasterArea, "plaster", "Waterproof plaster with neat cement punning"),
-    makeItem("ST-SLAB", coverSlabArea, "rcc", "Precast RCC cover slabs with lifting hooks"),
-    makeItem("ST-SOAK", 1, "external", "Soak pit 1.5m dia, 3m deep with aggregate filter"),
-  ];
-}
-
-// 7. Community Toilet Block (SBM-G)
-function calcToiletBlockBOQ(p: BOQParameters): BOQLineItem[] {
-  const len = p.outer_length || 6.0;
-  const w = p.outer_width || 4.0;
-  const area = len * w;
-  const baseItems = calcBuildingBOQ(p);
-
-  return [
-    ...baseItems,
-    makeItem("SAN-WC", 4, "mep", "European / Indian WCs complete"),
-    makeItem("SAN-URINAL", 2, "mep", "Urinals with auto flush"),
-    makeItem("SAN-PIPE", len * 3, "mep", "CPVC water supply & drainage lines"),
-    makeItem("FL-DADO", (len * 2 + w * 2) * 2.1, "flooring", "Full height ceramic wall tiles"),
-  ];
-}
-
-// 8. Interior & Renovation Packages
-function calcInteriorBOQ(p: BOQParameters): BOQLineItem[] {
-  const len = p.outer_length;
-  const w = p.outer_width;
-  const area = len * w * (p.num_floors || 1);
-  const perimeter = 2 * (len + w);
-
-  switch (p.typology) {
-    case "modular_kitchen":
-      return [
-        makeItem("INT-CARCASS", len * 2.2, "superstructure", "BWP Marine ply base & wall cabinets"),
-        makeItem("INT-COUNTER", len * 0.65, "flooring", "20mm Granite / Quartz counter"),
-        makeItem("INT-SINK", 1, "mep", "SS 304 double bowl sink with faucet"),
-        makeItem("FL-DADO", len * 0.6, "flooring", "Kitchen backsplash tile dado"),
-        makeItem("PT-1", (perimeter * p.floor_height), "painting"),
-      ];
-
-    case "bathroom_renovation":
-      return [
-        makeItem("INT-BATH-WP", area, "substructure", "2-coat polymer waterproofing on sunken slab"),
-        makeItem("FL-CERAMIC", area, "flooring", "Anti-skid floor tiles"),
-        makeItem("FL-DADO", perimeter * p.floor_height, "flooring", "Full-height glazed wall tiles"),
-        makeItem("INT-BATH-CP", 1, "mep", "CP fittings package: diverter, shower & mixer"),
-        makeItem("SAN-WC", 1, "mep", "Wall hung WC with concealed cistern"),
-        makeItem("SAN-PIPE", 12, "mep", "CPVC/UPVC concealed pipe replacement"),
-      ];
-
-    case "false_ceiling":
-      return [
-        makeItem("INT-FC-GRID", area, "superstructure", "GI perimeter & ceiling suspension grid"),
-        makeItem("INT-FC-BOARD", area, "superstructure", "12.5mm Gypsum board with taped joint finish"),
-        makeItem("PT-1", area, "painting", "2 coats ceiling emulsion paint over primer"),
-      ];
-
-    case "vitrified_flooring":
-      return [
-        makeItem("FL-1", area, "flooring", "800×800mm double charged vitrified tiles with adhesive"),
-        makeItem("FL-2", perimeter * p.num_floors, "flooring", "Matching skirting 100mm"),
-      ];
-
-    default:
-      return calcBuildingBOQ(p);
-  }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Master Engine Dispatcher
+// Composite Engine: Aggregates multiple active modules into a Master BOQ
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function calculateBOQ(p: BOQParameters): BOQResult {
-  let lineItems: BOQLineItem[] = [];
-
-  switch (p.typology) {
-    case "boundary_wall":
-    case "compound_wall":
-      lineItems = calcWallBOQ(p);
-      break;
-
-    case "retaining_wall":
-      lineItems = calcRetainingWallBOQ(p);
-      break;
-
-    case "internal_road_bt":
-    case "internal_road_cc":
-      lineItems = calcRoadBOQ(p);
-      break;
-
-    case "rcc_drain":
-      lineItems = calcDrainBOQ(p);
-      break;
-
-    case "septic_tank":
-      lineItems = calcSepticTankBOQ(p);
-      break;
-
-    case "toilet_block":
-      lineItems = calcToiletBlockBOQ(p);
-      break;
-
-    case "modular_kitchen":
-    case "bathroom_renovation":
-    case "false_ceiling":
-    case "vitrified_flooring":
-      lineItems = calcInteriorBOQ(p);
-      break;
-
-    case "g1_residential":
-    case "multi_storey_rcc":
-    case "villa":
-    default:
-      lineItems = calcBuildingBOQ(p);
-      break;
+export function calculateCompositeBOQ(
+  activeModuleSlugs: string[],
+  moduleParamsMap: Record<string, Record<string, any>>,
+  scopes: StageScopeFilters = DEFAULT_STAGE_SCOPES,
+  floorMultiplier: number = 1,
+  finishQuality: "economy" | "standard" | "luxury" = "standard"
+): BOQResult {
+  if (!activeModuleSlugs || activeModuleSlugs.length === 0) {
+    return {
+      typology: "composite",
+      built_up_area: 0,
+      total_cost: 0,
+      assumptions: ["No active calculators selected. Choose an archetype or add modules above."],
+      line_items: [],
+      module_totals: {},
+      stage_totals: {},
+    };
   }
 
-  const totalCost = r2(lineItems.reduce((sum, item) => sum + item.amount, 0));
-  const builtUpArea = r2(p.outer_length * p.outer_width * p.num_floors);
+  const allItems: BOQLineItem[] = [];
+  const moduleTotals: Record<string, { name: string; amount: number; count: number }> = {};
+  const stageTotals: Record<string, number> = {};
+  let totalBua = 0;
+
+  activeModuleSlugs.forEach((slug) => {
+    const params = { ...(moduleParamsMap[slug] || {}), finish_quality: finishQuality };
+    const template = BOQ_TEMPLATES[slug];
+    const modItems = calculateModuleBOQ(slug, params, scopes, floorMultiplier);
+
+    const modName = template?.name || slug;
+    let modSum = 0;
+
+    modItems.forEach((item) => {
+      allItems.push(item);
+      modSum += item.amount;
+      stageTotals[item.stage] = (stageTotals[item.stage] || 0) + item.amount;
+    });
+
+    moduleTotals[slug] = {
+      name: modName,
+      amount: round2(modSum),
+      count: modItems.length,
+    };
+
+    // Aggregate BUA if building module (cast to any to avoid TS2339 from spread inference)
+    const anyParams = params as Record<string, any>;
+    if (slug === "pmay-g-rural-house") {
+      const L = Number(anyParams.length_m ?? 6.0);
+      const W = Number(anyParams.width_m ?? 4.5);
+      totalBua += L * W;
+    } else if (slug === "g1-residential-house" || slug === "multi-storey-rcc-frame") {
+      const L = Number(anyParams.length_m ?? 12.0);
+      const W = Number(anyParams.width_m ?? 9.0);
+      const fl = Math.max(1, Number(anyParams.num_floors ?? 2)) * floorMultiplier;
+      totalBua += L * W * fl;
+    }
+  });
+
+  const grandTotal = round2(allItems.reduce((sum, item) => sum + item.amount, 0));
 
   const assumptions = [
-    `Structure: ${p.typology.toUpperCase()} | Length: ${p.outer_length}m × Width: ${p.outer_width}m × ${p.num_floors} Floor(s)`,
-    `Rates: CPWD DSR 2023 Vol 1 & Vol 2 | Measurements: IS 1200 / NBC 2016`,
-    p.inner_wall_length > 0
-      ? `✓ Internal partition walls (${p.inner_wall_length}m) calculated with deductions`
-      : `✓ Typology specific sub-grade, structural and finish items included`,
+    `Rates: CPWD DSR 2023 (Delhi Schedule of Rates) & State PWD references`,
+    `Measurements: IS 1200 (Part 1 Earthwork, Part 2 Concrete, Part 3 Brickwork, Part 5 Formwork, Part 11 Flooring, Part 12 Plaster, Part 13 Paint)`,
+    `Active Construction Scopes: ${Object.entries(scopes).filter(([_, on]) => on).map(([k]) => k.toUpperCase()).join(", ")}`,
+    `Active Calculators (${activeModuleSlugs.length}): ${activeModuleSlugs.map(s => BOQ_TEMPLATES[s]?.name || s).join(" + ")}`,
   ];
 
   return {
-    typology: p.typology,
-    built_up_area: builtUpArea,
-    total_cost: totalCost,
+    typology: activeModuleSlugs.length === 1 ? activeModuleSlugs[0] : "composite",
+    built_up_area: round2(totalBua),
+    total_cost: grandTotal,
     assumptions,
-    line_items: lineItems,
+    line_items: allItems,
+    module_totals: moduleTotals,
+    stage_totals: stageTotals,
   };
 }
 
 export function groupByStage(items: BOQLineItem[]): Record<string, BOQLineItem[]> {
-  return items.reduce<Record<string, BOQLineItem[]>>((acc, item) => {
-    if (!acc[item.stage]) acc[item.stage] = [];
-    acc[item.stage].push(item);
-    return acc;
-  }, {});
+  const grouped: Record<string, BOQLineItem[]> = {};
+  Object.keys(STAGE_LABELS).forEach((stage) => {
+    grouped[stage] = [];
+  });
+
+  items.forEach((item) => {
+    const st = item.stage || "superstructure";
+    if (!grouped[st]) grouped[st] = [];
+    grouped[st].push(item);
+  });
+
+  // Remove empty stages
+  Object.keys(grouped).forEach((key) => {
+    if (grouped[key].length === 0) {
+      delete grouped[key];
+    }
+  });
+
+  return grouped;
 }
+
+export function groupByModule(items: BOQLineItem[]): Record<string, { name: string; items: BOQLineItem[]; total: number }> {
+  const grouped: Record<string, { name: string; items: BOQLineItem[]; total: number }> = {};
+
+  items.forEach((item) => {
+    const slug = item.source_module || "other";
+    const name = item.source_module_name || slug;
+    if (!grouped[slug]) {
+      grouped[slug] = { name, items: [], total: 0 };
+    }
+    grouped[slug].items.push(item);
+    grouped[slug].total = round2(grouped[slug].total + item.amount);
+  });
+
+  return grouped;
+}
+
+export function calculateBOQ(params: BOQParameters): BOQResult {
+  const slug = params.typology === "multi_storey_rcc" ? "g1-residential-house"
+    : params.typology === "boundary_wall" || params.typology === "compound_wall" ? "boundary-wall"
+    : params.typology === "retaining_wall" ? "cantilever-retaining-wall"
+    : params.typology === "septic_tank" ? "septic-tank"
+    : params.typology === "modular_kitchen" ? "modular-kitchen"
+    : params.typology === "false_ceiling" ? "false-ceiling-package"
+    : params.typology === "rcc_drain" ? "rcc-drain"
+    : "g1-residential-house";
+
+  const moduleParams: Record<string, any> = {
+    length_m: params.outer_length || 12,
+    width_m: params.outer_width || 9,
+    num_floors: params.num_floors || 2,
+    height_m: params.floor_height || 3.0,
+    wall_length_m: params.outer_length || 60,
+    wall_height_m: params.floor_height || 2.1,
+    outer_door_count: params.outer_door_count || 2,
+    inner_door_count: params.inner_door_count || 6,
+    window_count: params.outer_window_count || 8,
+    soil_type: params.soil_type || "medium",
+  };
+
+  return calculateCompositeBOQ([slug], { [slug]: moduleParams }, DEFAULT_STAGE_SCOPES, 1);
+}
+
+

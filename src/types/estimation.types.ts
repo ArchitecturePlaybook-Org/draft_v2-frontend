@@ -1,4 +1,5 @@
 export type TakeoffType = 'length' | 'area' | 'count' | 'line' | 'polygon' | 'point' | 'calibrate';
+export type { CalibrationUnit } from '@/lib/estimation/units';
 
 export interface Point {
   x: number;

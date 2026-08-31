@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MasterCatalogItem } from '@/store/estimation-store';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -280,6 +280,25 @@ export const MasterCatalogItemModal: React.FC<Props> = ({ isOpen, onClose, onSub
               </select>
             </div>
           </div>
+
+          {/* Assembly Logic Helper */}
+          {formData.material_type !== 'generic' && formData.material_type !== 'count' && (
+            <div className="bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-3">
+              <div className="text-[10px] font-bold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1.5">
+                <AlertCircle size={12} />
+                Assembly Logic (Auto-Generated BOQ Items)
+              </div>
+              <div className="text-[9px] text-blue-600/80 dark:text-blue-300/80 leading-relaxed">
+                {formData.material_type === 'brick' && "Generates: Foundation (EW-1, CC-1), Plinth (RC-1), Brickwork (BW-1), Plaster (PL-1), and Paint (PT-1)."}
+                {formData.material_type === 'partition' && "Generates: Half-brick partition in CM 1:4 with hoop iron (BW-2)."}
+                {formData.material_type === 'tile' && "Generates: Flooring & Skirting (FL-1)."}
+                {formData.material_type === 'concrete' && "Generates: Suspended RCC M25 slab, formwork, and steel (RC-SLAB)."}
+                {formData.material_type === 'door' && "Generates: Door openings and hardware (DW-1)."}
+                {formData.material_type === 'window' && "Generates: Window openings and hardware (DW-2)."}
+                {formData.material_type === 'sanitary' && "Generates: Sanitary fixtures (SAN-WC)."}
+              </div>
+            </div>
+          )}
 
           {/* Dynamic Preset Inputs */}
           {formData.material_type === 'brick' && (

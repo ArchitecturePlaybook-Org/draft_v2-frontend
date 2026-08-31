@@ -4,7 +4,17 @@ import { useEstimationStore, MasterCatalogItem } from '@/store/estimation-store'
 import { MousePointer2, Move, Ruler, Square, MapPin, X, Sliders } from 'lucide-react';
 import { projectsApi } from '@/domains/projects/api';
 
-export const Toolbar = () => {
+export interface ToolbarProps {
+  allowedTools?: Array<'select' | 'calibrate' | 'line' | 'polygon' | 'point'>;
+  hideMaterials?: boolean;
+  hideThickness?: boolean;
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({
+  allowedTools,
+  hideMaterials = false,
+  hideThickness = false,
+}) => {
   const { 
     activeTool, 
     setActiveTool, 
@@ -181,13 +191,17 @@ export const Toolbar = () => {
     }
   };
 
-  const tools = [
+  const allTools = [
     { id: 'select', label: 'Select Tool', icon: MousePointer2 },
     { id: 'calibrate', label: 'Calibrate Scale', icon: Move },
     { id: 'line', label: 'Line (Length)', icon: Ruler },
     { id: 'polygon', label: 'Area (Polygon)', icon: Square },
     { id: 'point', label: 'Count (Point)', icon: MapPin },
   ] as const;
+
+  const tools = allowedTools
+    ? allTools.filter(t => allowedTools.includes(t.id as any))
+    : allTools;
 
   return (
     <div className="w-auto max-w-[92vw] overflow-x-auto no-scrollbar bg-surface-card/95 dark:bg-surface-900/95 backdrop-blur-xl border border-surface-200/90 dark:border-white/15 shadow-2xl rounded-2xl p-1.5 z-30 pointer-events-auto shrink-0 relative text-foreground">
@@ -220,37 +234,43 @@ export const Toolbar = () => {
           ))}
         </div>
 
-        <div className="w-px h-6 bg-surface-200 mx-1 shrink-0"></div>
+        {!hideThickness && (
+          <>
+            <div className="w-px h-6 bg-surface-200 mx-1 shrink-0"></div>
 
-        {/* 🎛️ MODERN LINE THICKNESS POPOVER SELECTOR */}
-        <div className="relative shrink-0 group" ref={thicknessRef}>
-          <button
-            type="button"
-            title="Adjust Line Thickness"
-            onClick={toggleThicknessPopover}
-            className="flex items-center gap-2 px-3 py-1.5 bg-surface-50 dark:bg-surface-100/40 border border-surface-200 hover:border-accent rounded-xl text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
-          >
-            <Sliders size={15} className="text-surface-400 group-hover:text-accent transition-colors" />
-            <span className="text-[11px] font-mono font-black">{globalLineWidth || 2}px</span>
-            <div 
-              className="w-5 rounded-full bg-accent transition-all"
-              style={{ height: `${Math.max(2, Math.min(10, globalLineWidth || 2))}px` }}
-            ></div>
-          </button>
+            {/* 🎛️ MODERN LINE THICKNESS POPOVER SELECTOR */}
+            <div className="relative shrink-0 group" ref={thicknessRef}>
+              <button
+                type="button"
+                title="Adjust Line Thickness"
+                onClick={toggleThicknessPopover}
+                className="flex items-center gap-2 px-3 py-1.5 bg-surface-50 dark:bg-surface-100/40 border border-surface-200 hover:border-accent rounded-xl text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
+              >
+                <Sliders size={15} className="text-surface-400 group-hover:text-accent transition-colors" />
+                <span className="text-[11px] font-mono font-black">{globalLineWidth || 2}px</span>
+                <div 
+                  className="w-5 rounded-full bg-accent transition-all"
+                  style={{ height: `${Math.max(2, Math.min(10, globalLineWidth || 2))}px` }}
+                ></div>
+              </button>
 
-          {/* Instant Tooltip for Thickness */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 px-2.5 py-1 bg-surface-900 dark:bg-surface-100 text-white dark:text-surface-900 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xl border border-white/10 dark:border-surface-200 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-75 ease-out z-50 whitespace-nowrap scale-95 group-hover:scale-100">
-            Line Thickness
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface-900 dark:bg-surface-100 rotate-45 border-r border-b border-white/10 dark:border-surface-200" />
-          </div>
-        </div>
+              {/* Instant Tooltip for Thickness */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 px-2.5 py-1 bg-surface-900 dark:bg-surface-100 text-white dark:text-surface-900 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xl border border-white/10 dark:border-surface-200 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-75 ease-out z-50 whitespace-nowrap scale-95 group-hover:scale-100">
+                Line Thickness
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-surface-900 dark:bg-surface-100 rotate-45 border-r border-b border-white/10 dark:border-surface-200" />
+              </div>
+            </div>
+          </>
+        )}
 
-        <div className="w-px h-6 bg-surface-200 mx-1 shrink-0"></div>
+        {!hideMaterials && (
+          <>
+            <div className="w-px h-6 bg-surface-200 mx-1 shrink-0"></div>
 
-        {/* 🧱 ORIGINAL NATIVE MATERIAL SELECT MENU (CLEAN & SIMPLE) */}
-        <div className="relative flex items-center px-2 shrink-0">
-          <select 
-            className="appearance-none bg-surface-50 dark:bg-surface-100/40 border border-surface-200 rounded-xl px-3 py-1.5 pr-8 text-xs font-bold text-foreground outline-none focus:border-accent min-w-[200px] sm:min-w-[240px] max-w-[300px] cursor-pointer truncate shadow-2xs"
+            {/* 🧱 ORIGINAL NATIVE MATERIAL SELECT MENU (CLEAN & SIMPLE) */}
+            <div className="relative flex items-center px-2 shrink-0">
+              <select 
+                className="appearance-none bg-surface-50 dark:bg-surface-100/40 border border-surface-200 rounded-xl px-3 py-1.5 pr-8 text-xs font-bold text-foreground outline-none focus:border-accent min-w-[200px] sm:min-w-[240px] max-w-[300px] cursor-pointer truncate shadow-2xs"
             value={activeMaterial?.id || ''}
             onChange={(e) => {
               if (e.target.value === 'ADD_NEW') {
@@ -342,7 +362,9 @@ export const Toolbar = () => {
             <div className="absolute right-6 w-3 h-3 rounded-full border border-surface-200 shadow-2xs" style={{ backgroundColor: activeMaterial.color }}></div>
           )}
         </div>
-      </div>
+      </>
+    )}
+  </div>
 
       {/* 🎛️ Floating Thickness Popover Portaled to document.body */}
       {isThicknessOpen && typeof document !== 'undefined' && createPortal(

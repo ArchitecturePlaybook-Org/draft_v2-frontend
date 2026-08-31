@@ -31,6 +31,7 @@ import {
   Calculator,
   Tag,
   Box,
+  Layers,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -79,6 +80,8 @@ export const Sidebar: React.FC = () => {
     { label: "Master Catalog", href: "/dashboard/catalog", icon: <BookOpen className="w-4 h-4" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4" /> },
     { label: "BOQ Builder", href: "/dashboard/tools/boq-builder", icon: <Calculator className="w-4 h-4" /> },
+    { label: "BOQ Builder V2 ✦", href: "/dashboard/tools/boq-builder-v2", icon: <Box className="w-4 h-4" /> },
+    { label: "Turnkey Studio ✦", href: "/dashboard/tools/boq-turnkey", icon: <Layers className="w-4 h-4 text-emerald-500" /> },
   ];
 
   const settingsLinks = [

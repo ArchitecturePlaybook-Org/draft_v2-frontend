@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { TakeoffItem } from '@/types/estimation.types';
+import { CalibrationUnit } from '@/lib/estimation/units';
 
 export interface MasterCatalogItem {
   id: string;
@@ -219,6 +220,8 @@ interface EstimationState {
   selectedItemId: string | null;
   hoveredItemId: string | null;
   pixelToMeterScale: number; // 1 pixel = X meters
+  calibrationUnit: CalibrationUnit; // preferred unit used during calibration
+  displayScaleUnit: CalibrationUnit; // currently selected unit for scale display
   activeMaterial: MasterCatalogItem | null;
   globalLineWidth: number;
   
@@ -226,6 +229,10 @@ interface EstimationState {
   floorPlanId: number | null;
   lastSavedItems: TakeoffItem[];
   syncStatus: 'idle' | 'saving' | 'saved' | 'error';
+
+  // Project Settings
+  floorLevel: 'ground' | 'upper';
+  wallHeight: number;
 
   // Actions
   addItem: (item: TakeoffItem) => void;
@@ -236,6 +243,9 @@ interface EstimationState {
   setFloorPlanId: (id: number | null) => void;
   setSyncStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
   
+  setFloorLevel: (level: 'ground' | 'upper') => void;
+  setWallHeight: (height: number) => void;
+
   // Undo/Redo
   undo: () => void;
   redo: () => void;
@@ -245,7 +255,8 @@ interface EstimationState {
   setActiveTool: (tool: 'select' | 'line' | 'polygon' | 'point' | 'calibrate') => void;
   setSelection: (id: string | null) => void;
   setHover: (id: string | null) => void;
-  setCalibrationScale: (scale: number) => void;
+  setCalibrationScale: (scale: number, unit?: CalibrationUnit) => void;
+  setDisplayScaleUnit: (unit: CalibrationUnit) => void;
   setActiveMaterial: (material: MasterCatalogItem | null) => void;
   setGlobalLineWidth: (width: number) => void;
 }
@@ -258,11 +269,15 @@ export const useEstimationStore = create<EstimationState>((set, get) => ({
   selectedItemId: null,
   hoveredItemId: null,
   pixelToMeterScale: 1,
+  calibrationUnit: 'm',
+  displayScaleUnit: 'm',
   activeMaterial: null,
   globalLineWidth: 2,
   floorPlanId: null,
   lastSavedItems: [],
   syncStatus: 'idle',
+  floorLevel: 'ground',
+  wallHeight: 3.0,
 
   saveHistory: () => set((state) => {
     const newPast = [...state.past, state.items].slice(-20);
@@ -361,12 +376,19 @@ export const useEstimationStore = create<EstimationState>((set, get) => ({
   setItems: (items) => set({ items }),
   setLastSavedItems: (items) => set({ lastSavedItems: items }),
   setFloorPlanId: (id) => set({ floorPlanId: id }),
+
   setSyncStatus: (status) => set({ syncStatus: status }),
 
   setActiveTool: (tool) => set({ activeTool: tool, selectedItemId: null }),
   setSelection: (id) => set({ selectedItemId: id }),
   setHover: (id) => set({ hoveredItemId: id }),
-  setCalibrationScale: (scale) => set({ pixelToMeterScale: scale }),
+  setCalibrationScale: (scale, unit) => set((state) => ({ 
+    pixelToMeterScale: scale,
+    ...(unit && { calibrationUnit: unit, displayScaleUnit: unit })
+  })),
+  setDisplayScaleUnit: (unit) => set({ displayScaleUnit: unit }),
   setActiveMaterial: (material) => set({ activeMaterial: material }),
   setGlobalLineWidth: (width) => set({ globalLineWidth: width }),
+  setFloorLevel: (level) => set({ floorLevel: level }),
+  setWallHeight: (height) => set({ wallHeight: height }),
 }));

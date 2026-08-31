@@ -59,6 +59,26 @@ export interface BOQParameters {
   excavation_depth: number;
 }
 
+export interface StageScopeFilters {
+  earthwork: boolean;
+  foundation: boolean;
+  superstructure: boolean;
+  rcc: boolean;
+  finishes: boolean;
+  openings: boolean;
+  mep: boolean;
+}
+
+export const DEFAULT_STAGE_SCOPES: StageScopeFilters = {
+  earthwork: true,
+  foundation: true,
+  superstructure: true,
+  rcc: true,
+  finishes: true,
+  openings: true,
+  mep: true,
+};
+
 export interface BOQLineItem {
   item_code: string;
   description: string;
@@ -69,6 +89,12 @@ export interface BOQLineItem {
   stage: string;
   is_code_ref: string;
   deductions_note: string;
+  source_module?: string;
+  source_module_name?: string;
+  trace_source?: 'shell' | 'room' | 'manual' | 'floorplan';
+  room_name?: string;
+  room_id?: string;
+  isEdited?: boolean;
 }
 
 export interface BOQResult {
@@ -77,6 +103,8 @@ export interface BOQResult {
   total_cost: number;
   assumptions: string[];
   line_items: BOQLineItem[];
+  module_totals?: Record<string, { name: string; amount: number; count: number }>;
+  stage_totals?: Record<string, number>;
 }
 
 export interface BOQTypologyDB {
