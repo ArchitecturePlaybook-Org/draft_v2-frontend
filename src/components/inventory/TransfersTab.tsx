@@ -4,7 +4,7 @@ import { ArrowLeftRight, Plus, CheckCircle, AlertCircle } from "lucide-react";
 import { inventoryApi } from "@/domains/inventory/api";
 import { SiteTransferResult } from "@/domains/inventory/types";
 
-export default function TransfersPage() {
+export function TransfersTab() {
   const [sites, setSites] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
   const [ledger, setLedger] = useState<any[]>([]);

@@ -4,11 +4,10 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/QueryProvider";
+import Script from "next/script";
 import Navbar from "@/components/shared/Navbar";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { Toaster } from "sonner";
-
-// Use local geist package — avoids Google Fonts network fetch at build time
 const geistSans = GeistSans;
 const geistMono = GeistMono;
 
@@ -129,9 +128,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <script dangerouslySetInnerHTML={{ __html: performancePolyfillScript }} />
-        <script dangerouslySetInnerHTML={{ __html: swRegistrationScript }} />
+        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <Script id="perf-polyfill" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: performancePolyfillScript }} />
+        <Script id="sw-reg" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: swRegistrationScript }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <QueryProvider>

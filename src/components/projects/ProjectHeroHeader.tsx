@@ -12,6 +12,7 @@ interface ProjectHeroHeaderProps {
   onAssignPersonnel?: () => void;
   onCloneProject?: () => void;
   onOpenSettings?: () => void;
+  onOpenMaterialPreferences?: () => void;
   onDeleteProject?: () => void;
   readOnly?: boolean;
 }
@@ -72,6 +73,7 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({
   onAssignPersonnel,
   onCloneProject,
   onOpenSettings,
+  onOpenMaterialPreferences,
   onDeleteProject,
   readOnly = false
 }) => {
@@ -196,6 +198,7 @@ export const ProjectHeroHeader: React.FC<ProjectHeroHeaderProps> = ({
                 onAssignPersonnel={onAssignPersonnel}
                 onCloneProject={onCloneProject}
                 onOpenSettings={onOpenSettings}
+                onOpenMaterialPreferences={onOpenMaterialPreferences}
                 onDeleteProject={onDeleteProject}
               />
             </>

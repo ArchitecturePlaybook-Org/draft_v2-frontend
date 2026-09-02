@@ -17,6 +17,7 @@ import { ManageProjectAccessModal } from "../../components/projects/ManageProjec
 import { CloneProjectModal } from "@/components/projects/CloneProjectModal";
 import { ProjectSettingsModal } from "@/components/projects/ProjectSettingsModal";
 import { DeleteProjectModal } from "@/components/projects/DeleteProjectModal";
+import { ProjectMaterialPreferencesModal } from "@/components/projects/ProjectMaterialPreferencesModal";
 import { useProjectNavStore } from "@/store/project-nav-store";
 import { TaskAccessRequestsList } from "@/components/projects/TaskAccessRequestsList";
 import { KanbanTab } from "@/components/projects/KanbanTab";
@@ -59,6 +60,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showCloneModal, setShowCloneModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showMaterialPreferencesModal, setShowMaterialPreferencesModal] = useState(false);
   const [firmMembers, setFirmMembers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
@@ -206,6 +208,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
         onAssignPersonnel={() => setShowAssignModal(true)}
         onCloneProject={() => setShowCloneModal(true)}
         onOpenSettings={() => setShowSettingsModal(true)}
+        onOpenMaterialPreferences={() => setShowMaterialPreferencesModal(true)}
         onDeleteProject={() => setShowDeleteModal(true)}
       />
 
@@ -403,6 +406,16 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
         <DeleteProjectModal 
           project={project}
           onClose={() => setShowDeleteModal(false)}
+        />
+      )}
+
+      {/* Material Preferences Modal */}
+      {project && (
+        <ProjectMaterialPreferencesModal
+          isOpen={showMaterialPreferencesModal}
+          onClose={() => setShowMaterialPreferencesModal(false)}
+          project={project}
+          onSaved={(updatedProject) => fetchProject(updatedProject.uid)}
         />
       )}
 

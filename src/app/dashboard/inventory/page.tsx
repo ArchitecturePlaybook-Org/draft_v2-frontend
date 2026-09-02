@@ -14,12 +14,17 @@ import {
   RefreshCw,
   TrendingDown,
   FileSpreadsheet,
+  History,
+  BarChart3,
 } from "lucide-react";
 import { Site, SiteBalance } from "@/domains/inventory/types";
 import { inventoryApi } from "@/domains/inventory/api";
 import { MaterialIssueModal } from "@/components/inventory/MaterialIssueModal";
+import { StockHistoryModal } from "@/components/inventory/StockHistoryModal";
+import { ReportsTab } from "@/components/inventory/ReportsTab";
 
 export default function InventoryDashboardPage() {
+  const [viewMode, setViewMode] = useState<"overview" | "reports">("overview");
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState<string>("ALL");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
@@ -29,6 +34,8 @@ export default function InventoryDashboardPage() {
 
   // Modals
   const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyMaterial, setHistoryMaterial] = useState<{ id: string; name: string } | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -86,6 +93,14 @@ export default function InventoryDashboardPage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={() => setShowHistoryModal(true)}
+            className="h-8 px-3 text-xs font-bold rounded-lg border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+          >
+            <History className="w-3.5 h-3.5 text-purple-400" />
+            View Update History & Audit Logs
+          </button>
+          <button
+            type="button"
             onClick={loadData}
             className="h-8 px-3 text-xs font-semibold rounded-lg border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 flex items-center gap-1.5 transition-colors"
           >
@@ -104,40 +119,36 @@ export default function InventoryDashboardPage() {
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-zinc-800 pb-2 overflow-x-auto text-xs">
-        <Link
-          href="/dashboard/inventory"
-          className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-300 font-semibold flex items-center gap-1.5"
+      <div className="flex items-center gap-2 border-b border-zinc-800 pb-2 overflow-x-auto text-xs font-semibold">
+        <button
+          type="button"
+          onClick={() => setViewMode("overview")}
+          className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shrink-0 transition-colors ${viewMode === "overview" ? "bg-amber-500/20 border-amber-500 text-amber-300 font-bold" : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"}`}
         >
           <Warehouse className="w-3.5 h-3.5" /> Stock Overview
-        </Link>
-        <Link
-          href="/dashboard/inventory/deliveries"
-          className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors"
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("reports")}
+          className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shrink-0 transition-colors ${viewMode === "reports" ? "bg-amber-500/20 border-amber-500 text-amber-300 font-bold" : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"}`}
         >
-          <Truck className="w-3.5 h-3.5" /> Digital GRN & Gate
-        </Link>
-        <Link
-          href="/dashboard/inventory/issues"
-          className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors"
+          <BarChart3 className="w-3.5 h-3.5" /> Analytics & Reports
+        </button>
+        <div className="w-px h-5 bg-zinc-800 mx-2"></div>
+        <button
+          type="button"
+          onClick={() => setShowHistoryModal(true)}
+          className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-purple-300 hover:bg-purple-500/10 hover:border-purple-500/30 flex items-center gap-1.5 transition-colors shrink-0"
         >
-          <ArrowUpRight className="w-3.5 h-3.5" /> Trade Issues
-        </Link>
-        <Link
-          href="/dashboard/inventory/equipment"
-          className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors"
-        >
-          <Wrench className="w-3.5 h-3.5" /> Equipment & Tools
-        </Link>
-        <Link
-          href="/dashboard/inventory/purchase-orders"
-          className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors"
-        >
-          <FileSpreadsheet className="w-3.5 h-3.5" /> Purchase Orders
-        </Link>
+          <History className="w-3.5 h-3.5 text-purple-400" /> Stock Audit & History Log
+        </button>
       </div>
 
-      {/* KPI Cards */}
+      {viewMode === "reports" ? (
+        <ReportsTab />
+      ) : (
+        <>
+          {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-1.5">
           <div className="text-xs text-zinc-400 font-medium">Total Site Stock Valuation</div>
@@ -292,13 +303,27 @@ export default function InventoryDashboardPage() {
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setShowIssueModal(true)}
-                        className="h-7 px-2.5 text-[11px] font-semibold text-blue-400 hover:text-blue-300 hover:bg-blue-950/40 rounded transition-colors"
-                      >
-                        Issue Stock
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHistoryMaterial({ id: item.material_id, name: item.material_name });
+                            setShowHistoryModal(true);
+                          }}
+                          className="h-7 px-2.5 text-[11px] font-bold text-purple-400 hover:text-purple-300 hover:bg-purple-950/40 rounded border border-purple-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          title={`View stock history for ${item.material_name}`}
+                        >
+                          <History className="w-3.5 h-3.5" />
+                          History
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowIssueModal(true)}
+                          className="h-7 px-2.5 text-[11px] font-semibold text-blue-400 hover:text-blue-300 hover:bg-blue-950/40 rounded transition-colors"
+                        >
+                          Issue Stock
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -307,6 +332,8 @@ export default function InventoryDashboardPage() {
           </table>
         </div>
       </div>
+      </>
+      )}
 
       {/* Material Issue Modal */}
       {showIssueModal && (
@@ -314,6 +341,20 @@ export default function InventoryDashboardPage() {
           isOpen={showIssueModal}
           onClose={() => setShowIssueModal(false)}
           onIssued={loadData}
+        />
+      )}
+
+      {/* Stock History & Audit Modal */}
+      {showHistoryModal && (
+        <StockHistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => {
+            setShowHistoryModal(false);
+            setHistoryMaterial(null);
+          }}
+          initialSiteId={selectedSiteId}
+          initialMaterialId={historyMaterial?.id}
+          materialName={historyMaterial?.name}
         />
       )}
     </div>

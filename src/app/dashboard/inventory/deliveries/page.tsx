@@ -90,6 +90,7 @@ export default function DeliveriesGRNPage() {
         >
           <Warehouse className="w-3.5 h-3.5" /> Stock Overview
         </Link>
+        {/*
         <Link
           href="/dashboard/inventory/deliveries"
           className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500 text-amber-300 font-semibold flex items-center gap-1.5"
@@ -114,6 +115,7 @@ export default function DeliveriesGRNPage() {
         >
           <FileSpreadsheet className="w-3.5 h-3.5" /> Purchase Orders
         </Link>
+        */}
       </div>
 
       {/* Filter / Search Bar */}

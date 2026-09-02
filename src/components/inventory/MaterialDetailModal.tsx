@@ -94,7 +94,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
         </div>
 
         {/* Section 1: Pricing & Classification Highlights */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div className="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 space-y-1">
             <span className="text-[10px] uppercase font-bold text-zinc-400">Standard Rate</span>
             <div className="text-lg font-extrabold text-emerald-400">
@@ -117,42 +117,6 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
               {Number(material.gst_rate || 18)}% GST
             </div>
             <p className="text-[10px] text-zinc-500 font-mono">HSN: {material.hsn_sac_code || "N/A"}</p>
-          </div>
-
-          <div className="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-zinc-400">Reorder Level</span>
-            <div className="text-sm font-bold text-amber-400">
-              {Number(material.reorder_level || 0)} {material.unit}
-            </div>
-            <p className="text-[10px] text-zinc-500">Min: {Number(material.min_stock || 0)}</p>
-          </div>
-        </div>
-
-        {/* Section 2: Stock Control Thresholds */}
-        <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800 space-y-2.5 text-xs">
-          <h4 className="text-[11px] font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
-            <Scale className="w-3.5 h-3.5 text-blue-400" />
-            Stock Control & Inventory Thresholds
-          </h4>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800">
-              <span className="text-[10px] text-zinc-400 block mb-0.5">Minimum Stock</span>
-              <span className="font-bold text-zinc-100 text-sm">
-                {Number(material.min_stock || 0).toLocaleString()} {material.unit}
-              </span>
-            </div>
-            <div className="p-2.5 rounded-lg bg-zinc-900 border border-amber-500/20 bg-amber-500/5">
-              <span className="text-[10px] text-amber-400 block mb-0.5">Reorder Trigger</span>
-              <span className="font-bold text-amber-300 text-sm">
-                {Number(material.reorder_level || 0).toLocaleString()} {material.unit}
-              </span>
-            </div>
-            <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800">
-              <span className="text-[10px] text-zinc-400 block mb-0.5">Maximum Capacity</span>
-              <span className="font-bold text-zinc-100 text-sm">
-                {Number(material.max_stock || 0).toLocaleString()} {material.unit}
-              </span>
-            </div>
           </div>
         </div>
 

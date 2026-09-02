@@ -24,13 +24,13 @@ const wsUrlStr = `${wsProtocol}//${backendUrl.host}`;
 
 const cspHeader = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://unpkg.com",
+  "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://unpkg.com https://checkout.razorpay.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  `img-src 'self' blob: data: https: ${backendUrl.origin} ${mediaUrl.origin} http://localhost:8000 http://127.0.0.1:8000 https://*.s3.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com`,
+  `img-src 'self' blob: data: https: ${backendUrl.origin} ${mediaUrl.origin} http://localhost:8000 http://127.0.0.1:8000 https://*.s3.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com https://checkout.razorpay.com`,
   `media-src 'self' blob: data: https: ${backendUrl.origin} ${mediaUrl.origin} http://localhost:8000 http://127.0.0.1:8000 https://*.s3.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com`,
   "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self' https: ${backendUrl.origin} ${wsUrlStr} ws://localhost:8000 ws://127.0.0.1:8000 blob: data: https://www.gstatic.com https://*.s3.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com`,
-  "frame-src 'self' blob: data: http://localhost:8000 http://127.0.0.1:8000 https:",
+  `connect-src 'self' https: ${backendUrl.origin} ${wsUrlStr} ws://localhost:8000 ws://127.0.0.1:8000 blob: data: https://www.gstatic.com https://*.s3.amazonaws.com https://*.amazonaws.com https://s3.amazonaws.com https://lumberjack.razorpay.com https://api.razorpay.com https://checkout.razorpay.com`,
+  "frame-src 'self' blob: data: http://localhost:8000 http://127.0.0.1:8000 https: https://api.razorpay.com https://checkout.razorpay.com",
   "object-src 'self' blob: data: http://localhost:8000 http://127.0.0.1:8000 https:",
   "worker-src 'self' blob:"
 ].join("; ");

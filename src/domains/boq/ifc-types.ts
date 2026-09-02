@@ -10,7 +10,93 @@ export interface IFCElementData {
   selected: boolean;
   color?: string;
   custom_material_override?: string;
+  storey_id?: string;
+  // Real-world start/end coordinates from IFC geometry (metres)
+  x1_m?: number;
+  y1_m?: number;
+  x2_m?: number;
+  y2_m?: number;
+  // For spaces/rooms: bounding box in real-world metres
+  bbox?: { minX: number; minY: number; maxX: number; maxY: number };
 }
+
+// A room/space parsed from IFCSPACE entities
+export interface IFCRoom {
+  id: string;
+  name: string;
+  /** Canvas pixel coords after scaling */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Actual area in m² */
+  area_m2: number;
+  roomType:
+    | "living" | "bedroom" | "kitchen" | "bathroom" | "corridor"
+    | "stair"  | "office"  | "lobby"   | "meeting"  | "toilet"
+    | "utility" | "unknown";
+}
+
+// A wall segment extracted from IFC geometry
+export interface IFCWallSegment {
+  id: string;
+  // SVG canvas pixel coords (already scaled)
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  thicknessPx: number;
+  isExternal: boolean;
+}
+
+// A door opening from IFC
+export interface IFCDoorOpening {
+  x: number;
+  y: number;
+  width: number;
+  angle: number; // degrees
+}
+
+// A window opening from IFC
+export interface IFCWindowOpening {
+  x: number;
+  y: number;
+  width: number;
+  wallAngle: number;
+}
+
+export interface IFCStorey {
+  id: string;
+  name: string;
+  elevation_m: number;
+  wallCount: number;
+  slabCount: number;
+  colCount: number;
+  doorCount: number;
+  windowCount: number;
+  isRoof: boolean;
+
+  // Geometric data extracted from IFC (populated when IFC contains real coords)
+  rooms?: IFCRoom[];
+  walls?: IFCWallSegment[];
+  doors?: IFCDoorOpening[];
+  windows?: IFCWindowOpening[];
+
+  // Real-world bounding box in metres for this storey
+  boundingBox?: { minX: number; minY: number; maxX: number; maxY: number };
+}
+
+export interface ParsedIFCResult {
+  elements: IFCElementData[];
+  storeys: IFCStorey[];
+  totalBUA_m2: number;
+  outerLength_m: number;
+  outerWidth_m: number;
+  numFloors: number;
+  floorHeight_m: number;
+  fileName: string;
+}
+
 
 export interface BOQLineItem {
   stage: string;

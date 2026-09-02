@@ -313,4 +313,16 @@ export const API_ROUTES: ApiRouteConfig[] = [
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     auth: true,
   },
+  {
+    prefix: "v1/marketplace/opportunities/public",
+    target: "/api/v1/marketplace/opportunities/public/",
+    methods: ["GET"],
+    auth: false,
+  },
+  {
+    prefix: "v1/marketplace",
+    target: "/api/v1/marketplace/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
 ];

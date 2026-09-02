@@ -31,11 +31,14 @@ import {
   calculatePaintMaterials,
 } from "@/domains/inventory/calc-engine";
 
+import { useProjectStore } from "@/store/project-store";
+
 interface TaskMaterialCalculatorModalProps {
   isOpen: boolean;
   onClose: () => void;
   taskId: number;
   taskTitle?: string;
+  projectMaterialPreferences?: Record<string, string>;
   onSaved?: () => void;
 }
 
@@ -44,8 +47,10 @@ export const TaskMaterialCalculatorModal: React.FC<TaskMaterialCalculatorModalPr
   onClose,
   taskId,
   taskTitle,
+  projectMaterialPreferences,
   onSaved,
 }) => {
+  const { project } = useProjectStore();
   const [materials, setMaterials] = useState<MasterMaterial[]>([]);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -181,31 +186,232 @@ export const TaskMaterialCalculatorModal: React.FC<TaskMaterialCalculatorModalPr
   ]);
 
   // Auto-select corresponding material when work type changes
+  const [categoryMaterialSelections, setCategoryMaterialSelections] = useState<Record<string, string>>({});
+
+  const getBomCategoryItems = () => {
+    const items: Array<{
+      key: string;
+      label: string;
+      category: string;
+      quantity: number;
+      unit: string;
+      itemCodeHint?: string;
+    }> = [];
+
+    if (calcType === "masonry" && masonryResult) {
+      items.push({
+        key: "brick",
+        label: "1. Masonry Units (Bricks / AAC Blocks)",
+        category: "MASONRY",
+        quantity: masonryResult.units_required || 0,
+        unit: "NOS",
+        itemCodeHint: "BRK",
+      });
+
+      if (!brickType.includes("aac")) {
+        items.push({
+          key: "cement",
+          label: "2. Mortar Cement",
+          category: "CEMENT",
+          quantity: masonryResult.cement_bags_50kg || 0,
+          unit: "BAG",
+          itemCodeHint: "CEM",
+        });
+        items.push({
+          key: "sand",
+          label: "3. Mortar Sand",
+          category: "SAND_AGGREGATE",
+          quantity: masonryResult.sand_tons || 0,
+          unit: "TON",
+          itemCodeHint: "SND",
+        });
+      } else {
+        items.push({
+          key: "adhesive",
+          label: "2. AAC Block Joint Mortar Adhesive",
+          category: "CONSUMABLE",
+          quantity: masonryResult.adhesive_bags_40kg || 0,
+          unit: "BAG",
+          itemCodeHint: "ADHESIVE",
+        });
+      }
+    } else if (calcType === "concrete" && otherCalcResult) {
+      items.push({
+        key: "cement",
+        label: "1. Structural Cement",
+        category: "CEMENT",
+        quantity: otherCalcResult.cement_bags_50kg || 0,
+        unit: "BAG",
+        itemCodeHint: "CEM",
+      });
+      items.push({
+        key: "sand",
+        label: "2. Fine River / M-Sand",
+        category: "SAND_AGGREGATE",
+        quantity: otherCalcResult.sand_tons || 0,
+        unit: "TON",
+        itemCodeHint: "SND",
+      });
+      items.push({
+        key: "aggregate",
+        label: "3. Coarse Aggregate (10/20mm)",
+        category: "SAND_AGGREGATE",
+        quantity: otherCalcResult.coarse_aggregate_tons || 0,
+        unit: "TON",
+        itemCodeHint: "AGG",
+      });
+    } else if (calcType === "steel" && otherCalcResult) {
+      items.push({
+        key: "steel",
+        label: "1. TMT Rebar Steel Rods",
+        category: "STRUCTURAL",
+        quantity: otherCalcResult.total_steel_kg || 0,
+        unit: "KG",
+        itemCodeHint: "STL",
+      });
+    } else if (calcType === "plaster" && otherCalcResult) {
+      items.push({
+        key: "cement",
+        label: "1. Plastering Cement",
+        category: "CEMENT",
+        quantity: otherCalcResult.cement_bags_50kg || 0,
+        unit: "BAG",
+        itemCodeHint: "CEM",
+      });
+      items.push({
+        key: "sand",
+        label: "2. Plastering Fine Sand",
+        category: "SAND_AGGREGATE",
+        quantity: otherCalcResult.sand_tons || 0,
+        unit: "TON",
+        itemCodeHint: "SND",
+      });
+    } else if (calcType === "flooring" && otherCalcResult) {
+      items.push({
+        key: "tile",
+        label: "1. Floor Tiles",
+        category: "FINISHING",
+        quantity: otherCalcResult.tile_boxes_required || 0,
+        unit: "BOX",
+        itemCodeHint: "TILE",
+      });
+      items.push({
+        key: "adhesive",
+        label: "2. Tile Fixing Mortar / Adhesive",
+        category: "CONSUMABLE",
+        quantity: otherCalcResult.adhesive_bags_20kg || 0,
+        unit: "BAG",
+        itemCodeHint: "ADHESIVE",
+      });
+    } else if (calcType === "paint" && otherCalcResult) {
+      items.push({
+        key: "paint",
+        label: "1. Wall Emulsion Paint",
+        category: "FINISHING",
+        quantity: otherCalcResult.paint_liters || 0,
+        unit: "LITER",
+        itemCodeHint: "PNT",
+      });
+    }
+
+    return items;
+  };
+
+  const bomCategoryItems = getBomCategoryItems();
+
+  // Smart pre-select catalog materials for each category item (prioritizing Project Material Preferences)
   useEffect(() => {
-    if (materials.length === 0) return;
-    let match = null;
-    if (calcType === "masonry") {
-      match = materials.find(
-        (m) =>
-          m.item_code.includes("BRK") ||
-          m.item_code.includes("AAC") ||
-          m.category === "MASONRY"
-      );
-    } else if (calcType === "concrete") {
-      match = materials.find((m) => m.item_code.includes("CEM") || m.item_code.includes("AGG"));
-    } else if (calcType === "steel") {
-      match = materials.find((m) => m.item_code.includes("STL") || m.category === "STRUCTURAL");
-    } else if (calcType === "plaster") {
-      match = materials.find((m) => m.item_code.includes("SAND-PLASTER") || m.item_code.includes("CEM"));
-    } else if (calcType === "flooring") {
-      match = materials.find((m) => m.item_code.includes("TILE") || m.category === "FINISHING");
-    } else if (calcType === "paint") {
-      match = materials.find((m) => m.item_code.includes("PNT"));
+    if (materials.length === 0 || bomCategoryItems.length === 0) return;
+    setCategoryMaterialSelections((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      bomCategoryItems.forEach((item) => {
+        if (!next[item.key]) {
+          // 1. Check if Project Material Preferences has a default choice for this category key
+          const preferredId = projectMaterialPreferences?.[item.key] || project?.material_preferences?.[item.key];
+          const preferredMatch = preferredId ? materials.find((m) => m.id === preferredId) : null;
+
+          const match =
+            preferredMatch ||
+            materials.find((m) => {
+              if (item.key === "brick" || item.category === "MASONRY") {
+                return m.category === "MASONRY" || m.item_code.includes("BRK") || m.item_code.includes("MAS");
+              }
+              if (item.key === "cement" || item.category === "CEMENT") {
+                return m.category === "CEMENT" || m.item_code.includes("CEM");
+              }
+              if (item.key === "sand") {
+                return (m.category === "SAND_AGGREGATE" || m.item_code.includes("SND") || m.name.toLowerCase().includes("sand")) && !m.name.toLowerCase().includes("aggregate");
+              }
+              if (item.key === "aggregate") {
+                return m.item_code.includes("AGG") || m.name.toLowerCase().includes("aggregate");
+              }
+              if (item.key === "steel" || item.category === "STRUCTURAL") {
+                return m.category === "STRUCTURAL" || m.item_code.includes("STL");
+              }
+              if (item.key === "tile" || item.category === "FINISHING") {
+                return m.category === "FINISHING" || m.item_code.includes("TILE") || m.item_code.includes("PNT");
+              }
+              return m.category === item.category;
+            }) ||
+            materials.find((m) => m.category === item.category) ||
+            materials[0];
+
+          if (match) {
+            next[item.key] = match.id;
+            changed = true;
+          }
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [materials, calcType, masonryResult, otherCalcResult, projectMaterialPreferences, project?.material_preferences]);
+
+  // Compute itemized line totals and total corrected budget cost
+  const bomItemsWithCosts = bomCategoryItems.map((item, idx) => {
+    let selectedId = categoryMaterialSelections[item.key];
+    if (!selectedId && materials.length > 0) {
+      let match = materials.find((m) => {
+        if (item.key === "brick" || item.category === "MASONRY") {
+          return m.category === "MASONRY" || m.item_code.includes("BRK") || m.item_code.includes("MAS") || m.name.toLowerCase().includes("brick") || m.name.toLowerCase().includes("block");
+        }
+        if (item.key === "cement" || item.category === "CEMENT") {
+          return m.category === "CEMENT" || m.item_code.includes("CEM") || m.name.toLowerCase().includes("cement");
+        }
+        if (item.key === "sand") {
+          return (m.category === "SAND_AGGREGATE" || m.item_code.includes("SND") || m.name.toLowerCase().includes("sand")) && !m.name.toLowerCase().includes("aggregate");
+        }
+        if (item.key === "aggregate") {
+          return m.item_code.includes("AGG") || m.name.toLowerCase().includes("aggregate");
+        }
+        return m.category === item.category;
+      });
+
+      if (!match) {
+        match = materials.find((m) => m.category === item.category);
+      }
+      if (!match && (item.key === "brick" || item.category === "MASONRY")) {
+        match = materials.find((m) => m.category === "MASONRY");
+      }
+      if (!match && item.key === "sand") {
+        match = materials.find((m) => m.category === "SAND_AGGREGATE");
+      }
+
+      selectedId = match ? match.id : materials[idx % materials.length]?.id || materials[0].id;
     }
-    if (match) {
-      setSelectedMaterialId(match.id);
-    }
-  }, [calcType, materials]);
+    const selectedMaterial = materials.find((m) => m.id === selectedId);
+    const rate = selectedMaterial ? Number(selectedMaterial.standard_rate || 0) : 0;
+    const lineTotal = item.quantity * rate;
+    return {
+      ...item,
+      selectedId: selectedId || "",
+      selectedMaterial,
+      rate,
+      lineTotal,
+    };
+  });
+
+  const totalCalculatedBudgetCost = bomItemsWithCosts.reduce((sum, item) => sum + item.lineTotal, 0);
 
   // Openings Management Handlers
   const handleAddOpening = () => {
@@ -234,88 +440,32 @@ export const TaskMaterialCalculatorModal: React.FC<TaskMaterialCalculatorModalPr
     setOpenings(openings.filter((_, i) => i !== index));
   };
 
-  // Selected Material Details & Rate Multiplication
-  const selectedMaterial = materials.find((m) => m.id === selectedMaterialId);
-  const plannedQuantity =
-    calcType === "masonry"
-      ? masonryResult?.units_required || 0
-      : otherCalcResult?.units_required ||
-        otherCalcResult?.cement_bags_50kg ||
-        otherCalcResult?.total_steel_kg ||
-        otherCalcResult?.tile_boxes_required ||
-        otherCalcResult?.paint_liters ||
-        0;
-
-  const standardRate = selectedMaterial ? Number(selectedMaterial.standard_rate) || 0 : 0;
-  const estimatedCost = plannedQuantity * standardRate;
-
-  // Save to Backend Task Requirement (BOM)
+  // Save All Category Materials to Task Requirement (BOM)
   const handleSaveToTask = async () => {
-    if (!selectedMaterialId) return;
+    if (bomItemsWithCosts.length === 0) return;
     setSaving(true);
     try {
-      let inputQty = lengthM * heightM;
-      let inputUnit = "M2";
-      let calcParams: Record<string, any> = {
-        calc_type: calcType,
-        calc_rule_version: "2.0.0",
-        wastage_percent: wastagePercent,
-      };
-
-      if (calcType === "masonry") {
-        inputQty = masonryResult?.wall_geometry.net_wall_area_m2 || lengthM * heightM;
-        inputUnit = "M2";
-        calcParams = {
-          algo_name: "calculate_masonry_materials",
-          length_m: lengthM,
-          height_m: heightM,
-          wall_thickness_mm: wallThicknessMm,
-          brick_type: brickType,
-          mortar_ratio: mortarRatio,
-          mortar_joint_mm: mortarJointMm,
-          dry_volume_factor: dryVolumeFactor,
-          sand_density_kg_m3: sandDensityKgM3,
-          cement_bag_size_kg: cementBagSizeKg,
-          wastage_percent: wastagePercent,
-          wastage_brick: wastageBrick,
-          wastage_cement: wastageCement,
-          wastage_sand: wastageSand,
-          wastage_adhesive: wastageAdhesive,
-          openings,
-          calculation_result: masonryResult,
-          calculation_breakdown: masonryResult?.calculation_breakdown,
-          bom_items: masonryResult?.bom_items,
-        };
-      } else if (calcType === "concrete") {
-        inputQty = concreteVolM3;
-        inputUnit = "M3";
-        calcParams = { grade: concreteGrade, wastage_percent: wastagePercent, algo_name: "calculate_concrete_materials" };
-      } else if (calcType === "steel") {
-        inputQty = concreteVolM3;
-        inputUnit = "M3";
-        calcParams = { member_type: steelMember, wastage_percent: wastagePercent, algo_name: "calculate_rebar_steel" };
-      } else if (calcType === "plaster") {
-        inputQty = lengthM * heightM;
-        inputUnit = "M2";
-        calcParams = { plaster_type: plasterType, wastage_percent: wastagePercent, algo_name: "calculate_plaster_materials" };
-      } else if (calcType === "flooring") {
-        inputQty = lengthM * heightM;
-        inputUnit = "M2";
-        calcParams = { tile_size_mm: tileSize, method: "adhesive", wastage_percent: wastagePercent, algo_name: "calculate_flooring_materials" };
+      for (const item of bomItemsWithCosts) {
+        if (item.selectedId && item.quantity > 0) {
+          await inventoryApi.calculateAndAttachTaskMaterial({
+            task_id: taskId,
+            material_id: item.selectedId,
+            input_quantity: item.quantity,
+            input_unit: item.unit,
+            calc_params: {
+              calc_type: calcType,
+              item_key: item.key,
+              item_label: item.label,
+              wastage_percent: wastagePercent,
+              calc_rule_version: "2.0.0",
+            },
+          });
+        }
       }
-
-      await inventoryApi.calculateAndAttachTaskMaterial({
-        task_id: taskId,
-        material_id: selectedMaterialId,
-        input_quantity: inputQty,
-        input_unit: inputUnit,
-        calc_params: calcParams,
-      });
-
       if (onSaved) onSaved();
       onClose();
     } catch (err) {
-      console.error("Failed to attach material requirement to task", err);
+      console.error("Failed to attach BOM materials to task", err);
     } finally {
       setSaving(false);
     }
@@ -918,44 +1068,131 @@ export const TaskMaterialCalculatorModal: React.FC<TaskMaterialCalculatorModalPr
           </div>
         )}
 
-        {/* ── SECTION G & H: INVENTORY CATALOG LINKING & LIVE ESTIMATED COST ── */}
-        <div className="space-y-3 p-4 rounded-xl bg-zinc-950/70 border border-zinc-800">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-            <label className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-blue-400" />
-              Link Master Material from Inventory Catalog
-            </label>
-            <span className="text-[11px] text-blue-400 font-semibold bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 w-fit">
-              Attached to Task #{taskId}
+        {/* ── SECTION G & H: CATEGORY-WISE INVENTORY CATALOG LINKING & CORRECTED TOTAL BUDGET COST ── */}
+        <div className="space-y-4 p-4 rounded-xl bg-zinc-950/80 border border-zinc-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-zinc-800/80 pb-2">
+            <div>
+              <label className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-amber-400" />
+                Link Master Materials for ALL Required BOM Categories ({bomItemsWithCosts.length} Items)
+              </label>
+              <p className="text-[11px] text-zinc-400 mt-0.5">
+                Select specific Master Material products for each calculated requirement item below
+              </p>
+            </div>
+            <span className="text-[11px] text-amber-400 font-semibold bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 w-fit shrink-0">
+              Target Task #{taskId}
             </span>
           </div>
-          <select
-            value={selectedMaterialId}
-            onChange={(e) => setSelectedMaterialId(e.target.value)}
-            className="w-full h-9 px-3 text-xs bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 font-medium focus:outline-none focus:border-blue-500 transition-colors"
-          >
-            {materials.map((m) => (
-              <option key={m.id} value={m.id}>
-                [{m.item_code}] {m.name} ({m.unit}) — ₹{Number(m.standard_rate).toFixed(2)}/unit
-              </option>
-            ))}
-          </select>
 
-          {/* Rate Engine & Cost Estimation Card */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-900 border border-zinc-800 text-xs">
+          {/* Itemized Category Cards */}
+          <div className="space-y-3">
+            {bomItemsWithCosts.map((item) => (
+              <div
+                key={item.key}
+                className="p-3 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-2 text-xs transition-colors hover:border-zinc-700"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-zinc-200">{item.label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-400 uppercase font-semibold">
+                      {item.category}
+                    </span>
+                    <span className="font-extrabold text-white text-xs bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/20">
+                      Req: {item.quantity.toLocaleString()} {item.unit}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dropdown for this specific BOM category item */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                  <div className="sm:col-span-2">
+                    <select
+                      value={item.selectedId}
+                      onChange={(e) =>
+                        setCategoryMaterialSelections((prev) => ({
+                          ...prev,
+                          [item.key]: e.target.value,
+                        }))
+                      }
+                      className="w-full h-9 px-3 text-xs bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-100 font-medium focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
+                    >
+                      {materials.length === 0 ? (
+                        <option value="">No materials found in master catalog</option>
+                      ) : (
+                        (() => {
+                          const matching = materials.filter((m) => {
+                            if (item.category === "CEMENT" || item.key === "cement") {
+                              return m.category === "CEMENT" || m.name.toLowerCase().includes("cement") || m.item_code.includes("CEM");
+                            }
+                            if (item.category === "MASONRY" || item.key === "brick") {
+                              return m.category === "MASONRY" || m.name.toLowerCase().includes("brick") || m.name.toLowerCase().includes("block") || m.item_code.includes("BRK");
+                            }
+                            if (item.category === "STRUCTURAL" || item.key === "steel") {
+                              return m.category === "STRUCTURAL" || m.name.toLowerCase().includes("steel") || m.name.toLowerCase().includes("rebar") || m.item_code.includes("STL");
+                            }
+                            if (item.key === "sand") {
+                              return (m.category === "SAND_AGGREGATE" || m.name.toLowerCase().includes("sand")) && !m.name.toLowerCase().includes("aggregate");
+                            }
+                            if (item.key === "aggregate") {
+                              return m.category === "SAND_AGGREGATE" && (m.name.toLowerCase().includes("aggregate") || m.item_code.includes("AGG"));
+                            }
+                            if (item.key === "tile") {
+                              return m.category === "FINISHING" && (m.name.toLowerCase().includes("tile") || m.unit === "BOX");
+                            }
+                            if (item.key === "paint") {
+                              return m.category === "FINISHING" && (m.name.toLowerCase().includes("paint") || m.name.toLowerCase().includes("emulsion") || m.unit === "LITER");
+                            }
+                            if (item.key === "adhesive") {
+                              return m.category === "CONSUMABLE" || m.name.toLowerCase().includes("adhesive") || m.name.toLowerCase().includes("mortar");
+                            }
+                            return m.category === item.category;
+                          });
+
+                          if (matching.length === 0) {
+                            return (
+                              <option value="">
+                                No {item.category} materials in catalog — Quick add required
+                              </option>
+                            );
+                          }
+
+                          return matching.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              [{m.item_code}] {m.name} ({m.unit}) — ₹{Number(m.standard_rate || 0).toFixed(2)}/{m.unit || "unit"}
+                            </option>
+                          ));
+                        })()
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Calculated Line Total */}
+                  <div className="text-right sm:text-right bg-zinc-950/60 p-2 rounded-lg border border-zinc-800/80">
+                    <span className="text-[10px] text-zinc-400 block font-semibold">Line Budget Total</span>
+                    <span className="text-xs font-bold text-emerald-400">
+                      ₹{item.lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Corrected Total Budget Cost Summary Card */}
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-emerald-950/40 via-zinc-900 to-amber-950/30 border border-emerald-500/30 text-xs">
             <div className="space-y-0.5">
-              <span className="text-[10px] uppercase font-bold text-zinc-400">
-                Material Rate & Cost Linkage
+              <span className="text-[10px] uppercase font-extrabold text-amber-400 tracking-wider">
+                Corrected Combined Budget Cost
               </span>
               <div className="text-xs text-zinc-300">
-                {plannedQuantity.toLocaleString()} {selectedMaterial?.unit || "units"} × ₹
-                {standardRate.toFixed(2)}
+                Sum of {bomItemsWithCosts.length} linked materials rate × quantities
               </div>
             </div>
             <div className="text-right">
-              <span className="text-[10px] uppercase font-bold text-zinc-400">Estimated Budget Cost</span>
-              <div className="text-base font-extrabold text-emerald-400">
-                ₹{estimatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="text-[10px] uppercase font-bold text-zinc-400">Total Task BOM Budget</span>
+              <div className="text-lg font-black text-emerald-400">
+                ₹{totalCalculatedBudgetCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
           </div>
@@ -973,11 +1210,11 @@ export const TaskMaterialCalculatorModal: React.FC<TaskMaterialCalculatorModalPr
           <button
             type="button"
             onClick={handleSaveToTask}
-            disabled={saving || !selectedMaterialId}
-            className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-blue-600/20"
+            disabled={saving || bomItemsWithCosts.length === 0}
+            className="px-5 py-2 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-400 text-zinc-950 transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            {saving ? "Saving BOM..." : "Save to Task BOM"}
+            {saving ? "Saving All BOM Materials..." : `Save All (${bomItemsWithCosts.length}) Materials to Task BOM`}
           </button>
         </div>
       </div>

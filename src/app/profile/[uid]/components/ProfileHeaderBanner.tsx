@@ -51,9 +51,22 @@ export function ProfileHeaderBanner({
           
           {/* Avatar with Status Ring */}
           <div className="relative shrink-0">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-surface-800 border-2 border-accent/40 shadow-lg relative group">
               {profile.avatar ? (
-                <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <img 
+                  src={profile.avatar} 
+                  alt={profile.name} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                    if (parent && !parent.querySelector('.fallback-initial')) {
+                      const div = document.createElement('div');
+                      div.className = 'fallback-initial w-full h-full flex items-center justify-center font-black text-2xl text-white/60 bg-surface-800';
+                      div.innerText = profile.name ? profile.name.charAt(0).toUpperCase() : '?';
+                      parent.appendChild(div);
+                    }
+                  }}
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center font-black text-2xl text-white/40 bg-surface-800">
                   {profile.name ? profile.name.charAt(0).toUpperCase() : '?'}

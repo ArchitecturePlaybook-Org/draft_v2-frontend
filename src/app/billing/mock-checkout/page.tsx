@@ -29,9 +29,9 @@ function MockCheckoutInner() {
     setIsProcessing(true);
     // Simulate payment processing delay
     await new Promise((res) => setTimeout(res, 1500));
-    // Call the backend webhook with a mock success event
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     try {
-      await fetch(`/api/v1/billing/webhook/${provider}/`, {
+      await fetch(`${backendUrl}/api/v1/billing/webhook/${provider}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(

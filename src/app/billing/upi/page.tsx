@@ -280,7 +280,8 @@ function UpiCheckoutInner() {
                     onClick={async () => {
                       // Trigger mock webhook
                       try {
-                        await fetch(`/api/v1/billing/webhook/razorpay/`, {
+                        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                        await fetch(`${backendUrl}/api/v1/billing/webhook/razorpay/`, {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({

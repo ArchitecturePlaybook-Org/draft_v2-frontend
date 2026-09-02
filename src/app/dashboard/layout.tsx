@@ -26,9 +26,31 @@ export default function DashboardLayout({
   const notificationState = useNotificationCenterState();
 
   useEffect(() => {
-    if (user && user.profile && user.profile.is_onboarding_complete === false) {
-      if (!pathname.startsWith("/onboarding")) {
-        router.replace("/onboarding");
+    if (user) {
+      const rawRole = String((user as any)?.role?.name || (user as any)?.role_name || (user as any)?.role || "").toLowerCase();
+      const rawAccount = String((user as any)?.account?.account_type || (user as any)?.account_type || "").toLowerCase();
+      const isMaterialSupplier = rawRole.includes("supplier") || rawAccount.includes("supplier");
+
+      if (isMaterialSupplier) {
+        // Allow suppliers to navigate freely within all their permitted routes
+        const supplierAllowedPrefixes = [
+          "/dashboard/inventory/purchase-orders",
+          "/dashboard/inventory/deliveries",
+          "/dashboard/materials",
+          "/dashboard/opportunities",
+          "/dashboard/profile",
+        ];
+        const isAllowed = supplierAllowedPrefixes.some((prefix) => pathname.startsWith(prefix));
+        if (!isAllowed) {
+          router.replace("/dashboard/inventory/purchase-orders");
+          return;
+        }
+      }
+
+      if (user.profile && user.profile.is_onboarding_complete === false) {
+        if (!pathname.startsWith("/onboarding")) {
+          router.replace("/onboarding");
+        }
       }
     }
   }, [user, pathname, router]);

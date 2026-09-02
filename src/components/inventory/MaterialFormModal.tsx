@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, CheckCircle2, Layers, AlertCircle, Sparkles, Hash, DollarSign } from "lucide-react";
+import { X, CheckCircle2, Layers, AlertCircle, Sparkles, Hash, DollarSign, Plus, Tag, Award } from "lucide-react";
 import { MasterMaterial, MaterialCategory, MaterialUnit } from "@/domains/inventory/types";
 import { inventoryApi } from "@/domains/inventory/api";
+import { toast } from "sonner";
+import { useAuthStore } from "@/store/auth-store";
 
 interface MaterialFormModalProps {
   isOpen: boolean;
@@ -12,7 +14,7 @@ interface MaterialFormModalProps {
   materialToEdit?: MasterMaterial | null;
 }
 
-const CATEGORIES: { value: MaterialCategory; label: string }[] = [
+const DEFAULT_CATEGORIES: { value: string; label: string }[] = [
   { value: "CEMENT", label: "Cement & Binders (OPC, PPC, Slag, White Cement)" },
   { value: "SAND_AGGREGATE", label: "Sand & Aggregates (River Sand, M-Sand, 10mm, 20mm)" },
   { value: "MASONRY", label: "Masonry (Bricks, AAC Blocks, Fly Ash)" },
@@ -26,7 +28,7 @@ const CATEGORIES: { value: MaterialCategory; label: string }[] = [
   { value: "OTHER", label: "Other Materials" },
 ];
 
-const UNITS: { value: MaterialUnit; label: string }[] = [
+const DEFAULT_UNITS: { value: string; label: string }[] = [
   { value: "BAG", label: "Bags (BAG)" },
   { value: "KG", label: "Kilograms (KG)" },
   { value: "TON", label: "Metric Tons (TON)" },
@@ -41,6 +43,7 @@ const UNITS: { value: MaterialUnit; label: string }[] = [
   { value: "SET", label: "Sets (SET)" },
   { value: "NO", label: "Numbers (NO)" },
   { value: "NOS", label: "Numbers (NOS)" },
+  { value: "CUSTOM", label: "+ Add Custom Unit..." },
 ];
 
 const CALC_ENGINES = [
@@ -59,12 +62,26 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
   onSaved,
   materialToEdit,
 }) => {
+  const { user } = useAuthStore();
+  const userRole = (user as any)?.role || (user as any)?.role_name || (user as any)?.role?.name;
+  const isMaterialSupplier = userRole === "material_supplier";
   const isEditing = Boolean(materialToEdit);
 
+  // Dynamic Categories & Brands from API
+  const [dynamicCategories, setDynamicCategories] = useState<{ value: string; label: string }[]>(DEFAULT_CATEGORIES);
+  const [dynamicBrands, setDynamicBrands] = useState<{ id?: string; name: string }[]>([]);
+
+  // Form Field States
   const [name, setName] = useState("");
   const [itemCode, setItemCode] = useState("");
-  const [category, setCategory] = useState<MaterialCategory>("CONSUMABLE");
-  const [unit, setUnit] = useState<MaterialUnit>("BAG");
+  const [category, setCategory] = useState<string>("CONSUMABLE");
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState("");
+
+  const [unit, setUnit] = useState<string>("BAG");
+  const [isCustomUnit, setIsCustomUnit] = useState(false);
+  const [customUnitInput, setCustomUnitInput] = useState("");
+
   const [standardRate, setStandardRate] = useState<string>("0.00");
   const [minStock, setMinStock] = useState<string>("0.000");
   const [maxStock, setMaxStock] = useState<string>("0.000");
@@ -73,12 +90,48 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
   const [gstRate, setGstRate] = useState<string>("18.00");
   const [calcAlgoName, setCalcAlgoName] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [brandApproved, setBrandApproved] = useState("");
+
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [isCustomBrand, setIsCustomBrand] = useState(false);
+  const [customBrandInput, setCustomBrandInput] = useState("");
+
   const [gradeSpec, setGradeSpec] = useState("");
   const [densityKgM3, setDensityKgM3] = useState<string>("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load Categories & Brands dynamically from Backend
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchMasterOptions = async () => {
+      try {
+        const [catsRes, brandsRes] = await Promise.all([
+          inventoryApi.getCategories().catch(() => []),
+          inventoryApi.getBrands().catch(() => []),
+        ]);
+
+        if (catsRes && catsRes.length > 0) {
+          const apiCats = catsRes.map(c => ({ value: c.code || c.id || c.name, label: c.name }));
+          const combined = [...DEFAULT_CATEGORIES];
+          apiCats.forEach(ac => {
+            if (!combined.some(c => c.value === ac.value)) {
+              combined.push(ac);
+            }
+          });
+          setDynamicCategories(combined);
+        }
+
+        if (brandsRes && brandsRes.length > 0) {
+          setDynamicBrands(brandsRes.map(b => ({ id: b.id, name: b.name })));
+        }
+      } catch (e) {
+        console.error("Error loading dynamic master categories/brands", e);
+      }
+    };
+
+    fetchMasterOptions();
+  }, [isOpen]);
 
   useEffect(() => {
     if (materialToEdit) {
@@ -96,15 +149,19 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
       setIsActive(materialToEdit.is_active !== false);
 
       const spec = materialToEdit.material_spec || {};
-      setBrandApproved(Array.isArray(spec.brand_approved) ? spec.brand_approved.join(", ") : spec.brand || "");
+      const brandVal = Array.isArray(spec.brand_approved) ? spec.brand_approved.join(", ") : (spec.brand || "");
+      setSelectedBrand(brandVal);
       setGradeSpec(spec.grade || "");
       setDensityKgM3(spec.density_kg_m3 ? String(spec.density_kg_m3) : "");
     } else {
-      // Default blank values
       setName("");
       setItemCode("");
       setCategory("CONSUMABLE");
+      setIsCustomCategory(false);
+      setCustomCategoryInput("");
       setUnit("BAG");
+      setIsCustomUnit(false);
+      setCustomUnitInput("");
       setStandardRate("0.00");
       setMinStock("10.000");
       setMaxStock("1000.000");
@@ -113,22 +170,21 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
       setGstRate("18.00");
       setCalcAlgoName("");
       setIsActive(true);
-      setBrandApproved("");
+      setSelectedBrand("");
+      setIsCustomBrand(false);
+      setCustomBrandInput("");
       setGradeSpec("");
       setDensityKgM3("");
     }
     setError(null);
   }, [materialToEdit, isOpen]);
 
-  // Auto-generate item code suggestion if empty when creating
   const handleNameChange = (val: string) => {
     setName(val);
     if (!isEditing && !itemCode) {
-      const prefix = category.substring(0, 3).toUpperCase();
-      const cleanName = val
-        .replace(/[^a-zA-Z0-9]/g, "")
-        .substring(0, 6)
-        .toUpperCase();
+      const catVal = isCustomCategory ? customCategoryInput : category;
+      const prefix = (catVal || "MAT").substring(0, 3).toUpperCase();
+      const cleanName = val.replace(/[^a-zA-Z0-9]/g, "").substring(0, 6).toUpperCase();
       if (cleanName) {
         setItemCode(`MAT-${prefix}-${cleanName}`);
       }
@@ -145,39 +201,70 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
     setSaving(true);
     setError(null);
 
-    const specPayload: Record<string, any> = {};
-    if (brandApproved.trim()) {
-      specPayload.brand_approved = brandApproved.split(",").map((b) => b.trim()).filter(Boolean);
-    }
-    if (gradeSpec.trim()) {
-      specPayload.grade = gradeSpec.trim();
-    }
-    if (densityKgM3) {
-      specPayload.density_kg_m3 = parseFloat(densityKgM3);
-    }
-
-    const payload: Partial<MasterMaterial> = {
-      name: name.trim(),
-      item_code: itemCode.trim().toUpperCase(),
-      category,
-      unit,
-      standard_rate: parseFloat(standardRate) || 0,
-      min_stock: parseFloat(minStock) || 0,
-      max_stock: parseFloat(maxStock) || 0,
-      reorder_level: parseFloat(reorderLevel) || 0,
-      hsn_sac_code: hsnSacCode.trim(),
-      gst_rate: parseFloat(gstRate) || 18,
-      calc_algo_name: calcAlgoName,
-      is_active: isActive,
-      material_spec: specPayload,
-    };
-
     try {
+      // 1. Handle Dynamic Category Creation if new
+      let finalCategory = category;
+      if (isCustomCategory && customCategoryInput.trim()) {
+        const catName = customCategoryInput.trim();
+        const catCode = catName.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+        try {
+          await inventoryApi.createCategory({ name: catName, code: catCode });
+        } catch (e) {
+          /* ignore if already exists */
+        }
+        finalCategory = catCode;
+      }
+
+      // 2. Handle Dynamic Brand Creation if new
+      let finalBrand = selectedBrand;
+      if (isCustomBrand && customBrandInput.trim()) {
+        const brandName = customBrandInput.trim();
+        try {
+          await inventoryApi.createBrand({ name: brandName });
+        } catch (e) {
+          /* ignore if already exists */
+        }
+        finalBrand = brandName;
+      }
+
+      // 3. Handle Dynamic Unit
+      const finalUnit = isCustomUnit && customUnitInput.trim() ? customUnitInput.trim().toUpperCase() : unit;
+
+      const specPayload: Record<string, any> = {};
+      if (finalBrand.trim()) {
+        specPayload.brand_approved = finalBrand.split(",").map((b) => b.trim()).filter(Boolean);
+        specPayload.brand = finalBrand.trim();
+      }
+      if (gradeSpec.trim()) {
+        specPayload.grade = gradeSpec.trim();
+      }
+      if (densityKgM3) {
+        specPayload.density_kg_m3 = parseFloat(densityKgM3);
+      }
+
+      const payload: Partial<MasterMaterial> = {
+        name: name.trim(),
+        item_code: itemCode.trim().toUpperCase(),
+        category: finalCategory as any,
+        unit: finalUnit as any,
+        standard_rate: parseFloat(standardRate) || 0,
+        min_stock: parseFloat(minStock) || 0,
+        max_stock: parseFloat(maxStock) || 0,
+        reorder_level: parseFloat(reorderLevel) || 0,
+        hsn_sac_code: hsnSacCode.trim(),
+        gst_rate: parseFloat(gstRate) || 18,
+        calc_algo_name: calcAlgoName,
+        is_active: isActive,
+        material_spec: specPayload,
+      };
+
       let savedMat: MasterMaterial;
       if (isEditing && materialToEdit) {
         savedMat = await inventoryApi.updateMaterial(materialToEdit.id, payload);
+        toast.success(`Material '${savedMat.name}' updated!`);
       } else {
         savedMat = await inventoryApi.createMaterial(payload);
+        toast.success(`Material '${savedMat.name}' added to catalog!`);
       }
       onSaved(savedMat);
       onClose();
@@ -203,19 +290,19 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-white tracking-tight">
-                {isEditing ? "Edit Master Material" : "Add New Master Material to Catalog"}
+                {isEditing ? "Edit Master Material" : "Add New Master Material"}
               </h3>
               <p className="text-xs text-zinc-400">
                 {isEditing
                   ? `Updating [${materialToEdit?.item_code}] ${materialToEdit?.name}`
-                  : "Register a standardized construction item with units, rates, and calculation norms."}
+                  : "Register standardized material specs, dynamic categories, brands, and rates."}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -228,12 +315,13 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
           {/* Section 1: Basic Identifiers */}
           <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800 space-y-3">
             <h4 className="text-[11px] font-bold text-zinc-200 uppercase tracking-wider">
               1. Basic Identification
             </h4>
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[11px] text-zinc-400 block mb-1">
@@ -248,6 +336,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
                   className="w-full h-8 px-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-blue-500"
                 />
               </div>
+
               <div>
                 <label className="text-[11px] text-zinc-400 block mb-1">
                   Item Code / SKU <span className="text-red-400">*</span>
@@ -266,36 +355,97 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
               </div>
             </div>
 
+            {/* Dynamic Category & Unit */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              
+              {/* Dynamic Category */}
               <div>
-                <label className="text-[11px] text-zinc-400 block mb-1">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as MaterialCategory)}
-                  className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-blue-500"
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] text-zinc-400">Category</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomCategory(!isCustomCategory)}
+                    className="text-[10px] text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <Tag className="w-3 h-3" />
+                    <span>{isCustomCategory ? "Select Existing" : "+ New Category"}</span>
+                  </button>
+                </div>
+
+                {isCustomCategory ? (
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. SOLAR_PANELS, GLASS_GLAZING"
+                    value={customCategoryInput}
+                    onChange={(e) => setCustomCategoryInput(e.target.value)}
+                    className="w-full h-8 px-2.5 bg-zinc-900 border border-blue-500/50 rounded-lg text-blue-300 font-bold focus:outline-none"
+                  />
+                ) : (
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    {dynamicCategories.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
+
+              {/* Dynamic Unit of Measurement */}
               <div>
-                <label className="text-[11px] text-zinc-400 block mb-1">Unit of Measurement (UOM)</label>
-                <select
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value as MaterialUnit)}
-                  className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-blue-500"
-                >
-                  {UNITS.map((u) => (
-                    <option key={u.value} value={u.value}>
-                      {u.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] text-zinc-400">Unit of Measurement (UOM)</label>
+                  {unit === "CUSTOM" && (
+                    <span className="text-[10px] text-amber-400 font-bold">Custom Unit</span>
+                  )}
+                </div>
+
+                {isCustomUnit || unit === "CUSTOM" ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. PALLET, DRUM, SHEET"
+                      value={customUnitInput}
+                      onChange={(e) => setCustomUnitInput(e.target.value)}
+                      className="w-full h-8 px-2.5 bg-zinc-900 border border-amber-500/50 rounded-lg text-amber-300 font-bold focus:outline-none uppercase"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setIsCustomUnit(false); setUnit("BAG"); }}
+                      className="px-2 h-8 bg-zinc-800 rounded-lg text-[10px] text-zinc-400 hover:text-white"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    value={unit}
+                    onChange={(e) => {
+                      if (e.target.value === "CUSTOM") {
+                        setIsCustomUnit(true);
+                      } else {
+                        setUnit(e.target.value);
+                      }
+                    }}
+                    className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    {DEFAULT_UNITS.map((u) => (
+                      <option key={u.value} value={u.value}>
+                        {u.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
+
             </div>
+
           </div>
 
           {/* Section 2: Pricing & Stock Control */}
@@ -370,7 +520,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
                 <select
                   value={gstRate}
                   onChange={(e) => setGstRate(e.target.value)}
-                  className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-blue-500"
+                  className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-blue-500 cursor-pointer"
                 >
                   <option value="0.00">0% Exempt</option>
                   <option value="5.00">5% Reduced</option>
@@ -382,38 +532,86 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Engineering Spec & Calculation Algorithm */}
+          {/* Section 3: Engineering Spec, Dynamic Brand & Calculation Engine */}
           <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800 space-y-3">
             <h4 className="text-[11px] font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-              3. Civil Engineering Norms & Specifications
+              3. Dynamic Brand & Civil Engineering Specs
             </h4>
-            <div>
-              <label className="text-[11px] text-zinc-400 block mb-1">Dynamic Calculation Engine</label>
-              <select
-                value={calcAlgoName}
-                onChange={(e) => setCalcAlgoName(e.target.value)}
-                className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-blue-500 font-medium text-blue-300"
-              >
-                {CALC_ENGINES.map((eng) => (
-                  <option key={eng.value} value={eng.value}>
-                    {eng.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            
+            {!isMaterialSupplier && (
+              <div>
+                <label className="text-[11px] text-zinc-400 block mb-1">Dynamic Calculation Engine</label>
+                <select
+                  value={calcAlgoName}
+                  onChange={(e) => setCalcAlgoName(e.target.value)}
+                  className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-blue-500 font-medium text-blue-300 cursor-pointer"
+                >
+                  {CALC_ENGINES.map((eng) => (
+                    <option key={eng.value} value={eng.value}>
+                      {eng.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              
+              {/* Dynamic Brand Field */}
               <div>
-                <label className="text-[11px] text-zinc-400 block mb-1">Approved Brands</label>
-                <input
-                  type="text"
-                  placeholder="e.g. UltraTech, ACC, Ambuja"
-                  value={brandApproved}
-                  onChange={(e) => setBrandApproved(e.target.value)}
-                  className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] text-zinc-400">Brand / Manufacturer</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomBrand(!isCustomBrand)}
+                    className="text-[10px] text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <Award className="w-3 h-3" />
+                    <span>{isCustomBrand ? "Select Existing" : "+ New Brand"}</span>
+                  </button>
+                </div>
+
+                {isCustomBrand ? (
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. UltraTech, ACC, JSW"
+                    value={customBrandInput}
+                    onChange={(e) => setCustomBrandInput(e.target.value)}
+                    className="w-full h-8 px-2 bg-zinc-900 border border-blue-500/50 rounded-lg text-blue-300 font-bold focus:outline-none"
+                  />
+                ) : dynamicBrands.length > 0 ? (
+                  <select
+                    value={selectedBrand}
+                    onChange={(e) => {
+                      if (e.target.value === "__NEW__") {
+                        setIsCustomBrand(true);
+                      } else {
+                        setSelectedBrand(e.target.value);
+                      }
+                    }}
+                    className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none cursor-pointer"
+                  >
+                    <option value="">Select Brand...</option>
+                    {dynamicBrands.map((b) => (
+                      <option key={b.name} value={b.name}>
+                        {b.name}
+                      </option>
+                    ))}
+                    <option value="__NEW__">+ Add Custom Brand...</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="e.g. UltraTech, ACC, Ambuja"
+                    value={selectedBrand}
+                    onChange={(e) => setSelectedBrand(e.target.value)}
+                    className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none"
+                  />
+                )}
               </div>
+
               <div>
                 <label className="text-[11px] text-zinc-400 block mb-1">Technical Grade / Spec</label>
                 <input
@@ -424,6 +622,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
                   className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none"
                 />
               </div>
+
               <div>
                 <label className="text-[11px] text-zinc-400 block mb-1">Bulk Density (kg/m³)</label>
                 <input
@@ -434,6 +633,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
                   className="w-full h-8 px-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none"
                 />
               </div>
+
             </div>
 
             <div className="flex items-center gap-2 pt-1">
@@ -442,7 +642,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
                 id="is_active"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0"
+                className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 cursor-pointer"
               />
               <label htmlFor="is_active" className="text-[11px] text-zinc-300 font-medium cursor-pointer">
                 Material is Active in Procurement & Task BOM Catalogs
@@ -455,14 +655,14 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-blue-600/20"
+              className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-blue-600/20 cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               {saving ? "Saving Material..." : isEditing ? "Update Material" : "Add Material"}

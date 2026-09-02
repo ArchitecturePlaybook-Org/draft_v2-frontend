@@ -97,6 +97,7 @@ export default function MaterialIssuesPage() {
         >
           <Warehouse className="w-3.5 h-3.5" /> Stock Overview
         </Link>
+        {/*
         <Link
           href="/dashboard/inventory/deliveries"
           className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors"
@@ -121,6 +122,7 @@ export default function MaterialIssuesPage() {
         >
           <FileSpreadsheet className="w-3.5 h-3.5" /> Purchase Orders
         </Link>
+        */}
       </div>
 
       {/* Filter / Search Bar */}

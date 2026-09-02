@@ -1,8 +1,10 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { projectsApi } from "@/domains/projects/api";
-import { ChevronDown, ChevronUp, Plus, Sun, Cloud, CloudRain, Wind, AlertTriangle, Hammer, Package, Truck, Activity, Trash, Camera, Paperclip, File, Receipt, ImagePlus, Calendar as CalendarIcon } from "lucide-react";
+import { inventoryApi } from "@/domains/inventory/api";
+import { MasterMaterial, Site, MaterialIssue, SiteBalance } from "@/domains/inventory/types";
+import { ChevronDown, ChevronUp, Plus, Sun, Cloud, CloudRain, Wind, AlertTriangle, Hammer, Package, Truck, Activity, Trash, Camera, Paperclip, File, Receipt, ImagePlus, Calendar as CalendarIcon, UserCheck, ShieldCheck, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface DiaryEntryDetailProps {
   entry: any;
@@ -34,16 +36,21 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({
   const [newDelay, setNewDelay] = useState({ delay_type: "weather", duration_hours: "", impacted_path: "" });
   const [uploadingReceiptId, setUploadingReceiptId] = useState<number | null>(null);
 
-  // Local temperature state — buffered so we only PATCH on blur, not on every keystroke.
-  // Sending intermediate values like "", "-", "2." to the backend DecimalField causes 400 errors.
-  const [tempHigh, setTempHigh] = useState<string>(entry.temperature_high != null ? String(entry.temperature_high) : "");
-  const [tempLow, setTempLow] = useState<string>(entry.temperature_low != null ? String(entry.temperature_low) : "");
-
-  // Keep local temp state in sync when the parent entry prop changes (e.g. after onUpdate refresh)
-  React.useEffect(() => {
-    setTempHigh(entry.temperature_high != null ? String(entry.temperature_high) : "");
-    setTempLow(entry.temperature_low != null ? String(entry.temperature_low) : "");
-  }, [entry.temperature_high, entry.temperature_low]);
+  // Material Receipts Sub-Tab state
+  const [materialSubTab, setMaterialSubTab] = useState<"legacy" | "live">("legacy");
+  const [liveMaterials, setLiveMaterials] = useState<MasterMaterial[]>([]);
+  const [liveSites, setLiveSites] = useState<Site[]>([]);
+  const [liveIssues, setLiveIssues] = useState<MaterialIssue[]>([]);
+  const [liveBalances, setLiveBalances] = useState<SiteBalance[]>([]);
+  const [liveEquipment, setLiveEquipment] = useState<any[]>([]);
+  const [selectedLiveMat, setSelectedLiveMat] = useState("");
+  const [selectedLiveSite, setSelectedLiveSite] = useState("");
+  const [liveWorker, setLiveWorker] = useState("");
+  const [liveTrade, setLiveTrade] = useState("MASON");
+  const [liveQty, setLiveQty] = useState<number>(10);
+  const [liveLocation, setLiveLocation] = useState("");
+  const [liveMaterialFilter, setLiveMaterialFilter] = useState("ALL");
+  const [isPostingLive, setIsPostingLive] = useState(false);
 
   // Accordion state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -55,6 +62,79 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({
   const toggleSection = (id: string) => {
     setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
   };
+
+  useEffect(() => {
+    if (materialSubTab === "live" || expandedSections.equipment) {
+      loadLiveInventoryData();
+    }
+  }, [materialSubTab, expandedSections.equipment]);
+
+  const loadLiveInventoryData = async () => {
+    try {
+      const [mats, sites, issues, bals, equips] = await Promise.all([
+        inventoryApi.getMaterials(),
+        inventoryApi.getSites(),
+        inventoryApi.getMaterialIssues(),
+        inventoryApi.getAllBalances(),
+        inventoryApi.getEquipment(),
+      ]);
+      setLiveMaterials(mats);
+      setLiveSites(sites);
+      setLiveIssues(issues);
+      setLiveBalances(bals);
+      setLiveEquipment(equips);
+      if (mats.length > 0 && !selectedLiveMat) setSelectedLiveMat(mats[0].id);
+      if (sites.length > 0 && !selectedLiveSite) setSelectedLiveSite(sites[0].id);
+    } catch (err) {
+      console.error("Failed to load live inventory data for field diary", err);
+    }
+  };
+
+  const selectedMaterialObj = liveMaterials.find((m) => m.id === selectedLiveMat);
+  const availableStockForSelected = liveBalances.find(
+    (b) => b.site_id === selectedLiveSite && b.material_id === selectedLiveMat
+  )?.current_balance ?? 0;
+
+  const handlePostLiveIssue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLiveSite || !selectedLiveMat || !liveWorker || liveQty <= 0) {
+      toast.error("Please fill in worker name, material, site, and quantity.");
+      return;
+    }
+    setIsPostingLive(true);
+    const toastId = toast.loading("Generating Worker Material Issue Slip & Updating Site Stock...");
+    try {
+      await inventoryApi.createMaterialIssue({
+        site: selectedLiveSite,
+        material: selectedLiveMat,
+        qty: liveQty,
+        issued_to: liveWorker,
+        worker_trade: liveTrade,
+        purpose: `Field Diary Log Entry #${entry.id}`,
+        location_in_site: liveLocation || "Site Work Area",
+      });
+      toast.success("Worker Material Issue Slip generated! Live Stock debited.", { id: toastId });
+      setLiveWorker("");
+      setLiveLocation("");
+      loadLiveInventoryData();
+      onUpdate();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to create material issue slip", { id: toastId });
+    } finally {
+      setIsPostingLive(false);
+    }
+  };
+
+  // Local temperature state — buffered so we only PATCH on blur, not on every keystroke.
+  // Sending intermediate values like "", "-", "2." to the backend DecimalField causes 400 errors.
+  const [tempHigh, setTempHigh] = useState<string>(entry.temperature_high != null ? String(entry.temperature_high) : "");
+  const [tempLow, setTempLow] = useState<string>(entry.temperature_low != null ? String(entry.temperature_low) : "");
+
+  // Keep local temp state in sync when the parent entry prop changes (e.g. after onUpdate refresh)
+  React.useEffect(() => {
+    setTempHigh(entry.temperature_high != null ? String(entry.temperature_high) : "");
+    setTempLow(entry.temperature_low != null ? String(entry.temperature_low) : "");
+  }, [entry.temperature_high, entry.temperature_low]);
 
   const handleMetadataUpdate = async (field: string, value: any) => {
     if (isLocked) return;
@@ -433,138 +513,392 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({
           
           {expandedSections.materials && (
             <div className="p-5 border-t border-surface-100 bg-surface-100 border-surface-200 space-y-4">
-              <div className="space-y-3">
-                {entry.material_entries?.map((m: any) => {
-                  const receiptUrl: string | null = m.receipt_image_url || null;
-                  const isReceiptImg = receiptUrl ? isImageUrl(receiptUrl) : false;
-                  return (
-                    <div key={m.id} className="p-4 bg-surface-50 border border-surface-200 rounded-xl flex justify-between items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-surface-800">{m.description}</p>
-                        <p className="text-xs font-medium text-surface-500 text-surface-400 mt-1">
-                          Supplier: {m.supplier} • Ticket: {m.ticket_number}
-                          {m.cost != null && ` • Cost: ₹${parseFloat(m.cost).toFixed(2)}`}
-                        </p>
+              {/* Sub-Tab Selector */}
+              <div className="flex items-center gap-2 bg-surface-50 p-1 rounded-xl border border-surface-200">
+                <button
+                  type="button"
+                  onClick={() => setMaterialSubTab("legacy")}
+                  className={`flex-1 py-1.5 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    materialSubTab === "legacy"
+                      ? "bg-surface-200 text-primary shadow-sm border-b-2 border-accent"
+                      : "text-surface-400 hover:bg-surface-100"
+                  }`}
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  Manual Field Log (Legacy)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMaterialSubTab("live")}
+                  className={`flex-1 py-1.5 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    materialSubTab === "live"
+                      ? "bg-surface-200 text-emerald-600 shadow-sm border-b-2 border-emerald-500"
+                      : "text-surface-400 hover:bg-surface-100"
+                  }`}
+                >
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  Live Stock & Worker Issue Slips
+                </button>
+              </div>
 
-                        {/* Receipt image: thumbnail or file link */}
-                        {receiptUrl && (
-                          <div className="mt-3">
-                            {isReceiptImg ? (
-                              <a href={receiptUrl} target="_blank" rel="noopener noreferrer" title="View full receipt">
-                                <img
-                                  src={receiptUrl}
-                                  alt="Receipt"
-                                  className="h-20 w-auto max-w-[160px] object-cover rounded-lg border border-emerald-200 dark:border-emerald-800/50 hover:opacity-90 transition-opacity cursor-zoom-in"
+              {materialSubTab === "legacy" ? (
+                <>
+                  <div className="space-y-3">
+                    {entry.material_entries?.map((m: any) => {
+                      const receiptUrl: string | null = m.receipt_image_url || null;
+                      const isReceiptImg = receiptUrl ? isImageUrl(receiptUrl) : false;
+                      return (
+                        <div key={m.id} className="p-4 bg-surface-50 border border-surface-200 rounded-xl flex justify-between items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-surface-800">{m.description}</p>
+                            <p className="text-xs font-medium text-surface-500 text-surface-400 mt-1">
+                              Supplier: {m.supplier} • Ticket: {m.ticket_number}
+                              {m.cost != null && ` • Cost: ₹${parseFloat(m.cost).toFixed(2)}`}
+                            </p>
+
+                            {/* Receipt image: thumbnail or file link */}
+                            {receiptUrl && (
+                              <div className="mt-3">
+                                {isReceiptImg ? (
+                                  <a href={receiptUrl} target="_blank" rel="noopener noreferrer" title="View full receipt">
+                                    <img
+                                      src={receiptUrl}
+                                      alt="Receipt"
+                                      className="h-20 w-auto max-w-[160px] object-cover rounded-lg border border-emerald-200 dark:border-emerald-800/50 hover:opacity-90 transition-opacity cursor-zoom-in"
+                                    />
+                                  </a>
+                                ) : (
+                                  <a
+                                    href={receiptUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/50 hover:underline"
+                                  >
+                                    <Receipt className="w-3.5 h-3.5" /> View Receipt PDF
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Attach receipt button for entries without one */}
+                            {!receiptUrl && !isLocked && (
+                              <div className="mt-3">
+                                <input
+                                  type="file"
+                                  id={`receipt-upload-${m.id}`}
+                                  className="hidden"
+                                  accept="image/*,application/pdf"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setUploadingReceiptId(m.id);
+                                    const toastId = toast.loading("Uploading receipt...");
+                                    try {
+                                      await projectsApi.uploadMaterialReceipt(m.id, file);
+                                      toast.success("Receipt attached", { id: toastId });
+                                      onUpdate();
+                                    } catch (err: any) {
+                                      toast.error(err?.message || "Failed to upload receipt", { id: toastId });
+                                    } finally {
+                                      setUploadingReceiptId(null);
+                                      e.target.value = "";
+                                    }
+                                  }}
                                 />
-                              </a>
-                            ) : (
-                              <a
-                                href={receiptUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/50 hover:underline"
-                              >
-                                <Receipt className="w-3.5 h-3.5" /> View Receipt PDF
-                              </a>
+                                <label
+                                  htmlFor={`receipt-upload-${m.id}`}
+                                  className={`inline-flex items-center gap-1.5 text-xs font-medium text-surface-500 hover:text-emerald-600 bg-surface-100 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-surface-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                                    uploadingReceiptId === m.id ? "opacity-60 pointer-events-none" : ""
+                                  }`}
+                                >
+                                  <ImagePlus className="w-3.5 h-3.5" />
+                                  {uploadingReceiptId === m.id ? "Uploading..." : "Attach Receipt"}
+                                </label>
+                              </div>
                             )}
                           </div>
-                        )}
 
-                        {/* Attach receipt button for entries without one */}
-                        {!receiptUrl && !isLocked && (
-                          <div className="mt-3">
-                            <input
-                              type="file"
-                              id={`receipt-upload-${m.id}`}
-                              className="hidden"
-                              accept="image/*,application/pdf"
-                              onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                setUploadingReceiptId(m.id);
-                                const toastId = toast.loading("Uploading receipt...");
-                                try {
-                                  await projectsApi.uploadMaterialReceipt(m.id, file);
-                                  toast.success("Receipt attached", { id: toastId });
-                                  onUpdate();
-                                } catch (err: any) {
-                                  toast.error(err?.message || "Failed to upload receipt", { id: toastId });
-                                } finally {
-                                  setUploadingReceiptId(null);
-                                  e.target.value = "";
-                                }
-                              }}
-                            />
-                            <label
-                              htmlFor={`receipt-upload-${m.id}`}
-                              className={`inline-flex items-center gap-1.5 text-xs font-medium text-surface-500 hover:text-emerald-600 bg-surface-100 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-surface-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors ${
-                                uploadingReceiptId === m.id ? "opacity-60 pointer-events-none" : ""
-                              }`}
-                            >
-                              <ImagePlus className="w-3.5 h-3.5" />
-                              {uploadingReceiptId === m.id ? "Uploading..." : "Attach Receipt"}
-                            </label>
+                          <div className="text-right flex items-start gap-3 shrink-0">
+                            <div className="flex flex-col items-end">
+                              <p className="font-bold text-emerald-600 text-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{m.quantity} <span className="text-sm font-normal text-emerald-700">{m.unit}</span></p>
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full mt-2 ${m.status === 'good' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.status}</span>
+                            </div>
+                            {!isLocked && (
+                              <button onClick={(e) => { e.stopPropagation(); handleDelete("materials", m.id); }} className="p-2 bg-surface-100 hover:bg-red-50 text-surface-400 hover:text-red-500 rounded-lg">
+                                <Trash className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
-                        )}
-                      </div>
-
-                      <div className="text-right flex items-start gap-3 shrink-0">
-                        <div className="flex flex-col items-end">
-                          <p className="font-bold text-emerald-600 text-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">{m.quantity} <span className="text-sm font-normal text-emerald-700">{m.unit}</span></p>
-                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full mt-2 ${m.status === 'good' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.status}</span>
                         </div>
-                        {!isLocked && (
-                          <button onClick={(e) => { e.stopPropagation(); handleDelete("materials", m.id); }} className="p-2 bg-surface-100 hover:bg-red-50 text-surface-400 hover:text-red-500 rounded-lg">
-                            <Trash className="w-4 h-4" />
-                          </button>
-                        )}
+                      );
+                    })}
+                  </div>
+                  
+                  {!isLocked && (
+                    <div className="p-4 border-2 border-dashed border-surface-200 rounded-xl bg-surface-50/50">
+                       <h4 className="text-xs font-bold text-surface-500 text-surface-400 uppercase mb-3 flex items-center gap-1"><Plus className="w-3 h-3" /> Log Delivery</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input type="text" placeholder="Material Description" className="h-10 px-3 rounded-lg border border-surface-200 col-span-1 md:col-span-2 text-sm" value={newMaterial.description} onChange={e => setNewMaterial({...newMaterial, description: e.target.value})}/>
+                        <input type="number" placeholder="Quantity" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.quantity} onChange={e => setNewMaterial({...newMaterial, quantity: e.target.value})}/>
+                        <input type="text" placeholder="Unit (e.g. tons, m3)" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})}/>
+                        <input type="text" placeholder="Supplier" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.supplier} onChange={e => setNewMaterial({...newMaterial, supplier: e.target.value})}/>
+                        <input type="text" placeholder="Ticket Number" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.ticket_number} onChange={e => setNewMaterial({...newMaterial, ticket_number: e.target.value})}/>
+                        <input type="number" step="0.01" placeholder="Cost (e.g. 1500.00)" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.cost} onChange={e => setNewMaterial({...newMaterial, cost: e.target.value})}/>
+                        <select className="h-10 px-3 rounded-lg border border-surface-200 text-sm font-medium" value={newMaterial.status} onChange={e => setNewMaterial({...newMaterial, status: e.target.value})}>
+                          <option value="good">Status: Good Condition</option>
+                          <option value="damaged">Status: Damaged</option>
+                          <option value="rejected">Status: Rejected</option>
+                        </select>
+
+                        {/* Receipt image picker */}
+                        <div className="col-span-1 md:col-span-2">
+                          <input
+                            ref={newMaterialReceiptRef}
+                            type="file"
+                            id={`new-material-receipt-${entry.id}`}
+                            className="hidden"
+                            accept="image/*,application/pdf"
+                            onChange={e => setNewMaterialReceipt(e.target.files?.[0] ?? null)}
+                          />
+                          <label
+                            htmlFor={`new-material-receipt-${entry.id}`}
+                            className="flex items-center gap-2 w-full h-10 px-3 rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 text-sm font-medium cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                          >
+                            <Receipt className="w-4 h-4 shrink-0" />
+                            {newMaterialReceipt
+                              ? <span className="truncate">{newMaterialReceipt.name}</span>
+                              : <span>Attach receipt image or PDF <span className="text-surface-400 font-normal">(optional)</span></span>
+                            }
+                          </label>
+                        </div>
+
+                        <Button className="md:col-span-2" onClick={() => addSubEntry("materials", newMaterial, () => setNewMaterial({description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good", cost: ""}))}>Add Receipt</Button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-              
-              {!isLocked && (
-                <div className="p-4 border-2 border-dashed border-surface-200 rounded-xl bg-surface-50/50">
-                   <h4 className="text-xs font-bold text-surface-500 text-surface-400 uppercase mb-3 flex items-center gap-1"><Plus className="w-3 h-3" /> Log Delivery</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <input type="text" placeholder="Material Description" className="h-10 px-3 rounded-lg border border-surface-200 col-span-1 md:col-span-2 text-sm" value={newMaterial.description} onChange={e => setNewMaterial({...newMaterial, description: e.target.value})}/>
-                    <input type="number" placeholder="Quantity" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.quantity} onChange={e => setNewMaterial({...newMaterial, quantity: e.target.value})}/>
-                    <input type="text" placeholder="Unit (e.g. tons, m3)" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})}/>
-                    <input type="text" placeholder="Supplier" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.supplier} onChange={e => setNewMaterial({...newMaterial, supplier: e.target.value})}/>
-                    <input type="text" placeholder="Ticket Number" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.ticket_number} onChange={e => setNewMaterial({...newMaterial, ticket_number: e.target.value})}/>
-                    <input type="number" step="0.01" placeholder="Cost (e.g. 1500.00)" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newMaterial.cost} onChange={e => setNewMaterial({...newMaterial, cost: e.target.value})}/>
-                    <select className="h-10 px-3 rounded-lg border border-surface-200 text-sm font-medium" value={newMaterial.status} onChange={e => setNewMaterial({...newMaterial, status: e.target.value})}>
-                      <option value="good">Status: Good Condition</option>
-                      <option value="damaged">Status: Damaged</option>
-                      <option value="rejected">Status: Rejected</option>
-                    </select>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Live Material Issue & Stock Transaction Form */}
+                  {!isLocked && (
+                    <form onSubmit={handlePostLiveIssue} className="p-4 border-2 border-emerald-500/30 rounded-xl bg-emerald-950/10 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-emerald-600 uppercase flex items-center gap-1.5">
+                          <UserCheck className="w-4 h-4 text-emerald-500" /> Issue Material Slip to Worker (Live Stock Debit)
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={loadLiveInventoryData}
+                          className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-500 flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-3 h-3" /> Refresh Stock
+                        </button>
+                      </div>
 
-                    {/* Receipt image picker */}
-                    <div className="col-span-1 md:col-span-2">
-                      <input
-                        ref={newMaterialReceiptRef}
-                        type="file"
-                        id={`new-material-receipt-${entry.id}`}
-                        className="hidden"
-                        accept="image/*,application/pdf"
-                        onChange={e => setNewMaterialReceipt(e.target.files?.[0] ?? null)}
-                      />
-                      <label
-                        htmlFor={`new-material-receipt-${entry.id}`}
-                        className="flex items-center gap-2 w-full h-10 px-3 rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 text-sm font-medium cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                      {/* Dynamic Live On-Site Material Availability Inspector Card */}
+                      {selectedMaterialObj && (
+                        <div className="p-3 rounded-xl bg-surface-50 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-inner">
+                          <div>
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-surface-500 block">
+                              Live On-Site Stock Balance for Selected Material
+                            </span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="font-bold text-surface-900 text-sm">{selectedMaterialObj.name}</span>
+                              <span className="text-[10px] font-extrabold font-mono px-1.5 py-0.5 rounded bg-surface-200 text-surface-700">
+                                [{selectedMaterialObj.item_code || "MAT"}]
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <span className="text-[10px] font-semibold text-surface-500 block">Available in Site Yard:</span>
+                              <span className={`text-base font-extrabold font-mono ${availableStockForSelected > 0 ? "text-emerald-600" : "text-red-500"}`}>
+                                {availableStockForSelected.toLocaleString()} {selectedMaterialObj.unit}
+                              </span>
+                            </div>
+                            {availableStockForSelected > 0 ? (
+                              <span className="px-2 py-1 rounded text-[10px] font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-300 uppercase shrink-0">
+                                In Stock
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 rounded text-[10px] font-extrabold bg-red-100 text-red-700 border border-red-300 uppercase shrink-0">
+                                Out of Stock
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="font-bold text-surface-700 block mb-1">Target Construction Site</label>
+                          <select
+                            value={selectedLiveSite}
+                            onChange={(e) => setSelectedLiveSite(e.target.value)}
+                            className="w-full h-9 px-3 rounded-lg border border-surface-200 bg-surface-50 text-surface-800 font-medium"
+                          >
+                            {liveSites.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} [{s.code}]
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-surface-700 block mb-1">Master Material</label>
+                          <select
+                            value={selectedLiveMat}
+                            onChange={(e) => setSelectedLiveMat(e.target.value)}
+                            className="w-full h-9 px-3 rounded-lg border border-surface-200 bg-surface-50 text-surface-800 font-medium"
+                          >
+                            {liveMaterials.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.name} ({m.unit})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-surface-700 block mb-1">Issued To (Worker / Subcontractor)</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Ramesh Kumar / Mason Crew"
+                            value={liveWorker}
+                            onChange={(e) => setLiveWorker(e.target.value)}
+                            className="w-full h-9 px-3 rounded-lg border border-surface-200 bg-surface-50 text-surface-800"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-surface-700 block mb-1">Worker Trade</label>
+                          <select
+                            value={liveTrade}
+                            onChange={(e) => setLiveTrade(e.target.value)}
+                            className="w-full h-9 px-3 rounded-lg border border-surface-200 bg-surface-50 text-surface-800 font-medium"
+                          >
+                            <option value="MASON">Mason</option>
+                            <option value="BAR_BENDER">Bar Bender / Steel Fixer</option>
+                            <option value="CARPENTER">Shuttering Carpenter</option>
+                            <option value="ELECTRICIAN">Electrician</option>
+                            <option value="PLUMBER">Plumber</option>
+                            <option value="PAINTER">Painter</option>
+                            <option value="TILER">Tiler</option>
+                            <option value="WELDER">Welder</option>
+                            <option value="HELPER">Helper / Unskilled Labor</option>
+                            <option value="SUBCONTRACTOR">Subcontractor Firm</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="font-bold text-surface-700">Quantity to Issue</label>
+                            {availableStockForSelected > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setLiveQty(availableStockForSelected)}
+                                className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                              >
+                                Max Available ({availableStockForSelected})
+                              </button>
+                            )}
+                          </div>
+                          <input
+                            type="number"
+                            required
+                            min="0.001"
+                            step="any"
+                            value={liveQty}
+                            onChange={(e) => setLiveQty(parseFloat(e.target.value) || 0)}
+                            className="w-full h-9 px-3 rounded-lg border border-surface-200 bg-surface-50 text-surface-800 font-bold text-emerald-600"
+                          />
+                          {liveQty > availableStockForSelected && availableStockForSelected >= 0 && (
+                            <p className="text-[10px] font-bold text-red-500 mt-1 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3 shrink-0" />
+                              Requested quantity exceeds live available stock ({availableStockForSelected} {selectedMaterialObj?.unit || "units"}).
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-surface-700 block mb-1">Site Location / Zone</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Floor 2, Grid C-4"
+                            value={liveLocation}
+                            onChange={(e) => setLiveLocation(e.target.value)}
+                            className="w-full h-9 px-3 rounded-lg border border-surface-200 bg-surface-50 text-surface-800"
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={isPostingLive || (availableStockForSelected <= 0 && liveQty > 0)}
+                        className="w-full h-9 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
                       >
-                        <Receipt className="w-4 h-4 shrink-0" />
-                        {newMaterialReceipt
-                          ? <span className="truncate">{newMaterialReceipt.name}</span>
-                          : <span>Attach receipt image or PDF <span className="text-surface-400 font-normal">(optional)</span></span>
-                        }
-                      </label>
+                        <UserCheck className="w-4 h-4" />
+                        {isPostingLive ? "Generating Slip & Debit..." : "Generate Issue Slip & Debit Live Stock"}
+                      </Button>
+                    </form>
+                  )}
+
+                  {/* Live Issues Audit List */}
+                  <div className="space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <h4 className="text-xs font-bold text-surface-600 uppercase tracking-wider">
+                        Live Stock Issue Audit Slips ({liveIssues.length})
+                      </h4>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <label className="text-[11px] font-semibold text-surface-500">Filter Material:</label>
+                        <select
+                          value={liveMaterialFilter}
+                          onChange={(e) => setLiveMaterialFilter(e.target.value)}
+                          className="h-7 px-2 text-xs bg-surface-50 border border-surface-200 rounded-lg text-surface-800 font-medium"
+                        >
+                          <option value="ALL">All Materials</option>
+                          <option value="SELECTED">Selected Material Only</option>
+                        </select>
+                      </div>
                     </div>
 
-                    <Button className="md:col-span-2" onClick={() => addSubEntry("materials", newMaterial, () => setNewMaterial({description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good", cost: ""}))}>Add Receipt</Button>
+                    {liveIssues.length === 0 ? (
+                      <p className="text-xs text-surface-400 text-center py-4">No live worker issue slips generated yet.</p>
+                    ) : (
+                      liveIssues
+                        .filter((iss) => liveMaterialFilter === "ALL" || (liveMaterialFilter === "SELECTED" && iss.material === selectedLiveMat))
+                        .map((iss) => (
+                          <div key={iss.id} className="p-3 bg-surface-50 border border-surface-200 rounded-xl flex items-center justify-between gap-3 text-xs">
+                            <div>
+                              <div className="font-bold text-surface-900 flex items-center gap-1.5">
+                                <UserCheck className="w-3.5 h-3.5 text-amber-500" />
+                                {iss.issued_to}
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-purple-100 text-purple-700 uppercase">
+                                  {iss.worker_trade}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-surface-500 mt-0.5">
+                                Material: <span className="font-semibold text-surface-800">{iss.material_name}</span> • Site: {iss.site_name}
+                              </div>
+                              <div className="text-[10px] text-surface-400 mt-0.5">
+                                {new Date(iss.issued_at).toLocaleString()} • Authorized by {iss.issued_by_name || "Storekeeper"}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-emerald-600 text-sm font-mono block">
+                                -{iss.qty} {iss.material_unit}
+                              </span>
+                              <span className="text-[10px] text-surface-400 font-mono">
+                                #{iss.issue_number || "SLIP"}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                    )}
                   </div>
-                </div>
+                </>
               )}
             </div>
           )}
@@ -613,7 +947,12 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({
                 <div className="p-4 border-2 border-dashed border-surface-200 rounded-xl bg-surface-50/50">
                   <h4 className="text-xs font-bold text-surface-500 text-surface-400 uppercase mb-3 flex items-center gap-1"><Plus className="w-3 h-3" /> Log Equipment</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <input type="text" placeholder="Equipment ID / Type" className="h-10 px-3 rounded-lg border border-surface-200 col-span-1 md:col-span-2 text-sm" value={newEquipment.equipment_id} onChange={e => setNewEquipment({...newEquipment, equipment_id: e.target.value})}/>
+                    <input list="equipment-options" type="text" placeholder="Equipment ID / Type (Select or Type)" className="h-10 px-3 rounded-lg border border-surface-200 col-span-1 md:col-span-2 text-sm" value={newEquipment.equipment_id} onChange={e => setNewEquipment({...newEquipment, equipment_id: e.target.value})}/>
+                    <datalist id="equipment-options">
+                      {liveEquipment.map(eq => (
+                        <option key={eq.id} value={`[${eq.equipment_code}] ${eq.name}`} />
+                      ))}
+                    </datalist>
                     <input type="number" placeholder="Hrs Operated" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newEquipment.hours_operated} onChange={e => setNewEquipment({...newEquipment, hours_operated: e.target.value})}/>
                     <input type="number" placeholder="Hrs Idle" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newEquipment.hours_idle} onChange={e => setNewEquipment({...newEquipment, hours_idle: e.target.value})}/>
                     <select className="h-10 px-3 rounded-lg border border-surface-200 col-span-1 md:col-span-2 text-sm font-medium" value={newEquipment.status} onChange={e => setNewEquipment({...newEquipment, status: e.target.value})}>

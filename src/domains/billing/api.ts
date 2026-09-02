@@ -35,10 +35,11 @@ export interface Plan {
 export interface Subscription {
   id: number;
   account: number;
-  status: "active" | "trialing" | "past_due" | "canceled";
+  status: "active" | "trialing" | "past_due" | "canceled" | "pending";
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   provider: string;
+  provider_subscription_id?: string;
   created_at: string;
   updated_at: string;
   plan: Plan | null;
@@ -46,6 +47,7 @@ export interface Subscription {
 
 export interface Invoice {
   id: number;
+  provider_invoice_id?: string;
   amount_due: string;
   amount_paid: string;
   status: string;

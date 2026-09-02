@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { AlertTriangle, Camera, File, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { SkeletonGrid, SkeletonTable } from "@/components/ui/Skeleton";
 
+import { inventoryApi } from "@/domains/inventory/api";
+
 const getLocalDateString = (date: Date = new Date()) => {
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -21,7 +23,7 @@ const getLocalDateString = (date: Date = new Date()) => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-type SiteOpsSubTab = "diary" | "labor" | "materials" | "delays" | "gallery";
+type SiteOpsSubTab = "diary" | "labor" | "materials" | "inventory" | "delays" | "gallery";
 
 interface SiteOpsTabProps {
   projectUid: string;
@@ -34,6 +36,7 @@ const SUBTABS: { id: SiteOpsSubTab; label: string; emoji: string }[] = [
   { id: "diary",     label: "Daily Log",           emoji: "📖" },
   { id: "labor",     label: "Labor & Equipment",    emoji: "👷" },
   { id: "materials", label: "Material Deliveries",  emoji: "📦" },
+  { id: "inventory", label: "Available Site Stock", emoji: "🏗️" },
   { id: "delays",    label: "Delays & Issues",      emoji: "🚧" },
   { id: "gallery",   label: "Site Gallery",         emoji: "📸" },
 ];
@@ -190,6 +193,207 @@ const SiteOpsMaterialsPanel: React.FC<{ projectUid: string }> = ({ projectUid })
           </span>
         </div>
       ))}
+    </div>
+  );
+};
+
+// ── Available Site Stock / Materials Panel ──────────────────────────────────
+const SiteOpsInventoryPanel: React.FC<{ projectUid: string }> = ({ projectUid }) => {
+  const [balances, setBalances] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<"ALL" | "HEALTHY" | "LOW" | "OUT">("ALL");
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await inventoryApi.getAllBalances();
+        setBalances(data);
+      } catch (err) {
+        console.error("Failed to load inventory stock balances", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const getBalVal = (b: any) => Number(b.current_balance ?? b.available_stock ?? 0);
+  const getMinThresh = (b: any) => Number(b.reorder_level ?? b.min_stock ?? b.minimum_threshold ?? 10);
+  const getUnit = (b: any) => b.unit || b.material_unit || "Units";
+
+  const stats = useMemo(() => {
+    const total = balances.length;
+    let healthy = 0;
+    let lowStock = 0;
+    let outOfStock = 0;
+
+    balances.forEach((b) => {
+      const avail = getBalVal(b);
+      const minT = getMinThresh(b);
+      if (avail <= 0) outOfStock++;
+      else if (minT > 0 && avail <= minT) lowStock++;
+      else healthy++;
+    });
+
+    return { total, healthy, lowStock, outOfStock };
+  }, [balances]);
+
+  const filteredBalances = useMemo(() => {
+    return balances.filter((b) => {
+      const matName = String(b.material_name || "").toLowerCase();
+      const siteName = String(b.site_name || "").toLowerCase();
+      const matchSearch = matName.includes(search.toLowerCase()) || siteName.includes(search.toLowerCase());
+      if (!matchSearch) return false;
+
+      const avail = getBalVal(b);
+      const minThresh = getMinThresh(b);
+
+      if (filterType === "HEALTHY") return avail > minThresh;
+      if (filterType === "LOW") return avail > 0 && avail <= minThresh;
+      if (filterType === "OUT") return avail <= 0;
+
+      return true;
+    });
+  }, [balances, search, filterType]);
+
+  if (loading) return <SkeletonTable rows={4} cols={4} />;
+
+  return (
+    <div className="space-y-4 font-sans">
+      {/* KPI Stats Header */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-surface-50 border border-surface-200 p-3.5 rounded-xl shadow-xs">
+          <span className="text-[10px] font-black uppercase tracking-wider text-surface-400 block">Total Catalog Items</span>
+          <span className="text-xl font-black text-primary mt-1 block">{stats.total}</span>
+        </div>
+        <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 p-3.5 rounded-xl shadow-xs">
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Healthy Stock</span>
+          <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">{stats.healthy}</span>
+        </div>
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 p-3.5 rounded-xl shadow-xs">
+          <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Low Stock Alert</span>
+          <span className="text-xl font-black text-amber-600 dark:text-amber-400 mt-1 block">{stats.lowStock}</span>
+        </div>
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/40 p-3.5 rounded-xl shadow-xs">
+          <span className="text-[10px] font-black uppercase tracking-wider text-red-600 dark:text-red-400 block">Out of Stock</span>
+          <span className="text-xl font-black text-red-600 dark:text-red-400 mt-1 block">{stats.outOfStock}</span>
+        </div>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface-50 p-3 rounded-xl border border-surface-200">
+        <input
+          type="text"
+          placeholder="Search available materials or site yard..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-9 px-3 text-xs bg-surface-100 border border-surface-200 rounded-lg text-primary placeholder-surface-400 focus:outline-none focus:border-accent w-full sm:w-72"
+        />
+
+        <div className="flex items-center gap-1.5 overflow-x-auto text-[10px] font-bold">
+          {[
+            { id: "ALL", label: "All Items" },
+            { id: "HEALTHY", label: "In Stock" },
+            { id: "LOW", label: "Low Alert" },
+            { id: "OUT", label: "Out of Stock" },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilterType(f.id as any)}
+              className={`px-3 py-1 rounded-lg border transition-all whitespace-nowrap cursor-pointer ${
+                filterType === f.id
+                  ? "bg-accent text-background font-extrabold border-accent shadow-xs"
+                  : "bg-surface-100 text-surface-500 border-surface-200 hover:bg-surface-200"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stock Balances Table */}
+      <div className="bg-surface-50 border border-surface-200 rounded-2xl overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-surface-100 text-surface-500 uppercase tracking-wider font-extrabold border-b border-surface-200 text-[10px]">
+              <tr>
+                <th className="py-3 px-4">Material Name</th>
+                <th className="py-3 px-4">Site Yard / Location</th>
+                <th className="py-3 px-4 text-center">Available Stock</th>
+                <th className="py-3 px-4 text-center">Reserved</th>
+                <th className="py-3 px-4 text-center">Health Status</th>
+                <th className="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-200/60 text-primary font-medium">
+              {filteredBalances.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-surface-400">
+                    <span className="text-3xl block mb-2">🏗️</span>
+                    <p className="font-bold text-sm text-surface-600">No Site Stock Balances Found</p>
+                    <p className="text-xs text-surface-400">Site inventory stock updates automatically as materials are verified via GRNs.</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredBalances.map((b, idx) => {
+                  const avail = getBalVal(b);
+                  const reserved = Number(b.reserved_stock || 0);
+                  const minThresh = getMinThresh(b);
+                  const unitStr = getUnit(b);
+
+                  const healthStatus = b.health_status || (avail <= 0 ? "CRITICAL_LOW" : avail <= minThresh ? "REORDER_WARNING" : "HEALTHY");
+                  const isOut = healthStatus === "CRITICAL_LOW" || avail <= 0;
+                  const isLow = healthStatus === "REORDER_WARNING" || (avail > 0 && avail <= minThresh);
+
+                  const statusText = isOut ? "Out of Stock" : isLow ? "Reorder Soon" : "Healthy";
+
+                  return (
+                    <tr key={b.id || idx} className="hover:bg-surface-100/50 transition-colors">
+                      <td className="py-3 px-4 font-bold text-primary">
+                        <div>{b.material_name || `Material Item #${idx + 1}`}</div>
+                        <div className="text-[10px] text-surface-400 font-normal mt-0.5">Unit: {unitStr}</div>
+                      </td>
+                      <td className="py-3 px-4 text-surface-500 font-semibold">
+                        📍 {b.site_name || "Main Site Yard"}
+                      </td>
+                      <td className="py-3 px-4 text-center font-mono font-black text-sm">
+                        <span className={isOut ? "text-red-500" : isLow ? "text-amber-500" : "text-emerald-600 dark:text-emerald-400"}>
+                          {avail} {unitStr}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center font-mono text-surface-400 font-bold">
+                        {reserved} {unitStr}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border inline-block ${
+                          isOut
+                            ? "bg-red-500/20 text-red-600 border-red-300"
+                            : isLow
+                            ? "bg-amber-500/20 text-amber-600 border-amber-300 animate-pulse"
+                            : "bg-emerald-500/20 text-emerald-600 border-emerald-300"
+                        }`}>
+                          {statusText}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <a
+                          href="/dashboard/inventory/requisitions"
+                          className="px-3 py-1 text-[10px] font-extrabold rounded-lg bg-surface-200 hover:bg-surface-300 text-primary transition-colors inline-block"
+                        >
+                          Raise MRN
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
@@ -635,6 +839,10 @@ export const SiteOpsTab: React.FC<SiteOpsTabProps> = ({ projectUid, projectTasks
 
             {activeSubTab === "materials" && (
               <SiteOpsMaterialsPanel projectUid={projectUid} />
+            )}
+
+            {activeSubTab === "inventory" && (
+              <SiteOpsInventoryPanel projectUid={projectUid} />
             )}
 
             {activeSubTab === "delays" && (

@@ -53,49 +53,53 @@ export const Sidebar: React.FC = () => {
   const { unreadChatCount } = useNotificationCenter();
 
   const { user } = useAuthStore();
-  const isSuperAdmin = isAdmin || Boolean((user as any)?.is_superuser) || user?.email === "superadmin@ap.com";
+  const rawRole = String((user as any)?.role?.name || (user as any)?.role_name || (user as any)?.role || "").toLowerCase();
+  const rawAccount = String((user as any)?.account?.account_type || (user as any)?.account_type || "").toLowerCase();
+  const isMaterialSupplier = rawRole.includes("supplier") || rawAccount.includes("supplier");
+  const isSuperAdmin = !isMaterialSupplier && (isAdmin || Boolean((user as any)?.is_superuser) || user?.email === "superadmin@ap.com");
 
-  const workspaceLinks = isSuperAdmin ? [
+  const supplierLinks = isMaterialSupplier ? [
+    { label: "Purchase Orders (POs)", href: "/dashboard/inventory/purchase-orders", icon: <ShoppingBag className="w-4 h-4 text-purple-400" /> },
+    { label: "Deliveries & Shipments", href: "/dashboard/inventory/deliveries", icon: <Truck className="w-4 h-4 text-emerald-400" /> },
+    { label: "Master Materials Catalog", href: "/dashboard/materials", icon: <Layers className="w-4 h-4 text-accent" /> },
+    { label: "Material Categories", href: "/dashboard/materials/categories", icon: <Tag className="w-4 h-4 text-accent" /> },
+    { label: "Approved Brands", href: "/dashboard/materials/brands", icon: <Award className="w-4 h-4 text-accent" /> },
+    { label: "My Postings & Tenders", href: "/dashboard/opportunities", icon: <Briefcase className="w-4 h-4 text-accent" /> },
+  ] : [];
+
+  const workspaceLinks = isMaterialSupplier ? [
+    { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  ] : (isSuperAdmin ? [
     { label: "Admin Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   ] : [
     { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
     { label: "Projects", href: "/dashboard/projects", icon: <FolderKanban className="w-4 h-4" /> },
+    { label: "My Postings", href: "/dashboard/opportunities", icon: <Briefcase className="w-4 h-4 text-accent" /> },
     { label: "Shared Tasks", href: "/dashboard/shared-tasks", icon: <Share2 className="w-4 h-4" /> },
     { label: "Templates", href: "/dashboard/templates", icon: <FileSpreadsheet className="w-4 h-4" /> },
     { label: "Business Leads", href: "/dashboard/leads", icon: <Briefcase className="w-4 h-4" /> },
+  ]);
+
+  const inventoryLinks = isMaterialSupplier ? [] : [
+    { label: "Inventory Dashboard", href: "/dashboard/inventory", icon: <Warehouse className="w-4 h-4" /> },
+    { label: "Procurement", href: "/dashboard/inventory/procurement", icon: <ShoppingBag className="w-4 h-4 text-purple-400" /> },
+    { label: "Sites & Logistics", href: "/dashboard/inventory/sites", icon: <ArrowLeftRight className="w-4 h-4 text-emerald-400" /> },
+    { label: "Equipment & Assets", href: "/dashboard/inventory/maintenance", icon: <Wrench className="w-4 h-4 text-accent" /> },
+    { label: "Master Data & Vendors", href: "/dashboard/materials", icon: <Layers className="w-4 h-4 text-accent" /> },
   ];
 
-  const inventoryLinks = [
-    { label: "Stock Overview", href: "/dashboard/inventory", icon: <Warehouse className="w-4 h-4" /> },
-    { label: "Vendors Master", href: "/dashboard/inventory/vendors", icon: <Building2 className="w-4 h-4" /> },
-    { label: "Sites & Godowns", href: "/dashboard/inventory/sites", icon: <Warehouse className="w-4 h-4" /> },
-    { label: "Master Materials", href: "/dashboard/materials", icon: <Layers className="w-4 h-4 text-accent" /> },
-    { label: "Material Categories", href: "/dashboard/materials/categories", icon: <Tag className="w-4 h-4 text-accent" /> },
-    { label: "Approved Brands", href: "/dashboard/materials/brands", icon: <Award className="w-4 h-4 text-accent" /> },
-    { label: "Material Requisitions", href: "/dashboard/inventory/requisitions", icon: <ClipboardList className="w-4 h-4" /> },
-    { label: "Purchase Orders", href: "/dashboard/inventory/purchase-orders", icon: <FileSpreadsheet className="w-4 h-4" /> },
-    { label: "Gate Receipts & GRN", href: "/dashboard/inventory/deliveries", icon: <Truck className="w-4 h-4" /> },
-    { label: "Trade Issues", href: "/dashboard/inventory/issues", icon: <ArrowUpRight className="w-4 h-4" /> },
-    { label: "Inter-Site Transfers", href: "/dashboard/inventory/transfers", icon: <ArrowLeftRight className="w-4 h-4" /> },
-    { label: "Physical Stock Audit", href: "/dashboard/inventory/audit", icon: <ClipboardCheck className="w-4 h-4" /> },
-    { label: "Equipment & Tools", href: "/dashboard/inventory/equipment", icon: <Wrench className="w-4 h-4" /> },
-    { label: "Equipment Maintenance", href: "/dashboard/inventory/maintenance", icon: <Wrench className="w-4 h-4 text-accent" /> },
-    { label: "Calc Engine", href: "/dashboard/materials/calculator", icon: <Calculator className="w-4 h-4 text-accent" /> },
-    { label: "Reports Hub", href: "/dashboard/inventory/reports", icon: <BarChart3 className="w-4 h-4 text-accent" /> },
-  ];
-
-  const showroomLinks = isSuperAdmin ? [] : [
+  const showroomLinks = isMaterialSupplier ? [] : (isSuperAdmin ? [] : [
     { label: "Discover Catalog", href: "/dashboard/showroom", icon: <ShoppingBag className="w-4 h-4" /> },
     { label: "My Orders", href: "/dashboard/showroom/orders", icon: <Package className="w-4 h-4" /> },
     { label: "Vendor Dashboard", href: "/dashboard/showroom/dashboard", icon: <Store className="w-4 h-4" /> },
     { label: "Showroom Chats", href: "/dashboard/showroom/chats", icon: <MessageSquare className="w-4 h-4" />, badge: unreadChatCount },
-  ];
+  ]);
 
-  const opsLinks = isSuperAdmin ? [] : [
+  const opsLinks = isMaterialSupplier ? [] : (isSuperAdmin ? [] : [
     { label: "Calendar", href: "/dashboard/calendar", icon: <Calendar className="w-4 h-4" /> },
-  ];
+  ]);
 
-  const orgLinks = isSuperAdmin ? [
+  const orgLinks = isMaterialSupplier ? [] : (isSuperAdmin ? [
     { label: "User Directory", href: "/dashboard/users", icon: <Users className="w-4 h-4 text-accent" /> },
     { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> },
     { label: "CPWD Rate Master", href: "/dashboard/admin/cpwd-rates", icon: <BookOpen className="w-4 h-4 text-accent" /> },
@@ -107,9 +111,11 @@ export const Sidebar: React.FC = () => {
     { label: "Master Catalog", href: "/dashboard/catalog", icon: <BookOpen className="w-4 h-4" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4" /> },
     { label: "BOQ Builder", href: "/dashboard/tools/boq-builder", icon: <Calculator className="w-4 h-4" /> },
-  ];
+  ]);
 
-  const settingsLinks = [
+  const settingsLinks = isMaterialSupplier ? [
+    { label: "My Profile", href: "/dashboard/profile", icon: <User className="w-4 h-4" /> },
+  ] : [
     { label: "My Profile", href: "/dashboard/profile", icon: <User className="w-4 h-4" /> },
     { label: "Subscription", href: "/dashboard/subscription", icon: <CreditCard className="w-4 h-4" /> },
   ];
@@ -178,20 +184,37 @@ export const Sidebar: React.FC = () => {
 
       {/* Main Navigation Links */}
       <nav className="flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto overflow-x-hidden no-scrollbar">
-        <div>
-          {!isSidebarCollapsed && (
-            <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
-              Workspace
-            </h4>
-          )}
-          <div className="flex flex-col gap-1">
-            {workspaceLinks.map((link) => (
-              <React.Fragment key={link.href}>
-                <SidebarLink {...link} active={pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href))} isCollapsed={isSidebarCollapsed} />
-              </React.Fragment>
-            ))}
+        {supplierLinks.length > 0 && (
+          <div>
+            {!isSidebarCollapsed && (
+              <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
+                Supplier Catalog
+              </h4>
+            )}
+            <div className="flex flex-col gap-1">
+              {supplierLinks.map((link) => (
+                <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {workspaceLinks.length > 0 && (
+          <div>
+            {!isSidebarCollapsed && (
+              <h4 className="px-2.5 mb-1.5 text-[9px] uppercase tracking-widest text-surface-400 font-extrabold">
+                Workspace
+              </h4>
+            )}
+            <div className="flex flex-col gap-1">
+              {workspaceLinks.map((link) => (
+                <React.Fragment key={link.href}>
+                  <SidebarLink {...link} active={pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href))} isCollapsed={isSidebarCollapsed} />
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        )}
 
         {inventoryLinks.length > 0 && (
           <div>
@@ -298,6 +321,7 @@ interface SidebarLinkProps {
 const SidebarLink: React.FC<SidebarLinkProps> = ({ label, href, icon, active, isCollapsed, badge }) => (
   <Link
     href={href}
+    prefetch={true}
     className={`nav-item relative ${active ? "active" : ""} ${isCollapsed ? 'justify-center p-0 w-8 h-8 rounded-lg mx-auto text-xs' : ''}`}
     title={isCollapsed ? label : undefined}
   >

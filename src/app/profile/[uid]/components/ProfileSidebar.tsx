@@ -56,10 +56,24 @@ export function ProfileSidebar({ profile, onOpenContactModal }: ProfileSidebarPr
               >
                 <div className="w-8 h-8 rounded-xl overflow-hidden bg-surface-200 shrink-0 border border-surface-300">
                   {sh.avatar ? (
-                    <img src={sh.avatar} alt={sh.name} className="w-full h-full object-cover" />
+                    <img 
+                      src={sh.avatar} 
+                      alt={sh.name} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                        if (parent && !parent.querySelector('.fallback-initial')) {
+                          const div = document.createElement('div');
+                          div.className = 'fallback-initial w-full h-full flex items-center justify-center font-bold text-xs text-primary/60 bg-surface-200';
+                          div.innerText = sh.name ? sh.name.charAt(0).toUpperCase() : '?';
+                          parent.appendChild(div);
+                        }
+                      }}
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center font-bold text-xs text-surface-400">
-                      {sh.name.charAt(0)}
+                    <div className="w-full h-full flex items-center justify-center font-bold text-xs text-primary/60 bg-surface-200">
+                      {sh.name ? sh.name.charAt(0).toUpperCase() : '?'}
                     </div>
                   )}
                 </div>

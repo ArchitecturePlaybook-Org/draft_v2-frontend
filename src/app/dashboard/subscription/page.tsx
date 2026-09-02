@@ -41,7 +41,7 @@ function UsageMeter({
 
   return (
     <li className="space-y-2">
-      <div className="flex justify-between items-center text-[10px]">
+      <div className="flex justify-between items-center text-[11px]">
         <span className="font-bold text-surface-400 uppercase tracking-widest">{label}</span>
         <span className={`font-black tracking-wider ${isAtLimit ? "text-red-400" : isNearLimit ? "text-amber-400" : "text-primary"}`}>
           {unit ? `${used}${unit}` : used} / {isUnlimited ? "∞" : `${limit}${unit}`}
@@ -167,6 +167,39 @@ export default function SubscriptionPage() {
     }
   };
 
+  const handleActivatePending = async () => {
+    if (!sub) return;
+    setIsLoading(true);
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const subId = sub.provider_subscription_id || `sub_mock_${Date.now()}`;
+    const provider = sub.provider || "razorpay";
+    try {
+      await fetch(`${backendUrl}/api/v1/billing/webhook/${provider}/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          provider === "stripe"
+            ? {
+                type: "checkout.session.completed",
+                data: { object: { subscription: subId } },
+              }
+            : {
+                event: "subscription.charged",
+                payload: {
+                  subscription: { entity: { id: subId, charge_at: null } },
+                  payment: { entity: { id: `pay_mock_${Date.now()}`, amount: 249900, currency: "INR" } },
+                },
+              }
+        ),
+      });
+      showToast("success", "Subscription activated successfully!");
+      window.location.reload();
+    } catch (err: any) {
+      showToast("error", err?.message || "Failed to activate subscription.");
+      setIsLoading(false);
+    }
+  };
+
   const currentPlanCode = sub?.plan?.code ?? "starter";
 
   const trialDaysLeft =
@@ -200,8 +233,8 @@ export default function SubscriptionPage() {
       {/* Page Header */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-4xl font-black text-primary mb-3 tracking-tighter">Subscription</h1>
-          <p className="text-surface-400 font-bold uppercase tracking-widest text-[10px] max-w-2xl leading-relaxed">
+          <h1 className="text-2xl font-black text-primary mb-3 tracking-tighter">Subscription</h1>
+          <p className="text-surface-400 font-bold uppercase tracking-widest text-[11px] max-w-2xl leading-relaxed">
             Manage your billing, active plans, and institutional access capabilities.
           </p>
         </div>
@@ -210,7 +243,7 @@ export default function SubscriptionPage() {
       {/* Current Plan Banner */}
       <motion.section
         variants={itemVariants}
-        className="bg-surface-50/40 backdrop-blur-2xl p-8 border border-white/20 dark:border-white/5 rounded-[2rem] relative overflow-hidden shadow-2xl shadow-primary/5 group"
+        className="bg-surface-50/40 backdrop-blur-2xl p-6 border border-white/20 dark:border-white/5 rounded-2xl relative overflow-hidden shadow-2xl shadow-primary/5 group"
       >
         <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent pointer-events-none" />
         <div className="absolute top-0 right-0 w-64 h-full arch-grid opacity-[0.05] pointer-events-none mix-blend-overlay" />
@@ -240,15 +273,30 @@ export default function SubscriptionPage() {
           </div>
         )}
 
+        {sub?.status === "pending" && (
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 py-3 rounded-xl border bg-amber-500/10 border-amber-500/20 text-amber-400 text-sm font-semibold">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>You have a pending subscription checkout for the {sub.plan?.name ?? "Professional"} plan.</span>
+            </div>
+            <button
+              onClick={handleActivatePending}
+              className="px-4 py-1.5 bg-accent text-background font-bold text-xs uppercase tracking-widest rounded-xl hover:brightness-110 transition flex-shrink-0"
+            >
+              Activate Subscription
+            </button>
+          </div>
+        )}
+
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-3">
-            <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
+            <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full ${sub?.status === "active" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-amber-500"}`} />
               Active Subscription
             </h3>
             <div className="flex items-center gap-4 flex-wrap">
-              <h2 className="text-3xl font-black text-primary tracking-tighter">{sub?.plan?.name ?? "Starter"}</h2>
-              <span className={`text-[10px] font-bold px-3 py-1 uppercase tracking-[0.2em] rounded-full border ${
+              <h2 className="text-xl font-black text-primary tracking-tighter">{sub?.plan?.name ?? "Starter"}</h2>
+              <span className={`text-[11px] font-bold px-3 py-1 uppercase tracking-[0.2em] rounded-full border ${
                 sub?.status === "active"
                   ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                   : sub?.status === "trialing"
@@ -258,12 +306,12 @@ export default function SubscriptionPage() {
                 {sub?.status ?? "free"}
               </span>
               {sub?.cancel_at_period_end && (
-                <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
                   Cancels {sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : "soon"}
                 </span>
               )}
             </div>
-            <p className="text-surface-400 text-[10px] font-bold uppercase tracking-widest">
+            <p className="text-surface-400 text-[11px] font-bold uppercase tracking-widest">
               Next billing cycle:{" "}
               <span className="text-primary">
                 {sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : "N/A"}
@@ -280,7 +328,7 @@ export default function SubscriptionPage() {
             {sub?.status === "active" && !sub.cancel_at_period_end && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
-                className="text-[10px] font-bold text-surface-500 uppercase tracking-widest hover:text-red-400 transition-colors"
+                className="text-[11px] font-bold text-surface-500 uppercase tracking-widest hover:text-red-400 transition-colors"
               >
                 Cancel Subscription
               </button>
@@ -300,13 +348,13 @@ export default function SubscriptionPage() {
               <button
                 onClick={handleCancel}
                 disabled={isCancelling}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-colors disabled:opacity-50"
               >
                 {isCancelling ? "Cancelling..." : "Yes, Cancel"}
               </button>
               <button
                 onClick={() => setShowCancelConfirm(false)}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors"
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-primary text-[11px] font-black uppercase tracking-widest rounded-xl transition-colors"
               >
                 Keep Plan
               </button>
@@ -317,8 +365,8 @@ export default function SubscriptionPage() {
 
       {/* Live Usage Meters */}
       {usage && (
-        <motion.section variants={itemVariants} className="bg-surface-50/40 backdrop-blur-xl p-8 border border-white/20 dark:border-white/5 rounded-[2rem] space-y-6 shadow-xl shadow-primary/5">
-          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
+        <motion.section variants={itemVariants} className="bg-surface-50/40 backdrop-blur-xl p-6 border border-white/20 dark:border-white/5 rounded-2xl space-y-6 shadow-xl shadow-primary/5">
+          <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
             Current Usage
           </h3>
@@ -353,7 +401,7 @@ export default function SubscriptionPage() {
       {/* Plan Comparison */}
       <motion.section variants={itemVariants} className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
+          <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
             {currentPlanCode !== "enterprise" ? "Upgrade Your Plan" : "Your Plan"}
           </h3>
@@ -361,7 +409,7 @@ export default function SubscriptionPage() {
           <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1">
             <button
               onClick={() => setBillingCycle("monthly")}
-              className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+              className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${
                 billingCycle === "monthly" ? "bg-primary text-background" : "text-surface-400 hover:text-primary"
               }`}
             >
@@ -369,7 +417,7 @@ export default function SubscriptionPage() {
             </button>
             <button
               onClick={() => setBillingCycle("yearly")}
-              className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+              className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${
                 billingCycle === "yearly" ? "bg-primary text-background" : "text-surface-400 hover:text-primary"
               }`}
             >
@@ -383,10 +431,11 @@ export default function SubscriptionPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {isLoading
             ? [1, 2, 3].map((i) => (
-                <div key={i} className="h-72 bg-white/5 border border-white/10 rounded-[2rem] animate-pulse" />
+                <div key={i} className="h-72 bg-white/5 border border-white/10 rounded-2xl animate-pulse" />
               ))
             : plans.map((plan) => {
-                const isCurrent = plan.code === currentPlanCode;
+                const isCurrent = plan.code === currentPlanCode && sub?.status === "active";
+                const isPendingPlan = plan.code === currentPlanCode && sub?.status === "pending";
                 const isEnterprise = plan.code === "enterprise";
                 const isPro = plan.code === "professional";
                 const price = billingCycle === "yearly" ? plan.yearly_price : plan.monthly_price;
@@ -395,13 +444,13 @@ export default function SubscriptionPage() {
                   <motion.div
                     key={plan.code}
                     whileHover={!isCurrent ? { y: -6, scale: 1.01 } : {}}
-                    className={`relative p-7 rounded-[2rem] flex flex-col gap-5 transition-all duration-300 ${
+                    className={`relative p-5 rounded-2xl flex flex-col gap-5 transition-all duration-300 ${
                       isPro
                         ? "bg-surface-900 border-2 border-accent/40 shadow-2xl shadow-accent/10"
                         : "bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5"
                     }`}
                   >
-                    {isPro && (
+                    {isPro && !isCurrent && !isPendingPlan && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                         <span className="bg-accent text-background text-[9px] font-black uppercase tracking-[0.3em] px-4 py-1 rounded-full shadow-lg">
                           Recommended
@@ -415,6 +464,13 @@ export default function SubscriptionPage() {
                         </span>
                       </div>
                     )}
+                    {isPendingPlan && (
+                      <div className="absolute -top-3 right-6">
+                        <span className="bg-amber-500 text-background text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full shadow-lg animate-pulse">
+                          Pending Payment
+                        </span>
+                      </div>
+                    )}
 
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -423,15 +479,15 @@ export default function SubscriptionPage() {
                         {plan.code === "enterprise" && <Crown className="w-4 h-4 text-amber-400" />}
                         <h4 className="text-sm font-black text-primary uppercase tracking-[0.2em]">{plan.name}</h4>
                       </div>
-                      <p className="text-[10px] text-surface-400 font-medium leading-relaxed">{plan.description}</p>
+                      <p className="text-[11px] text-surface-400 font-medium leading-relaxed">{plan.description}</p>
                     </div>
 
                     <div>
-                      <p className="text-3xl font-black text-primary tracking-tighter">
+                      <p className="text-xl font-black text-primary tracking-tighter">
                         {parseFloat(price) === 0 ? "Free" : formatCurrency(price, plan.currency)}
                       </p>
                       {parseFloat(price) > 0 && (
-                        <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">
+                        <p className="text-[11px] font-bold text-surface-400 uppercase tracking-widest">
                           /{billingCycle === "yearly" ? "year" : "month"}
                         </p>
                       )}
@@ -461,13 +517,21 @@ export default function SubscriptionPage() {
                     </ul>
 
                     {isCurrent ? (
-                      <div className="h-11 flex items-center justify-center text-[10px] font-black text-surface-500 uppercase tracking-widest border border-white/10 rounded-2xl">
-                        Current Plan
+                      <div className="h-9 flex items-center justify-center text-[11px] font-black text-emerald-500 uppercase tracking-widest border border-emerald-500/20 bg-emerald-500/10 rounded-2xl">
+                        Current Plan (Active)
                       </div>
+                    ) : isPendingPlan ? (
+                      <button
+                        onClick={handleActivatePending}
+                        className="w-full h-9 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest bg-amber-500 hover:bg-amber-400 text-background rounded-2xl transition-all shadow-lg"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        Activate Pending Plan
+                      </button>
                     ) : isEnterprise ? (
                       <a
                         href="mailto:sales@architectureplaybook.com?subject=Enterprise Plan Enquiry"
-                        className="h-11 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-2xl hover:bg-amber-500/20 transition-colors"
+                        className="h-9 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-2xl hover:bg-amber-500/20 transition-colors"
                       >
                         Contact Sales
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -477,7 +541,7 @@ export default function SubscriptionPage() {
                         <button
                           onClick={() => handleUpgrade(plan)}
                           disabled={isUpgrading === plan.code}
-                          className={`w-full h-11 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all disabled:opacity-60 ${
+                          className={`w-full h-9 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest rounded-2xl transition-all disabled:opacity-60 ${
                             isPro
                               ? "bg-accent hover:bg-accent/90 text-background shadow-[0_0_15px_rgba(var(--color-accent),0.3)]"
                               : "bg-white/10 hover:bg-white/20 text-primary border border-white/10"
@@ -498,7 +562,7 @@ export default function SubscriptionPage() {
                             onClick={() => {
                               router.push(`/billing/upi?plan=${plan.code}&billing_cycle=${billingCycle}`);
                             }}
-                            className="w-full h-11 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest bg-[#5f259f] hover:bg-[#4b1d7d] text-white border border-[#5f259f]/50 rounded-2xl transition-all shadow-lg shadow-[#5f259f]/20"
+                            className="w-full h-9 flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest bg-[#5f259f] hover:bg-[#4b1d7d] text-white border border-[#5f259f]/50 rounded-2xl transition-all shadow-lg shadow-[#5f259f]/20"
                           >
                             <span className="text-sm leading-none">⚡</span> Pay with UPI
                           </button>
@@ -512,18 +576,18 @@ export default function SubscriptionPage() {
 
         {/* Feature comparison table */}
         <details className="group">
-          <summary className="flex items-center gap-2 cursor-pointer text-[10px] font-black text-surface-400 uppercase tracking-widest hover:text-primary transition-colors w-fit list-none">
+          <summary className="flex items-center gap-2 cursor-pointer text-[11px] font-black text-surface-400 uppercase tracking-widest hover:text-primary transition-colors w-fit list-none">
             <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
             Compare All Features
           </summary>
-          <div className="mt-4 bg-surface-50/30 backdrop-blur-xl border border-white/10 rounded-[1.5rem] overflow-hidden">
+          <div className="mt-4 bg-surface-50/30 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-surface-900/30">
-                  <th className="py-4 px-4 text-left text-[10px] font-black text-surface-400 uppercase tracking-widest w-1/2">Feature</th>
-                  <th className="py-4 px-4 text-center text-[10px] font-black text-surface-400 uppercase tracking-widest">Starter</th>
-                  <th className="py-4 px-4 text-center text-[10px] font-black text-accent uppercase tracking-widest bg-accent/5">Professional</th>
-                  <th className="py-4 px-4 text-center text-[10px] font-black text-amber-400 uppercase tracking-widest">Enterprise</th>
+                  <th className="py-4 px-4 text-left text-[11px] font-black text-surface-400 uppercase tracking-widest w-1/2">Feature</th>
+                  <th className="py-4 px-4 text-center text-[11px] font-black text-surface-400 uppercase tracking-widest">Starter</th>
+                  <th className="py-4 px-4 text-center text-[11px] font-black text-accent uppercase tracking-widest bg-accent/5">Professional</th>
+                  <th className="py-4 px-4 text-center text-[11px] font-black text-amber-400 uppercase tracking-widest">Enterprise</th>
                 </tr>
               </thead>
               <tbody>
@@ -547,8 +611,8 @@ export default function SubscriptionPage() {
       </motion.section>
 
       {/* Payment History */}
-      <motion.section variants={itemVariants} className="bg-surface-50/40 backdrop-blur-xl p-8 border border-white/20 dark:border-white/5 rounded-[2rem] space-y-8 shadow-xl shadow-primary/5">
-        <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
+      <motion.section variants={itemVariants} className="bg-surface-50/40 backdrop-blur-xl p-6 border border-white/20 dark:border-white/5 rounded-2xl space-y-8 shadow-xl shadow-primary/5">
+        <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
           Payment History
         </h3>

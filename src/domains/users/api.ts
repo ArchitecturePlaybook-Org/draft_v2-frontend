@@ -153,5 +153,41 @@ export const usersApi = {
     return fetchFromBff<AdminDashboardStats>("/api/v1/users/admin/dashboard-stats/", {
       method: "GET",
     });
+  },
+
+  listRoles: async () => {
+    try {
+      const response = await fetchFromBff<{ id: number; name: string; description: string }[] | { results: { id: number; name: string; description: string }[] }>("/api/v1/users/admin/roles/");
+      if (Array.isArray(response)) return response;
+      return (response as any)?.results || [];
+    } catch (e) {
+      return [
+        { id: 5, name: "ADMIN", description: "Site-Wide Superadmin" },
+        { id: 13, name: "Vendor Admin", description: "Vendor Portal Administrator" },
+        { id: 12, name: "procurement_officer", description: "Procurement Manager" },
+        { id: 14, name: "material_supplier", description: "Material Supplier" },
+        { id: 10, name: "storekeeper", description: "Site Storekeeper" },
+        { id: 11, name: "site_engineer", description: "Site Engineer" },
+        { id: 1, name: "architect", description: "Architect" },
+        { id: 2, name: "constructor", description: "General Contractor" },
+        { id: 4, name: "co_owner", description: "Co-Owner" },
+        { id: 3, name: "client", description: "Client" },
+        { id: 6, name: "USER", description: "Standard Participant" }
+      ];
+    }
+  },
+
+  assignRole: async (userId: string, roleName: string) => {
+    return fetchFromBff<{ success: boolean; role: string }>("/api/v1/users/admin/users/role/assign/", {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId, role_name: roleName }),
+    });
+  },
+
+  createUser: async (data: { email: string; name: string; role_name: string; password?: string }) => {
+    return fetchFromBff<{ success: boolean; id: number; uid: string; email: string; name: string; role: string }>("/api/v1/users/admin/users/create/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 };

@@ -86,8 +86,26 @@ export function DashboardView() {
     return "Good evening";
   };
 
+  const rawRole = String((user as any)?.role?.name || (user as any)?.role_name || (user as any)?.role || "").toLowerCase();
+  const rawAccount = String((user as any)?.account?.account_type || (user as any)?.account_type || "").toLowerCase();
+  const isMaterialSupplier = rawRole.includes("supplier") || rawAccount.includes("supplier");
+
+  React.useEffect(() => {
+    if (isMounted && isMaterialSupplier) {
+      router.replace("/dashboard/inventory/purchase-orders");
+    }
+  }, [isMounted, isMaterialSupplier, router]);
+
   if (isUserLoading || isLoadingData || !isMounted) {
     return <SkeletonDashboard />;
+  }
+
+  if (isMaterialSupplier) {
+    return (
+      <div className="p-10 text-center space-y-3 font-sans">
+        <div className="animate-spin text-purple-400 font-bold text-sm">Redirecting to Supplier Portal Purchase Orders...</div>
+      </div>
+    );
   }
 
   if (isSuperAdmin) {

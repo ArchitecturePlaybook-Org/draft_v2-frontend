@@ -119,6 +119,12 @@ export const inventoryApi = {
     return unpackArray<MasterMaterial>(res);
   },
 
+  getMaterial: async (id: string): Promise<MasterMaterial> => {
+    return fetchFromBff<MasterMaterial>(`/api/v1/inventory/materials/${id}/`, {
+      method: "GET",
+    });
+  },
+
   createMaterial: async (data: Partial<MasterMaterial>): Promise<MasterMaterial> => {
     return fetchFromBff<MasterMaterial>("/api/v1/inventory/materials/", {
       method: "POST",
@@ -286,6 +292,19 @@ export const inventoryApi = {
     });
   },
 
+  // ── Double-Entry Stock Ledger Audit ───────────────────────────────────────
+  getStockLedger: async (params?: { site_id?: string; material_id?: string; txn_type?: string }): Promise<StockLedgerEntry[]> => {
+    const searchParams = new URLSearchParams();
+    if (params?.site_id && params.site_id !== "ALL") searchParams.append("site_id", params.site_id);
+    if (params?.material_id) searchParams.append("material_id", params.material_id);
+    if (params?.txn_type && params.txn_type !== "ALL") searchParams.append("txn_type", params.txn_type);
+
+    const query = searchParams.toString();
+    const url = query ? `/api/v1/inventory/stock-ledger/?${query}` : "/api/v1/inventory/stock-ledger/";
+    const res = await fetchFromBff<any>(url, { method: "GET" });
+    return unpackArray<StockLedgerEntry>(res);
+  },
+
   // ── Equipment & Tools ─────────────────────────────────────────────────────
   getEquipmentList: async (params?: { site_id?: string; status?: string }): Promise<Equipment[]> => {
     const searchParams = new URLSearchParams();
@@ -295,6 +314,26 @@ export const inventoryApi = {
     const url = `/api/v1/inventory/equipment/?${searchParams.toString()}`;
     const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<Equipment>(res);
+  },
+
+  createEquipment: async (data: any): Promise<Equipment> => {
+    return fetchFromBff<Equipment>("/api/v1/inventory/equipment/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateEquipment: async (id: string, data: any): Promise<Equipment> => {
+    return fetchFromBff<Equipment>(`/api/v1/inventory/equipment/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteEquipment: async (id: string): Promise<void> => {
+    await fetchFromBff<void>(`/api/v1/inventory/equipment/${id}/`, {
+      method: "DELETE",
+    });
   },
 
   checkoutEquipment: async (
@@ -379,10 +418,42 @@ export const inventoryApi = {
     vendor: Vendor;
     email_sent_to: string;
     role: string;
+    token?: string;
   }> => {
     return fetchFromBff<any>(`/api/v1/inventory/vendors/${id}/onboard/`, {
       method: "POST",
       body: JSON.stringify(data || {}),
+    });
+  },
+
+  verifyOnboardingToken: async (token: string): Promise<{
+    valid: boolean;
+    vendor_name?: string;
+    vendor_code?: string;
+    admin_name?: string;
+    email?: string;
+    error?: string;
+  }> => {
+    return fetchFromBff<any>(`/api/v1/inventory/vendors/verify-token/?token=${encodeURIComponent(token)}`, {
+      method: "GET",
+    });
+  },
+
+  completeOnboarding: async (data: {
+    token: string;
+    password: string;
+    confirm_password: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    access?: string;
+    refresh?: string;
+    user?: any;
+    error?: string;
+  }> => {
+    return fetchFromBff<any>("/api/v1/inventory/vendors/complete-onboarding/", {
+      method: "POST",
+      body: JSON.stringify(data),
     });
   },
 
@@ -503,20 +574,41 @@ export const inventoryApi = {
     return unpackArray<Equipment>(res);
   },
 
-  getStockLedger: async (params?: { site_id?: string; txn_type?: string }): Promise<StockLedgerEntry[]> => {
-    const q = new URLSearchParams();
-    if (params?.site_id) q.append("site_id", params.site_id);
-    if (params?.txn_type) q.append("txn_type", params.txn_type);
-    const url = q.toString() ? `/api/v1/inventory/stock-ledger/?${q}` : "/api/v1/inventory/stock-ledger/";
-    const res = await fetchFromBff<any>(url, { method: "GET" });
-    return unpackArray<StockLedgerEntry>(res);
+
+
+
+
+  getPurchaseOrder: async (id: string): Promise<PurchaseOrder> => {
+    return fetchFromBff<PurchaseOrder>(`/api/v1/inventory/purchase-orders/${id}/`, {
+      method: "GET",
+    });
   },
 
-  // ── Calculator Engine API ─────────────────────────────────────────────────
-  runCalculator: async (payload: Record<string, any>): Promise<any> => {
-    return fetchFromBff<any>("/api/v1/inventory/calculate/", {
+  updatePurchaseOrder: async (id: string, data: Partial<PurchaseOrder>): Promise<PurchaseOrder> => {
+    return fetchFromBff<PurchaseOrder>(`/api/v1/inventory/purchase-orders/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  createPurchaseOrder: async (data: {
+    vendor: string;
+    site: string;
+    expected_delivery_date?: string;
+    terms_and_conditions?: string;
+    subtotal_amount?: number;
+    tax_amount?: number;
+    total_amount?: number;
+    items: Array<{
+      material: string;
+      qty: number;
+      rate: number;
+      tax_percent?: number;
+    }>;
+  }): Promise<PurchaseOrder> => {
+    return fetchFromBff<PurchaseOrder>("/api/v1/inventory/purchase-orders/", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
   },
 };

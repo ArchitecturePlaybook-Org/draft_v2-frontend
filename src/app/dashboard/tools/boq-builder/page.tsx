@@ -3,12 +3,14 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { calculateBOQ } from "@/domains/boq/engine";
 import { boqApi } from "@/domains/boq/api";
 import { BOQParameters, BOQResult, BOQTypologyDB, DEFAULT_PARAMS, TYPOLOGY_OPTIONS } from "@/domains/boq/types";
+import { IFCStorey, ParsedIFCResult } from "@/domains/boq/ifc-types";
 import BOQParametricForm from "@/components/boq/BOQParametricForm";
 import BOQLineItemsTable from "@/components/boq/BOQLineItemsTable";
 import BOQSummaryCard from "@/components/boq/BOQSummaryCard";
 import BOQAutoPlanVisualizer from "@/components/boq/BOQAutoPlanVisualizer";
+import IFCUploadModal from "@/components/boq/IFCUploadModal";
 import Link from "next/link";
-import { Shield } from "lucide-react";
+import { Shield, FileCode, Sparkles, CheckCircle } from "lucide-react";
 
 export default function BOQBuilderPage() {
   const [params, setParams] = useState<BOQParameters>(DEFAULT_PARAMS);
@@ -18,6 +20,37 @@ export default function BOQBuilderPage() {
   const [exporting, setExporting] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // IFC BIM File State
+  const [ifcFile, setIfcFile] = useState<File | null>(null);
+  const [ifcStoreys, setIfcStoreys] = useState<IFCStorey[] | undefined>(undefined);
+  const [ifcSummary, setIfcSummary] = useState<ParsedIFCResult | null>(null);
+
+  const handleIfcFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset file input so re-uploading same file triggers onChange
+    e.target.value = "";
+    setIfcFile(file);
+  };
+
+  const handleIfcComplete = (result: ParsedIFCResult) => {
+    setIfcSummary(result);
+    setIfcStoreys(result.storeys);
+    setIfcFile(null);
+    // Update parametric form with extracted BIM dimensions
+    setParams((prev) => ({
+      ...prev,
+      num_floors: result.numFloors,
+      floor_height: result.floorHeight_m,
+      outer_length: result.outerLength_m,
+      outer_width: result.outerWidth_m,
+    }));
+  };
+
+  const handleIfcCancel = () => {
+    setIfcFile(null);
+  };
 
   // Load active structure types dynamically from DB
   useEffect(() => {
@@ -181,6 +214,30 @@ export default function BOQBuilderPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <label className={`h-8.5 px-3.5 rounded-lg border transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer text-xs font-bold ${
+              ifcSummary
+                ? "border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300"
+                : "border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300"
+            }`}>
+              {ifcSummary ? (
+                <>
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>BIM Loaded: {ifcSummary.fileName.split("/").pop()?.substring(0, 20)}</span>
+                </>
+              ) : (
+                <>
+                  <FileCode className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Import IFC BIM CAD (.ifc)</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept=".ifc,.ifczip,.rvt,.dwg"
+                onChange={handleIfcFileUpload}
+                className="hidden"
+              />
+            </label>
+
             <Link
               href="/dashboard/admin/boq-rules"
               className="h-8.5 px-3.5 rounded-lg border border-accent/40 bg-accent/10 hover:bg-accent/20 text-accent text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
@@ -191,6 +248,45 @@ export default function BOQBuilderPage() {
           </div>
         </div>
       </div>
+
+      {/* IFC BIM File Quantity Takeoff Summary Banner */}
+      {ifcSummary && (
+        <div className="bg-purple-950/40 border-b border-purple-500/30 px-6 py-3 flex flex-wrap items-center justify-between gap-4 animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              <FileCode className="w-5 h-5 text-purple-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black text-white">BIM IFC Takeoff Extracted:</span>
+                <span className="text-xs font-mono font-bold text-purple-300">{ifcSummary.fileName}</span>
+                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-emerald-400" /> {ifcSummary.storeys.length} Floors Auto-Generated
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-0.5">
+                {ifcSummary.elements.length} IFC Structural Entities ·{" "}
+                Walls: <strong className="text-zinc-200 font-mono">{ifcSummary.elements.filter(e => e.ifc_type === "IfcWall").length}</strong> ·{" "}
+                Slabs: <strong className="text-zinc-200 font-mono">{ifcSummary.elements.filter(e => e.ifc_type === "IfcSlab").length}</strong> ·{" "}
+                Doors: <strong className="text-zinc-200 font-mono">{ifcSummary.elements.filter(e => e.ifc_type === "IfcDoor").length}</strong> ·{" "}
+                Windows: <strong className="text-zinc-200 font-mono">{ifcSummary.elements.filter(e => e.ifc_type === "IfcWindow").length}</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs">
+            <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-purple-500/30 text-purple-300 font-mono font-bold">
+              BUA: {ifcSummary.totalBUA_m2} m² · {ifcSummary.outerLength_m}m × {ifcSummary.outerWidth_m}m
+            </div>
+            <button
+              onClick={() => { setIfcSummary(null); setIfcStoreys(undefined); }}
+              className="text-zinc-500 hover:text-zinc-300 text-xs font-bold cursor-pointer"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Typology strip */}
       <div className="boq-typology-strip">
@@ -268,7 +364,7 @@ export default function BOQBuilderPage() {
           <div className="boq-panel-content space-y-4">
             {/* Auto-Generated Plan, Elevation & Section Component */}
             {(centerTab === "both" || centerTab === "plan") && (
-              <BOQAutoPlanVisualizer params={params} />
+              <BOQAutoPlanVisualizer params={params} ifcStoreys={ifcStoreys} />
             )}
 
             {/* Detailed BOQ Line Items Table */}
@@ -306,6 +402,15 @@ export default function BOQBuilderPage() {
           </div>
         </div>
       </div>
+
+      {/* IFC Upload Conversion Modal */}
+      {ifcFile && (
+        <IFCUploadModal
+          file={ifcFile}
+          onComplete={handleIfcComplete}
+          onCancel={handleIfcCancel}
+        />
+      )}
 
       {/* Saved Toast */}
       {savedToast && (

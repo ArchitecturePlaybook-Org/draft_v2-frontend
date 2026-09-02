@@ -6,10 +6,19 @@ import {
   MilestonePhase, SpatialZone
 } from "@/types/projects";
 import { projectsApi } from "@/domains/projects/api";
+import { inventoryApi } from "@/domains/inventory/api";
+import { TaskMaterialRequirement, MasterMaterial } from "@/domains/inventory/types";
+import { DirectPostOpportunityModal } from "@/components/marketplace/DirectPostOpportunityModal";
+import { PlaceRequisitionOrderModal } from "@/components/inventory/PlaceRequisitionOrderModal";
+import { MaterialIssueModal } from "@/components/inventory/MaterialIssueModal";
+import { MaterialDetailModal } from "@/components/inventory/MaterialDetailModal";
 import { TaskItem } from "../projects/TaskItem";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
-import { Search, Loader2 } from "lucide-react";
+import {
+  Search, Loader2, Package, Layers, Share2, Receipt, PackageCheck,
+  CheckCircle2, Eye, ArrowUpRight, Calculator, ClipboardList, AlertCircle
+} from "lucide-react";
 
 interface KanbanDrawerProps {
   block: MilestoneBlockExpanded;
@@ -79,6 +88,118 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const isLocked = block.status === "LOCKED" || readOnly;
+
+  // ── Tab state: Tasks Kanban vs Block BOM ──────────────────────────────────
+  const [drawerTab, setDrawerTab] = useState<"tasks" | "bom">("tasks");
+  const [blockRequirements, setBlockRequirements] = useState<TaskMaterialRequirement[]>([]);
+  const [loadingBOM, setLoadingBOM] = useState(false);
+  const [showDirectPostModal, setShowDirectPostModal] = useState(false);
+
+  // Modals matching TaskInventoryTrackerTab
+  const [selectedReqForIssue, setSelectedReqForIssue] = useState<TaskMaterialRequirement | null>(null);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showReqModal, setShowReqModal] = useState(false);
+  const [selectedMaterialForView, setSelectedMaterialForView] = useState<MasterMaterial | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [loadingViewId, setLoadingViewId] = useState<string | null>(null);
+
+  const handleViewMaterialDetail = async (materialId: string) => {
+    try {
+      setLoadingViewId(materialId);
+      const res = await inventoryApi.getMaterial(materialId);
+      setSelectedMaterialForView(res);
+      setShowViewModal(true);
+    } catch (e) {
+      toast.error("Failed to load material specifications.");
+    } finally {
+      setLoadingViewId(null);
+    }
+  };
+
+  // Synchronize tasks whenever block changes
+  React.useEffect(() => {
+    setTasks(block.tasks || []);
+  }, [block.tasks, block.id]);
+
+  // Load requirements for all tasks in this block
+  const loadBlockBOM = useCallback(async () => {
+    if (!projectUid) return;
+    setLoadingBOM(true);
+    try {
+      const all = await inventoryApi.getTaskRequirements({ project: projectUid });
+      const currentTasks = block.tasks || tasks || [];
+      const taskIds = new Set(
+        currentTasks.flatMap((t) => [
+          String((t as any).id || ""),
+          String((t as any).uid || ""),
+        ]).filter(Boolean)
+      );
+      const filtered = all.filter((r) => taskIds.has(String(r.task)));
+      setBlockRequirements(filtered);
+    } catch (e) {
+      console.error("Failed to load block BOM", e);
+    } finally {
+      setLoadingBOM(false);
+    }
+  }, [projectUid, block.tasks, tasks]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      loadBlockBOM();
+    }
+  }, [isOpen, block.id, loadBlockBOM]);
+
+  // Aggregate block requirements by material
+  const aggregatedBlockMaterials = React.useMemo(() => {
+    const map = new Map<string, {
+      id: string;
+      name: string;
+      category: string;
+      unit: string;
+      rate: number;
+      planned: number;
+      issued: number;
+      balance: number;
+      stock: number;
+      total: number;
+      taskCount: number;
+    }>();
+
+    for (const req of blockRequirements) {
+      const matId = req.material || req.material_name;
+      const planned = Number(req.planned_qty) || 0;
+      const issued = Number(req.issued_qty) || 0;
+      const balance = planned - issued;
+      const rate = Number(req.standard_rate) || 380;
+      const stock = Number(req.available_stock) || 0;
+
+      const existing = map.get(matId);
+      if (!existing) {
+        map.set(matId, {
+          id: matId,
+          name: req.material_name,
+          category: req.material_category || "GENERAL",
+          unit: req.material_unit || "BAG",
+          rate,
+          planned,
+          issued,
+          balance: Math.max(0, balance),
+          stock,
+          total: planned * rate,
+          taskCount: 1,
+        });
+      } else {
+        existing.planned += planned;
+        existing.issued += issued;
+        existing.balance += Math.max(0, balance);
+        existing.total += planned * rate;
+        existing.taskCount += 1;
+      }
+    }
+    return Array.from(map.values());
+  }, [blockRequirements]);
+
+  const blockBOMTotalValue = aggregatedBlockMaterials.reduce((acc, curr) => acc + curr.total, 0);
 
   // ── Task Template pre-fill state ──────────────────────────────────────────
   const [taskTemplates, setTaskTemplates] = useState<any[]>([]);
@@ -554,44 +675,87 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
           </div>
 
           {/* Action bar */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {!readOnly && !isLocked && userRole === "admin" && (
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            {/* View Tab Switcher */}
+            <div className="flex items-center gap-1 bg-surface-200/80 p-0.5 rounded-lg shrink-0">
               <button
-                onClick={() => setIsBulkPlannerOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all bg-purple-500/15 text-purple-400 border border-purple-500/30 hover:bg-purple-500/25"
+                type="button"
+                onClick={() => setDrawerTab("tasks")}
+                className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  drawerTab === "tasks"
+                    ? "bg-accent text-background shadow-xs"
+                    : "text-surface-400 hover:text-primary"
+                }`}
               >
-                <span>⚡</span> Add from Milestone
+                📋 Tasks ({tasks.length})
               </button>
-            )}
-            {!readOnly && userRole === "admin" && (
               <button
-                onClick={() => {
-                  setSelectedTemplateId("");
-                  setNewTaskTitle("");
-                  setTemplateDescription("");
-                  setTaskChecklists([]);
-                  setTaskSubtasks([]);
-                  setNewChecklistInput("");
-                  setNewSubtaskTitle("");
-                  setNewSubtaskDesc("");
-                  setSubtaskChecklistInputs({});
-                  setIsAddingTask(true);
-                }}
-                className="h-7 px-3 bg-accent text-background font-bold text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all flex items-center gap-1 shadow-xs"
+                type="button"
+                onClick={() => setDrawerTab("bom")}
+                className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer ${
+                  drawerTab === "bom"
+                    ? "bg-accent text-background shadow-xs"
+                    : "text-surface-400 hover:text-primary"
+                }`}
               >
-                + Add Task
+                <Package className="w-3 h-3" /> Block BOM ({aggregatedBlockMaterials.length})
               </button>
-            )}
-            <select
-              value={priorityFilter || ""}
-              onChange={(e) => setPriorityFilter(e.target.value || null)}
-              className="ml-auto h-7 px-2 bg-surface-100 border border-transparent hover:border-surface-200 rounded-lg outline-none text-[9px] font-bold uppercase tracking-wider text-surface-400 transition-colors"
-            >
-              <option value="">All Priorities</option>
-              <option value="HIGH">High Priority</option>
-              <option value="MEDIUM">Medium Priority</option>
-              <option value="LOW">Low Priority</option>
-            </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap ml-auto">
+              {drawerTab === "tasks" && (
+                <>
+                  {!readOnly && !isLocked && userRole === "admin" && (
+                    <button
+                      onClick={() => setIsBulkPlannerOpen(true)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all bg-purple-500/15 text-purple-400 border border-purple-500/30 hover:bg-purple-500/25 cursor-pointer"
+                    >
+                      <span>⚡</span> Milestone
+                    </button>
+                  )}
+                  {!readOnly && userRole === "admin" && (
+                    <button
+                      onClick={() => {
+                        setSelectedTemplateId("");
+                        setNewTaskTitle("");
+                        setTemplateDescription("");
+                        setTaskChecklists([]);
+                        setTaskSubtasks([]);
+                        setNewChecklistInput("");
+                        setNewSubtaskTitle("");
+                        setNewSubtaskDesc("");
+                        setSubtaskChecklistInputs({});
+                        setIsAddingTask(true);
+                      }}
+                      className="h-7 px-3 bg-accent text-background font-bold text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+                    >
+                      + Add Task
+                    </button>
+                  )}
+                  <select
+                    value={priorityFilter || ""}
+                    onChange={(e) => setPriorityFilter(e.target.value || null)}
+                    className="h-7 px-2 bg-surface-100 border border-transparent hover:border-surface-200 rounded-lg outline-none text-[9px] font-bold uppercase tracking-wider text-surface-400 transition-colors cursor-pointer"
+                  >
+                    <option value="">All Priorities</option>
+                    <option value="HIGH">High Priority</option>
+                    <option value="MEDIUM">Medium Priority</option>
+                    <option value="LOW">Low Priority</option>
+                  </select>
+                </>
+              )}
+
+              {drawerTab === "bom" && (
+                <button
+                  type="button"
+                  onClick={() => setShowDirectPostModal(true)}
+                  disabled={aggregatedBlockMaterials.length === 0}
+                  className="h-7 px-3.5 bg-accent hover:opacity-90 text-background font-bold text-[9px] uppercase tracking-wider rounded-lg transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-40"
+                >
+                  <Share2 className="w-3 h-3" /> Post Block Tender
+                </button>
+              )}
+            </div>
           </div>
         </div>
         {/* ── TASKS VIEW ── */}
@@ -618,87 +782,253 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             />
           </div>
 
-          {/* Locked banner */}
-          {isLocked && (
-            <div className="px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <p className="text-xs font-bold text-amber-400">This block is <strong>Locked</strong>.</p>
+          {/* ── CONDITIONAL VIEW: Tasks Kanban vs Block BOM ── */}
+          {drawerTab === "tasks" ? (
+            <>
+              {/* Kanban columns */}
+              <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
+                <div className="flex gap-4 h-full min-w-[720px]">
+                  {COLUMNS.map(col => {
+                    const colTasks = tasksByStatus(col.id);
+                    const isDragTarget = dragOverColumn === col.id;
+                    return (
+                      <div
+                        key={col.id}
+                        onDragOver={e => handleDragOver(e, col.id)}
+                        onDragLeave={() => setDragOverColumn(null)}
+                        onDrop={e => handleDrop(e, col.id)}
+                        className={`flex flex-col flex-1 min-w-[180px] max-w-[260px] rounded-t-sm ${isDragTarget ? "border-semantic-blue bg-surface-100/50" : `${col.color} ${isLocked ? "opacity-60" : ""}`
+                          }`}
+                      >
+                        <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-surface-200">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
+                            <span className="text-[10px] font-black uppercase tracking-wider text-surface-600">{col.label}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-black tabular-nums bg-surface-200 px-2 py-0.5 rounded-full border border-surface-300 text-foreground">{colTasks.length}</span>
+                            {col.id === "TODO" && !readOnly && userRole === "admin" && (
+                              <button type="button" onClick={() => { setSelectedTemplateId(""); setNewTaskTitle(""); setTemplateDescription(""); setTaskChecklists([]); setTaskSubtasks([]); setNewChecklistInput(""); setNewSubtaskTitle(""); setNewSubtaskDesc(""); setSubtaskChecklistInputs({}); setIsAddingTask(true); }}
+                                className="w-5 h-5 rounded bg-accent/15 hover:bg-accent/30 text-accent flex items-center justify-center text-xs font-black transition-colors" title="Add Task">
+                                +
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
+                          {tasksByStatus(col.id).map(task => (
+                            <TaskItem key={task.uid} task={task} isLocked={isLocked} onDragStart={(e) => handleDragStart(e, task.uid)} onClick={() => onTaskSelect?.(task)} />
+                          ))}
+                          {colTasks.length === 0 && (
+                            <div className={`h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 ${isDragTarget ? "border-accent bg-accent/10" : "border-surface-300 bg-surface-50/50"
+                              }`}>
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-surface-400">{isDragTarget ? "Drop here" : "Empty"}</span>
+                              {col.id === "TODO" && !readOnly && userRole === "admin" && (
+                                <button type="button" onClick={() => { setSelectedTemplateId(""); setNewTaskTitle(""); setTemplateDescription(""); setTaskChecklists([]); setTaskSubtasks([]); setNewChecklistInput(""); setNewSubtaskTitle(""); setNewSubtaskDesc(""); setSubtaskChecklistInputs({}); setIsAddingTask(true); }}
+                                  className="text-[10px] font-bold text-accent hover:underline">+ Add Task</button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              {userRole === "admin" && !readOnly && onUnlockClick && (
-                <button onClick={onUnlockClick} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest rounded-md transition-all">
-                  Force Activate
-                </button>
+
+              {/* Summary footer */}
+              <div className="px-4 py-2.5 border-t border-surface-200 bg-surface-100 shrink-0 flex items-center gap-4">
+                {COLUMNS.map(col => (
+                  <div key={col.id} className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
+                    <span className="text-[9px] font-bold text-surface-600">{col.label}</span>
+                    <span className="text-[9px] font-black tabular-nums text-foreground">{tasksByStatus(col.id).length}</span>
+                  </div>
+                ))}
+                <div className="ml-auto"><span className="text-[9px] font-bold text-accent">{block.progress_percent}% complete</span></div>
+              </div>
+            </>
+          ) : (
+            /* ── Block BOM & Inventory Tracker View (Matching TaskInventoryTrackerTab) ── */
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+              {/* Header Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-surface-100 border border-surface-200 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center border border-accent/20">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-primary uppercase tracking-wider">
+                      Milestone Bill of Materials (BOM) & On-Site Inventory
+                    </h4>
+                    <p className="text-[10px] text-surface-400">
+                      Track planned vs issued vs consumed quantities for {phase.name} — {zone.name} ({tasks.length} tasks).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {blockRequirements.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowReqModal(true)}
+                      className="h-7 px-3 text-[11px] font-bold rounded-lg bg-surface-200 hover:bg-surface-300 text-primary border border-surface-300 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <ClipboardList className="w-3 h-3 text-accent" />
+                      Place Requisition Order
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowDirectPostModal(true)}
+                    disabled={blockRequirements.length === 0}
+                    className="h-7 px-3.5 bg-accent hover:opacity-90 text-background font-bold text-[10px] uppercase tracking-wider rounded-lg transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-40"
+                  >
+                    <Share2 className="w-3 h-3" />
+                    Post Tender / Job
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedReqForIssue(null);
+                      setShowIssueModal(true);
+                    }}
+                    disabled={blockRequirements.length === 0}
+                    className="h-7 px-3 text-[11px] font-bold rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                  >
+                    <ArrowUpRight className="w-3 h-3" />
+                    Issue to Trade
+                  </button>
+                </div>
+              </div>
+
+              {/* Table / Empty state */}
+              {loadingBOM ? (
+                <div className="py-16 text-center text-xs text-surface-400 animate-pulse">
+                  Aggregating milestone block material requirements...
+                </div>
+              ) : blockRequirements.length === 0 ? (
+                <div className="p-8 text-center border border-dashed border-surface-300 rounded-xl bg-surface-50">
+                  <PackageCheck className="w-8 h-8 text-surface-400 mx-auto mb-2" />
+                  <p className="text-xs text-primary font-medium">No materials attached to tasks in this block yet</p>
+                  <p className="text-[11px] text-surface-400 mt-0.5 max-w-sm mx-auto">
+                    Open any task in the Kanban board to use the Civil Engineering Estimator to calculate exact materials required.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-surface-200 rounded-xl bg-surface-50">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-surface-100 text-surface-400 uppercase tracking-wider font-semibold border-b border-surface-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Material</th>
+                        <th className="py-2.5 px-3">Planned Qty</th>
+                        <th className="py-2.5 px-3">Issued Qty</th>
+                        <th className="py-2.5 px-3">Consumed Qty</th>
+                        <th className="py-2.5 px-3">Site Stock Available</th>
+                        <th className="py-2.5 px-3">Fulfillment</th>
+                        <th className="py-2.5 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-200 text-primary">
+                      {blockRequirements.map((req) => {
+                        const pct = req.fulfillment_percentage || (req.planned_qty > 0 ? Math.min(100, Math.round((req.issued_qty / req.planned_qty) * 100)) : 0);
+                        const stockAvail = req.available_stock ?? 0;
+                        const neededQty = req.planned_qty - req.issued_qty;
+                        return (
+                          <tr key={req.id} className="hover:bg-surface-100/60 transition-colors">
+                            <td className="py-2.5 px-3">
+                              <div className="font-semibold text-primary">{req.material_name}</div>
+                              <div className="text-[10px] text-surface-400">Unit: {req.material_unit}</div>
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-primary">
+                              {req.planned_qty} {req.material_unit}
+                            </td>
+                            <td className="py-2.5 px-3 font-medium text-emerald-400">
+                              {req.issued_qty} {req.material_unit}
+                            </td>
+                            <td className="py-2.5 px-3 font-medium text-amber-400">
+                              {req.consumed_qty} {req.material_unit}
+                            </td>
+                            <td className="py-2.5 px-3 font-medium">
+                              {stockAvail > 0 ? (
+                                <div className="space-y-0.5">
+                                  <span className="font-bold text-emerald-400 font-mono text-xs block">
+                                    {stockAvail.toLocaleString()} {req.material_unit}
+                                  </span>
+                                  {stockAvail >= neededQty || neededQty <= 0 ? (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 inline-block">
+                                      AVAILABLE IN STOCK
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-500/10 text-amber-400 border border-amber-500/20 inline-block">
+                                      PARTIAL ({stockAvail} / {neededQty} needed)
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="space-y-0.5">
+                                  <span className="font-bold text-red-400 font-mono text-xs block">
+                                    0 {req.material_unit}
+                                  </span>
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-red-500/10 text-red-400 border border-red-500/20 inline-block">
+                                    OUT OF STOCK
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 min-w-[130px]">
+                              <div className="flex items-center justify-between text-[11px] mb-1">
+                                <span className="text-surface-400 font-medium">{pct}%</span>
+                                {pct >= 100 ? (
+                                  <span className="text-emerald-400 flex items-center gap-0.5 text-[10px] font-bold">
+                                    <CheckCircle2 className="w-3 h-3" /> Ready
+                                  </span>
+                                ) : (
+                                  <span className="text-amber-400 text-[10px] font-bold">Pending</span>
+                                )}
+                              </div>
+                              <div className="w-full bg-surface-200 h-1.5 rounded-full overflow-hidden">
+                                <div
+                                  className="bg-emerald-500 h-full rounded-full transition-all duration-300"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={loadingViewId === req.material}
+                                  onClick={() => handleViewMaterialDetail(req.material)}
+                                  className="h-6 px-2 text-[11px] font-semibold text-surface-400 hover:text-primary bg-surface-100 hover:bg-surface-200 border border-surface-300 rounded transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                  title="View Material Specifications & Brand Details"
+                                >
+                                  <Eye className="w-3 h-3 text-accent" />
+                                  {loadingViewId === req.material ? "Loading..." : "View Specs"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedReqForIssue(req);
+                                    setShowIssueModal(true);
+                                  }}
+                                  className="h-6 px-2 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 border border-emerald-500/30 rounded transition-colors cursor-pointer"
+                                >
+                                  Issue Slip
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}
-
-
-
-          {/* Kanban columns */}
-          <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
-            <div className="flex gap-4 h-full min-w-[720px]">
-              {COLUMNS.map(col => {
-                const colTasks = tasksByStatus(col.id);
-                const isDragTarget = dragOverColumn === col.id;
-                return (
-                  <div
-                    key={col.id}
-                    onDragOver={e => handleDragOver(e, col.id)}
-                    onDragLeave={() => setDragOverColumn(null)}
-                    onDrop={e => handleDrop(e, col.id)}
-                    className={`flex flex-col flex-1 min-w-[180px] max-w-[260px] rounded-t-sm ${isDragTarget ? "border-semantic-blue bg-surface-100/50" : `${col.color} ${isLocked ? "opacity-60" : ""}`
-                      }`}
-                  >
-                    <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-surface-200">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-surface-600">{col.label}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-black tabular-nums bg-surface-200 px-2 py-0.5 rounded-full border border-surface-300 text-foreground">{colTasks.length}</span>
-                        {col.id === "TODO" && !readOnly && userRole === "admin" && (
-                          <button type="button" onClick={() => { setSelectedTemplateId(""); setNewTaskTitle(""); setTemplateDescription(""); setTaskChecklists([]); setTaskSubtasks([]); setNewChecklistInput(""); setNewSubtaskTitle(""); setNewSubtaskDesc(""); setSubtaskChecklistInputs({}); setIsAddingTask(true); }}
-                            className="w-5 h-5 rounded bg-accent/15 hover:bg-accent/30 text-accent flex items-center justify-center text-xs font-black transition-colors" title="Add Task">
-                            +
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
-                      {tasksByStatus(col.id).map(task => (
-                        <TaskItem key={task.uid} task={task} isLocked={isLocked} onDragStart={(e) => handleDragStart(e, task.uid)} onClick={() => onTaskSelect?.(task)} />
-                      ))}
-                      {colTasks.length === 0 && (
-                        <div className={`h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 ${isDragTarget ? "border-accent bg-accent/10" : "border-surface-300 bg-surface-50/50"
-                          }`}>
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-surface-400">{isDragTarget ? "Drop here" : "Empty"}</span>
-                          {col.id === "TODO" && !readOnly && userRole === "admin" && (
-                            <button type="button" onClick={() => { setSelectedTemplateId(""); setNewTaskTitle(""); setTemplateDescription(""); setTaskChecklists([]); setTaskSubtasks([]); setNewChecklistInput(""); setNewSubtaskTitle(""); setNewSubtaskDesc(""); setSubtaskChecklistInputs({}); setIsAddingTask(true); }}
-                              className="text-[10px] font-bold text-accent hover:underline">+ Add Task</button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Summary footer */}
-          <div className="px-4 py-2.5 border-t border-surface-200 bg-surface-100 shrink-0 flex items-center gap-4">
-            {COLUMNS.map(col => (
-              <div key={col.id} className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
-                <span className="text-[9px] font-bold text-surface-600">{col.label}</span>
-                <span className="text-[9px] font-black tabular-nums text-foreground">{tasksByStatus(col.id).length}</span>
-              </div>
-            ))}
-            <div className="ml-auto"><span className="text-[9px] font-bold text-accent">{block.progress_percent}% complete</span></div>
-          </div>
         </>
         {/* ── Create Task Modal with Templates, Checklists & Subtasks ──────────── */}
         {isAddingTask && (
@@ -1330,6 +1660,61 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             </div>
           </div>
         )}
+
+        {/* Requisition Order Modal */}
+        {showReqModal && (
+          <PlaceRequisitionOrderModal
+            isOpen={showReqModal}
+            onClose={() => setShowReqModal(false)}
+            taskId={tasks[0] ? (tasks[0] as any).id : 0}
+            taskTitle={`${phase.name} — ${zone.name}`}
+            projectId={projectUid ? Number(projectUid) : undefined}
+            requirements={blockRequirements}
+            onCreated={loadBlockBOM}
+          />
+        )}
+
+        {/* Material Issue Modal */}
+        {showIssueModal && (
+          <MaterialIssueModal
+            isOpen={showIssueModal}
+            onClose={() => {
+              setShowIssueModal(false);
+              setSelectedReqForIssue(null);
+            }}
+            taskId={selectedReqForIssue ? selectedReqForIssue.task : (tasks[0] ? (tasks[0] as any).id : 0)}
+            defaultMaterialId={selectedReqForIssue?.material}
+            onIssued={loadBlockBOM}
+          />
+        )}
+
+        {/* Material Detail Specifications Modal */}
+        {showViewModal && selectedMaterialForView && (
+          <MaterialDetailModal
+            isOpen={showViewModal}
+            onClose={() => {
+              setShowViewModal(false);
+              setSelectedMaterialForView(null);
+            }}
+            material={selectedMaterialForView}
+          />
+        )}
+
+        {/* Direct Post Opportunity Modal for Block BOM */}
+        <DirectPostOpportunityModal
+          isOpen={showDirectPostModal}
+          onClose={() => setShowDirectPostModal(false)}
+          initialTitle={`Procurement Tender: ${phase.name} — ${zone.name}`}
+          initialItems={aggregatedBlockMaterials.map((m) => ({
+            name: m.name,
+            category: m.category,
+            quantity: m.balance > 0 ? m.balance : m.planned,
+            unit: m.unit,
+            rate: m.rate,
+          }))}
+          sourceContext={`Milestone Block: ${phase.name} — ${zone.name}`}
+          projectUid={projectUid}
+        />
 
       </motion.div>
 

@@ -5,7 +5,7 @@ import { inventoryApi } from "@/domains/inventory/api";
 
 type ReportTab = "variance" | "consumption" | "cost" | "po";
 
-export default function ReportsPage() {
+export function ReportsTab() {
   const [activeTab, setActiveTab] = useState<ReportTab>("variance");
   const [loading, setLoading] = useState(false);
   const [issues, setIssues] = useState<any[]>([]);

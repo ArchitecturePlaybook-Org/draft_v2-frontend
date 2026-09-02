@@ -3,13 +3,19 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { AdminUserListItem, usersApi } from "@/domains/users/api";
 import { UserActivityDetailDrawer } from "@/components/users/UserActivityDetailDrawer";
-import { Search, Users, Shield, Building2, FolderKanban, CheckCircle2, XCircle, Activity, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Users, Shield, Building2, FolderKanban, CheckCircle2, XCircle, Activity, Filter, ChevronLeft, ChevronRight, UserPlus, Key, Mail, User as UserIcon, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuthStore } from "@/store/auth-store";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useRouter } from "next/navigation";
 import { COMPACT_UI } from "@/theme/ui-tokens";
+
+interface RoleOption {
+  id: number;
+  name: string;
+  description?: string;
+}
 
 export function UserManagementView() {
   const { user } = useAuthStore();
@@ -19,12 +25,15 @@ export function UserManagementView() {
   const isSuperAdmin = isAdmin || Boolean((user as any)?.is_superuser) || user?.email === "superadmin@ap.com";
 
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
+  const [roles, setRoles] = useState<RoleOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [tenantFilter, setTenantFilter] = useState<string>("ALL");
 
   // Pagination
@@ -34,23 +43,37 @@ export function UserManagementView() {
   // Selected user for drawer
   const [selectedUser, setSelectedUser] = useState<AdminUserListItem | null>(null);
 
+  // Create User Modal
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({
+    name: "",
+    email: "",
+    password: "Password123!",
+    role_name: "material_supplier",
+  });
+
   useEffect(() => {
     if (user && !isSuperAdmin) {
       router.replace("/unauthorized");
       return;
     }
     if (isSuperAdmin) {
-      loadUsers();
+      loadData();
     }
   }, [user, isSuperAdmin, router]);
 
-  const loadUsers = async () => {
+  const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = await usersApi.listUsers();
-      setUsers(data || []);
+      const [usersData, rolesData] = await Promise.all([
+        usersApi.listUsers(),
+        usersApi.listRoles(),
+      ]);
+      setUsers(usersData || []);
+      setRoles(rolesData || []);
     } catch (e) {
-      console.error("Failed to load users list", e);
+      console.error("Failed to load user management data", e);
     } finally {
       setIsLoading(false);
     }
@@ -70,16 +93,48 @@ export function UserManagementView() {
     }
   };
 
+  const handleRoleChange = async (userId: string, newRoleName: string) => {
+    setUpdatingRoleId(userId);
+    try {
+      await usersApi.assignRole(userId, newRoleName);
+      setUsers(prev => prev.map(u => u.uid === userId ? { ...u, role: newRoleName } : u));
+      if (selectedUser?.uid === userId) {
+        setSelectedUser(prev => prev ? { ...prev, role: newRoleName } : null);
+      }
+      toast.success(`Role updated to '${newRoleName}' successfully!`);
+    } catch (e) {
+      toast.error("Failed to update user role");
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createUserForm.email) {
+      toast.error("Email is required");
+      return;
+    }
+    setIsCreating(true);
+    try {
+      await usersApi.createUser(createUserForm);
+      toast.success(`User ${createUserForm.email} created with role ${createUserForm.role_name}!`);
+      setShowCreateModal(false);
+      setCreateUserForm({ name: "", email: "", password: "Password123!", role_name: "material_supplier" });
+      loadData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to create user");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   // Metrics Calculations
   const metrics = useMemo(() => {
     const total = users.length;
     const active = users.filter(u => u.is_active).length;
     const inactive = total - active;
-    
-    // Unique tenants
     const tenants = new Set(users.map(u => u.tenant_name).filter(Boolean)).size;
-    
-    // Aggregate total system projects
     const totalProjects = users.reduce((acc, u) => acc + (u.projects_count || 0), 0);
 
     return { total, active, inactive, tenants, totalProjects };
@@ -93,6 +148,16 @@ export function UserManagementView() {
     });
     return Array.from(set);
   }, [users]);
+
+  // Unique Roles for Filter Dropdown
+  const roleOptionsList = useMemo(() => {
+    if (roles.length > 0) return roles.map(r => r.name);
+    const set = new Set<string>();
+    users.forEach(u => {
+      if (u.role) set.add(u.role);
+    });
+    return Array.from(set);
+  }, [roles, users]);
 
   // Filtered Users List
   const filteredUsers = useMemo(() => {
@@ -108,12 +173,15 @@ export function UserManagementView() {
       const matchesCategory =
         categoryFilter === "ALL" ? true : u.category?.toLowerCase() === categoryFilter.toLowerCase();
 
+      const matchesRole =
+        roleFilter === "ALL" ? true : u.role?.toLowerCase() === roleFilter.toLowerCase();
+
       const matchesTenant =
         tenantFilter === "ALL" ? true : u.tenant_name === tenantFilter;
 
-      return matchesSearch && matchesStatus && matchesCategory && matchesTenant;
+      return matchesSearch && matchesStatus && matchesCategory && matchesRole && matchesTenant;
     });
-  }, [users, searchQuery, statusFilter, categoryFilter, tenantFilter]);
+  }, [users, searchQuery, statusFilter, categoryFilter, roleFilter, tenantFilter]);
 
   // Pagination Calculations
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
@@ -133,6 +201,27 @@ export function UserManagementView() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12 min-w-0 max-w-full">
+
+      {/* Header & Add User Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-xl border border-surface-200/80 dark:border-surface-800 p-4 rounded-xl shadow-xs">
+        <div>
+          <h1 className="text-lg font-extrabold text-primary flex items-center gap-2">
+            <Shield className="w-5 h-5 text-accent" />
+            Super Admin — User Directory & Role Management
+          </h1>
+          <p className="text-xs text-surface-400 font-medium mt-0.5">
+            Manage system roles, account active statuses, onboarding states, and organizational access.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-accent hover:bg-accent/90 text-background font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>+ Add New User</span>
+        </button>
+      </div>
 
       {/* Top Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -217,6 +306,18 @@ export function UserManagementView() {
             ))}
           </div>
 
+          {/* Role Filter Dropdown */}
+          <select
+            value={roleFilter}
+            onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+            className={COMPACT_UI.select}
+          >
+            <option value="ALL">All Roles</option>
+            {roleOptionsList.map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+
           {/* Tenant Filter Dropdown */}
           <select
             value={tenantFilter}
@@ -227,19 +328,6 @@ export function UserManagementView() {
             {tenantOptions.map(t => (
               <option key={t} value={t}>{t}</option>
             ))}
-          </select>
-
-          {/* Category Filter Dropdown */}
-          <select
-            value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
-            className={COMPACT_UI.select}
-          >
-            <option value="ALL">All Categories</option>
-            <option value="Architect">Architects</option>
-            <option value="Contractor">Contractors</option>
-            <option value="Supplier">Suppliers</option>
-            <option value="Interior Designer">Interior Designers</option>
           </select>
 
         </div>
@@ -267,8 +355,8 @@ export function UserManagementView() {
                 <tr className="border-b border-surface-200/80 dark:border-surface-800 text-[9px] font-black uppercase tracking-widest text-surface-400 bg-surface-100/40 dark:bg-surface-950/40">
                   <th className="py-3 px-4">User</th>
                   <th className="py-3 px-3">Status</th>
+                  <th className="py-3 px-3">Assign Role</th>
                   <th className="py-3 px-3">Tenant / Organization</th>
-                  <th className="py-3 px-3">Category & Role</th>
                   <th className="py-3 px-3 text-center">Projects</th>
                   <th className="py-3 px-3 text-center">Contributions</th>
                   <th className="py-3 px-3 text-right">Actions</th>
@@ -309,17 +397,30 @@ export function UserManagementView() {
                       </button>
                     </td>
 
+                    {/* Role Dropdown */}
+                    <td className="py-3 px-3">
+                      <div className="relative flex items-center gap-1.5">
+                        <select
+                          value={u.role || "USER"}
+                          disabled={updatingRoleId === u.uid}
+                          onChange={(e) => handleRoleChange(u.uid, e.target.value)}
+                          className="px-2 py-1 bg-surface-100 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-lg text-xs font-bold text-accent hover:border-accent transition-colors cursor-pointer outline-none shadow-2xs"
+                        >
+                          {roleOptionsList.map(rName => (
+                            <option key={rName} value={rName}>{rName}</option>
+                          ))}
+                        </select>
+                        {updatingRoleId === u.uid && (
+                          <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
+                        )}
+                      </div>
+                    </td>
+
                     {/* Tenant Organization */}
                     <td className="py-3 px-3">
                       <span className="font-bold text-primary block truncate max-w-[180px]">
                         {u.tenant_name || "Independent Account"}
                       </span>
-                    </td>
-
-                    {/* Category & Role */}
-                    <td className="py-3 px-3">
-                      <span className="text-accent font-bold block">{u.category || "Professional"}</span>
-                      <span className="text-[9px] text-surface-400 font-black uppercase tracking-wider">{u.role}</span>
                     </td>
 
                     {/* Projects Count */}
@@ -378,21 +479,19 @@ export function UserManagementView() {
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="p-1.5 rounded-lg border border-surface-200/80 dark:border-surface-800 bg-surface-100/80 dark:bg-surface-800/80 text-surface-400 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                title="Previous Page"
+                className="p-1 rounded bg-surface-200/50 dark:bg-surface-800 hover:bg-accent hover:text-background disabled:opacity-30 disabled:hover:bg-transparent text-primary transition-all cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <span className="px-3 text-[10px] font-black uppercase tracking-wider text-surface-400">
-                Page <strong className="text-primary">{currentPage}</strong> of <strong className="text-primary">{totalPages}</strong>
+              <span className="text-[11px] font-bold text-primary px-2">
+                Page {currentPage} of {totalPages}
               </span>
 
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="p-1.5 rounded-lg border border-surface-200/80 dark:border-surface-800 bg-surface-100/80 dark:bg-surface-800/80 text-surface-400 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                title="Next Page"
+                className="p-1 rounded bg-surface-200/50 dark:bg-surface-800 hover:bg-accent hover:text-background disabled:opacity-30 disabled:hover:bg-transparent text-primary transition-all cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -403,12 +502,125 @@ export function UserManagementView() {
 
       </div>
 
-      {/* Slide-over User Activity & Tenant Drawer */}
-      <UserActivityDetailDrawer
-        user={selectedUser}
-        onClose={() => setSelectedUser(null)}
-        onStatusChanged={handleToggleStatus}
-      />
+      {/* Activity Logs Drawer */}
+      {selectedUser && (
+        <UserActivityDetailDrawer
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onStatusChanged={(userId, newStatus) => {
+            setUsers(prev => prev.map(u => u.uid === userId ? { ...u, is_active: newStatus } : u));
+            setSelectedUser(prev => prev ? { ...prev, is_active: newStatus } : null);
+          }}
+        />
+      )}
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            
+            <div className="flex items-center justify-between p-4 border-b border-surface-200 dark:border-surface-800">
+              <h3 className="text-sm font-extrabold text-primary flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-accent" />
+                Create New Platform User
+              </h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 text-surface-400 hover:text-primary rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="p-4 space-y-4 text-xs font-semibold">
+              
+              <div>
+                <label className="block text-[10px] font-black uppercase text-surface-400 mb-1">Full Name</label>
+                <div className="relative">
+                  <UserIcon className="w-3.5 h-3.5 absolute left-3 top-3 text-surface-400" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Ramesh Kumar"
+                    value={createUserForm.name}
+                    onChange={(e) => setCreateUserForm(prev => ({ ...prev, name: e.target.value }))}
+                    className={COMPACT_UI.input + " pl-9 w-full"}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-surface-400 mb-1">Email Address</label>
+                <div className="relative">
+                  <Mail className="w-3.5 h-3.5 absolute left-3 top-3 text-surface-400" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="user@example.com"
+                    value={createUserForm.email}
+                    onChange={(e) => setCreateUserForm(prev => ({ ...prev, email: e.target.value }))}
+                    className={COMPACT_UI.input + " pl-9 w-full"}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-surface-400 mb-1">Password</label>
+                <div className="relative">
+                  <Key className="w-3.5 h-3.5 absolute left-3 top-3 text-surface-400" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Password123!"
+                    value={createUserForm.password}
+                    onChange={(e) => setCreateUserForm(prev => ({ ...prev, password: e.target.value }))}
+                    className={COMPACT_UI.input + " pl-9 w-full font-mono"}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-surface-400 mb-1">Assign Role</label>
+                <select
+                  value={createUserForm.role_name}
+                  onChange={(e) => setCreateUserForm(prev => ({ ...prev, role_name: e.target.value }))}
+                  className={COMPACT_UI.select + " w-full font-bold text-accent"}
+                >
+                  {roleOptionsList.map(rName => (
+                    <option key={rName} value={rName}>{rName}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-surface-200 dark:border-surface-800 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 bg-surface-200/60 dark:bg-surface-800 hover:bg-surface-300 text-primary font-bold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreating}
+                  className="px-4 py-2 bg-accent hover:bg-accent/90 text-background font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Create User</span>
+                  )}
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

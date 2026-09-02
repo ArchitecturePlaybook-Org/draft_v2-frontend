@@ -86,6 +86,8 @@ export interface MasterMaterial {
   calc_algo_name: string;
   hsn_sac_code: string;
   gst_rate: string | number;
+  preferred_vendor?: string | null;
+  preferred_vendor_name?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -130,7 +132,10 @@ export interface TaskMaterialRequirement {
   task: number;
   material: string;
   material_name: string;
+  material_category?: string;
   material_unit: MaterialUnit;
+  item_code?: string;
+  standard_rate?: number;
   input_quantity: number;
   input_unit: string;
   calc_params: Record<string, any>;
@@ -139,6 +144,7 @@ export interface TaskMaterialRequirement {
   consumed_qty: number;
   balance_remaining: number;
   fulfillment_percentage: number;
+  available_stock?: number;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -229,6 +235,7 @@ export type POStatus =
   | "APPROVED"
   | "ISSUED"
   | "PARTIALLY_DELIVERED"
+  | "SUPPLIER_DELIVERED"
   | "FULFILLED"
   | "CANCELLED";
 
@@ -260,6 +267,8 @@ export interface PurchaseOrder {
   total_amount: string | number;
   expected_delivery_date?: string | null;
   terms_and_conditions?: string;
+  supplier_invoice_no?: string;
+  supplier_bill_url?: string;
   created_by?: number | null;
   approved_by?: number | null;
   items: POItem[];

@@ -412,7 +412,13 @@ export const DataHubTab: React.FC = () => {
                         </div>
                       ) : (asset.file?.toLowerCase().endsWith('.dwg') || asset.file?.toLowerCase().endsWith('.dxf') || asset.title?.toLowerCase().includes('dwg')) ? (
                         asset.thumbnail ? (
-                          <img src={asset.thumbnail} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <img 
+                            src={asset.thumbnail} 
+                            loading="lazy" 
+                            decoding="async" 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                          />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-amber-500/5 dark:bg-amber-500/10">
                             <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center text-xl mb-1 shadow-xs">
@@ -424,9 +430,21 @@ export const DataHubTab: React.FC = () => {
                           </div>
                         )
                       ) : asset.thumbnail ? (
-                        <img src={asset.thumbnail} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <img 
+                          src={asset.thumbnail} 
+                          loading="lazy" 
+                          decoding="async" 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
                       ) : isImageUrl(asset.file) ? (
-                        <img src={asset.file} loading="lazy" decoding="async" className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                        <img 
+                          src={asset.file} 
+                          loading="lazy" 
+                          decoding="async" 
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" 
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
                       ) : asset.category === "sketch" ? (
                         <div className="flex flex-col items-center gap-1">
                           <span className="text-3xl">✏️</span>

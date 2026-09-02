@@ -410,7 +410,21 @@ export default function ProfilePage() {
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-accent text-background font-bold shadow-md border-2 border-surface-100 dark:border-surface-800 overflow-hidden relative group/avatar cursor-pointer hover:scale-105 transition-all duration-300"
           >
             {user.profile?.profile_picture ? (
-              <img src={user.profile.profile_picture as string} alt={user.name || user.email} className="w-full h-full object-cover" />
+              <img 
+                src={user.profile.profile_picture as string} 
+                alt={user.name || user.email} 
+                className="w-full h-full object-cover" 
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                  if (parent && !parent.querySelector('.fallback-initial')) {
+                    const span = document.createElement('span');
+                    span.className = 'fallback-initial text-2xl flex items-center justify-center h-full text-background font-bold';
+                    span.innerText = (user.name || user.email || "?").charAt(0).toUpperCase();
+                    parent.appendChild(span);
+                  }
+                }}
+              />
             ) : (
               <span className="text-2xl flex items-center justify-center h-full">{(user.name || user.email || "?").charAt(0).toUpperCase()}</span>
             )}

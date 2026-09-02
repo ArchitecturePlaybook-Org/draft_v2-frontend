@@ -40,6 +40,7 @@ export interface Project {
   tasks_done_count?: number;
   budget_used?: number;
   budget_total?: number;
+  material_preferences?: Record<string, string>;
   created_at: string;
   updated_at: string;
   specializations?: any[];
