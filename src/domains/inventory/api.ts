@@ -611,6 +611,45 @@ export const inventoryApi = {
       body: JSON.stringify(data),
     });
   },
+
+  //  Manpower / Labor Master 
+  getLaborMasters: async (): Promise<LaborMaster[]> => {
+    const res = await fetchFromBff<any>("/api/v1/inventory/labor/", { method: "GET" });
+    return unpackArray<LaborMaster>(res);
+  },
+
+  createLaborMaster: async (data: Partial<LaborMaster>): Promise<LaborMaster> => {
+    return fetchFromBff<LaborMaster>("/api/v1/inventory/labor/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateLaborMaster: async (id: string, data: Partial<LaborMaster>): Promise<LaborMaster> => {
+    return fetchFromBff<LaborMaster>(`/api/v1/inventory/labor/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteLaborMaster: async (id: string): Promise<void> => {
+    await fetchFromBff(`/api/v1/inventory/labor/${id}/`, {
+      method: "DELETE",
+    });
+  },
 };
 
+
+
+export interface LaborMaster {
+  id: string;
+  account: number;
+  trade_type: string;
+  category: "SKILLED" | "SEMI_SKILLED" | "UNSKILLED" | "SUPERVISORY" | "OPERATOR";
+  vendor: number | null;
+  vendor_name?: string;
+  standard_daily_rate: string;
+  is_active: boolean;
+  created_at: string;
+}
 

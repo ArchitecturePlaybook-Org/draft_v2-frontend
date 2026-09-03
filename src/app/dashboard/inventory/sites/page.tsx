@@ -29,15 +29,7 @@ export default function SitesAndLogisticsPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
       <div className="px-6 pt-4 pb-0 bg-surface-50 border-b border-surface-200 shrink-0">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-orange-100 text-orange-600 border border-orange-200">
-            <Warehouse className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-surface-900 tracking-tight">Sites & Logistics</h1>
-            <p className="text-sm font-medium text-surface-500">Manage construction sites, yards, and inter-site stock transfers</p>
-          </div>
-        </div>
+
 
         <div className="flex gap-6 border-b border-surface-200">
           <button

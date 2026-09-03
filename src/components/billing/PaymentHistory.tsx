@@ -88,46 +88,46 @@ export function PaymentHistory() {
 
   if (invoices.length === 0) {
     return (
-      <div className="text-center py-12 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md relative overflow-hidden group">
+      <div className="text-center py-8 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
         <div className="relative z-10 flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-surface-800/50 flex items-center justify-center mb-4 border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-            <FileText className="w-6 h-6 text-surface-400" />
+          <div className="w-10 h-10 rounded-full bg-surface-800/50 flex items-center justify-center mb-3 border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+            <FileText className="w-5 h-5 text-surface-400" />
           </div>
-          <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] mb-2">No payment history</h3>
-          <p className="text-surface-400 text-xs font-bold uppercase tracking-widest">You haven't been billed yet.</p>
+          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1">No payment history</h3>
+          <p className="text-surface-400 text-[10px] font-bold uppercase tracking-widest">You haven't been billed yet.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-md shadow-xl">
-      <table className="w-full text-left text-sm">
+    <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden backdrop-blur-md shadow-lg">
+      <table className="w-full text-left text-xs">
         <thead className="bg-surface-900/50 border-b border-white/10">
           <tr>
-            <th className="px-6 py-4 text-[11px] font-black text-surface-400 uppercase tracking-[0.2em]">Date</th>
-            <th className="px-6 py-4 text-[11px] font-black text-surface-400 uppercase tracking-[0.2em]">Amount</th>
-            <th className="px-6 py-4 text-[11px] font-black text-surface-400 uppercase tracking-[0.2em]">Status</th>
-            <th className="px-6 py-4 text-[11px] font-black text-surface-400 uppercase tracking-[0.2em] text-right">Receipt</th>
+            <th className="px-4 py-3 text-[10px] font-black text-surface-400 uppercase tracking-[0.15em]">Date</th>
+            <th className="px-4 py-3 text-[10px] font-black text-surface-400 uppercase tracking-[0.15em]">Amount</th>
+            <th className="px-4 py-3 text-[10px] font-black text-surface-400 uppercase tracking-[0.15em]">Status</th>
+            <th className="px-4 py-3 text-[10px] font-black text-surface-400 uppercase tracking-[0.15em] text-right">Receipt</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
           {invoices.map((inv) => (
             <tr key={inv.id} className="hover:bg-white/5 transition-colors group">
-              <td className="px-6 py-4 text-primary font-bold text-xs uppercase tracking-wider">
+              <td className="px-4 py-3 text-primary font-bold text-[11px] uppercase tracking-wider">
                 {new Date(inv.created_at).toLocaleDateString(undefined, {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
                 })}
               </td>
-              <td className="px-6 py-4 text-primary font-black tracking-widest">
+              <td className="px-4 py-3 text-primary font-black tracking-widest">
                 {formatCurrency(parseFloat(inv.amount_paid) > 0 ? inv.amount_paid : inv.amount_due, inv.currency)}
               </td>
-              <td className="px-6 py-4">
+              <td className="px-4 py-3">
                 <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border shadow-sm
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-[0.15em] border shadow-sm
                   ${
                     inv.status === "paid"
                       ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-500/20"
@@ -139,10 +139,10 @@ export function PaymentHistory() {
                   {inv.status}
                 </span>
               </td>
-              <td className="px-6 py-4 text-right space-x-4">
+              <td className="px-4 py-3 text-right space-x-3">
                 {inv.status === "paid" &&
                   (inv.refund_status ? (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-[0.15em] bg-amber-500/10 text-amber-500 border border-amber-500/20">
                       Refund {inv.refund_status}
                     </span>
                   ) : (
@@ -157,14 +157,14 @@ export function PaymentHistory() {
                           });
                         }
                       }}
-                      className="text-[11px] font-bold text-surface-500 uppercase tracking-widest hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                      className="text-[10px] font-bold text-surface-500 uppercase tracking-widest hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
                     >
                       Request Refund
                     </button>
                   ))}
                 <button
                   onClick={() => handleDownloadReceipt(inv)}
-                  className="inline-flex items-center gap-2 text-[11px] font-black text-accent uppercase tracking-widest hover:text-primary transition-colors bg-accent/10 px-3 py-1.5 rounded-lg border border-accent/20 hover:bg-accent hover:text-background"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-black text-accent uppercase tracking-widest hover:text-primary transition-colors bg-accent/10 px-2 py-1 rounded border border-accent/20 hover:bg-accent hover:text-background"
                 >
                   <Download className="w-3 h-3" />
                   <span>Receipt</span>

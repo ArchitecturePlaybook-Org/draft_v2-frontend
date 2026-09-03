@@ -307,45 +307,6 @@ export function PurchaseOrdersTab() {
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto text-zinc-100 font-sans animate-in fade-in duration-200">
       
-      {/* ── Page Header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-zinc-900/60 p-5 rounded-2xl border border-zinc-800/80 backdrop-blur-xl shadow-xl">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-500/10 text-purple-400 border border-purple-500/30 shadow-lg shadow-purple-500/5">
-            <FileSpreadsheet className="w-7 h-7" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-black tracking-tight text-white">
-                Purchase Orders & Procurement
-              </h1>
-              {isMaterialSupplier ? (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  Supplier Portal
-                </span>
-              ) : (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  Architect / Firm Workspace
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              Manage material orders, track supplier dispatch, and verify digital GRN site receipts
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={loadOrders}
-            className="h-9 px-4 text-xs font-bold rounded-xl border border-zinc-700/80 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 flex items-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-purple-400 ${loading ? "animate-spin" : ""}`} />
-            Refresh Orders
-          </button>
-        </div>
-      </div>
-
 
 
       {/* ── KPI Stat Cards Grid ────────────────────────────────────────────── */}

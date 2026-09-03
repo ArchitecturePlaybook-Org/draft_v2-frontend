@@ -269,13 +269,14 @@ export async function fetchSentInquiries(params?: {
 
 export async function updateInquiryStatus(
   interestId: number,
-  status: "INTERESTED" | "IN_TALKS" | "AWARDED" | "REJECTED"
+  status: "INTERESTED" | "IN_TALKS" | "AWARDED" | "REJECTED",
+  data?: { items?: any[]; quote_amount?: number }
 ): Promise<OpportunityInterest> {
   return fetchFromBff<OpportunityInterest>(
     `/api/v1/marketplace/opportunities/interests/${interestId}/update-status/`,
     {
       method: "POST",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...data }),
     }
   );
 }

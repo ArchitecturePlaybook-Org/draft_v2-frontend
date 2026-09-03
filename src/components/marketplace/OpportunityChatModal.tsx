@@ -20,6 +20,7 @@ import {
   FileText,
   Briefcase,
   Users,
+  Handshake,
 } from "lucide-react";
 
 interface OpportunityChatModalProps {
@@ -44,6 +45,8 @@ export function OpportunityChatModal({
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(interest?.status || "INTERESTED");
+  const [showOfferForm, setShowOfferForm] = useState(false);
+  const [offerItems, setOfferItems] = useState<any[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -164,6 +167,72 @@ export function OpportunityChatModal({
     }
   };
 
+  function parseProcurementItemsFromDescription(desc: string): any[] {
+    if (!desc) return [];
+    const items: any[] = [];
+    const lines = desc.split("\n");
+    for (const line of lines) {
+      const match = line.match(/^\s*\d+\.\s*(.+?)\s*[—\-]\s*([\d,.]+)\s*([A-Za-z0-9_]+)\s*@\s*₹?([\d,.]+)\/[A-Za-z0-9_]+\s*(?:\(Est:\s*₹?([\d,.]+)\))?/i);
+      if (match) {
+        const name = match[1].trim();
+        const qty = parseFloat(match[2].replace(/,/g, "")) || 1;
+        const unit = match[3].trim().toUpperCase();
+        const rate = parseFloat(match[4].replace(/,/g, "")) || 0;
+        const total = qty * rate;
+        items.push({
+          id: `parsed-${Date.now()}-${Math.random()}`,
+          name,
+          category: "MATERIAL",
+          quantity: qty,
+          unit,
+          rate,
+          total,
+        });
+      }
+    }
+    return items;
+  }
+
+  const openOfferForm = () => {
+    const opp = opportunity || interest?.opportunity_details;
+    const items = opp?.procurement_items?.length 
+      ? JSON.parse(JSON.stringify(opp.procurement_items))
+      : parseProcurementItemsFromDescription(opp?.description || "");
+    setOfferItems(items);
+    setShowOfferForm(true);
+  };
+
+  const handleSendOffer = async () => {
+    if (!channelId) return;
+    const total = offerItems.reduce((sum, item) => sum + (item.rate * item.quantity), 0);
+    let msgBody = "🔔 **New Counter-Offer Submitted:**\n\n";
+    offerItems.forEach(item => {
+      msgBody += `- ${item.name}: ${item.quantity} ${item.unit} @ ₹${item.rate.toLocaleString('en-IN')} = ₹${(item.quantity * item.rate).toLocaleString('en-IN')}\n`;
+    });
+    msgBody += `\n**Total Offer Value: ₹${total.toLocaleString('en-IN')}**`;
+
+    setSending(true);
+    try {
+      const sent = await communicationsApi.sendMessage({
+        channel: channelId,
+        subject: `Counter Offer`,
+        body: msgBody,
+      });
+      if (sent && sent.id) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === sent.id)) return prev;
+          return [...prev, sent];
+        });
+      }
+      setShowOfferForm(false);
+      scrollToBottom();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send offer");
+    } finally {
+      setSending(false);
+    }
+  };
+
   const QUICK_REPLIES = [
     "📋 Please review our technical quotation and scheduled dispatch timeline.",
     "🚚 We guarantee site delivery with factory test certificates.",
@@ -221,7 +290,7 @@ export function OpportunityChatModal({
                       : "bg-blue-500/15 text-semantic-blue border-semantic-blue/30"
                 }`}
             >
-              {currentStatus}
+              {currentStatus === "AWARDED" ? "PO ISSUED" : currentStatus}
             </span>
             {oppBudget && (
               <span className="text-[11px] font-bold text-accent">
@@ -257,7 +326,76 @@ export function OpportunityChatModal({
           )}
         </div>
 
-        {/* Messages Stream */}
+        {/* Messages Stream OR Offer Form */}
+        {showOfferForm ? (
+          <div className="flex-1 p-4 overflow-y-auto bg-surface-50 flex flex-col min-h-0 animate-in fade-in duration-200">
+             <div className="flex items-center justify-between mb-4 shrink-0">
+               <h3 className="font-black text-primary flex items-center gap-2">
+                 <Handshake className="w-5 h-5 text-amber-500" /> Make Counter Offer
+               </h3>
+               <button onClick={() => setShowOfferForm(false)} className="text-surface-400 hover:text-primary transition-colors cursor-pointer">
+                 <X className="w-5 h-5" />
+               </button>
+             </div>
+             {offerItems.length === 0 ? (
+               <div className="flex-1 flex flex-col items-center justify-center text-center text-surface-400">
+                 <p className="text-sm font-bold text-primary">No Structured Materials found.</p>
+                 <p className="text-xs mt-1">Please type a manual offer amount in the chat.</p>
+               </div>
+             ) : (
+               <div className="space-y-4 flex-1 flex flex-col">
+                 <div className="overflow-x-auto rounded-xl border border-surface-200 bg-surface-100 shadow-sm shrink-0">
+                   <table className="w-full text-left text-xs">
+                     <thead>
+                       <tr className="border-b border-surface-200 bg-surface-200/50 text-[10px] font-black uppercase tracking-wider text-surface-400">
+                         <th className="py-2.5 px-3">Material</th>
+                         <th className="py-2.5 px-3 text-right">Qty</th>
+                         <th className="py-2.5 px-3 text-right">Rate (₹)</th>
+                         <th className="py-2.5 px-3 text-right">Total</th>
+                       </tr>
+                     </thead>
+                     <tbody className="divide-y divide-surface-200/60 font-medium">
+                       {offerItems.map((item, idx) => (
+                         <tr key={idx} className="hover:bg-surface-200/30 transition-colors">
+                           <td className="py-2.5 px-3 font-bold text-primary max-w-[150px] truncate" title={item.name}>{item.name}</td>
+                           <td className="py-2.5 px-3 text-right">{item.quantity} <span className="text-[9px] text-surface-400">{item.unit}</span></td>
+                           <td className="py-2.5 px-3 text-right">
+                             <input 
+                               type="number"
+                               min="0"
+                               className="w-20 h-7 px-2 text-right bg-surface-50 border border-surface-300 rounded focus:border-accent outline-none font-bold text-primary text-xs"
+                               value={item.rate}
+                               onChange={(e) => {
+                                 const val = parseFloat(e.target.value) || 0;
+                                 const newItems = [...offerItems];
+                                 newItems[idx].rate = val;
+                                 newItems[idx].total = val * newItems[idx].quantity;
+                                 setOfferItems(newItems);
+                               }}
+                             />
+                           </td>
+                           <td className="py-2.5 px-3 text-right font-black text-accent">₹{item.total.toLocaleString('en-IN')}</td>
+                         </tr>
+                       ))}
+                     </tbody>
+                     <tfoot className="bg-surface-200/50 font-bold border-t border-surface-200">
+                       <tr>
+                         <td colSpan={3} className="py-3 px-3 text-right text-xs uppercase tracking-wider text-primary">Offer Total:</td>
+                         <td className="py-3 px-3 text-right text-sm text-accent">₹{offerItems.reduce((s, i) => s + i.total, 0).toLocaleString('en-IN')}</td>
+                       </tr>
+                     </tfoot>
+                   </table>
+                 </div>
+                 <div className="mt-2 flex justify-end gap-2 shrink-0">
+                   <button onClick={() => setShowOfferForm(false)} className="h-9 px-4 rounded-xl bg-surface-200 hover:bg-surface-300 text-primary text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer">Cancel</button>
+                   <button onClick={handleSendOffer} disabled={sending} className="h-9 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                     <Handshake className="w-3.5 h-3.5" /> Send Offer
+                   </button>
+                 </div>
+               </div>
+             )}
+          </div>
+        ) : (
         <div className="flex-1 p-4 overflow-y-auto space-y-3 min-h-0 bg-surface-50 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
           {loading ? (
             <div className="space-y-3 py-6">
@@ -347,6 +485,7 @@ export function OpportunityChatModal({
           )}
           <div ref={messagesEndRef} />
         </div>
+        )}
 
         {/* Quick Replies Carousel */}
         <div className="px-3 py-2 bg-surface-50 border-t border-surface-200 overflow-x-auto flex items-center gap-1.5 shrink-0 scrollbar-none">
@@ -405,6 +544,16 @@ export function OpportunityChatModal({
             title="Attach BOQ, PDF, or Drawings"
           >
             <Paperclip className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={openOfferForm}
+            className="h-10 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500 hover:text-white text-amber-500 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+            title="Make a Counter Offer"
+          >
+            <Handshake className="w-4 h-4" />
+            <span className="hidden sm:inline">Offer</span>
           </button>
 
           <input

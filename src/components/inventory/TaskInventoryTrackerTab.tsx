@@ -119,7 +119,7 @@ export const TaskInventoryTrackerTab: React.FC<TaskInventoryTrackerTabProps> = (
             <Share2 className="w-3.5 h-3.5 text-accent" />
             Post Tender / Job
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={() => {
               setSelectedReqForIssue(null);
@@ -129,7 +129,7 @@ export const TaskInventoryTrackerTab: React.FC<TaskInventoryTrackerTabProps> = (
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
             Issue to Trade
-          </button>
+          </button> */}
         </div>
       </div>
 

@@ -380,7 +380,7 @@ const SiteOpsInventoryPanel: React.FC<{ projectUid: string }> = ({ projectUid })
                       </td>
                       <td className="py-3 px-4 text-right">
                         <a
-                          href="/dashboard/inventory/requisitions"
+                          href="/dashboard/inventory/procurement?tab=requisitions"
                           className="px-3 py-1 text-[10px] font-extrabold rounded-lg bg-surface-200 hover:bg-surface-300 text-primary transition-colors inline-block"
                         >
                           Raise MRN

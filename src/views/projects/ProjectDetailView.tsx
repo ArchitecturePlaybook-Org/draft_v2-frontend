@@ -11,6 +11,7 @@ import { SkeletonDashboard } from "@/components/ui/Skeleton";
 import { MilestoneMatrixView } from "@/components/matrix/MilestoneMatrixView";
 import { ExpandedFeedView } from "@/components/matrix/ExpandedFeedView";
 import { CreateMatrixTaskModal } from "@/components/matrix/CreateMatrixTaskModal";
+import { ProjectLaborRatesModal } from "@/components/projects/ProjectLaborRatesModal";
 import { SiteOpsTab } from "@/components/projects/SiteOpsTab";
 import { ProjectHeroHeader } from "@/components/projects/ProjectHeroHeader";
 import { ManageProjectAccessModal } from "../../components/projects/ManageProjectAccessModal";
@@ -25,7 +26,7 @@ import { GanttTab } from "@/components/projects/GanttTab";
 import { DataHubTab } from "@/components/projects/DataHubTab";
 import { useProjectStore } from "@/store/project-store";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, HardHat } from "lucide-react";
 
 
 interface ProjectDetailViewProps {
@@ -56,6 +57,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
   
   const [matrixView, setMatrixView] = useState<"grid" | "feed">("grid");
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+  const [showLaborRatesModal, setShowLaborRatesModal] = useState(false);
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showCloneModal, setShowCloneModal] = useState(false);
@@ -241,6 +243,12 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
                   Expanded Milestone Feed
                 </button>
               </div>
+              <button 
+                onClick={() => setShowLaborRatesModal(true)}
+                className="shrink-0 px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-lg border border-surface-200 text-surface-600 hover:bg-surface-50 transition-colors bg-white flex items-center gap-1.5"
+              >
+                <HardHat className="w-3.5 h-3.5" /> Configure Wages
+              </button>
             </div>
             {matrixView === 'grid' ? (
               <MilestoneMatrixView projectUid={project.uid} onTaskChange={() => fetchProject(project.uid)} projectTasks={project.tasks} />
@@ -252,6 +260,11 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
               onClose={() => setShowCreateTaskModal(false)}
               projectUid={project.uid}
               onTaskCreated={() => fetchProject(project.uid)}
+            />
+            <ProjectLaborRatesModal
+              isOpen={showLaborRatesModal}
+              onClose={() => setShowLaborRatesModal(false)}
+              projectId={project.uid}
             />
           </div>
         )}

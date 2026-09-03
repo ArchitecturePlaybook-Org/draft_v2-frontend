@@ -59,12 +59,12 @@ export const Sidebar: React.FC = () => {
   const isSuperAdmin = !isMaterialSupplier && (isAdmin || Boolean((user as any)?.is_superuser) || user?.email === "superadmin@ap.com");
 
   const supplierLinks = isMaterialSupplier ? [
-    { label: "Purchase Orders (POs)", href: "/dashboard/inventory/purchase-orders", icon: <ShoppingBag className="w-4 h-4 text-purple-400" /> },
+    { label: "Purchase Orders (POs)", href: "/dashboard/inventory/procurement?tab=pos", icon: <ShoppingBag className="w-4 h-4 text-purple-400" /> },
     { label: "Deliveries & Shipments", href: "/dashboard/inventory/deliveries", icon: <Truck className="w-4 h-4 text-emerald-400" /> },
     { label: "Master Materials Catalog", href: "/dashboard/materials", icon: <Layers className="w-4 h-4 text-accent" /> },
     { label: "Material Categories", href: "/dashboard/materials/categories", icon: <Tag className="w-4 h-4 text-accent" /> },
     { label: "Approved Brands", href: "/dashboard/materials/brands", icon: <Award className="w-4 h-4 text-accent" /> },
-    { label: "My Postings & Tenders", href: "/dashboard/opportunities", icon: <Briefcase className="w-4 h-4 text-accent" /> },
+    { label: "My Sent Bids", href: "/dashboard/opportunities", icon: <Briefcase className="w-4 h-4 text-accent" /> },
   ] : [];
 
   const workspaceLinks = isMaterialSupplier ? [
@@ -102,6 +102,7 @@ export const Sidebar: React.FC = () => {
   const orgLinks = isMaterialSupplier ? [] : (isSuperAdmin ? [
     { label: "User Directory", href: "/dashboard/users", icon: <Users className="w-4 h-4 text-accent" /> },
     { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> },
+    { label: "Payments & Subscriptions", href: "/dashboard/admin/subscriptions", icon: <CreditCard className="w-4 h-4 text-accent" /> },
     { label: "CPWD Rate Master", href: "/dashboard/admin/cpwd-rates", icon: <BookOpen className="w-4 h-4 text-accent" /> },
     { label: "BOQ Rules & Rates", href: "/dashboard/admin/boq-rules", icon: <Calculator className="w-4 h-4 text-accent" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4 text-accent" /> },
@@ -192,9 +193,12 @@ export const Sidebar: React.FC = () => {
               </h4>
             )}
             <div className="flex flex-col gap-1">
-              {supplierLinks.map((link) => (
-                <SidebarLink key={link.href} {...link} active={pathname.startsWith(link.href)} isCollapsed={isSidebarCollapsed} />
-              ))}
+              {supplierLinks.map((link) => {
+                const basePath = link.href.split('?')[0];
+                return (
+                  <SidebarLink key={link.href} {...link} active={pathname.startsWith(basePath)} isCollapsed={isSidebarCollapsed} />
+                );
+              })}
             </div>
           </div>
         )}

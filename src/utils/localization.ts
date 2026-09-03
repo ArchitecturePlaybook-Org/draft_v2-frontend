@@ -29,8 +29,8 @@ export function detectUserCurrency(): string {
   try {
     const locale = navigator.language || "en-US";
     
-    // Simplistic mapping for standard locales
-    if (locale.includes("en-US")) return "USD";
+    // Default to INR
+    if (locale.includes("en-US")) return "INR";
     if (locale.includes("en-GB")) return "GBP";
     if (locale.includes("en-IN") || locale.includes("hi-IN")) return "INR";
     if (locale.includes("en-AU")) return "AUD";

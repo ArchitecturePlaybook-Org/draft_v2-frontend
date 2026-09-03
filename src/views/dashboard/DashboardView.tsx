@@ -92,7 +92,7 @@ export function DashboardView() {
 
   React.useEffect(() => {
     if (isMounted && isMaterialSupplier) {
-      router.replace("/dashboard/inventory/purchase-orders");
+      router.replace("/dashboard/inventory/procurement?tab=pos");
     }
   }, [isMounted, isMaterialSupplier, router]);
 
@@ -103,7 +103,7 @@ export function DashboardView() {
   if (isMaterialSupplier) {
     return (
       <div className="p-10 text-center space-y-3 font-sans">
-        <div className="animate-spin text-purple-400 font-bold text-sm">Redirecting to Supplier Portal Purchase Orders...</div>
+        <div className="animate-spin text-purple-400 font-bold text-sm">Redirecting to Supplier Procurement Portal...</div>
       </div>
     );
   }

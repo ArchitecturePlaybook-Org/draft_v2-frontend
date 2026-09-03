@@ -58,7 +58,7 @@ export const state: any = {
   bottomSheetState: "closed", // "closed" | "peek" | "half" | "full"
 
   // 5D Cost Estimation & Currency
-  selectedCurrency: "USD",
+  selectedCurrency: "INR",
   currencySymbols: { USD: "$", EUR: "€", GBP: "£", INR: "₹" },
   currencyRates: { USD: 1.0, EUR: 0.92, GBP: 0.79, INR: 83.5 },
   projectTotalCost: 0,

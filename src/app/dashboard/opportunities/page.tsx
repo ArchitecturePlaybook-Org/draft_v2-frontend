@@ -82,10 +82,17 @@ export default function MyPostingsDashboardPage() {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
 
+  const rawRole = String((user as any)?.role?.name || (user as any)?.role_name || (user as any)?.role || "").toLowerCase();
+  const rawAccount = String((user as any)?.account?.account_type || (user as any)?.account_type || "").toLowerCase();
+  const isMaterialSupplier = rawRole.includes("supplier") || rawAccount.includes("supplier");
+
   // Active Workspace Tab
-  const [activeTab, setActiveTab] = useState<"postings" | "received_inquiries" | "sent_inquiries">("postings");
+  const [activeTab, setActiveTab] = useState<"postings" | "received_inquiries" | "sent_inquiries">(
+    isMaterialSupplier ? "sent_inquiries" : "postings"
+  );
   const [selectedOpportunityForInquiries, setSelectedOpportunityForInquiries] = useState<OpportunityPosting | null>(null);
   const [activeChatInquiry, setActiveChatInquiry] = useState<OpportunityInterest | null>(null);
+  const [issuePoTargetInquiry, setIssuePoTargetInquiry] = useState<OpportunityInterest | null>(null);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -358,8 +365,8 @@ export default function MyPostingsDashboardPage() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ interestId, newStatus }: { interestId: number; newStatus: "INTERESTED" | "IN_TALKS" | "AWARDED" | "REJECTED" }) =>
-      updateInquiryStatus(interestId, newStatus),
+    mutationFn: ({ interestId, newStatus, items, quote_amount }: { interestId: number; newStatus: "INTERESTED" | "IN_TALKS" | "AWARDED" | "REJECTED", items?: any[], quote_amount?: number }) =>
+      updateInquiryStatus(interestId, newStatus, { items, quote_amount }),
     onSuccess: (data) => {
       if (data.po_created) {
         toast.success(`Bid Awarded & Draft PO Created! (ID: ${data.po_id})`, { duration: 5000 });
@@ -729,10 +736,10 @@ export default function MyPostingsDashboardPage() {
             <Sparkles className="w-3 h-3 text-accent" /> Marketplace & Tenders Management
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-primary tracking-tight">
-            My Opportunity Postings
+            {isMaterialSupplier ? "My Sent Bids" : "My Opportunity Postings"}
           </h1>
           <p className="text-xs sm:text-sm text-surface-500 font-medium">
-            Manage your published material procurement packages, service tenders, and track vendor proposals.
+            {isMaterialSupplier ? "Track the bids and proposals you've submitted to live tenders." : "Manage your published material procurement packages, service tenders, and track vendor proposals."}
           </p>
         </div>
 
@@ -743,111 +750,122 @@ export default function MyPostingsDashboardPage() {
           >
             <ExternalLink className="w-3.5 h-3.5 text-accent" /> Public Marketplace
           </Link>
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="h-10 px-5 bg-accent hover:opacity-90 text-background rounded-xl font-bold uppercase text-xs tracking-wider flex items-center gap-2 shadow-md shadow-accent/20 cursor-pointer transition-all hover:scale-105"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" /> Post Opportunity
-          </button>
+          {!isMaterialSupplier && (
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="h-10 px-5 bg-accent hover:opacity-90 text-background rounded-xl font-bold uppercase text-xs tracking-wider flex items-center gap-2 shadow-md shadow-accent/20 cursor-pointer transition-all hover:scale-105"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" /> Post Opportunity
+            </button>
+          )}
         </div>
       </div>
 
       {/* ── KPI Metric Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-surface-100 border border-surface-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-surface-400">Total Postings</span>
-            <div className="w-7 h-7 rounded-lg bg-surface-200 flex items-center justify-center text-primary">
-              <Briefcase className="w-3.5 h-3.5" />
+      {!isMaterialSupplier && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 rounded-2xl bg-surface-100 border border-surface-200 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-surface-400">Total Postings</span>
+              <div className="w-7 h-7 rounded-lg bg-surface-200 flex items-center justify-center text-primary">
+                <Briefcase className="w-3.5 h-3.5" />
+              </div>
             </div>
+            <div className="text-2xl font-black text-primary">{totalCount}</div>
+            <div className="text-[10px] text-surface-500 font-medium">{materialCount} Material Packages</div>
           </div>
-          <div className="text-2xl font-black text-primary">{totalCount}</div>
-          <div className="text-[10px] text-surface-500 font-medium">{materialCount} Material Packages</div>
-        </div>
 
-        <div className="p-4 rounded-2xl bg-surface-100 border border-surface-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-semantic-green">Active (Open)</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-semantic-green flex items-center justify-center">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+          <div className="p-4 rounded-2xl bg-surface-100 border border-surface-200 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-semantic-green">Active (Open)</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-semantic-green flex items-center justify-center">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              </div>
             </div>
+            <div className="text-2xl font-black text-semantic-green">{openCount}</div>
+            <div className="text-[10px] text-surface-500 font-medium">Currently receiving bids</div>
           </div>
-          <div className="text-2xl font-black text-semantic-green">{openCount}</div>
-          <div className="text-[10px] text-surface-500 font-medium">Currently receiving bids</div>
-        </div>
 
-        <div className="p-4 rounded-2xl bg-surface-100 border border-surface-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-500">In Negotiations</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-              <TrendingUp className="w-3.5 h-3.5" />
+          <div className="p-4 rounded-2xl bg-surface-100 border border-surface-200 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-500">In Negotiations</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                <TrendingUp className="w-3.5 h-3.5" />
+              </div>
             </div>
+            <div className="text-2xl font-black text-amber-500">{negotiatingCount}</div>
+            <div className="text-[10px] text-surface-500 font-medium">Under active review</div>
           </div>
-          <div className="text-2xl font-black text-amber-500">{negotiatingCount}</div>
-          <div className="text-[10px] text-surface-500 font-medium">Under active review</div>
-        </div>
 
-        <div className="p-4 rounded-2xl bg-surface-100 border border-surface-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-surface-400">Closed / Awarded</span>
-            <div className="w-7 h-7 rounded-lg bg-surface-200 flex items-center justify-center text-surface-400">
-              <Lock className="w-3.5 h-3.5" />
+          <div className="p-4 rounded-2xl bg-surface-100 border border-surface-200 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-surface-400">Closed / PO Issued</span>
+              <div className="w-7 h-7 rounded-lg bg-surface-200 flex items-center justify-center text-surface-400">
+                <Lock className="w-3.5 h-3.5" />
+              </div>
             </div>
+            <div className="text-2xl font-black text-surface-400">{closedCount}</div>
+            <div className="text-[10px] text-surface-500 font-medium">Completed procurement</div>
           </div>
-          <div className="text-2xl font-black text-surface-400">{closedCount}</div>
-          <div className="text-[10px] text-surface-500 font-medium">Completed procurement</div>
         </div>
-      </div>
+      )}
 
       {/* ── Main Tab Navigation ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <div className="flex items-center gap-1.5 p-1 bg-surface-100 border border-surface-200 rounded-2xl">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("postings");
-              setSelectedOpportunityForInquiries(null);
-            }}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === "postings"
-                ? "bg-accent text-background shadow-sm"
-                : "text-surface-400 hover:text-primary"
-              }`}
-          >
-            <Briefcase className="w-3.5 h-3.5" />
-            <span>My Tenders ({totalCount})</span>
-          </button>
+      {!isMaterialSupplier && (
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <div className="flex items-center gap-1.5 p-1 bg-surface-100 border border-surface-200 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("postings");
+                setSelectedOpportunityForInquiries(null);
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === "postings"
+                  ? "bg-accent text-background shadow-sm"
+                  : "text-surface-400 hover:text-primary"
+                }`}
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>My Tenders ({totalCount})</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("received_inquiries")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === "received_inquiries"
-                ? "bg-accent text-background shadow-sm"
-                : "text-surface-400 hover:text-primary"
-              }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Received Inquiries ({receivedInquiries.length})</span>
-            {receivedInquiries.filter((i) => i.status === "INTERESTED").length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-white animate-pulse">
-                {receivedInquiries.filter((i) => i.status === "INTERESTED").length} New
-              </span>
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("received_inquiries")}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === "received_inquiries"
+                  ? "bg-accent text-background shadow-sm"
+                  : "text-surface-400 hover:text-primary"
+                }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Received Inquiries ({receivedInquiries.length})</span>
+              {receivedInquiries.filter((i) => i.status === "INTERESTED").length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-white animate-pulse">
+                  {receivedInquiries.filter((i) => i.status === "INTERESTED").length} New
+                </span>
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("sent_inquiries")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === "sent_inquiries"
-                ? "bg-accent text-background shadow-sm"
-                : "text-surface-400 hover:text-primary"
-              }`}
-          >
-            <Handshake className="w-3.5 h-3.5" />
-            <span>My Sent Bids ({sentInquiries.length})</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("sent_inquiries")}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === "sent_inquiries"
+                  ? "bg-accent text-background shadow-sm"
+                  : "text-surface-400 hover:text-primary"
+                }`}
+            >
+              <Handshake className="w-3.5 h-3.5" />
+              <span>My Sent Bids ({sentInquiries.length})</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+      {isMaterialSupplier && (
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <h2 className="text-lg font-black text-primary">My Sent Bids ({sentInquiries.length})</h2>
+        </div>
+      )}
 
       {/* ── TAB 1: POSTINGS WORKSPACE ── */}
       {activeTab === "postings" && (
@@ -1259,7 +1277,7 @@ export default function MyPostingsDashboardPage() {
 
                         <td className="py-3.5 px-4">
                           <span
-                            className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-1 ${isNew
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border inline-flex items-center gap-1.5 ${isNew
                                 ? "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
                                 : isInTalks
                                   ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
@@ -1271,7 +1289,7 @@ export default function MyPostingsDashboardPage() {
                             {isNew && <Sparkles className="w-2.5 h-2.5" />}
                             {isInTalks && <TrendingUp className="w-2.5 h-2.5" />}
                             {isAwarded && <CheckCircle2 className="w-2.5 h-2.5" />}
-                            {inquiry.status}
+                            {inquiry.status === "INTERESTED" ? "Interested" : inquiry.status === "IN_TALKS" ? "In Talks" : inquiry.status === "AWARDED" ? "PO Issued" : inquiry.status === "REJECTED" ? "Declined" : inquiry.status}
                           </span>
                         </td>
 
@@ -1303,15 +1321,11 @@ export default function MyPostingsDashboardPage() {
                             {!isAwarded && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (confirm("Award this opportunity / tender to this contractor/supplier?")) {
-                                    updateStatusMutation.mutate({ interestId: inquiry.id, newStatus: "AWARDED" });
-                                  }
-                                }}
+                                onClick={() => setIssuePoTargetInquiry(inquiry)}
                                 className="h-8 px-3 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-semantic-green border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
-                                title="Award Tender"
+                                title="Review Materials & Issue Purchase Order"
                               >
-                                <Award className="w-3 h-3" /> Award
+                                <Award className="w-3 h-3" /> Issue PO
                               </button>
                             )}
 
@@ -1401,7 +1415,7 @@ export default function MyPostingsDashboardPage() {
                         </td>
                         <td className="py-3.5 px-4">
                           <span
-                            className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border inline-flex items-center gap-1 ${sent.status === "AWARDED"
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border inline-flex items-center gap-1.5 ${sent.status === "AWARDED"
                                 ? "bg-emerald-500/10 text-semantic-green border-emerald-500/30"
                                 : sent.status === "IN_TALKS"
                                   ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
@@ -1410,7 +1424,10 @@ export default function MyPostingsDashboardPage() {
                                     : "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
                               }`}
                           >
-                            {sent.status}
+                            {sent.status === "AWARDED" && <CheckCircle2 className="w-2.5 h-2.5" />}
+                            {sent.status === "IN_TALKS" && <TrendingUp className="w-2.5 h-2.5" />}
+                            {sent.status === "INTERESTED" && <Sparkles className="w-2.5 h-2.5" />}
+                            {sent.status === "INTERESTED" ? "Interested" : sent.status === "IN_TALKS" ? "In Talks" : sent.status === "AWARDED" ? "PO Issued" : sent.status === "REJECTED" ? "Declined" : sent.status}
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-right">
@@ -2635,6 +2652,141 @@ export default function MyPostingsDashboardPage() {
                 className="h-9 px-5 rounded-xl bg-surface-200 hover:bg-surface-300 text-primary font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Issue PO Confirmation Modal */}
+      {issuePoTargetInquiry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 p-4">
+          <div className="w-full max-w-2xl bg-surface-100 rounded-3xl border border-surface-200 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-4 border-b border-surface-200 bg-surface-50 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-semantic-green flex items-center justify-center font-black">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-primary text-base">Issue Purchase Order</h3>
+                  <p className="text-xs font-medium text-surface-500 truncate max-w-sm">
+                    Review materials before confirming PO issuance to {issuePoTargetInquiry.applicant_details?.first_name || issuePoTargetInquiry.applicant_details?.email || `Applicant #${issuePoTargetInquiry.applicant}`}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIssuePoTargetInquiry(null)}
+                className="w-8 h-8 rounded-xl bg-surface-200 hover:bg-surface-300 text-primary font-bold flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto min-h-0 bg-surface-100/50">
+              {(() => {
+                const opp = issuePoTargetInquiry.opportunity_details;
+                if (!opp) return <p className="text-sm font-bold text-surface-500">Opportunity details not found.</p>;
+                
+                const items = opp.procurement_items?.length 
+                  ? opp.procurement_items 
+                  : parseProcurementItemsFromDescription(opp.description || "");
+                
+                if (items.length === 0) {
+                  return (
+                    <div className="space-y-4">
+                      <div className="text-center py-10 bg-surface-50 rounded-xl border border-surface-200">
+                        <div className="w-12 h-12 bg-surface-200 rounded-xl flex items-center justify-center mx-auto text-surface-400 mb-3">
+                          <PackagePlus className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-bold text-primary">No Structured Materials Found</p>
+                        <p className="text-xs text-surface-500 mt-1">This opportunity might be service-based or doesn't list exact BOM materials in the expected format.</p>
+                      </div>
+                      {opp.description && (
+                        <div className="bg-surface-50 p-4 rounded-xl border border-surface-200">
+                          <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-2">Opportunity Description / Requirements</h4>
+                          <div className="text-sm text-surface-600 whitespace-pre-wrap">
+                            {opp.description}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-4">
+                    <div className="overflow-hidden rounded-xl border border-surface-200 bg-surface-50">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-surface-200 text-[10px] uppercase font-black tracking-wider text-surface-400 bg-surface-100/50">
+                            <th className="py-2.5 px-3">Item Name</th>
+                            <th className="py-2.5 px-3">Category</th>
+                            <th className="py-2.5 px-3 text-right">Qty</th>
+                            <th className="py-2.5 px-3 text-right">Est. Rate</th>
+                            <th className="py-2.5 px-3 text-right">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-surface-200/60 font-medium">
+                          {items.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-surface-100 transition-colors">
+                              <td className="py-2.5 px-3 font-bold text-primary">{item.name}</td>
+                              <td className="py-2.5 px-3">
+                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-surface-200 text-surface-600 border border-surface-300">
+                                  {item.category}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-bold text-primary">
+                                {item.quantity} <span className="text-surface-400 font-medium">{item.unit}</span>
+                              </td>
+                              <td className="py-2.5 px-3 text-right text-surface-500">₹{item.rate.toLocaleString()}</td>
+                              <td className="py-2.5 px-3 text-right font-bold text-accent">₹{item.total.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-surface-100/50 border-t border-surface-200 font-bold">
+                          <tr>
+                            <td colSpan={4} className="py-3 px-3 text-right text-primary text-xs uppercase tracking-wider">Estimated Total Value:</td>
+                            <td className="py-3 px-3 text-right text-accent text-sm">
+                              ₹{items.reduce((sum, item) => sum + item.total, 0).toLocaleString()}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div className="p-4 border-t border-surface-200 bg-surface-50 flex justify-end shrink-0 gap-3">
+              <button
+                type="button"
+                onClick={() => setIssuePoTargetInquiry(null)}
+                className="h-9 px-5 rounded-xl bg-surface-200 hover:bg-surface-300 text-primary font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const opp = issuePoTargetInquiry.opportunity_details;
+                  const items = opp?.procurement_items?.length 
+                    ? opp.procurement_items 
+                    : parseProcurementItemsFromDescription(opp?.description || "");
+                  const computed_total = items.reduce((sum: number, item: any) => sum + ((item.quantity || 1) * (item.rate || 0)), 0);
+                  const quote_amount = issuePoTargetInquiry.quote_amount || computed_total;
+                  
+                  updateStatusMutation.mutate({ 
+                    interestId: issuePoTargetInquiry.id, 
+                    newStatus: "AWARDED",
+                    items,
+                    quote_amount 
+                  });
+                  setIssuePoTargetInquiry(null);
+                }}
+                className="h-9 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Confirm & Issue PO
               </button>
             </div>
           </div>

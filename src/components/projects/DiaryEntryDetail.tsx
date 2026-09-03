@@ -28,7 +28,7 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({
   const isLocked = entry.status === "signed" || readOnly;
   
   // Section states for adding new items
-  const [newLabor, setNewLabor] = useState({ crew_name: "", trade_type: "", headcount: "", total_hours: "", zone: "" });
+  const [newLabor, setNewLabor] = useState({ labor_id: "", headcount: "", total_hours: "", zone: "" });
   const [newMaterial, setNewMaterial] = useState({ description: "", quantity: "", unit: "", supplier: "", ticket_number: "", status: "good", cost: "" });
   const [newMaterialReceipt, setNewMaterialReceipt] = useState<File | null>(null);
   const newMaterialReceiptRef = useRef<HTMLInputElement>(null);
@@ -58,6 +58,22 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({
     progress: true,
     attachments: true,
   });
+
+  const [laborMasters, setLaborMasters] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Fetch Live Material and Equipment data when expanded
+    if (expandedSections.materials && liveMaterials.length === 0) {
+      inventoryApi.getMaterials().then(setLiveMaterials).catch(console.error);
+      inventoryApi.getSites().then(setLiveSites).catch(console.error);
+    }
+    if (expandedSections.equipment && liveEquipment.length === 0) {
+      inventoryApi.getEquipment().then((res: any) => setLiveEquipment(Array.isArray(res) ? res : res.results || [])).catch(console.error);
+    }
+    if (expandedSections.labor && laborMasters.length === 0) {
+      projectsApi.getProjectLaborRates(projectId).then(setLaborMasters).catch(console.error);
+    }
+  }, [expandedSections]);
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
@@ -458,8 +474,8 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({
                 {entry.labor_entries?.map((l: any) => (
                   <div key={l.id} className="p-4 bg-surface-50 border border-surface-200 rounded-xl flex justify-between items-center">
                     <div>
-                      <p className="font-bold text-surface-800">{l.crew_name} <span className="text-surface-400 font-normal">({l.trade_type})</span></p>
-                      <p className="text-xs font-bold text-surface-500 text-surface-400 uppercase mt-1">Zone: {l.zone || 'N/A'}</p>
+                        <p className="font-bold text-surface-800">{l.labor_trade_type || l.crew_name} <span className="text-surface-400 font-normal">({l.labor_vendor_name || l.trade_type})</span></p>
+                        <p className="text-xs font-bold text-surface-500 uppercase mt-1">Zone: {l.zone || 'N/A'}</p>
                     </div>
                     <div className="text-right flex items-center gap-3">
                       <div>
@@ -478,14 +494,26 @@ export const DiaryEntryDetail: React.FC<DiaryEntryDetailProps> = ({
               
               {!isLocked && (
                 <div className="p-4 border-2 border-dashed border-surface-200 rounded-xl bg-surface-50/50">
-                  <h4 className="text-xs font-bold text-surface-500 text-surface-400 uppercase mb-3 flex items-center gap-1"><Plus className="w-3 h-3" /> Log New Crew</h4>
+                  <h4 className="text-xs font-bold text-surface-400 uppercase mb-3 flex items-center gap-1"><Plus className="w-3 h-3" /> Log New Crew</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <input type="text" placeholder="Crew Name / Contractor" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newLabor.crew_name} onChange={e => setNewLabor({...newLabor, crew_name: e.target.value})}/>
-                    <input type="text" placeholder="Trade (e.g. Masonry)" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newLabor.trade_type} onChange={e => setNewLabor({...newLabor, trade_type: e.target.value})}/>
+                    <select className="h-10 px-3 rounded-lg border border-surface-200 text-sm md:col-span-2" value={newLabor.labor_id} onChange={e => setNewLabor({...newLabor, labor_id: e.target.value})}>
+                      <option value="">Select Manpower Type...</option>
+                      {laborMasters.map((lm: any) => (
+                        <option key={lm.id} value={lm.id}>{lm.trade_type} {lm.vendor_name ? `(${lm.vendor_name})` : ""}</option>
+                      ))}
+                    </select>
                     <input type="number" placeholder="Headcount" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newLabor.headcount} onChange={e => setNewLabor({...newLabor, headcount: e.target.value})}/>
                     <input type="number" placeholder="Total Hours" className="h-10 px-3 rounded-lg border border-surface-200 text-sm" value={newLabor.total_hours} onChange={e => setNewLabor({...newLabor, total_hours: e.target.value})}/>
                     <input type="text" placeholder="Location / Zone" className="h-10 px-3 rounded-lg border border-surface-200 col-span-1 md:col-span-2 text-sm" value={newLabor.zone} onChange={e => setNewLabor({...newLabor, zone: e.target.value})}/>
-                    <Button className="md:col-span-2" onClick={() => addSubEntry("labor", newLabor, () => setNewLabor({crew_name: "", trade_type: "", headcount: "", total_hours: "", zone: ""}))}>Add Crew Record</Button>
+                    <Button className="md:col-span-2" onClick={() => {
+                      const payload = {
+                        labor: newLabor.labor_id,
+                        headcount: newLabor.headcount,
+                        total_hours: newLabor.total_hours,
+                        zone: newLabor.zone
+                      };
+                      addSubEntry("labor", payload, () => setNewLabor({labor_id: "", headcount: "", total_hours: "", zone: ""}))
+                    }}>Add Crew Record</Button>
                   </div>
                 </div>
               )}

@@ -28,15 +28,7 @@ export default function EquipmentAndAssetsHubPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
       <div className="px-6 pt-4 pb-0 bg-surface-50 border-b border-surface-200 shrink-0">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-cyan-100 text-cyan-600 border border-cyan-200">
-            <Wrench className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-surface-900 tracking-tight">Equipment & Assets</h1>
-            <p className="text-sm font-medium text-surface-500">Manage equipment registry and track maintenance logs</p>
-          </div>
-        </div>
+
 
         <div className="flex gap-6 border-b border-surface-200">
           <button

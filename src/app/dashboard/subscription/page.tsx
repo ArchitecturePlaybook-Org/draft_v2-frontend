@@ -187,7 +187,7 @@ export default function SubscriptionPage() {
                 event: "subscription.charged",
                 payload: {
                   subscription: { entity: { id: subId, charge_at: null } },
-                  payment: { entity: { id: `pay_mock_${Date.now()}`, amount: 249900, currency: "INR" } },
+                  payment: { entity: { id: `pay_mock_${subId.slice(-8)}`, amount: 249900, currency: "INR" } },
                 },
               }
         ),
@@ -231,10 +231,10 @@ export default function SubscriptionPage() {
       )}
 
       {/* Page Header */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-2xl font-black text-primary mb-3 tracking-tighter">Subscription</h1>
-          <p className="text-surface-400 font-bold uppercase tracking-widest text-[11px] max-w-2xl leading-relaxed">
+          <h1 className="text-xl font-black text-primary mb-2 tracking-tight">Subscription</h1>
+          <p className="text-surface-400 font-bold uppercase tracking-widest text-[10px] max-w-2xl leading-relaxed">
             Manage your billing, active plans, and institutional access capabilities.
           </p>
         </div>
@@ -243,10 +243,10 @@ export default function SubscriptionPage() {
       {/* Current Plan Banner */}
       <motion.section
         variants={itemVariants}
-        className="bg-surface-50/40 backdrop-blur-2xl p-6 border border-white/20 dark:border-white/5 rounded-2xl relative overflow-hidden shadow-2xl shadow-primary/5 group"
+        className="bg-surface-50/40 backdrop-blur-xl p-5 border border-white/10 rounded-xl relative overflow-hidden shadow-lg group"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent pointer-events-none" />
-        <div className="absolute top-0 right-0 w-64 h-full arch-grid opacity-[0.05] pointer-events-none mix-blend-overlay" />
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
+        <div className="absolute top-0 right-0 w-48 h-full arch-grid opacity-[0.03] pointer-events-none mix-blend-overlay" />
 
         {/* Trial banner */}
         {sub?.status === "trialing" && trialDaysLeft !== null && (
@@ -288,15 +288,15 @@ export default function SubscriptionPage() {
           </div>
         )}
 
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-3">
-            <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
-              <span className={`w-1.5 h-1.5 rounded-full ${sub?.status === "active" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-amber-500"}`} />
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-2">
+            <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.25em] flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${sub?.status === "active" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500"}`} />
               Active Subscription
             </h3>
-            <div className="flex items-center gap-4 flex-wrap">
-              <h2 className="text-xl font-black text-primary tracking-tighter">{sub?.plan?.name ?? "Starter"}</h2>
-              <span className={`text-[11px] font-bold px-3 py-1 uppercase tracking-[0.2em] rounded-full border ${
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-lg font-black text-primary tracking-tight">{sub?.plan?.name ?? "Starter"}</h2>
+              <span className={`text-[10px] font-bold px-2 py-0.5 uppercase tracking-[0.15em] rounded-full border ${
                 sub?.status === "active"
                   ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                   : sub?.status === "trialing"
@@ -318,12 +318,12 @@ export default function SubscriptionPage() {
               </span>
             </p>
           </div>
-          <div className="text-right flex flex-col md:items-end gap-3">
-            <p className="text-5xl font-black text-primary tracking-tighter flex items-end">
+          <div className="text-right flex flex-col md:items-end gap-2">
+            <p className="text-3xl font-black text-primary tracking-tight flex items-end">
               {sub?.plan
                 ? formatCurrency(sub.plan.monthly_price, sub.plan.currency)
                 : "₹0.00"}
-              <span className="text-xl text-surface-400 font-bold tracking-normal mb-1 ml-1">/mo</span>
+              <span className="text-sm text-surface-400 font-bold tracking-normal mb-1 ml-1">/mo</span>
             </p>
             {sub?.status === "active" && !sub.cancel_at_period_end && (
               <button
@@ -365,12 +365,12 @@ export default function SubscriptionPage() {
 
       {/* Live Usage Meters */}
       {usage && (
-        <motion.section variants={itemVariants} className="bg-surface-50/40 backdrop-blur-xl p-6 border border-white/20 dark:border-white/5 rounded-2xl space-y-6 shadow-xl shadow-primary/5">
-          <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
+        <motion.section variants={itemVariants} className="bg-surface-50/40 backdrop-blur-xl p-5 border border-white/10 rounded-xl space-y-4 shadow-lg">
+          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.25em] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
             Current Usage
           </h3>
-          <ul className="space-y-5">
+          <ul className="space-y-4">
             <UsageMeter
               label="Active Projects"
               used={usage.usage.projects.used}
@@ -428,10 +428,10 @@ export default function SubscriptionPage() {
         </div>
 
         {/* Plan Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {isLoading
             ? [1, 2, 3].map((i) => (
-                <div key={i} className="h-72 bg-white/5 border border-white/10 rounded-2xl animate-pulse" />
+                <div key={i} className="h-64 bg-white/5 border border-white/10 rounded-xl animate-pulse" />
               ))
             : plans.map((plan) => {
                 const isCurrent = plan.code === currentPlanCode && sub?.status === "active";
@@ -443,11 +443,11 @@ export default function SubscriptionPage() {
                 return (
                   <motion.div
                     key={plan.code}
-                    whileHover={!isCurrent ? { y: -6, scale: 1.01 } : {}}
-                    className={`relative p-5 rounded-2xl flex flex-col gap-5 transition-all duration-300 ${
+                    whileHover={!isCurrent ? { y: -4, scale: 1.01 } : {}}
+                    className={`relative p-4 rounded-xl flex flex-col gap-4 transition-all duration-300 ${
                       isPro
-                        ? "bg-surface-900 border-2 border-accent/40 shadow-2xl shadow-accent/10"
-                        : "bg-surface-50/40 backdrop-blur-xl border border-white/20 dark:border-white/5"
+                        ? "bg-surface-900 border-2 border-accent/40 shadow-lg shadow-accent/5"
+                        : "bg-surface-50/40 backdrop-blur-xl border border-white/10"
                     }`}
                   >
                     {isPro && !isCurrent && !isPendingPlan && (
@@ -483,11 +483,11 @@ export default function SubscriptionPage() {
                     </div>
 
                     <div>
-                      <p className="text-xl font-black text-primary tracking-tighter">
+                      <p className="text-xl font-black text-primary tracking-tight">
                         {parseFloat(price) === 0 ? "Free" : formatCurrency(price, plan.currency)}
                       </p>
                       {parseFloat(price) > 0 && (
-                        <p className="text-[11px] font-bold text-surface-400 uppercase tracking-widest">
+                        <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">
                           /{billingCycle === "yearly" ? "year" : "month"}
                         </p>
                       )}
@@ -611,8 +611,8 @@ export default function SubscriptionPage() {
       </motion.section>
 
       {/* Payment History */}
-      <motion.section variants={itemVariants} className="bg-surface-50/40 backdrop-blur-xl p-6 border border-white/20 dark:border-white/5 rounded-2xl space-y-8 shadow-xl shadow-primary/5">
-        <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2">
+      <motion.section variants={itemVariants} className="bg-surface-50/40 backdrop-blur-xl p-5 border border-white/10 rounded-xl space-y-4 shadow-lg">
+        <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.25em] flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
           Payment History
         </h3>

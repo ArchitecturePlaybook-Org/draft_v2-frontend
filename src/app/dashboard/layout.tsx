@@ -34,7 +34,7 @@ export default function DashboardLayout({
       if (isMaterialSupplier) {
         // Allow suppliers to navigate freely within all their permitted routes
         const supplierAllowedPrefixes = [
-          "/dashboard/inventory/purchase-orders",
+          "/dashboard/inventory/procurement",
           "/dashboard/inventory/deliveries",
           "/dashboard/materials",
           "/dashboard/opportunities",
@@ -42,7 +42,7 @@ export default function DashboardLayout({
         ];
         const isAllowed = supplierAllowedPrefixes.some((prefix) => pathname.startsWith(prefix));
         if (!isAllowed) {
-          router.replace("/dashboard/inventory/purchase-orders");
+          router.replace("/dashboard/inventory/procurement?tab=pos");
           return;
         }
       }

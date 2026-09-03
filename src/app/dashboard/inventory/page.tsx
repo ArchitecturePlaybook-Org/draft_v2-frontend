@@ -73,22 +73,8 @@ export default function InventoryDashboardPage() {
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto text-zinc-100">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <Warehouse className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">
-                On-Site Inventory Management System (OIMS)
-              </h1>
-              <p className="text-xs text-zinc-400">
-                Live double-entry stock ledger, materials, deliveries, and equipment across construction sites.
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
+
 
         <div className="flex items-center gap-2">
           <button

@@ -24,12 +24,18 @@ import {
 import { inventoryApi } from "@/domains/inventory/api";
 import { Vendor } from "@/domains/inventory/types";
 import { OnboardGlobalSupplierModal } from "@/components/inventory/OnboardGlobalSupplierModal";
+import { useAuthStore } from "@/store/auth-store";
 
 const CATEGORIES = ["CEMENT","SAND_AGGREGATE","STRUCTURAL","MASONRY","FINISHING","MEP","WATERPROOFING","SAFETY","TOOLS","CONSUMABLE","OTHER"];
 
 const emptyVendor: Partial<Vendor> = { name:"", code:"", contact_person:"", phone:"", email:"", gstin:"", address:"", categories:[], rating:5, payment_terms_days:30, is_active:true };
 
 export function VendorsTab() {
+  const { user } = useAuthStore();
+  const rawRole = String((user as any)?.role?.name || (user as any)?.role_name || (user as any)?.role || "").toLowerCase();
+  const rawAccount = String((user as any)?.account?.account_type || (user as any)?.account_type || "").toLowerCase();
+  const isMaterialSupplier = rawRole.includes("supplier") || rawAccount.includes("supplier");
+
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -127,12 +133,16 @@ export function VendorsTab() {
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search vendors..." className="h-9 pl-9 pr-3 text-xs bg-zinc-900 border border-zinc-700 rounded-xl text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-amber-500 w-56" />
           </div>
           <button onClick={load} className="h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-400 transition-colors"><RefreshCw className="w-4 h-4" /></button>
-          <button onClick={() => setShowGlobalSearchModal(true)} className="h-9 px-4 flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-blue-600/20 cursor-pointer">
-            <Search className="w-4 h-4" /> Search & Onboard Global Suppliers
-          </button>
-          <button onClick={openCreate} className="h-9 px-4 flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black transition-all shadow-lg shadow-amber-500/20 cursor-pointer">
-            <Plus className="w-4 h-4" /> Add Vendor
-          </button>
+          {!isMaterialSupplier && (
+            <button onClick={() => setShowGlobalSearchModal(true)} className="h-9 px-4 flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-blue-600/20 cursor-pointer">
+              <Search className="w-4 h-4" /> Search & Onboard Global Suppliers
+            </button>
+          )}
+          {!isMaterialSupplier && (
+            <button onClick={openCreate} className="h-9 px-4 flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black transition-all shadow-lg shadow-amber-500/20 cursor-pointer">
+              <Plus className="w-4 h-4" /> Add Vendor
+            </button>
+          )}
         </div>
       </div>
 
@@ -221,12 +231,18 @@ export function VendorsTab() {
                   </td>
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-1">
-                      <button onClick={()=>openOnboardModal(v)} title="Onboard & Invite Vendor Admin User" className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-zinc-950 font-bold text-[10px] flex items-center gap-1 transition-all">
-                        <UserPlus className="w-3 h-3"/> Onboard
-                      </button>
+                      {!isMaterialSupplier && (
+                        <button onClick={()=>openOnboardModal(v)} title="Onboard & Invite Vendor Admin User" className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-zinc-950 font-bold text-[10px] flex items-center gap-1 transition-all">
+                          <UserPlus className="w-3 h-3"/> Onboard
+                        </button>
+                      )}
                       <button onClick={()=>setViewVendor(v)} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 transition-colors"><Eye className="w-3.5 h-3.5"/></button>
-                      <button onClick={()=>openEdit(v)} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 transition-colors"><Edit2 className="w-3.5 h-3.5"/></button>
-                      <button onClick={()=>del(v.id)} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>
+                      {!isMaterialSupplier && (
+                        <button onClick={()=>openEdit(v)} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 transition-colors"><Edit2 className="w-3.5 h-3.5"/></button>
+                      )}
+                      {!isMaterialSupplier && (
+                        <button onClick={()=>del(v.id)} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>
+                      )}
                     </div>
                   </td>
                 </tr>

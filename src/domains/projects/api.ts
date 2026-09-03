@@ -1414,10 +1414,36 @@ export const projectsApi = {
   },
 
   /** Fetch all available system roles for permission assignments. */
+  /** Project Labor Rates */
+  getProjectLaborRates: async (projectId: string) => {
+    const res = await fetchFromBff<any>(`/api/v1/projects/projects/${projectId}/labor-rates/`);
+    return unpackArray<any>(res);
+  },
+  createProjectLaborRate: async (projectId: string, data: { labor_master: string, project_daily_wage: number }) => {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectId}/labor-rates/`, {
+      method: "POST",
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" },
+    });
+  },
+  updateProjectLaborRate: async (projectId: string, rateId: string, data: any) => {
+    return fetchFromBff<any>(`/api/v1/projects/projects/${projectId}/labor-rates/${rateId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" },
+    });
+  },
+  deleteProjectLaborRate: async (projectId: string, rateId: string) => {
+    return fetchFromBff<void>(`/api/v1/projects/projects/${projectId}/labor-rates/${rateId}/`, {
+      method: "DELETE",
+    });
+  },
+
   getRoles: async () => {
     return fetchFromBff<import("@/types/projects").Role[]>("/api/v1/users/admin/roles/", { method: "GET" });
   },
 };
+
 
 
 

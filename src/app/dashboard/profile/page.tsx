@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 import { CATEGORY_SCHEMAS, calculateProfileCompleteness } from "@/lib/utils/profile";
 import { EditPortfolioModal } from "@/components/portfolios/EditPortfolioModal";
+import { CATEGORY_DATA } from "@/app/signup/categories";
 
 type TabType = "overview" | "professional" | "portfolio" | "organization" | "security" | "activity";
 
@@ -27,8 +28,58 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [allSpecializations, setAllSpecializations] = useState<any[]>([]);
-  const [selectedSpecializations, setSelectedSpecializations] = useState<number[]>([]);
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [metadata, setMetadata] = useState<Record<string, unknown>>({});
+
+  const handleCheckboxToggle = (groupName: string, option: string) => {
+    const current = selections[groupName] || [];
+    const updated = current.includes(option)
+      ? current.filter((i) => i !== option)
+      : [...current, option];
+    setSelections({ ...selections, [groupName]: updated });
+  };
+
+  const renderSubCategories = (data: any, path = ""): React.ReactNode => {
+    if (Array.isArray(data)) {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+          {data.map((item) => {
+            const checked = (selections[path] || []).includes(item);
+            return (
+              <label
+                key={item}
+                className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition-all duration-300 ${
+                  checked
+                    ? "bg-accent/10 border-accent/50 shadow-[0_0_15px_rgba(255,186,8,0.15)] ring-1 ring-accent/20"
+                    : "border-surface-200/50 bg-surface-100/50 backdrop-blur-md hover:bg-surface-50 hover:border-accent/30 hover:shadow-md"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-1 w-4 h-4 accent-accent rounded transition-all"
+                  checked={checked}
+                  onChange={() => handleCheckboxToggle(path, item)}
+                />
+                <span className={`text-sm font-medium transition-colors ${checked ? 'text-accent' : 'text-primary'}`}>{item}</span>
+              </label>
+            );
+          })}
+        </div>
+      );
+    } else if (typeof data === "object" && data !== null) {
+      return (
+        <div className="space-y-4 mt-3">
+          {Object.keys(data).map((key) => (
+            <div key={key} className={path ? "pl-4 border-l-2 border-surface-200" : ""} >
+              <h4 className="font-bold text-primary text-sm tracking-wide">{key}</h4>
+              {renderSubCategories(data[key], path ? `${path} > ${key}` : key)}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
   const [name, setName] = useState("");
   const [headline, setHeadline] = useState("");
   const [company, setCompany] = useState("");
@@ -147,8 +198,10 @@ export default function ProfilePage() {
           ...user.profile.social_links
         });
         
-        if (user.profile.specializations) {
-          setSelectedSpecializations(user.profile.specializations.map((s: any) => s.id));
+        if (user.profile.category_path?.selected) {
+          setSelections(user.profile.category_path.selected);
+        } else {
+          setSelections({});
         }
       }
     }
@@ -170,7 +223,6 @@ export default function ProfilePage() {
         city,
         country,
         social_links: socialLinks,
-        specialization_ids: selectedSpecializations,
         metadata: {
           ...metadata,
           headline,
@@ -179,8 +231,22 @@ export default function ProfilePage() {
           country,
         },
       });
-      
-      setUser(updatedUser);
+
+      if (user?.profile?.category_path?.main) {
+        await fetch("/api/v1/users/onboarding/complete/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            category_path: {
+              main: user.profile.category_path.main,
+              selected: selections,
+            },
+          }),
+        });
+      }
+
+      const refreshedUser = await authApi.me();
+      setUser(refreshedUser);
       toast.success("Profile specifications updated successfully.");
       setIsEditing(false);
     } catch (err) {
@@ -626,36 +692,22 @@ export default function ProfilePage() {
                     <div className="space-y-2 mt-4 pt-4 border-t border-surface-200 dark:border-white/10">
                         <label className="text-[9px] font-bold text-surface-400 uppercase tracking-wider">Specializations</label>
                         {isEditing ? (
-                            <div className="flex flex-wrap gap-2">
-                                {allSpecializations.map((spec) => {
-                                    const isSelected = selectedSpecializations.includes(spec.id);
-                                    return (
-                                        <button
-                                            key={spec.id}
-                                            onClick={() => {
-                                                if (isSelected) {
-                                                    setSelectedSpecializations(prev => prev.filter(id => id !== spec.id));
-                                                } else {
-                                                    setSelectedSpecializations(prev => [...prev, spec.id]);
-                                                }
-                                            }}
-                                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${isSelected ? 'bg-accent/10 border-accent/30 text-accent' : 'bg-surface-100 border-surface-200 text-surface-500 hover:bg-surface-200 hover:text-foreground'}`}
-                                        >
-                                            {spec.name}
-                                        </button>
-                                    );
-                                })}
-                                {allSpecializations.length === 0 && (
-                                    <p className="text-xs text-surface-400">Loading specializations...</p>
+                            <div className="space-y-4">
+                                {user?.profile?.category_path?.main && CATEGORY_DATA[user.profile.category_path.main] ? (
+                                    renderSubCategories(CATEGORY_DATA[user.profile.category_path.main])
+                                ) : (
+                                    <p className="text-xs text-surface-400">No categorization available for your current role. Please update via onboarding.</p>
                                 )}
                             </div>
                         ) : (
                             <div className="flex flex-wrap gap-2">
-                                {(user?.profile?.specializations || []).length > 0 ? (
-                                    (user.profile?.specializations as any[]).map((spec: any) => (
-                                        <span key={spec.id} className="px-2 py-1 rounded-md bg-surface-100/40 border border-surface-200/50 text-primary text-[10px] font-bold">
-                                            {spec.name}
-                                        </span>
+                                {Object.values(selections).flat().length > 0 ? (
+                                    Object.entries(selections).map(([group, specs]) => (
+                                        (specs as string[]).map((spec, idx) => (
+                                            <span key={`${group}-${idx}`} className="px-2 py-1 rounded-md bg-surface-100/40 border border-surface-200/50 text-primary text-[10px] font-bold">
+                                                {spec}
+                                            </span>
+                                        ))
                                     ))
                                 ) : (
                                     <p className="font-semibold text-primary text-xs bg-surface-100/40 p-2.5 rounded-lg border border-surface-200/50">Unspecified</p>
@@ -747,26 +799,7 @@ export default function ProfilePage() {
                 {success && <p className="text-emerald-600 text-xs font-bold text-center bg-emerald-50 dark:bg-emerald-900/20 py-2 rounded-lg border border-emerald-200">{success}</p>}
               </section>
 
-              {/* Specializations */}
-              {user.profile?.category_path?.selected && (
-                <section className="bg-surface-50 dark:bg-surface-900 p-4 sm:p-5 border border-surface-200 dark:border-white/10 rounded-xl space-y-3">
-                    <h2 className="text-xs font-bold text-primary uppercase tracking-wider">Specializations & Taxonomy</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {Object.entries(user.profile.category_path.selected).map(([group, specs]) => (
-                            <div key={group} className="space-y-1.5">
-                                <h3 className="text-[9px] font-bold text-surface-400 uppercase tracking-wider border-b border-surface-200 dark:border-white/10 pb-1">{group}</h3>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {(specs as string[]).map((spec, idx) => (
-                                        <span key={idx} className="px-2.5 py-1 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-white/10 text-primary text-[10px] font-semibold rounded-md">
-                                            {spec}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-              )}
+
             </div>
 
             <div className="space-y-4">
