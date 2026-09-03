@@ -126,22 +126,37 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
     if (!projectUid) return;
     setLoadingBOM(true);
     try {
-      const all = await inventoryApi.getTaskRequirements({ project: projectUid });
-      const currentTasks = block.tasks || tasks || [];
-      const taskIds = new Set(
-        currentTasks.flatMap((t) => [
-          String((t as any).id || ""),
-          String((t as any).uid || ""),
-        ]).filter(Boolean)
-      );
-      const filtered = all.filter((r) => taskIds.has(String(r.task)));
-      setBlockRequirements(filtered);
+      let reqs: TaskMaterialRequirement[] = [];
+      if (block.id) {
+        reqs = await inventoryApi.getTaskRequirements({ project: projectUid, block: block.id });
+      }
+      
+      if (!reqs || reqs.length === 0) {
+        const all = await inventoryApi.getTaskRequirements({ project: projectUid });
+        const currentTasks = block.tasks || tasks || [];
+        const taskIds = new Set(
+          currentTasks.flatMap((t) => [
+            String((t as any).id || ""),
+            String((t as any).uid || ""),
+          ]).filter((v) => v !== "" && v !== "undefined" && v !== "null")
+        );
+        reqs = all.filter((r) => {
+          const rTaskId = typeof r.task === "object" && r.task !== null
+            ? String((r.task as any).id || (r.task as any).uid || "")
+            : String(r.task || (r as any).task_id || "");
+          const rTaskUid = typeof r.task === "object" && r.task !== null
+            ? String((r.task as any).uid || "")
+            : "";
+          return taskIds.has(rTaskId) || (rTaskUid !== "" && taskIds.has(rTaskUid));
+        });
+      }
+      setBlockRequirements(reqs);
     } catch (e) {
       console.error("Failed to load block BOM", e);
     } finally {
       setLoadingBOM(false);
     }
-  }, [projectUid, block.tasks, tasks]);
+  }, [projectUid, block.id, block.tasks, tasks]);
 
   React.useEffect(() => {
     if (isOpen) {

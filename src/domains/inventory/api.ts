@@ -203,12 +203,17 @@ export const inventoryApi = {
     });
   },
 
-  getTaskRequirements: async (params?: number | { project?: string }): Promise<TaskMaterialRequirement[]> => {
+  getTaskRequirements: async (params?: number | string | { project?: string; block?: number | string; task_id?: number | string }): Promise<TaskMaterialRequirement[]> => {
     let url = "/api/v1/inventory/task-requirements/";
-    if (typeof params === "number") {
+    if (typeof params === "number" || typeof params === "string") {
       url += `?task_id=${params}`;
-    } else if (params?.project) {
-      url += `?project=${params.project}`;
+    } else if (params && typeof params === "object") {
+      const q = new URLSearchParams();
+      if (params.project) q.append("project", String(params.project));
+      if (params.block) q.append("block", String(params.block));
+      if (params.task_id) q.append("task_id", String(params.task_id));
+      const qStr = q.toString();
+      if (qStr) url += `?${qStr}`;
     }
     const res = await fetchFromBff<any>(url, { method: "GET" });
     return unpackArray<TaskMaterialRequirement>(res);

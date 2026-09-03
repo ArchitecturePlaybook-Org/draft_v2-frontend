@@ -1,9 +1,9 @@
-"use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { Wrench, Plus, Search, Edit2, Trash2, MapPin, Building, ShieldCheck, Tag } from "lucide-react";
+import { Wrench, Plus, Search, Edit2, Trash2, MapPin, Building, ShieldCheck, Tag, Clock } from "lucide-react";
 import { inventoryApi } from "@/domains/inventory/api";
 import { Equipment } from "@/domains/inventory/types";
 import { EquipmentFormModal } from "@/components/inventory/EquipmentFormModal";
+import { EquipmentDetailModal } from "@/components/inventory/EquipmentDetailModal";
 import { toast } from "sonner";
 
 export function EquipmentRegistryTab() {
@@ -13,6 +13,10 @@ export function EquipmentRegistryTab() {
   const [ownershipFilter, setOwnershipFilter] = useState("ALL");
   const [showModal, setShowModal] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
+  
+  // Utilization Detail Modal state
+  const [selectedForDetail, setSelectedForDetail] = useState<Equipment | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -123,13 +127,21 @@ export function EquipmentRegistryTab() {
               ) : (
                 filteredEquipment.map((item) => (
                   <tr key={item.id} className="hover:bg-zinc-900/30 transition-colors">
-                    <td className="py-4 px-6">
+                    <td 
+                      className="py-4 px-6 cursor-pointer group"
+                      onClick={() => {
+                        setSelectedForDetail(item);
+                        setShowDetailModal(true);
+                      }}
+                    >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-zinc-800 group-hover:bg-cyan-500/20 group-hover:border-cyan-500/30 border border-transparent transition-all flex items-center justify-center shrink-0">
                           <Wrench className="w-5 h-5 text-cyan-500" />
                         </div>
                         <div>
-                          <div className="font-bold text-white text-sm">{item.name}</div>
+                          <div className="font-bold text-white text-sm group-hover:text-cyan-400 transition-colors flex items-center gap-1.5">
+                            {item.name}
+                          </div>
                           <div className="text-xs text-zinc-500 flex items-center gap-2 mt-0.5">
                             <span className="font-mono text-cyan-400 bg-cyan-400/10 px-1.5 rounded">{item.equipment_code}</span>
                             {item.serial_no && <span>SN: {item.serial_no}</span>}
@@ -147,7 +159,7 @@ export function EquipmentRegistryTab() {
                         {item.ownership_type === "SUBCONTRACTOR" && <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">Subcontractor</span>}
 
                         <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                           <div className={`w-2 h-2 rounded-full ${item.status === 'AVAILABLE' ? 'bg-emerald-400' : item.status === 'IN_USE' ? 'bg-amber-400' : item.status === 'UNDER_MAINTENANCE' ? 'bg-red-400' : 'bg-zinc-500'}`} />
+                           <div className={`w-2 h-2 rounded-full ${item.status === 'AVAILABLE' || item.status === 'OPERATIONAL' ? 'bg-emerald-400' : item.status === 'IN_USE' ? 'bg-amber-400' : item.status === 'UNDER_MAINTENANCE' ? 'bg-red-400' : 'bg-zinc-500'}`} />
                            {item.status?.replace(/_/g, ' ')}
                         </div>
                       </div>
@@ -164,6 +176,17 @@ export function EquipmentRegistryTab() {
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedForDetail(item);
+                            setShowDetailModal(true);
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                          title="View Utilization History"
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                          Utilization
+                        </button>
                         <button
                           onClick={() => {
                             setEditingEquipment(item);
@@ -199,6 +222,15 @@ export function EquipmentRegistryTab() {
         }}
         equipment={editingEquipment}
         onSaved={loadData}
+      />
+
+      <EquipmentDetailModal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedForDetail(null);
+        }}
+        equipment={selectedForDetail}
       />
     </div>
   );

@@ -243,12 +243,6 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
                   Expanded Milestone Feed
                 </button>
               </div>
-              <button 
-                onClick={() => setShowLaborRatesModal(true)}
-                className="shrink-0 px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider rounded-lg border border-surface-200 text-surface-600 hover:bg-surface-50 transition-colors bg-white flex items-center gap-1.5"
-              >
-                <HardHat className="w-3.5 h-3.5" /> Configure Wages
-              </button>
             </div>
             {matrixView === 'grid' ? (
               <MilestoneMatrixView projectUid={project.uid} onTaskChange={() => fetchProject(project.uid)} projectTasks={project.tasks} />

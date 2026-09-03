@@ -98,9 +98,10 @@ export const MilestoneBOMModal: React.FC<MilestoneBOMModalProps> = ({
 
   // Create a map from taskId to Task details (phase, zone, etc.)
   const taskMap = useMemo(() => {
-    const map = new Map<number, Task>();
+    const map = new Map<string, Task>();
     for (const t of projectTasks) {
-      if (t.id) map.set(t.id, t);
+      if (t.id !== undefined && t.id !== null) map.set(String(t.id), t);
+      if (t.uid) map.set(String(t.uid), t);
     }
     return map;
   }, [projectTasks]);
@@ -110,9 +111,13 @@ export const MilestoneBOMModal: React.FC<MilestoneBOMModalProps> = ({
     const map = new Map<string, AggregatedMilestoneMaterial>();
 
     for (const req of requirements) {
+      const taskIdStr = typeof req.task === "object" && req.task !== null
+        ? String((req.task as any).id || (req.task as any).uid || "")
+        : String(req.task || (req as any).task_id || "");
+
       // If filtering by phase, inspect the associated task
       if (selectedPhaseId !== "ALL") {
-        const t = taskMap.get(req.task);
+        const t = taskMap.get(taskIdStr);
         if (t) {
           // Check phase
           const taskPhaseId = (t as any).phase_id || (t as any).phase?.id;
