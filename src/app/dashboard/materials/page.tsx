@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Layers, Building2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { MaterialsTab } from "@/components/inventory/MaterialsTab";
 import { VendorsTab } from "@/components/inventory/VendorsTab";
 
-export default function MasterDataHubPage() {
+function MasterDataHubContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -36,8 +36,6 @@ export default function MasterDataHubPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
       <div className="px-6 pt-4 pb-0 bg-surface-50 border-b border-surface-200 shrink-0">
-
-
         <div className="flex gap-6 border-b border-surface-200">
           <button
             onClick={() => handleTabChange("materials")}
@@ -71,5 +69,13 @@ export default function MasterDataHubPage() {
         {activeTab === "vendors" && <VendorsTab />}
       </div>
     </div>
+  );
+}
+
+export default function MasterDataHubPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-64 text-sm font-semibold text-zinc-400">Loading master data...</div>}>
+      <MasterDataHubContent />
+    </Suspense>
   );
 }

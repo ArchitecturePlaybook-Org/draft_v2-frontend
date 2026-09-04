@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ClipboardList, ShoppingBag } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { RequisitionsTab } from "@/components/inventory/RequisitionsTab";
 import { PurchaseOrdersTab } from "@/components/inventory/PurchaseOrdersTab";
 
-export default function ProcurementHubPage() {
+function ProcurementHubContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -74,5 +74,13 @@ export default function ProcurementHubPage() {
         {activeTab === "pos" && <PurchaseOrdersTab />}
       </div>
     </div>
+  );
+}
+
+export default function ProcurementHubPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-64 text-sm font-semibold text-zinc-400">Loading procurement hub...</div>}>
+      <ProcurementHubContent />
+    </Suspense>
   );
 }

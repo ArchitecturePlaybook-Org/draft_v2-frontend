@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Wrench, ClipboardList } from "lucide-react";
 import { EquipmentRegistryTab } from "@/components/inventory/EquipmentRegistryTab";
 import { MaintenanceLogsTab } from "@/components/inventory/MaintenanceLogsTab";
 
-export default function EquipmentAndAssetsHubPage() {
+function EquipmentAndAssetsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -28,8 +28,6 @@ export default function EquipmentAndAssetsHubPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
       <div className="px-6 pt-4 pb-0 bg-surface-50 border-b border-surface-200 shrink-0">
-
-
         <div className="flex gap-6 border-b border-surface-200">
           <button
             onClick={() => handleTabChange("registry")}
@@ -61,5 +59,13 @@ export default function EquipmentAndAssetsHubPage() {
         {activeTab === "maintenance" && <MaintenanceLogsTab />}
       </div>
     </div>
+  );
+}
+
+export default function EquipmentAndAssetsHubPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-64 text-sm font-semibold text-zinc-400">Loading equipment hub...</div>}>
+      <EquipmentAndAssetsContent />
+    </Suspense>
   );
 }

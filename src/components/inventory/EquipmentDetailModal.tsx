@@ -343,12 +343,14 @@ export const EquipmentDetailModal: React.FC<EquipmentDetailModalProps> = ({
                   <span className="text-zinc-400">Current Assigned Site:</span>
                   <span className="font-semibold text-cyan-400 flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
-                    {equipment.current_site?.name || "Main Yard"}
+                    {typeof equipment.current_site === "object" && equipment.current_site
+                      ? (equipment.current_site as any).name
+                      : equipment.site_name || (typeof equipment.current_site === "string" ? equipment.current_site : "Main Yard")}
                   </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-zinc-800/40">
                   <span className="text-zinc-400">Current Custodian:</span>
-                  <span className="font-semibold text-white">{equipment.current_custodian?.name || "Equipment Manager"}</span>
+                  <span className="font-semibold text-white">{equipment.custodian_name || equipment.custodian_user_name || "Equipment Manager"}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-zinc-800/40">
                   <span className="text-zinc-400">Purchase Date:</span>

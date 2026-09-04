@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Wrench, Search, AlertCircle, MapPin } from "lucide-react";
+import { X, Wrench, Search, AlertCircle, MapPin, RefreshCw } from "lucide-react";
 import { Equipment, Site } from "@/domains/inventory/types";
 import { inventoryApi } from "@/domains/inventory/api";
 import { toast } from "sonner";
@@ -39,7 +39,7 @@ export function EquipmentFormModal({ isOpen, onClose, equipment, onSaved }: Equi
           category: equipment.category,
           ownership_type: equipment.ownership_type || "OWNED",
           status: equipment.status || "AVAILABLE",
-          current_site_id: equipment.current_site_id || equipment.current_site?.id || "",
+          current_site_id: equipment.current_site_id || (typeof equipment.current_site === "object" && equipment.current_site ? (equipment.current_site as any).id : equipment.current_site) || "",
         });
       } else {
         setForm({

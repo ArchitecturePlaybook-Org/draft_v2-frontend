@@ -362,6 +362,7 @@ export type EquipmentCategory =
 
 export type EquipmentStatus =
   | "AVAILABLE"
+  | "OPERATIONAL"
   | "IN_USE"
   | "IN_TRANSIT"
   | "UNDER_MAINTENANCE"
@@ -373,17 +374,22 @@ export interface Equipment {
   name: string;
   equipment_code: string;
   serial_no: string;
+  brand?: string;
+  model?: string;
   category: EquipmentCategory;
   ownership_type: "OWNED" | "RENTED" | "SUBCONTRACTOR";
   status: EquipmentStatus;
   current_site?: string | null;
+  current_site_id?: string | number | null;
   site_name?: string | null;
   current_custodian?: number | null;
   custodian_name?: string;
   custodian_user_name?: string | null;
   qr_code_hash?: string;
   purchase_cost: string | number;
+  purchase_date?: string | null;
   daily_rental_rate: string | number;
+  standard_hourly_rate?: string | number;
   last_service_date?: string | null;
   next_service_due?: string | null;
   is_active: boolean;

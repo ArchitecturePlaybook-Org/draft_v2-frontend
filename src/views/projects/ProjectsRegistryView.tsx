@@ -239,7 +239,7 @@ export function ProjectsRegistryView() {
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[10px] font-bold text-accent px-2 py-0.5 rounded bg-accent/10 border border-accent/20">
-                    {p.code || p.uid.substring(0, 8)}
+                    {(p as any).code || p.project_code || p.uid.substring(0, 8)}
                   </span>
                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-surface-400 flex items-center gap-1 group-hover:text-accent">
                     Open Shared Tasks Tab <ExternalLink className="w-3 h-3" />

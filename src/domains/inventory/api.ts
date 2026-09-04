@@ -658,3 +658,5 @@ export interface LaborMaster {
   created_at: string;
 }
 
+export type { Vendor } from "./types";
+

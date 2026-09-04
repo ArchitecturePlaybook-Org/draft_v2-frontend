@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchMyOpportunities,
@@ -77,7 +77,7 @@ interface ProcurementItem {
   source?: string;
 }
 
-export default function MyPostingsDashboardPage() {
+function MyPostingsDashboardContent() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
@@ -2857,4 +2857,13 @@ export default function MyPostingsDashboardPage() {
     </div>
   );
 }
+
+export default function MyPostingsDashboardPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-surface-500 font-medium">Loading opportunities...</div>}>
+      <MyPostingsDashboardContent />
+    </Suspense>
+  );
+}
+
 

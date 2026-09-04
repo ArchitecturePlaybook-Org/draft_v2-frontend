@@ -272,7 +272,7 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
           />
         )}
 
-        {activeTab === "shared_tasks" && (
+        {(activeTab as string) === "shared_tasks" && (
           <ProjectSharedTasksTab 
             projectUid={project.uid} 
             projectTasks={project.tasks}

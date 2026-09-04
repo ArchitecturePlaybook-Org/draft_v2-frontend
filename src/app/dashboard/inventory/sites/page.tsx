@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Warehouse, ArrowLeftRight } from "lucide-react";
 import { SitesTab } from "@/components/inventory/SitesTab";
 import { TransfersTab } from "@/components/inventory/TransfersTab";
 
-export default function SitesAndLogisticsPage() {
+function SitesAndLogisticsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -29,8 +29,6 @@ export default function SitesAndLogisticsPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden">
       <div className="px-6 pt-4 pb-0 bg-surface-50 border-b border-surface-200 shrink-0">
-
-
         <div className="flex gap-6 border-b border-surface-200">
           <button
             onClick={() => handleTabChange("sites")}
@@ -62,5 +60,13 @@ export default function SitesAndLogisticsPage() {
         {activeTab === "transfers" && <TransfersTab />}
       </div>
     </div>
+  );
+}
+
+export default function SitesAndLogisticsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-64 text-sm font-semibold text-zinc-400">Loading sites & logistics...</div>}>
+      <SitesAndLogisticsContent />
+    </Suspense>
   );
 }

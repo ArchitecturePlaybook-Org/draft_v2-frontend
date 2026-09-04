@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Briefcase, IndianRupee, Trash2, ShieldAlert } from "lucide-react";
 import { inventoryApi, LaborMaster, Vendor } from "@/domains/inventory/api";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { formatCurrency } from "@/lib/utils/currency";
 import { toast } from "sonner";
 
 export function ManpowerRegistryTab() {
@@ -248,7 +248,7 @@ function LaborModal({
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
                   className="w-full bg-surface-950 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-primary focus:outline-none focus:border-accent transition-colors"
                 >
                   <option value="UNSKILLED">Unskilled</option>

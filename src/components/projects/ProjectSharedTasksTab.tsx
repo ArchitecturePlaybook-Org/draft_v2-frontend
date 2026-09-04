@@ -45,7 +45,7 @@ export const ProjectSharedTasksTab: React.FC<ProjectSharedTasksTabProps> = ({
         const q = searchQuery.toLowerCase();
         const titleMatch = task.title.toLowerCase().includes(q);
         const descMatch = task.description?.toLowerCase().includes(q);
-        const codeMatch = task.code?.toLowerCase().includes(q);
+        const codeMatch = (task as any).code?.toLowerCase().includes(q);
         if (!titleMatch && !descMatch && !codeMatch) return false;
       }
 
@@ -169,13 +169,13 @@ export const ProjectSharedTasksTab: React.FC<ProjectSharedTasksTabProps> = ({
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="font-mono text-[10px] font-bold text-accent px-2 py-0.5 rounded bg-accent/10 border border-accent/20">
-                      {task.code || task.uid.substring(0, 8)}
+                      {(task as any).code || task.uid.substring(0, 8)}
                     </span>
                     <span
                       className={`text-[9px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded ${
                         task.status === "DONE"
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                          : task.status === "WIP" || task.status === "IN_PROGRESS"
+                          : (task.status as string) === "WIP" || (task.status as string) === "IN_PROGRESS"
                           ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                           : "bg-surface-200 dark:bg-surface-800 text-surface-400"
                       }`}
@@ -190,7 +190,7 @@ export const ProjectSharedTasksTab: React.FC<ProjectSharedTasksTabProps> = ({
 
                   {task.description && (
                     <p className="text-xs text-surface-400 line-clamp-2 mt-1.5 leading-relaxed">
-                      {task.description}
+                      {task.description as string}
                     </p>
                   )}
                 </div>
@@ -262,7 +262,6 @@ export const ProjectSharedTasksTab: React.FC<ProjectSharedTasksTabProps> = ({
       {selectedTaskUid && (
         <SharedTaskFullScreenModal
           taskUid={selectedTaskUid}
-          isOpen={!!selectedTaskUid}
           onClose={() => setSelectedTaskUid(null)}
         />
       )}

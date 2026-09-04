@@ -80,7 +80,7 @@ export default function OpportunityDetailPage() {
 
   const [editFormData, setEditFormData] = useState({
     title: "",
-    type: "MATERIAL_REQUIRED" as "MATERIAL_REQUIRED" | "SERVICE_REQUIRED",
+    type: "MATERIAL_REQUIRED" as "MATERIAL_REQUIRED" | "SERVICE_REQUIRED" | "PROJECT_LEAD",
     status: "OPEN" as "OPEN" | "NEGOTIATING" | "CLOSED",
     description: "",
     location: "",

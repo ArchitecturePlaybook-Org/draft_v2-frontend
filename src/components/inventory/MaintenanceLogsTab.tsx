@@ -167,7 +167,7 @@ export function MaintenanceLogsTab() {
                           <Cell key={`cell-${index}`} fill={entry.hex} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: number) => `₹${value.toLocaleString("en-IN")}`} contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', fontSize: '12px' }} itemStyle={{ color: '#e4e4e7' }} />
+                      <Tooltip formatter={(value: any) => `₹${Number(value || 0).toLocaleString("en-IN")}`} contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', fontSize: '12px' }} itemStyle={{ color: '#e4e4e7' }} />
                       <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -193,7 +193,7 @@ export function MaintenanceLogsTab() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                       <XAxis dataKey="month" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
                       <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
-                      <Tooltip formatter={(value: number) => `₹${value.toLocaleString("en-IN")}`} contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', fontSize: '12px', color: '#e4e4e7' }} />
+                      <Tooltip formatter={(value: any) => `₹${Number(value || 0).toLocaleString("en-IN")}`} contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', fontSize: '12px', color: '#e4e4e7' }} />
                       <Area type="monotone" dataKey="cost" stroke="#f59e0b" strokeWidth={3} fillOpacity={1} fill="url(#colorCost)" />
                     </AreaChart>
                   </ResponsiveContainer>

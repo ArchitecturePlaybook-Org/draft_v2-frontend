@@ -168,7 +168,7 @@ export function EquipmentRegistryTab() {
                       {item.current_site ? (
                         <div className="flex items-center gap-2 text-sm text-zinc-300">
                           <MapPin className="w-3.5 h-3.5 text-zinc-500" />
-                          <span>{item.current_site.name}</span>
+                          <span>{typeof item.current_site === "object" && item.current_site ? (item.current_site as any).name : item.site_name || item.current_site}</span>
                         </div>
                       ) : (
                         <span className="text-xs text-zinc-500 italic">Unassigned / Main Yard</span>
