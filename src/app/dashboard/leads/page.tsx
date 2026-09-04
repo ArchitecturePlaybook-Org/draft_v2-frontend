@@ -11,18 +11,18 @@ import { useAuthStore } from "@/store/auth-store";
 import { useLeadWebSocket } from "@/shared/hooks/useLeadWebSocket";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, 
-  MessageSquare, CheckCircle2, XCircle, ArrowUpRight, 
+import {
+  Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight,
+  MessageSquare, CheckCircle2, XCircle, ArrowUpRight,
   Download, Sparkles, Building2, Calendar, DollarSign, Eye, X, Check
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 8;
 
-export default function LeadsPage() {
+export function LeadsView() {
   const { user: currentUser } = useAuthStore();
   const router = useRouter();
-  
+
   // Primary Leads State
   const [leads, setLeads] = useState<Lead[]>([]);
   const [analytics, setAnalytics] = useState<LeadAnalytics | null>(null);
@@ -47,7 +47,7 @@ export default function LeadsPage() {
   const [isSendingMsg, setIsSendingMsg] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,7 +106,7 @@ export default function LeadsPage() {
       setIsThreadLoading(true);
     }
     try {
-      const data = leadId 
+      const data = leadId
         ? await communicationsApi.getLeadThread(leadId)
         : await communicationsApi.getThread(otherUserId);
       setActiveThread(data);
@@ -197,7 +197,7 @@ export default function LeadsPage() {
     return leads.filter((lead) => {
       const targetName = activeTab === 'received' ? lead.client_name : lead.professional_name;
       const q = searchQuery.toLowerCase().trim();
-      const matchesSearch = 
+      const matchesSearch =
         !q ||
         targetName.toLowerCase().includes(q) ||
         (lead.message || "").toLowerCase().includes(q) ||
@@ -237,14 +237,14 @@ export default function LeadsPage() {
   };
 
   const toggleSelectLead = (id: number) => {
-    setSelectedLeadIds(prev => 
+    setSelectedLeadIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
 
   return (
     <div className="w-full max-w-full space-y-4 animate-fade-in">
-      
+
       {/* 1. Header Bar */}
       <div className="bg-surface-100/90 backdrop-blur-xl border border-surface-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-wrap justify-between items-center gap-4 relative overflow-hidden">
         <div className="flex items-center gap-3">
@@ -260,13 +260,12 @@ export default function LeadsPage() {
         {/* Tab Toggle Pill & Export */}
         <div className="flex items-center gap-3">
           <div className="inline-flex p-1 bg-surface-200/60 backdrop-blur-md rounded-xl border border-surface-300/50">
-            <button 
+            <button
               onClick={() => setActiveTab('received')}
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
-                activeTab === 'received' 
-                  ? 'bg-primary text-background shadow-sm scale-[1.02]' 
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'received'
+                  ? 'bg-primary text-background shadow-sm scale-[1.02]'
                   : 'text-surface-600 hover:text-primary'
-              }`}
+                }`}
             >
               <span>Incoming Leads</span>
               {pendingCount > 0 && activeTab === 'received' && (
@@ -276,21 +275,20 @@ export default function LeadsPage() {
               )}
             </button>
 
-            <button 
+            <button
               onClick={() => setActiveTab('sent')}
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
-                activeTab === 'sent' 
-                  ? 'bg-primary text-background shadow-sm scale-[1.02]' 
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'sent'
+                  ? 'bg-primary text-background shadow-sm scale-[1.02]'
                   : 'text-surface-600 hover:text-primary'
-              }`}
+                }`}
             >
               <span>My Inquiries</span>
             </button>
           </div>
 
           {activeTab === 'received' && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="text-xs font-bold h-9 px-3.5 rounded-xl border-surface-300 hover:border-accent hover:text-accent transition-all flex items-center gap-1.5"
               onClick={() => leadsApi.exportLeadsToExcel()}
             >
@@ -343,11 +341,11 @@ export default function LeadsPage() {
 
       {/* 3. Search, Filter & Bulk Toolbar */}
       <div className="bg-surface-100/90 backdrop-blur-xl border border-surface-200 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        
+
         {/* Search Input */}
         <div className="relative flex-1 min-w-[240px]">
           <Search size={14} className="absolute left-3.5 top-3 text-surface-400" />
-          <input 
+          <input
             type="text"
             placeholder="Search by client, title, scope, or type..."
             value={searchQuery}
@@ -355,8 +353,8 @@ export default function LeadsPage() {
             className="w-full h-9 pl-9 pr-3 bg-surface-50 border border-surface-200 rounded-xl text-xs font-semibold text-primary outline-none focus:border-accent placeholder:text-surface-400"
           />
           {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery("")} 
+            <button
+              onClick={() => setSearchQuery("")}
               className="absolute right-3 top-2.5 text-xs text-surface-400 hover:text-primary font-bold"
             >
               ✕
@@ -369,7 +367,7 @@ export default function LeadsPage() {
           {/* Status Filter */}
           <div className="flex items-center gap-1 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-2 py-1">
             <Filter size={12} className="text-surface-400" />
-            <select 
+            <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
               className="bg-transparent text-xs font-bold text-primary dark:text-white outline-none cursor-pointer pr-1"
@@ -385,7 +383,7 @@ export default function LeadsPage() {
           {/* Project Type Filter */}
           <div className="flex items-center gap-1 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-2 py-1">
             <Building2 size={12} className="text-surface-400" />
-            <select 
+            <select
               value={projectTypeFilter}
               onChange={(e) => { setProjectTypeFilter(e.target.value); setCurrentPage(1); }}
               className="bg-transparent text-xs font-bold text-primary dark:text-white outline-none cursor-pointer pr-1"
@@ -402,7 +400,7 @@ export default function LeadsPage() {
           {/* Sort By */}
           <div className="flex items-center gap-1 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-white/10 rounded-xl px-2 py-1">
             <ArrowUpDown size={12} className="text-surface-400" />
-            <select 
+            <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
               className="bg-transparent text-xs font-bold text-primary dark:text-white outline-none cursor-pointer pr-1"
@@ -420,13 +418,13 @@ export default function LeadsPage() {
             <span className="text-[10px] font-black text-accent uppercase">
               {selectedLeadIds.length} Selected
             </span>
-            <Button 
+            <Button
               className="h-7 text-[10px] px-2.5 bg-primary text-background font-bold rounded-lg"
               onClick={() => handleBulkStatusUpdate('ACCEPTED')}
             >
               Accept All
             </Button>
-            <Button 
+            <Button
               variant="outline"
               className="h-7 text-[10px] px-2.5 border-surface-300 font-bold rounded-lg"
               onClick={() => handleBulkStatusUpdate('REJECTED')}
@@ -442,7 +440,7 @@ export default function LeadsPage() {
         {isLoadingLeads ? (
           <SkeletonTable rows={6} cols={5} />
         ) : paginatedLeads.length > 0 ? (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-surface-100 border border-surface-200 rounded-2xl shadow-sm overflow-hidden"
@@ -453,7 +451,7 @@ export default function LeadsPage() {
                   <tr className="border-b border-surface-200 bg-surface-200/50 text-[11px] font-extrabold text-surface-500 uppercase tracking-wider">
                     {activeTab === 'received' && (
                       <th className="py-3 px-3.5 w-10 text-center">
-                        <input 
+                        <input
                           type="checkbox"
                           checked={selectedLeadIds.length === paginatedLeads.length && paginatedLeads.length > 0}
                           onChange={(e) => handleSelectAll(e.target.checked)}
@@ -472,20 +470,20 @@ export default function LeadsPage() {
                 </thead>
                 <tbody className="divide-y divide-surface-200/60 text-xs font-semibold text-primary">
                   {paginatedLeads.map((lead, index) => {
-                    const targetUserId = activeTab === 'received' 
-                      ? (lead.client_id || lead.client) 
+                    const targetUserId = activeTab === 'received'
+                      ? (lead.client_id || lead.client)
                       : (lead.professional_id || lead.professional);
                     const targetUserName = activeTab === 'received' ? lead.client_name : lead.professional_name;
                     const isSelected = selectedLeadIds.includes(lead.id);
 
                     return (
-                      <tr 
-                        key={lead.id} 
+                      <tr
+                        key={lead.id}
                         className={`hover:bg-surface-200/40 transition-colors ${isSelected ? 'bg-accent/5' : ''}`}
                       >
                         {activeTab === 'received' && (
                           <td className="py-3 px-3.5 text-center">
-                            <input 
+                            <input
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleSelectLead(lead.id)}
@@ -562,14 +560,14 @@ export default function LeadsPage() {
 
                             {activeTab === 'received' && lead.status === 'PENDING' && (
                               <>
-                                <Button 
+                                <Button
                                   className="bg-primary text-background text-[11px] px-2.5 h-8 rounded-lg font-extrabold"
                                   onClick={() => handleStatusUpdate(lead.id, 'ACCEPTED')}
                                 >
                                   Accept
                                 </Button>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   className="text-[11px] px-2.5 h-8 rounded-lg font-extrabold border-surface-300"
                                   onClick={() => handleStatusUpdate(lead.id, 'REJECTED')}
                                 >
@@ -579,7 +577,7 @@ export default function LeadsPage() {
                             )}
 
                             {activeTab === 'received' && lead.status === 'ACCEPTED' && (
-                              <Button 
+                              <Button
                                 className="bg-emerald-600 text-white text-[11px] px-2.5 h-8 rounded-lg font-extrabold shadow-sm"
                                 onClick={() => {
                                   handleStatusUpdate(lead.id, 'CONVERTED').then(() => {
@@ -642,12 +640,12 @@ export default function LeadsPage() {
             <div className="text-4xl">💼</div>
             <h3 className="text-base font-bold text-primary">No Leads Found</h3>
             <p className="text-xs text-surface-500 max-w-sm mx-auto">
-              {searchQuery || statusFilter !== "ALL" || projectTypeFilter !== "ALL" 
-                ? "No inquiries match your active search or filter criteria." 
+              {searchQuery || statusFilter !== "ALL" || projectTypeFilter !== "ALL"
+                ? "No inquiries match your active search or filter criteria."
                 : "No active inquiries detected in this tab."}
             </p>
             {(searchQuery || statusFilter !== "ALL" || projectTypeFilter !== "ALL") && (
-              <button 
+              <button
                 onClick={() => { setSearchQuery(""); setStatusFilter("ALL"); setProjectTypeFilter("ALL"); }}
                 className="text-xs font-bold text-accent uppercase tracking-wider hover:underline"
               >
@@ -662,7 +660,7 @@ export default function LeadsPage() {
       <AnimatePresence>
         {detailLead && (
           <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-start justify-center pt-16 sm:pt-20 pb-6 px-3 sm:px-4 overflow-hidden">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -682,7 +680,7 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={() => setDetailLead(null)}
                   className="w-7 h-7 rounded-full bg-surface-200 text-surface-600 flex items-center justify-center font-bold text-xs"
                 >
@@ -692,7 +690,7 @@ export default function LeadsPage() {
 
               {/* Body Content */}
               <div className="flex-1 p-5 overflow-y-auto space-y-4 text-xs">
-                
+
                 {/* Status & Blueprint Banner */}
                 <div className="p-3 bg-surface-100 rounded-xl border border-surface-200 flex justify-between items-center">
                   <div>
@@ -732,7 +730,7 @@ export default function LeadsPage() {
 
               {/* Action Footer */}
               <div className="p-4 border-t border-surface-200 bg-surface-100/80 flex items-center justify-between gap-2 shrink-0">
-                <Button 
+                <Button
                   variant="outline"
                   className="h-9 text-xs px-4 rounded-xl border-accent/40 text-accent font-bold flex items-center gap-1.5"
                   onClick={() => {
@@ -747,13 +745,13 @@ export default function LeadsPage() {
 
                 {activeTab === 'received' && detailLead.status === 'PENDING' && (
                   <div className="flex gap-2">
-                    <Button 
+                    <Button
                       className="h-9 text-xs px-4 bg-primary text-background font-bold rounded-xl"
                       onClick={() => handleStatusUpdate(detailLead.id, 'ACCEPTED')}
                     >
                       Accept Inquiry
                     </Button>
-                    <Button 
+                    <Button
                       variant="outline"
                       className="h-9 text-xs px-4 rounded-xl border-surface-300 font-bold"
                       onClick={() => handleStatusUpdate(detailLead.id, 'REJECTED')}
@@ -764,7 +762,7 @@ export default function LeadsPage() {
                 )}
 
                 {activeTab === 'received' && detailLead.status === 'ACCEPTED' && (
-                  <Button 
+                  <Button
                     className="h-9 text-xs px-4 bg-emerald-600 text-white font-bold rounded-xl shadow-sm"
                     onClick={() => {
                       handleStatusUpdate(detailLead.id, 'CONVERTED').then(() => {
@@ -785,7 +783,7 @@ export default function LeadsPage() {
       <AnimatePresence>
         {isChatOpen && selectedUser && (
           <div className="fixed inset-0 z-[100] flex items-start justify-center pt-16 sm:pt-20 pb-6 px-3 sm:px-4 bg-black/70 backdrop-blur-md animate-fade-in overflow-hidden">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -816,7 +814,7 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={() => setIsChatOpen(false)}
                   className="w-7 h-7 rounded-full bg-surface-200 hover:bg-surface-300 text-surface-600 flex items-center justify-center font-bold text-xs transition-all"
                 >
@@ -850,11 +848,10 @@ export default function LeadsPage() {
                           <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
 
-                        <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${
-                          isMine 
-                            ? 'bg-accent text-background font-bold rounded-tr-xs shadow-sm' 
+                        <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${isMine
+                            ? 'bg-accent text-background font-bold rounded-tr-xs shadow-sm'
                             : 'bg-surface-100 border border-surface-200 text-primary font-semibold rounded-tl-xs shadow-2xs'
-                        }`}>
+                          }`}>
                           {msg.body}
 
                           {msg.assets && msg.assets.length > 0 && (
@@ -865,9 +862,8 @@ export default function LeadsPage() {
                                   href={asset.file}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className={`flex items-center gap-2 p-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                                    isMine ? 'bg-black/10 text-background' : 'bg-surface-200 text-primary'
-                                  }`}
+                                  className={`flex items-center gap-2 p-1.5 rounded-lg text-[11px] font-bold transition-all ${isMine ? 'bg-black/10 text-background' : 'bg-surface-200 text-primary'
+                                    }`}
                                 >
                                   <span>📎</span>
                                   <span className="truncate flex-1">{asset.title}</span>
@@ -900,8 +896,8 @@ export default function LeadsPage() {
                     {selectedFiles.map((f, i) => (
                       <span key={i} className="inline-flex items-center gap-1 text-[10px] font-bold bg-surface-200 text-primary px-2.5 py-0.5 rounded-lg border border-surface-300">
                         <span>📎 {f.name}</span>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => setSelectedFiles(prev => prev.filter((_, idx) => idx !== i))}
                           className="hover:text-red-500 font-bold"
                         >
@@ -913,19 +909,19 @@ export default function LeadsPage() {
                 )}
 
                 <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                  <input 
-                    type="file" 
-                    multiple 
-                    className="hidden" 
-                    ref={fileInputRef} 
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    ref={fileInputRef}
                     onChange={(e) => {
                       if (e.target.files) {
                         setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
                       }
                     }}
                   />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="w-9 h-9 rounded-xl border border-surface-200 bg-surface-50 hover:bg-surface-200 text-surface-600 flex items-center justify-center text-base transition-all shrink-0"
                     title="Attach Specifications"
@@ -933,16 +929,16 @@ export default function LeadsPage() {
                     📎
                   </button>
 
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type your trade message..."
                     className="flex-1 bg-surface-50 border border-surface-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-primary placeholder:text-surface-400 outline-none focus:border-accent"
                   />
 
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={(!newMessage.trim() && selectedFiles.length === 0) || isSendingMsg}
                     className="h-9 px-4 bg-accent text-background font-bold text-xs rounded-xl hover:opacity-90 disabled:opacity-40 shrink-0"
                   >
@@ -958,4 +954,8 @@ export default function LeadsPage() {
 
     </div>
   );
+}
+
+export default function LeadsPage() {
+  return <LeadsView />;
 }

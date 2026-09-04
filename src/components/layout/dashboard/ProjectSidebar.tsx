@@ -18,6 +18,7 @@ import {
   Ruler,
   FileText,
   ArrowLeft,
+  Share2,
 } from "lucide-react";
 
 export const ProjectSidebar: React.FC = () => {

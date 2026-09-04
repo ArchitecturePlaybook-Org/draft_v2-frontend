@@ -87,9 +87,23 @@ export default function MyPostingsDashboardPage() {
   const isMaterialSupplier = rawRole.includes("supplier") || rawAccount.includes("supplier");
 
   // Active Workspace Tab
-  const [activeTab, setActiveTab] = useState<"postings" | "received_inquiries" | "sent_inquiries">(
+  const [activeTab, setActiveTab] = useState<"postings" | "received_inquiries" | "sent_inquiries" | "leads">(
     isMaterialSupplier ? "sent_inquiries" : "postings"
   );
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "leads") {
+      setActiveTab("leads");
+    } else if (tabParam === "received_inquiries") {
+      setActiveTab("received_inquiries");
+    } else if (tabParam === "sent_inquiries") {
+      setActiveTab("sent_inquiries");
+    } else if (tabParam === "postings") {
+      setActiveTab("postings");
+    }
+  }, [searchParams]);
+
   const [selectedOpportunityForInquiries, setSelectedOpportunityForInquiries] = useState<OpportunityPosting | null>(null);
   const [activeChatInquiry, setActiveChatInquiry] = useState<OpportunityInterest | null>(null);
   const [issuePoTargetInquiry, setIssuePoTargetInquiry] = useState<OpportunityInterest | null>(null);
@@ -126,7 +140,7 @@ export default function MyPostingsDashboardPage() {
   // Form State for Creating
   const [formData, setFormData] = useState({
     title: "",
-    type: "MATERIAL_REQUIRED" as "MATERIAL_REQUIRED" | "SERVICE_REQUIRED",
+    type: "MATERIAL_REQUIRED" as "MATERIAL_REQUIRED" | "SERVICE_REQUIRED" | "PROJECT_LEAD",
     description: "",
     location: "",
     budget_range: "",
@@ -153,7 +167,7 @@ export default function MyPostingsDashboardPage() {
 
   const [editFormData, setEditFormData] = useState({
     title: "",
-    type: "MATERIAL_REQUIRED" as "MATERIAL_REQUIRED" | "SERVICE_REQUIRED",
+    type: "MATERIAL_REQUIRED" as "MATERIAL_REQUIRED" | "SERVICE_REQUIRED" | "PROJECT_LEAD",
     status: "OPEN" as "OPEN" | "NEGOTIATING" | "CLOSED",
     description: "",
     location: "",
@@ -822,8 +836,8 @@ export default function MyPostingsDashboardPage() {
                 setSelectedOpportunityForInquiries(null);
               }}
               className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === "postings"
-                  ? "bg-accent text-background shadow-sm"
-                  : "text-surface-400 hover:text-primary"
+                ? "bg-accent text-background shadow-sm"
+                : "text-surface-400 hover:text-primary"
                 }`}
             >
               <Briefcase className="w-3.5 h-3.5" />
@@ -834,8 +848,8 @@ export default function MyPostingsDashboardPage() {
               type="button"
               onClick={() => setActiveTab("received_inquiries")}
               className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === "received_inquiries"
-                  ? "bg-accent text-background shadow-sm"
-                  : "text-surface-400 hover:text-primary"
+                ? "bg-accent text-background shadow-sm"
+                : "text-surface-400 hover:text-primary"
                 }`}
             >
               <Users className="w-3.5 h-3.5" />
@@ -851,8 +865,8 @@ export default function MyPostingsDashboardPage() {
               type="button"
               onClick={() => setActiveTab("sent_inquiries")}
               className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${activeTab === "sent_inquiries"
-                  ? "bg-accent text-background shadow-sm"
-                  : "text-surface-400 hover:text-primary"
+                ? "bg-accent text-background shadow-sm"
+                : "text-surface-400 hover:text-primary"
                 }`}
             >
               <Handshake className="w-3.5 h-3.5" />
@@ -863,7 +877,7 @@ export default function MyPostingsDashboardPage() {
       )}
       {isMaterialSupplier && (
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <h2 className="text-lg font-black text-primary">My Sent Bids ({sentInquiries.length})</h2>
+          <h2 className="text-lg font-black text-primary">My Sent Bids ({sentInquiries.length})</h2>
         </div>
       )}
 
@@ -975,8 +989,8 @@ export default function MyPostingsDashboardPage() {
                           <td className="py-3.5 px-4">
                             <span
                               className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 w-fit ${isMaterial
-                                  ? "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
-                                  : "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
+                                ? "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
+                                : "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
                                 }`}
                             >
                               {isMaterial ? <Box className="w-2.5 h-2.5" /> : <Hammer className="w-2.5 h-2.5" />}
@@ -993,10 +1007,10 @@ export default function MyPostingsDashboardPage() {
                           <td className="py-3.5 px-4">
                             <span
                               className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${isOpen
-                                  ? "bg-emerald-500/10 text-semantic-green border-emerald-500/30"
-                                  : isNegotiating
-                                    ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                                    : "bg-surface-200 text-surface-400 border-surface-300"
+                                ? "bg-emerald-500/10 text-semantic-green border-emerald-500/30"
+                                : isNegotiating
+                                  ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                                  : "bg-surface-200 text-surface-400 border-surface-300"
                                 }`}
                             >
                               {opp.status}
@@ -1078,8 +1092,8 @@ export default function MyPostingsDashboardPage() {
                           </span>
                           <span
                             className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${isOpen
-                                ? "bg-emerald-500/10 text-semantic-green border-emerald-500/30"
-                                : "bg-surface-200 text-surface-400 border-surface-300"
+                              ? "bg-emerald-500/10 text-semantic-green border-emerald-500/30"
+                              : "bg-surface-200 text-surface-400 border-surface-300"
                               }`}
                           >
                             {opp.status}
@@ -1210,7 +1224,8 @@ export default function MyPostingsDashboardPage() {
                 <thead>
                   <tr className="border-b border-surface-200 text-[10px] uppercase font-black tracking-wider text-surface-400 bg-surface-200/50">
                     <th className="py-3.5 px-4">Applicant / Contractor</th>
-                    <th className="py-3.5 px-4">Target Tender Opportunity</th>
+                    <th className="py-3.5 px-4">Target Opportunity</th>
+                    <th className="py-3.5 px-4">Type</th>
                     <th className="py-3.5 px-4">Date Received</th>
                     <th className="py-3.5 px-4">Status</th>
                     <th className="py-3.5 px-4 text-right">Negotiation Actions</th>
@@ -1271,6 +1286,26 @@ export default function MyPostingsDashboardPage() {
                           </div>
                         </td>
 
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 w-fit ${opp?.type === "MATERIAL_REQUIRED"
+                              ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                              : opp?.type === "PROJECT_LEAD"
+                                ? "bg-indigo-500/10 text-indigo-500 border-indigo-500/30"
+                                : "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
+                              }`}
+                          >
+                            {opp?.type === "MATERIAL_REQUIRED" ? (
+                              <Box className="w-2.5 h-2.5" />
+                            ) : opp?.type === "PROJECT_LEAD" ? (
+                              <Sparkles className="w-2.5 h-2.5" />
+                            ) : (
+                              <Hammer className="w-2.5 h-2.5" />
+                            )}
+                            {opp?.type === "MATERIAL_REQUIRED" ? "Material Supply" : opp?.type === "PROJECT_LEAD" ? "Project Lead" : "Contracting / Work"}
+                          </span>
+                        </td>
+
                         <td className="py-3.5 px-4 text-surface-400 text-[11px]">
                           {new Date(inquiry.created_at).toLocaleDateString()}
                         </td>
@@ -1278,12 +1313,12 @@ export default function MyPostingsDashboardPage() {
                         <td className="py-3.5 px-4">
                           <span
                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border inline-flex items-center gap-1.5 ${isNew
-                                ? "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
-                                : isInTalks
-                                  ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                                  : isAwarded
-                                    ? "bg-emerald-500/10 text-semantic-green border-emerald-500/30"
-                                    : "bg-red-500/10 text-semantic-red border-red-500/30"
+                              ? "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
+                              : isInTalks
+                                ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                                : isAwarded
+                                  ? "bg-emerald-500/10 text-semantic-green border-emerald-500/30"
+                                  : "bg-red-500/10 text-semantic-red border-red-500/30"
                               }`}
                           >
                             {isNew && <Sparkles className="w-2.5 h-2.5" />}
@@ -1403,8 +1438,22 @@ export default function MyPostingsDashboardPage() {
                           <p className="text-[10px] text-surface-400 truncate">{opp?.location || "Site Location"}</p>
                         </td>
                         <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-surface-200 border border-surface-300 text-primary">
-                            {opp?.type || "MATERIAL"}
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border flex items-center gap-1 w-fit ${opp?.type === "MATERIAL_REQUIRED"
+                              ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                              : opp?.type === "PROJECT_LEAD"
+                                ? "bg-indigo-500/10 text-indigo-500 border-indigo-500/30"
+                                : "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
+                              }`}
+                          >
+                            {opp?.type === "MATERIAL_REQUIRED" ? (
+                              <Box className="w-2.5 h-2.5" />
+                            ) : opp?.type === "PROJECT_LEAD" ? (
+                              <Sparkles className="w-2.5 h-2.5" />
+                            ) : (
+                              <Hammer className="w-2.5 h-2.5" />
+                            )}
+                            {opp?.type === "MATERIAL_REQUIRED" ? "Material Supply" : opp?.type === "PROJECT_LEAD" ? "Project Lead" : "Contracting / Work"}
                           </span>
                         </td>
                         <td className="py-3.5 px-4 font-bold text-accent">
@@ -1416,12 +1465,12 @@ export default function MyPostingsDashboardPage() {
                         <td className="py-3.5 px-4">
                           <span
                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border inline-flex items-center gap-1.5 ${sent.status === "AWARDED"
-                                ? "bg-emerald-500/10 text-semantic-green border-emerald-500/30"
-                                : sent.status === "IN_TALKS"
-                                  ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                                  : sent.status === "REJECTED"
-                                    ? "bg-red-500/10 text-semantic-red border-red-500/30"
-                                    : "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
+                              ? "bg-emerald-500/10 text-semantic-green border-emerald-500/30"
+                              : sent.status === "IN_TALKS"
+                                ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                                : sent.status === "REJECTED"
+                                  ? "bg-red-500/10 text-semantic-red border-red-500/30"
+                                  : "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
                               }`}
                           >
                             {sent.status === "AWARDED" && <CheckCircle2 className="w-2.5 h-2.5" />}
@@ -1489,6 +1538,8 @@ export default function MyPostingsDashboardPage() {
           )}
         </div>
       )}
+
+
       {editingPosting && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
           <div
@@ -1513,10 +1564,10 @@ export default function MyPostingsDashboardPage() {
                     </span>
                     <span
                       className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${editFormData.status === "OPEN"
-                          ? "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
-                          : editFormData.status === "NEGOTIATING"
-                            ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                            : "bg-surface-200 text-surface-400 border-surface-300"
+                        ? "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
+                        : editFormData.status === "NEGOTIATING"
+                          ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                          : "bg-surface-200 text-surface-400 border-surface-300"
                         }`}
                     >
                       {editFormData.status}
@@ -1646,8 +1697,8 @@ export default function MyPostingsDashboardPage() {
                             type="button"
                             onClick={() => setEditMaterialSourceMode("catalog")}
                             className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${editMaterialSourceMode === "catalog"
-                                ? "bg-accent text-background font-black shadow-sm"
-                                : "text-surface-500 hover:text-primary"
+                              ? "bg-accent text-background font-black shadow-sm"
+                              : "text-surface-500 hover:text-primary"
                               }`}
                           >
                             Master Catalog
@@ -1656,8 +1707,8 @@ export default function MyPostingsDashboardPage() {
                             type="button"
                             onClick={() => setEditMaterialSourceMode("project_bom")}
                             className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${editMaterialSourceMode === "project_bom"
-                                ? "bg-accent text-background font-black shadow-sm"
-                                : "text-surface-500 hover:text-primary"
+                              ? "bg-accent text-background font-black shadow-sm"
+                              : "text-surface-500 hover:text-primary"
                               }`}
                           >
                             Project BOM Matrix
@@ -1666,8 +1717,8 @@ export default function MyPostingsDashboardPage() {
                             type="button"
                             onClick={() => setEditMaterialSourceMode("custom")}
                             className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${editMaterialSourceMode === "custom"
-                                ? "bg-accent text-background font-black shadow-sm"
-                                : "text-surface-500 hover:text-primary"
+                              ? "bg-accent text-background font-black shadow-sm"
+                              : "text-surface-500 hover:text-primary"
                               }`}
                           >
                             Custom Item
@@ -2086,26 +2137,36 @@ export default function MyPostingsDashboardPage() {
             <form onSubmit={handleCreateSubmit} className="space-y-5">
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider text-surface-400 mb-2">Opportunity Type</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, type: "MATERIAL_REQUIRED" })}
-                    className={`p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${formData.type === "MATERIAL_REQUIRED"
-                        ? "bg-accent/10 border-accent text-accent font-black shadow-sm"
-                        : "bg-surface-50 border-surface-200 text-surface-500 hover:text-primary"
+                    className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${formData.type === "MATERIAL_REQUIRED"
+                      ? "bg-amber-500/10 border-amber-500 text-amber-500 font-black shadow-sm"
+                      : "bg-surface-50 border-surface-200 text-surface-500 hover:text-primary"
                       }`}
                   >
-                    <Box className="w-4 h-4 text-semantic-blue" /> Material Procurement Package
+                    <Box className="w-4 h-4 text-amber-500" /> Material Supply
                   </button>
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, type: "SERVICE_REQUIRED" })}
-                    className={`p-3.5 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${formData.type === "SERVICE_REQUIRED"
-                        ? "bg-accent/10 border-accent text-accent font-black shadow-sm"
-                        : "bg-surface-50 border-surface-200 text-surface-500 hover:text-primary"
+                    className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${formData.type === "SERVICE_REQUIRED"
+                      ? "bg-emerald-500/10 border-emerald-500 text-emerald-500 font-black shadow-sm"
+                      : "bg-surface-50 border-surface-200 text-surface-500 hover:text-primary"
                       }`}
                   >
-                    <Hammer className="w-4 h-4 text-semantic-green" /> Service / Labor Gig
+                    <Hammer className="w-4 h-4 text-emerald-500" /> Contracting / Work
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type: "PROJECT_LEAD" })}
+                    className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${formData.type === "PROJECT_LEAD"
+                      ? "bg-indigo-500/10 border-indigo-500 text-indigo-500 font-black shadow-sm"
+                      : "bg-surface-50 border-surface-200 text-surface-500 hover:text-primary"
+                      }`}
+                  >
+                    <Sparkles className="w-4 h-4 text-indigo-500" /> Project Lead
                   </button>
                 </div>
               </div>
@@ -2121,8 +2182,8 @@ export default function MyPostingsDashboardPage() {
                         type="button"
                         onClick={() => setMaterialSourceMode("catalog")}
                         className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${materialSourceMode === "catalog"
-                            ? "bg-accent text-background font-black shadow-sm"
-                            : "text-surface-500 hover:text-primary"
+                          ? "bg-accent text-background font-black shadow-sm"
+                          : "text-surface-500 hover:text-primary"
                           }`}
                       >
                         Master Catalog
@@ -2131,8 +2192,8 @@ export default function MyPostingsDashboardPage() {
                         type="button"
                         onClick={() => setMaterialSourceMode("project_bom")}
                         className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${materialSourceMode === "project_bom"
-                            ? "bg-accent text-background font-black shadow-sm"
-                            : "text-surface-500 hover:text-primary"
+                          ? "bg-accent text-background font-black shadow-sm"
+                          : "text-surface-500 hover:text-primary"
                           }`}
                       >
                         Project BOM Matrix
@@ -2141,8 +2202,8 @@ export default function MyPostingsDashboardPage() {
                         type="button"
                         onClick={() => setMaterialSourceMode("custom")}
                         className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${materialSourceMode === "custom"
-                            ? "bg-accent text-background font-black shadow-sm"
-                            : "text-surface-500 hover:text-primary"
+                          ? "bg-accent text-background font-black shadow-sm"
+                          : "text-surface-500 hover:text-primary"
                           }`}
                       >
                         Custom Item
@@ -2572,13 +2633,13 @@ export default function MyPostingsDashboardPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <div className="p-5 overflow-y-auto min-h-0 bg-surface-100/50">
               {(() => {
-                const items = selectedPostingForMaterials.procurement_items?.length 
-                  ? selectedPostingForMaterials.procurement_items 
+                const items = selectedPostingForMaterials.procurement_items?.length
+                  ? selectedPostingForMaterials.procurement_items
                   : parseProcurementItemsFromDescription(selectedPostingForMaterials.description || "");
-                
+
                 if (items.length === 0) {
                   return (
                     <div className="space-y-4">
@@ -2644,7 +2705,7 @@ export default function MyPostingsDashboardPage() {
                 );
               })()}
             </div>
-            
+
             <div className="p-4 border-t border-surface-200 bg-surface-50 flex justify-end shrink-0">
               <button
                 type="button"
@@ -2681,16 +2742,16 @@ export default function MyPostingsDashboardPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <div className="p-5 overflow-y-auto min-h-0 bg-surface-100/50">
               {(() => {
                 const opp = issuePoTargetInquiry.opportunity_details;
                 if (!opp) return <p className="text-sm font-bold text-surface-500">Opportunity details not found.</p>;
-                
-                const items = opp.procurement_items?.length 
-                  ? opp.procurement_items 
+
+                const items = opp.procurement_items?.length
+                  ? opp.procurement_items
                   : parseProcurementItemsFromDescription(opp.description || "");
-                
+
                 if (items.length === 0) {
                   return (
                     <div className="space-y-4">
@@ -2756,7 +2817,7 @@ export default function MyPostingsDashboardPage() {
                 );
               })()}
             </div>
-            
+
             <div className="p-4 border-t border-surface-200 bg-surface-50 flex justify-end shrink-0 gap-3">
               <button
                 type="button"
@@ -2769,17 +2830,17 @@ export default function MyPostingsDashboardPage() {
                 type="button"
                 onClick={() => {
                   const opp = issuePoTargetInquiry.opportunity_details;
-                  const items = opp?.procurement_items?.length 
-                    ? opp.procurement_items 
+                  const items = opp?.procurement_items?.length
+                    ? opp.procurement_items
                     : parseProcurementItemsFromDescription(opp?.description || "");
                   const computed_total = items.reduce((sum: number, item: any) => sum + ((item.quantity || 1) * (item.rate || 0)), 0);
-                  const quote_amount = issuePoTargetInquiry.quote_amount || computed_total;
-                  
-                  updateStatusMutation.mutate({ 
-                    interestId: issuePoTargetInquiry.id, 
+                  const quote_amount = Number(issuePoTargetInquiry.quote_amount || computed_total);
+
+                  updateStatusMutation.mutate({
+                    interestId: issuePoTargetInquiry.id,
                     newStatus: "AWARDED",
                     items,
-                    quote_amount 
+                    quote_amount
                   });
                   setIssuePoTargetInquiry(null);
                 }}
@@ -2796,3 +2857,4 @@ export default function MyPostingsDashboardPage() {
     </div>
   );
 }
+

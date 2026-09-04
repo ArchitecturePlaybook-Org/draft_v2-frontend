@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { toast } from "sonner";
 
 import { projectsApi } from '@/domains/projects/api';
@@ -26,14 +26,20 @@ export default function SweetHome3DEditor({ projectId, projectUid, assetId, isNe
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const modelBlobUrlRef = useRef<string | null>(null);
   const assetIdRef = useRef<string | undefined>(assetId);
+  const isNewRef = useRef<boolean>(Boolean(isNew));
   const saveInProgressRef = useRef(false);
   const saveQueueRef = useRef<PendingSavePayload[]>([]);
   const initSentRef = useRef(false);
 
   useEffect(() => {
     assetIdRef.current = assetId;
+    if (assetId) {
+      isNewRef.current = false;
+    } else if (isNew) {
+      isNewRef.current = true;
+    }
     initSentRef.current = false;
-  }, [assetId]);
+  }, [assetId, isNew]);
 
   const processSaveQueue = async () => {
     if (saveInProgressRef.current) return;
@@ -75,6 +81,7 @@ export default function SweetHome3DEditor({ projectId, projectUid, assetId, isNe
       const savedCanonicalUid = String(result.canonical_uid || result.sh3d_asset?.canonical_uid || '');
       if (savedCanonicalUid) {
         assetIdRef.current = savedCanonicalUid;
+        isNewRef.current = false;
         if (typeof window !== 'undefined') {
           const url = new URL(window.location.href);
           url.searchParams.set('assetId', savedCanonicalUid);
@@ -126,13 +133,112 @@ export default function SweetHome3DEditor({ projectId, projectUid, assetId, isNe
     }
   };
 
+  const initEditor = useCallback(async () => {
+    if (initSentRef.current) return;
+    initSentRef.current = true;
+
+    const iframe = iframeRef.current;
+    if (!iframe) {
+      initSentRef.current = false;
+      return;
+    }
+
+    const target = iframe.contentWindow;
+    if (!target) {
+      initSentRef.current = false;
+      return;
+    }
+
+    let modelBlobUrl: string | null = null;
+    let assetPk: number | undefined;
+    let modelExt = '.sh3d';
+    const loadAssetId = assetIdRef.current;
+    const currentIsNew = isNewRef.current && !loadAssetId;
+    let startBlank = currentIsNew || !loadAssetId;
+
+    if (loadAssetId && !currentIsNew) {
+      try {
+        console.log('[SH3D] Fetching asset details for canonicalUid:', loadAssetId);
+        let asset: any;
+        try {
+          asset = await projectsApi.getAssetByCanonicalUid(loadAssetId);
+          console.log('[SH3D] Asset retrieved:', asset);
+        } catch (apiErr: any) {
+          console.error('[SH3D] getAssetByCanonicalUid failed:', apiErr);
+          startBlank = true;
+        }
+
+        if (asset) {
+          assetPk = asset.id;
+          const rawFile = asset.file || asset.file_url || asset.url;
+          const hasLoadableFile = Boolean(rawFile) && Number(asset.size) > 0;
+
+          if (hasLoadableFile) {
+            const extMatch = rawFile.match(/\.(sh3d|sh3x)(\?|$)/i);
+            if (extMatch) modelExt = extMatch[0].split('?')[0];
+
+            const fileUrl = withCacheBuster(
+              resolveAssetFileUrl(rawFile),
+              asset.updated_at || asset.id,
+            );
+            console.log('[SH3D] Fetching model file:', rawFile, '-> resolved:', fileUrl);
+
+            try {
+              const res = await fetch(fileUrl, { cache: 'no-store' });
+              if (res.ok) {
+                const blob = await res.blob();
+                if (blob.size > 0) {
+                  if (modelBlobUrlRef.current) {
+                    URL.revokeObjectURL(modelBlobUrlRef.current);
+                  }
+                  modelBlobUrl = URL.createObjectURL(blob);
+                  modelBlobUrlRef.current = modelBlobUrl;
+                  startBlank = false;
+                } else {
+                  startBlank = true;
+                }
+              } else {
+                console.warn(`[SH3D] Model file returned ${res.status}: ${res.statusText}. Starting blank canvas.`);
+                startBlank = true;
+              }
+            } catch (fileFetchErr: any) {
+              console.error('[SH3D] fetch(fileUrl) network error:', fileFetchErr, 'for URL:', fileUrl);
+              startBlank = true;
+            }
+          } else {
+            console.log('[SH3D] Asset has no loadable file or size is 0. Starting blank canvas.');
+            startBlank = true;
+          }
+        }
+      } catch (error: any) {
+        console.error('Failed to load 3D model asset:', error);
+        startBlank = true;
+      }
+    }
+
+    target.postMessage({
+      type: 'SH3D_INIT',
+      projectId,
+      assetId: loadAssetId,
+      assetPk,
+      isNew: startBlank,
+      modelBlobUrl,
+      modelExt,
+    }, '*');
+  }, [projectId, projectUid, assetId, isNew]);
+
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
 
+      if (event.data?.type === 'SH3D_FRAME_READY') {
+        initSentRef.current = false;
+        void initEditor();
+        return;
+      }
+
       if (event.data?.type === 'SH3D_SAVE_COMPLETE') {
         const { sh3dBlob, thumbnailBlob, name, asRevision, isSaveAs } = event.data;
-        // Keep only the latest queued save — each entry is a full snapshot
         saveQueueRef.current = [{ sh3dBlob, thumbnailBlob, name, asRevision, isSaveAs }];
         void processSaveQueue();
         return;
@@ -179,98 +285,11 @@ export default function SweetHome3DEditor({ projectId, projectUid, assetId, isNe
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [projectUid, onSaveComplete]);
+  }, [projectUid, initEditor, onSaveComplete]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-
-    const initEditor = async () => {
-      if (initSentRef.current) return;
-      initSentRef.current = true;
-
-      const target = iframe.contentWindow;
-      if (!target) {
-        initSentRef.current = false;
-        return;
-      }
-
-      let modelBlobUrl: string | null = null;
-      let assetPk: number | undefined;
-      let modelExt = '.sh3d';
-      let startBlank = isNew || !assetId;
-      const loadAssetId = assetIdRef.current;
-
-      if (loadAssetId) {
-        try {
-          console.log('[SH3D] Fetching asset details for canonicalUid:', loadAssetId);
-          let asset: any;
-          try {
-            asset = await projectsApi.getAssetByCanonicalUid(loadAssetId);
-            console.log('[SH3D] Asset retrieved:', asset);
-          } catch (apiErr: any) {
-            console.error('[SH3D] getAssetByCanonicalUid failed:', apiErr);
-            throw new Error(`Asset API error: ${apiErr?.message || 'Failed to fetch asset metadata'}`);
-          }
-
-          assetPk = asset.id;
-          const rawFile = asset.file || asset.file_url || asset.url;
-          const hasLoadableFile = Boolean(rawFile) && Number(asset.size) > 0;
-
-          if (hasLoadableFile) {
-            const extMatch = rawFile.match(/\.(sh3d|sh3x)(\?|$)/i);
-            if (extMatch) modelExt = extMatch[0].split('?')[0];
-
-            const fileUrl = withCacheBuster(
-              resolveAssetFileUrl(rawFile),
-              asset.updated_at || asset.id,
-            );
-            console.log('[SH3D] Fetching model file:', rawFile, '-> resolved:', fileUrl);
-
-            let res: Response;
-            try {
-              res = await fetch(fileUrl, { cache: 'no-store' });
-            } catch (fileFetchErr: any) {
-              console.error('[SH3D] fetch(fileUrl) network error:', fileFetchErr, 'for URL:', fileUrl);
-              throw new Error(`Network error fetching file (${fileUrl}): ${fileFetchErr?.message || 'Failed to fetch'}`);
-            }
-
-            if (!res.ok) {
-              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            }
-
-            const blob = await res.blob();
-            if (blob.size > 0) {
-              if (modelBlobUrlRef.current) {
-                URL.revokeObjectURL(modelBlobUrlRef.current);
-              }
-              modelBlobUrl = URL.createObjectURL(blob);
-              modelBlobUrlRef.current = modelBlobUrl;
-              startBlank = false;
-            } else {
-              throw new Error('Downloaded model file is 0 bytes');
-            }
-          } else {
-            console.warn('[SH3D] Asset has no loadable file or size is 0:', asset);
-            startBlank = true;
-          }
-        } catch (error: any) {
-          console.error('Failed to load 3D model asset:', error);
-          toast.error(`Could not load saved model (${error?.message || 'Unknown error'}). Starting with a blank canvas.`);
-          startBlank = true;
-        }
-      }
-
-      target.postMessage({
-        type: 'SH3D_INIT',
-        projectId,
-        assetId: loadAssetId,
-        assetPk,
-        isNew: startBlank,
-        modelBlobUrl,
-        modelExt,
-      }, '*');
-    };
 
     iframe.addEventListener('load', initEditor);
     if (iframe.contentDocument?.readyState === 'complete') {
@@ -284,9 +303,9 @@ export default function SweetHome3DEditor({ projectId, projectUid, assetId, isNe
         modelBlobUrlRef.current = null;
       }
     };
-  }, [projectId, projectUid, assetId, isNew]);
+  }, [initEditor]);
 
-  const src = `/sh3d/index.html?projectId=${projectId}&deferLoad=1&embedded=1`;
+  const src = `/sh3d/index.html?projectId=${projectId}&deferLoad=1&embedded=1&v=curated30_v2`;
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col relative overflow-hidden bg-white">

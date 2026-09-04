@@ -93,6 +93,10 @@ export interface ProjectAsset {
   is_latest: boolean;
   revision_notes: string;
 
+  // Spatial Zone & Milestone Phase Allocation
+  zones?: Array<{ id: number; name: string; zone_type?: string }>;
+  phases?: Array<{ id: number; name: string; sequence_order?: number; color_hex?: string }>;
+
   // Floor Plan Calibration
   scale_pixels_per_meter?: number;
   scale_calibrated_at?: string;
@@ -100,6 +104,7 @@ export interface ProjectAsset {
   created_at: string;
   updated_at: string;
 }
+
 
 export interface TaskAssetLink {
   id: number;

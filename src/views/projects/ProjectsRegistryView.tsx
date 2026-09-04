@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { UpgradeModal } from "@/components/billing/UpgradeModal";
+import { FolderKanban, Share2, ExternalLink, Lock, Globe } from "lucide-react";
 
 function SearchParamsReader({ onParams }: { onParams: (params: { leadId: string | null; title: string | null; clientName: string | null; preset: string | null; create: string | null }) => void }) {
   const searchParams = useSearchParams();
@@ -39,6 +40,7 @@ export function ProjectsRegistryView() {
     setIsMounted(true);
   }, []);
 
+  const [activeRegistryTab, setActiveRegistryTab] = useState<"projects" | "shared_tasks">("projects");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [orgs, setOrgs] = useState<any[]>([]);
   const [initialData, setInitialData] = useState<{ title?: string; description?: string; preset_slug?: string; kind?: string }>({ title: "", description: "" });
@@ -55,17 +57,10 @@ export function ProjectsRegistryView() {
   const [savingTemplate, setSavingTemplate] = useState(false);
 
   // TanStack Queries for automatic caching
-  const { data: projects = [], isLoading: isProjectsLoading } = useQuery<Project[]>({
+  const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: () => projectsApi.getProjects(),
   });
-
-  const { data: sharedTasks = [], isLoading: isSharedTasksLoading } = useQuery<any[]>({
-    queryKey: ["shared-tasks"],
-    queryFn: () => projectsApi.getTasks({ is_shared: true }),
-  });
-
-  const isLoading = isProjectsLoading || isSharedTasksLoading;
 
   // Status Change Mutation
   const statusMutation = useMutation({
@@ -194,8 +189,86 @@ export function ProjectsRegistryView() {
         </div>
       </div>
 
-      {/* Filter and Sort Toolbar */}
-      <div className="flex flex-col md:flex-row gap-2.5 bg-surface-50/60 dark:bg-surface-800/40 backdrop-blur-xl p-2.5 rounded-2xl border border-surface-200/80 dark:border-surface-700/60 shadow-sm relative z-10 items-center justify-between">
+      {/* Top Portfolio vs Shared Tasks Hub Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-surface-200 dark:border-white/10 pb-2">
+        <button
+          onClick={() => setActiveRegistryTab("projects")}
+          className={`px-4 py-2 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+            activeRegistryTab === "projects"
+              ? "bg-accent text-background shadow-xs font-black"
+              : "bg-surface-100/70 dark:bg-surface-800/50 text-surface-400 hover:text-primary"
+          }`}
+        >
+          <FolderKanban className="w-4 h-4" /> All Projects ({totalProjectsCount})
+        </button>
+
+        <button
+          onClick={() => setActiveRegistryTab("shared_tasks")}
+          className={`px-4 py-2 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+            activeRegistryTab === "shared_tasks"
+              ? "bg-accent text-background shadow-xs font-black"
+              : "bg-surface-100/70 dark:bg-surface-800/50 text-surface-400 hover:text-primary"
+          }`}
+        >
+          <Share2 className="w-4 h-4" /> Shared Tasks Hub
+        </button>
+      </div>
+
+      {activeRegistryTab === "shared_tasks" ? (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="p-6 rounded-2xl bg-surface-100/80 dark:bg-surface-800/40 border border-surface-200 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center border border-accent/20">
+                <Share2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-primary">Cross-Project Shared Tasks Workspace</h2>
+                <p className="text-xs text-surface-400 mt-0.5">
+                  Select any active project below to open its dedicated Shared Tasks tab and client preview links.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((p) => (
+              <div
+                key={p.uid}
+                onClick={() => router.push(`/dashboard/projects/${p.uid}?tab=shared_tasks`)}
+                className="p-6 rounded-2xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-white/10 hover:border-accent/50 transition-all cursor-pointer group shadow-sm hover:shadow-xl space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] font-bold text-accent px-2 py-0.5 rounded bg-accent/10 border border-accent/20">
+                    {p.code || p.uid.substring(0, 8)}
+                  </span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-surface-400 flex items-center gap-1 group-hover:text-accent">
+                    Open Shared Tasks Tab <ExternalLink className="w-3 h-3" />
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-lg text-primary group-hover:text-accent transition-colors line-clamp-1">
+                    {p.title}
+                  </h3>
+                  <p className="text-xs text-surface-400 line-clamp-2 mt-1">
+                    {p.description || "Active Architectural Blueprint Project"}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-surface-200 dark:border-white/10 flex items-center justify-between text-xs text-surface-400 font-medium">
+                  <span>Client: {p.client_name || "Internal Firm"}</span>
+                  <span className="font-bold text-accent px-2 py-1 rounded-lg bg-accent/10 group-hover:bg-accent group-hover:text-background transition-all">
+                    Shared Tasks ➔
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Filter and Sort Toolbar */}
+          <div className="flex flex-col md:flex-row gap-2.5 bg-surface-50/60 dark:bg-surface-800/40 backdrop-blur-xl p-2.5 rounded-2xl border border-surface-200/80 dark:border-surface-700/60 shadow-sm relative z-10 items-center justify-between">
         
         {/* Search Bar */}
         <div className="w-full md:w-72 flex items-center gap-2 bg-surface-100/70 dark:bg-surface-700/50 px-3 rounded-xl border border-surface-200/60 dark:border-surface-700/50 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/10 transition-all shadow-inner">
@@ -414,6 +487,8 @@ export function ProjectsRegistryView() {
           </>
         )}
       </AnimatePresence>
+      </>
+      )}
 
       <UpgradeModal
         isOpen={showUpgradeModal}
@@ -436,56 +511,6 @@ export function ProjectsRegistryView() {
         orgs={orgs}
         initialData={initialData}
       />
-
-      {/* Shared Tasks Section */}
-      {sharedTasks.length > 0 && (
-        <div className="mt-16">
-          <h2 className="text-2xl font-extrabold text-primary mb-6 tracking-tight">Shared Tasks</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-            {sharedTasks.map((task, idx) => (
-              <motion.div 
-                key={task.uid} 
-                initial={{ opacity: 0, y: 20 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                transition={{ delay: 0.1 * idx }}
-                whileHover={{ rotateY: 2, rotateX: -2, y: -5, z: 20 }}
-                style={{ transformStyle: "preserve-3d", perspective: 1000 }}
-                className="h-full"
-              >
-                <a href={`/share/task/${task.uid}`} className="block group h-full">
-                  <div className="bg-amber-50 dark:bg-amber-900/20 p-8 rounded-2xl border border-amber-200 dark:border-amber-800/30 hover:border-accent/40 shadow-sm hover:shadow-2xl transition-all h-full flex flex-col relative">
-                    <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                      <div className="absolute top-0 right-0 w-[500px] h-full bg-amber-500/5 arch-grid opacity-10 group-hover:opacity-30 transition-opacity duration-1000 mix-blend-overlay" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    </div>
-                    
-                    <div className="flex justify-between items-start mb-6 relative z-10">
-                      <div className="space-y-1.5">
-                        <h3 className="font-bold text-xl text-amber-900 dark:text-amber-100 tracking-tight group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                          {task.title}
-                        </h3>
-                        <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-amber-700/80 dark:text-amber-400/80 flex items-center gap-2">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                          {task.project && typeof task.project === "object" ? task.project.title : `Project ${task.project || ""}`}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className="px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] rounded-md bg-amber-500 text-white shadow-lg shadow-amber-500/20 backdrop-blur-md">
-                          Shared Task
-                        </span>
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-amber-900/70 dark:text-amber-100/70 line-clamp-2 leading-relaxed mb-8 flex-1 relative z-10 font-medium">
-                      {task.description || "No description provided."}
-                    </p>
-                  </div>
-                </a>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

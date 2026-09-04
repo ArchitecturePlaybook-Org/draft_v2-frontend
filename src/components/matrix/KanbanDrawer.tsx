@@ -13,7 +13,9 @@ import { PlaceRequisitionOrderModal } from "@/components/inventory/PlaceRequisit
 import { MaterialIssueModal } from "@/components/inventory/MaterialIssueModal";
 import { MaterialDetailModal } from "@/components/inventory/MaterialDetailModal";
 import { TaskItem } from "../projects/TaskItem";
+import { ZonePhaseDrawersModal } from "./ZonePhaseDrawersModal";
 import { toast } from "sonner";
+
 import { useAuthStore } from "@/store/auth-store";
 import {
   Search, Loader2, Package, Layers, Share2, Receipt, PackageCheck,
@@ -91,7 +93,9 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
 
   // ── Tab state: Tasks Kanban vs Block BOM ──────────────────────────────────
   const [drawerTab, setDrawerTab] = useState<"tasks" | "bom">("tasks");
+  const [isDrawersModalOpen, setIsDrawersModalOpen] = useState(false);
   const [blockRequirements, setBlockRequirements] = useState<TaskMaterialRequirement[]>([]);
+
   const [loadingBOM, setLoadingBOM] = useState(false);
   const [showDirectPostModal, setShowDirectPostModal] = useState(false);
 
@@ -718,6 +722,14 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap ml-auto">
+              <button
+                type="button"
+                onClick={() => setIsDrawersModalOpen(true)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer"
+                title={`View 2D plans & 3D models allocated to ${zone.name} / ${phase.name}`}
+              >
+                <span>📐</span> Drawings & Models
+              </button>
               {drawerTab === "tasks" && (
                 <>
                   {!readOnly && !isLocked && userRole === "admin" && (
@@ -728,6 +740,7 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
                       <span>⚡</span> Milestone
                     </button>
                   )}
+
                   {!readOnly && userRole === "admin" && (
                     <button
                       onClick={() => {
@@ -1731,7 +1744,18 @@ export const KanbanDrawer: React.FC<KanbanDrawerProps> = ({
           projectUid={projectUid}
         />
 
+        {isDrawersModalOpen && (
+          <ZonePhaseDrawersModal
+            isOpen={isDrawersModalOpen}
+            onClose={() => setIsDrawersModalOpen(false)}
+            projectUid={projectUid || ""}
+            zone={zone}
+            phase={phase}
+          />
+        )}
+
       </motion.div>
+
 
     </>
   );

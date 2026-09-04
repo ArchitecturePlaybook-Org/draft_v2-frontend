@@ -16,6 +16,23 @@
       if (new URLSearchParams(location.search).get('embedded') === '1') {
         document.documentElement.dataset.embedded = '1';
       }
+      // Force dynamic timestamp cache buster for furniture catalog JSON so browser NEVER caches catalog responses
+      var origOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url) {
+        if (typeof url === 'string' && (url.indexOf('FurnitureCatalog') !== -1 || url.indexOf('TexturesCatalog') !== -1)) {
+          url += (url.indexOf('?') !== -1 ? '&' : '?') + '_t=' + Date.now();
+        }
+        return origOpen.apply(this, arguments);
+      };
+      if (window.fetch) {
+        var origFetch = window.fetch;
+        window.fetch = function(resource, init) {
+          if (typeof resource === 'string' && (resource.indexOf('FurnitureCatalog') !== -1 || resource.indexOf('TexturesCatalog') !== -1)) {
+            resource += (resource.indexOf('?') !== -1 ? '&' : '?') + '_t=' + Date.now();
+          }
+          return origFetch.call(this, resource, init);
+        };
+      }
     })();
   </script>
   <script type="text/javascript" src="lib/big.min.js"></script>
@@ -2491,11 +2508,11 @@
       // writePreferencesURL: API_BASE + "write?path=userPreferences.json",
       // readPreferencesURL: API_BASE + "read?path=userPreferences.json",
 
-      // Catalogs, textures, and models served from S3 via proxy
-      furnitureCatalogURLs: [location.origin + "/s3-assets/sh3d/lib/resources/DefaultFurnitureCatalog.json"],
-      furnitureResourcesURLBase: location.origin + "/s3-assets/sh3d/",
-      texturesCatalogURLs: [location.origin + "/s3-assets/sh3d/lib/resources/DefaultTexturesCatalog.json"],
-      texturesResourcesURLBase: location.origin + "/s3-assets/sh3d/",
+      // Catalogs, textures, and models served locally from curated /sh3d/ assets
+      furnitureCatalogURLs: [location.origin + "/sh3d/lib/resources/DefaultFurnitureCatalog.json"],
+      furnitureResourcesURLBase: location.origin + "/sh3d/",
+      texturesCatalogURLs: [location.origin + "/sh3d/lib/resources/DefaultTexturesCatalog.json"],
+      texturesResourcesURLBase: location.origin + "/sh3d/",
 
       writeHomeWithWorker: true,
       compressionLevel: 5,
@@ -2523,17 +2540,50 @@
         }
       }
 
+      function addHomeAndSelect(home) {
+        if (!application || !home) return;
+        try {
+          if (typeof application.getHomes === 'function') {
+            var existing = application.getHomes();
+            if (existing) {
+              var list = typeof existing.toArray === 'function' ? existing.toArray() : Array.from(existing);
+              list.forEach(function(h) {
+                if (h && h !== home) {
+                  try {
+                    if (typeof application.deleteHome === 'function') {
+                      application.deleteHome(h);
+                    } else if (typeof application.removeHome === 'function') {
+                      application.removeHome(h);
+                    }
+                  } catch (e) {}
+                }
+              });
+            }
+          }
+        } catch (e) {}
+
+        application.addHome(home);
+
+        try {
+          if (typeof application.setSelectedHome === 'function') {
+            application.setSelectedHome(home);
+          }
+        } catch (e) {}
+
+        hideLoader();
+      }
+
       function tryLoad(url) {
         if (!url) return false;
+        console.log('[SH3D] Loading home from URL:', url);
         if (typeof application.readHomeFromURL === 'function') {
           application.readHomeFromURL(url, function (home) { 
-            application.addHome(home); 
-            hideLoader();
+            console.log('[SH3D] Home loaded successfully');
+            addHomeAndSelect(home); 
           }, function (e) { 
-            console.error(e); 
+            console.error('[SH3D] readHomeFromURL failed:', e); 
             if (!isNew) alert("Could not open the model."); 
-            application.addHome(application.createHome());
-            hideLoader();
+            addHomeAndSelect(application.createHome());
           });
           return true;
         }
@@ -2542,14 +2592,13 @@
           var recorder = new HomeRecorder();
           recorder.readHome(url, {
             homeLoaded: function (home) { 
-              application.addHome(home); 
-              hideLoader();
+              console.log('[SH3D] Home loaded successfully via HomeRecorder');
+              addHomeAndSelect(home); 
             },
             homeError: function (status, e) { 
               console.error("HomeRecorder load error:", status, e); 
               if (!isNew) alert("Could not open the model."); 
-              application.addHome(application.createHome());
-              hideLoader();
+              addHomeAndSelect(application.createHome());
             }
           });
           return true;
@@ -2594,8 +2643,7 @@
 
           // Newly created models ship with an empty placeholder file — start blank
           if (isNew || !asset.file || asset.size === 0) {
-            application.addHome(application.createHome());
-            hideLoader();
+            addHomeAndSelect(application.createHome());
             return;
           }
 
@@ -2614,20 +2662,18 @@
             })
             .then(function(blob) {
               if (!blob || blob.size === 0) throw new Error("Model file is empty");
-              var objectUrl = URL.createObjectURL(blob) + '#model' + window.__sh3d_ext;
+              var objectUrl = URL.createObjectURL(blob);
               tryLoad(objectUrl);
             });
         })
         .catch(function(err) {
           console.error("Failed to load secure asset:", err);
           if (isNew) {
-            application.addHome(application.createHome());
-            hideLoader();
+            addHomeAndSelect(application.createHome());
             return;
           }
           alert("Failed to securely load the 3D model.");
-          application.addHome(application.createHome());
-          hideLoader();
+          addHomeAndSelect(application.createHome());
         });
       };
 
@@ -2658,15 +2704,17 @@
         }
 
         if (payload.isNew || !payload.modelBlobUrl) {
-          application.addHome(application.createHome());
-          hideLoader();
+          addHomeAndSelect(application.createHome());
           return;
         }
 
         var ext = payload.modelExt || window.__sh3d_ext || '.sh3d';
-        if (!tryLoad(payload.modelBlobUrl + '#model' + ext)) {
-          application.addHome(application.createHome());
-          hideLoader();
+        var loadUrl = payload.modelBlobUrl;
+        if (!loadUrl.includes('#')) {
+          loadUrl += '#model' + ext;
+        }
+        if (!tryLoad(loadUrl)) {
+          addHomeAndSelect(application.createHome());
         }
       }
 
@@ -2679,6 +2727,20 @@
       var deferLoad = QS.get('deferLoad') === '1';
       if (deferLoad) {
         // Parent React shell loads the asset via authenticated BFF and sends SH3D_INIT.
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'SH3D_FRAME_READY' }, '*');
+          }
+        } catch(e) {}
+
+        // Timeout fallback: if SH3D_INIT is not received within 3.5s, unblock loader with blank home
+        setTimeout(function() {
+          if (!window.__sh3d_initApplied) {
+            console.warn('[SH3D] Timeout waiting for SH3D_INIT message. Starting blank editor.');
+            application.addHome(application.createHome());
+            hideLoader();
+          }
+        }, 3500);
       } else if (assetId) {
         window.__sh3d_triggerLoad(assetId, token);
       } else {
@@ -2688,6 +2750,7 @@
           hideLoader();
         }
       }
+
     })();
   </script>
 
@@ -2706,8 +2769,7 @@
       };
 
       // Optional: Set up auto-refresh every 30 seconds
-      // This will detect new furniture added via the Management UI and reload the catalog
-      window.furnitureManager.startAutoRefresh(30000);
+      // window.furnitureManager.startAutoRefresh(30000);
 
       // Listen for refresh messages from furniture manager UI
       try {
@@ -3147,6 +3209,7 @@
 
       if (evt.data.type === 'SH3D_SAVE_ACK') {
         window.__sh3d_saveInProgress = false;
+        isNew = false;
         var assetId   = evt.data.assetId;
         var assetPk   = evt.data.assetPk;
         var assetUid  = evt.data.canonicalUid;

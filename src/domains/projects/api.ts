@@ -715,12 +715,20 @@ export const projectsApi = {
     });
   },
 
+  getProjectAssets: async (projectUid: string, params?: { zone_id?: number; phase_id?: number }) => {
+    let url = `/api/v1/projects/assets/?project_uid=${projectUid}`;
+    if (params?.zone_id) url += `&zone_id=${params.zone_id}`;
+    if (params?.phase_id) url += `&phase_id=${params.phase_id}`;
+    return fetchFromBff<any[]>(url, { method: "GET" });
+  },
+
   getProjectAssetDetails: async (assetId: number, options?: { skipCache?: boolean }) => {
     return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/?all=true`, {
       method: "GET",
       skipCache: options?.skipCache,
     });
   },
+
 
   /** Load Excalidraw JSON for a specific asset revision (server reads storage directly). */
   getAssetScene: async (assetId: number) => {
@@ -732,7 +740,7 @@ export const projectsApi = {
   },
 
   getAssetByCanonicalUid: async (canonicalUid: string) => {
-    return fetchFromBff<any>(`/api/v1/projects/assets/by-canonical/${canonicalUid}/`, { method: "GET" });
+    return fetchFromBff<any>(`/api/v1/projects/assets/by-canonical/${canonicalUid}/`, { method: "GET", skipCache: true });
   },
 
   updateProjectAsset: async (assetId: number, data: Partial<{ title: string; category: string }>) => {
@@ -742,6 +750,14 @@ export const projectsApi = {
   deleteProjectAsset: async (assetId: number) => {
     return fetchFromBff<void>(`/api/v1/projects/assets/${assetId}/`, { method: "DELETE" });
   },
+
+  allocateProjectAsset: async (assetId: number, data: { zone_ids?: number[]; phase_ids?: number[] }) => {
+    return fetchFromBff<any>(`/api/v1/projects/assets/${assetId}/allocate/`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
 
   // ── Floor Plan Calibration ─────────────────────────────────────────────
   calibrateAsset: async (assetId: number, scale_pixels_per_meter: number) => {

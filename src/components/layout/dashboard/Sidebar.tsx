@@ -23,6 +23,7 @@ import {
   Calendar,
   Users,
   BookOpen,
+  Sparkles,
   ClipboardList,
   User,
   CreditCard,
@@ -74,10 +75,9 @@ export const Sidebar: React.FC = () => {
   ] : [
     { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
     { label: "Projects", href: "/dashboard/projects", icon: <FolderKanban className="w-4 h-4" /> },
-    { label: "My Postings", href: "/dashboard/opportunities", icon: <Briefcase className="w-4 h-4 text-accent" /> },
-    { label: "Shared Tasks", href: "/dashboard/shared-tasks", icon: <Share2 className="w-4 h-4" /> },
+    { label: "Opportunities & Tenders", href: "/dashboard/opportunities", icon: <Briefcase className="w-4 h-4 text-accent" /> },
+    { label: "Business Leads", href: "/dashboard/leads", icon: <Sparkles className="w-4 h-4 text-indigo-400" /> },
     { label: "Templates", href: "/dashboard/templates", icon: <FileSpreadsheet className="w-4 h-4" /> },
-    { label: "Business Leads", href: "/dashboard/leads", icon: <Briefcase className="w-4 h-4" /> },
   ]);
 
   const inventoryLinks = isMaterialSupplier ? [] : [

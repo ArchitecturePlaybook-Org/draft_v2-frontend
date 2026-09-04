@@ -135,7 +135,7 @@ export default function OpportunityDetailPage() {
     if (items.length === 0) return;
     const grandTotal = items.reduce((sum, item) => sum + item.total, 0);
     const estBudget = grandTotal > 0 ? `₹${(grandTotal * 0.95).toLocaleString('en-IN', { maximumFractionDigits: 0 })} - ₹${(grandTotal * 1.05).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : "";
-    
+
     const itemNames = items.map((i) => i.name);
     const titleSummary = items.length === 1
       ? `Supply Requirement: ${items[0].name} (${items[0].quantity} ${items[0].unit})`
@@ -319,13 +319,13 @@ export default function OpportunityDetailPage() {
     setEditProcurementItems(parsed);
 
     // Pre-load catalogs and projects
-    inventoryApi.getMaterials().then(setMasterMaterials).catch(() => {});
+    inventoryApi.getMaterials().then(setMasterMaterials).catch(() => { });
     projectsApi.getProjects().then((projs) => {
       setUserProjects(projs);
       if (projs.length > 0 && !editSelectedProjectUid) {
         setEditSelectedProjectUid(projs[0].uid);
       }
-    }).catch(() => {});
+    }).catch(() => { });
 
     setEditFormData({
       title: opportunity.title || "",
@@ -404,7 +404,7 @@ export default function OpportunityDetailPage() {
       <div className="absolute inset-0 arch-grid opacity-[0.03] pointer-events-none" />
 
       <div className="max-w-4xl mx-auto space-y-6 relative z-10">
-        
+
         {/* Navigation Breadcrumb & Action Row */}
         <div className="flex items-center justify-between">
           <Link
@@ -427,7 +427,7 @@ export default function OpportunityDetailPage() {
 
         {/* Main Card */}
         <div className="bg-surface-100 border border-surface-200 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden space-y-6">
-          
+
           {/* Top Row: Type badge, ID, Status */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-surface-200">
             <div className="flex items-center gap-2">
@@ -435,11 +435,10 @@ export default function OpportunityDetailPage() {
                 OPP-#{opportunity.id}
               </span>
               <span
-                className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border flex items-center gap-1.5 ${
-                  isMaterial
-                    ? "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
-                    : "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
-                }`}
+                className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border flex items-center gap-1.5 ${isMaterial
+                  ? "bg-blue-500/10 text-semantic-blue border-semantic-blue/30"
+                  : "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
+                  }`}
               >
                 {isMaterial ? <Box className="w-3.5 h-3.5" /> : <Hammer className="w-3.5 h-3.5" />}
                 {isMaterial ? "Material Required" : "Service Required"}
@@ -447,13 +446,12 @@ export default function OpportunityDetailPage() {
             </div>
 
             <span
-              className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                opportunity.status === "OPEN"
-                  ? "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
-                  : opportunity.status === "NEGOTIATING"
+              className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${opportunity.status === "OPEN"
+                ? "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
+                : opportunity.status === "NEGOTIATING"
                   ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
                   : "bg-surface-200 text-surface-400 border-surface-300"
-              }`}
+                }`}
             >
               {opportunity.status}
             </span>
@@ -585,7 +583,7 @@ export default function OpportunityDetailPage() {
             onClick={() => setIsEditOpen(false)}
           />
           <div className="relative z-10 w-full max-w-5xl xl:max-w-6xl bg-surface-100 border border-surface-200/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh] animate-in zoom-in-95 duration-200">
-            
+
             {/* Header Strip */}
             <div className="px-6 py-4 sm:px-8 sm:py-5 border-b border-surface-200 bg-surface-50/60 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
@@ -601,13 +599,12 @@ export default function OpportunityDetailPage() {
                       OPP-#{opportunity.id}
                     </span>
                     <span
-                      className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
-                        editFormData.status === "OPEN"
-                          ? "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
-                          : editFormData.status === "NEGOTIATING"
+                      className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${editFormData.status === "OPEN"
+                        ? "bg-emerald-500/10 text-semantic-green border-semantic-green/30"
+                        : editFormData.status === "NEGOTIATING"
                           ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
                           : "bg-surface-200 text-surface-400 border-surface-300"
-                      }`}
+                        }`}
                     >
                       {editFormData.status}
                     </span>
@@ -630,7 +627,7 @@ export default function OpportunityDetailPage() {
             {/* Form & 2-Column Workstation Body */}
             <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
+
                 {/* ── LEFT PANE: Opportunity Details & Scope ── */}
                 <div className="lg:col-span-5 space-y-4">
                   <div>
@@ -721,7 +718,7 @@ export default function OpportunityDetailPage() {
                 <div className="lg:col-span-7 space-y-4">
                   {editFormData.type === "MATERIAL_REQUIRED" ? (
                     <div className="p-5 rounded-2xl bg-surface-50 border border-surface-200 space-y-5">
-                      
+
                       {/* Sourcing Hub Header */}
                       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-surface-200/80">
                         <div className="flex items-center gap-2">
@@ -735,33 +732,30 @@ export default function OpportunityDetailPage() {
                           <button
                             type="button"
                             onClick={() => setEditMaterialSourceMode("catalog")}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
-                              editMaterialSourceMode === "catalog"
-                                ? "bg-accent text-background font-black shadow-sm"
-                                : "text-surface-500 hover:text-primary"
-                            }`}
+                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${editMaterialSourceMode === "catalog"
+                              ? "bg-accent text-background font-black shadow-sm"
+                              : "text-surface-500 hover:text-primary"
+                              }`}
                           >
                             Master Catalog
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditMaterialSourceMode("project_bom")}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
-                              editMaterialSourceMode === "project_bom"
-                                ? "bg-accent text-background font-black shadow-sm"
-                                : "text-surface-500 hover:text-primary"
-                            }`}
+                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${editMaterialSourceMode === "project_bom"
+                              ? "bg-accent text-background font-black shadow-sm"
+                              : "text-surface-500 hover:text-primary"
+                              }`}
                           >
                             Project BOM Matrix
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditMaterialSourceMode("custom")}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
-                              editMaterialSourceMode === "custom"
-                                ? "bg-accent text-background font-black shadow-sm"
-                                : "text-surface-500 hover:text-primary"
-                            }`}
+                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${editMaterialSourceMode === "custom"
+                              ? "bg-accent text-background font-black shadow-sm"
+                              : "text-surface-500 hover:text-primary"
+                              }`}
                           >
                             Custom Item
                           </button>

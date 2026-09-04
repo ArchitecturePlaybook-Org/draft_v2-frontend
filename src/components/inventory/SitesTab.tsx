@@ -108,8 +108,8 @@ export function SitesTab() {
       const payload: Partial<Site> = {
         name: form.name,
         code: form.code,
-        location: form.location,
-        project: form.project ? Number(form.project) : undefined,
+        location: form.location?.trim() || "Main Site Yard / Warehouse Address",
+        project: form.project ? (isNaN(Number(form.project)) ? (form.project as any) : Number(form.project)) : undefined,
         is_active: form.is_active,
       };
 
@@ -124,7 +124,10 @@ export function SitesTab() {
       loadData();
     } catch (err: any) {
       console.error("Save site failed", err);
-      toast.error(err?.data?.detail || err?.message || "Failed to save site yard.");
+      const msg = typeof err?.data === 'object'
+        ? Object.entries(err.data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
+        : (err?.data?.detail || err?.message || "Failed to save site yard.");
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

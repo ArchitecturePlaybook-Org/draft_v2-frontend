@@ -21,8 +21,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DrawingMarkup } from "@/types/projects";
 import { DrawingRevisionCloudModal } from "./DrawingRevisionCloudModal";
 import { ContractorRevisionReviewModal } from "./ContractorRevisionReviewModal";
-import { Bell, MapPin, X, ExternalLink, Cloud, Search } from "lucide-react";
+import { AssetAllocationModal } from "./AssetAllocationModal";
+import { Bell, MapPin, X, ExternalLink, Cloud, Search, Layers, Building2, Flag } from "lucide-react";
 import { toast } from "sonner";
+
 
 export const DataHubTab: React.FC = () => {
   const { project, activeHubCategory, setActiveHubCategory, fetchProject, toggleTaskAssetLink } = useProjectStore();
@@ -47,13 +49,28 @@ export const DataHubTab: React.FC = () => {
   const [isCreate3DModalOpen, setIsCreate3DModalOpen] = useState(false);
   const [isCreateSketchModalOpen, setIsCreateSketchModalOpen] = useState(false);
 
+  // Asset Allocation State & Zone/Phase Filters
+  const [allocationAsset, setAllocationAsset] = useState<ProjectAsset | null>(null);
+  const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
+  const [selectedZoneFilter, setSelectedZoneFilter] = useState<number | "all">("all");
+  const [selectedPhaseFilter, setSelectedPhaseFilter] = useState<number | "all">("all");
+  const [matrixData, setMatrixData] = useState<{ zones: any[]; phases: any[] }>({ zones: [], phases: [] });
+
+  React.useEffect(() => {
+    if (project?.uid) {
+      projectsApi.getMatrix(project.uid).then(data => {
+        setMatrixData({ zones: data?.zones || [], phases: data?.phases || [] });
+      }).catch(() => { });
+    }
+  }, [project?.uid]);
+
   // Drawing Markups & Contractor Revision Notifications State
   const [markups, setMarkups] = useState<DrawingMarkup[]>([]);
   const [showContractorMarkupsModal, setShowContractorMarkupsModal] = useState(false);
 
   React.useEffect(() => {
     if (project?.uid) {
-      projectsApi.getDrawingMarkups({ project_uid: project.uid }).then(data => setMarkups(data || [])).catch(() => {});
+      projectsApi.getDrawingMarkups({ project_uid: project.uid }).then(data => setMarkups(data || [])).catch(() => { });
     }
   }, [project?.uid]);
 
@@ -72,17 +89,24 @@ export const DataHubTab: React.FC = () => {
     setIsUploading(true);
     setUploadProgress(`0 / ${sheetsToUpload.length}`);
     let successCount = 0;
+    let lastUploadedAsset: ProjectAsset | null = null;
     try {
       for (let i = 0; i < sheetsToUpload.length; i++) {
         const sheet = sheetsToUpload[i];
         const file = new File([sheet.blob], sheet.filename, { type: "image/jpeg" });
-        await projectsApi.uploadProjectAsset(project.id, "2d_plan", file, sheet.title);
+        const uploaded = await projectsApi.uploadProjectAsset(project.id, "2d_plan", file, sheet.title);
+        lastUploadedAsset = uploaded;
         successCount++;
         setUploadProgress(`${successCount} / ${sheetsToUpload.length}`);
       }
       setPdfModalOpen(false);
       setExtractedSheets([]);
-      fetchProject(project.uid);
+      await fetchProject(project.uid);
+
+      if (lastUploadedAsset) {
+        setAllocationAsset(lastUploadedAsset);
+        setIsAllocationModalOpen(true);
+      }
     } catch (err: any) {
       alert(`Upload failed on sheet ${successCount + 1}: ${err.message}`);
     } finally {
@@ -93,12 +117,28 @@ export const DataHubTab: React.FC = () => {
 
   const filteredAssets = useMemo(() => {
     if (!project?.assets) return [];
-    return project.assets.filter((a) =>
-      activeHubCategory === "3d_model"
-        ? a.category === "3d_model" || a.category === "sh3d"
-        : a.category === activeHubCategory
-    );
-  }, [project?.assets, activeHubCategory]);
+    return project.assets.filter((a) => {
+      const matchCategory =
+        activeHubCategory === "3d_model"
+          ? a.category === "3d_model" || a.category === "sh3d"
+          : a.category === activeHubCategory;
+
+      if (!matchCategory) return false;
+
+      if (selectedZoneFilter !== "all") {
+        const hasZone = (a.zones || []).some((z) => z.id === selectedZoneFilter);
+        if (!hasZone) return false;
+      }
+
+      if (selectedPhaseFilter !== "all") {
+        const hasPhase = (a.phases || []).some((p) => p.id === selectedPhaseFilter);
+        if (!hasPhase) return false;
+      }
+
+      return true;
+    });
+  }, [project?.assets, activeHubCategory, selectedZoneFilter, selectedPhaseFilter]);
+
 
   const {
     visibleItems: visibleAssets,
@@ -182,11 +222,10 @@ export const DataHubTab: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => setActiveHubCategory(cat.id as any)}
-                className={`px-3.5 py-2 rounded-xl font-extrabold text-[9px] uppercase tracking-wider transition-all duration-300 border cursor-pointer flex items-center gap-1.5 ${
-                  activeHubCategory === cat.id
+                className={`px-3.5 py-2 rounded-xl font-extrabold text-[9px] uppercase tracking-wider transition-all duration-300 border cursor-pointer flex items-center gap-1.5 ${activeHubCategory === cat.id
                     ? "bg-accent/10 text-accent shadow-sm border-accent/50 backdrop-blur-md"
                     : "bg-surface-100/50 border-surface-200/50 text-surface-400 hover:bg-surface-200 hover:text-primary"
-                }`}
+                  }`}
               >
                 <span>{cat.icon}</span>
                 <span>{cat.label}</span>
@@ -197,179 +236,215 @@ export const DataHubTab: React.FC = () => {
 
         {/* Main Display Section */}
         <div className="bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-2xl border border-surface-200/80 dark:border-surface-800 p-3.5 sm:p-4 rounded-2xl shadow-lg min-h-[300px]">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3 border-b border-surface-200/60 dark:border-surface-800 pb-2.5 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3 border-b border-surface-200/60 dark:border-surface-800 pb-2.5 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider truncate min-w-0">
                 {activeHubCategory.replace('_', ' ')} Assets
               </h3>
-              <div className="flex flex-wrap gap-2 shrink-0">
-                {activeHubCategory === "sketch" && (
-                  <button
-                    onClick={() => setIsCreateSketchModalOpen(true)}
-                    className="px-3 py-1 bg-accent text-background font-black text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all shadow-xs"
-                  >
-                    New Design Sketch
-                  </button>
-                )}
-                {activeHubCategory === "3d_model" && (
-                  <button
-                    onClick={() => setIsCreate3DModalOpen(true)}
-                    className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all duration-200 border border-emerald-500/30 flex items-center gap-1 shadow-xs"
-                  >
-                    <span>🏠</span> Create SH3D Model
-                  </button>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept={
-                    activeHubCategory === "3d_model"
-                      ? ".ifc,.glb,.gltf,.obj,.stl,.fbx,.dae,.ply,.skp,.sh3d,.sh3x,.zip"
-                      : activeHubCategory === "2d_plan"
-                        ? "image/png,image/jpeg,image/jpg,image/webp,.pdf,.dwg,.dxf"
-                        : activeHubCategory === "document"
-                          ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
-                          : "image/png,image/jpeg,image/jpg,image/webp,image/gif,.excalidraw,.json"
-                  }
-                  className="hidden"
-                  onChange={async (e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (!files.length || !project.id) return;
-
-                    // Handle 2D Floor Plan PDF Upload with PDF -> JPEG conversion & Naming Modal
-                    if (activeHubCategory === "2d_plan") {
-                      const pdfFile = files.find((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
-                      if (pdfFile) {
-                        try {
-                          setIsPdfProcessing(true);
-                          const sheets = await convertPdfToJpegSheets(pdfFile);
-                          setPendingPdfFileName(pdfFile.name);
-                          setExtractedSheets(sheets);
-                          setPdfModalOpen(true);
-                        } catch (err: any) {
-                          alert(`Failed to convert PDF pages to JPEG: ${err.message}`);
-                        } finally {
-                          setIsPdfProcessing(false);
-                          e.target.value = "";
-                        }
-                        return;
-                      }
-                    }
-
-                    setIsUploading(true);
-                    setUploadProgress(`0 / ${files.length}`);
-                    let successCount = 0;
-                    try {
-                      for (let i = 0; i < files.length; i++) {
-                        const file = files[i];
-                        const title = file.name.replace(/\.[^/.]+$/, "");
-                        await projectsApi.uploadProjectAsset(project.id, activeHubCategory, file, title);
-                        successCount++;
-                        setUploadProgress(`${successCount} / ${files.length}`);
-                      }
-                      fetchProject(project.uid);
-                    } catch (err: any) {
-                      alert(`Upload failed on file ${successCount + 1}: ${err.message}`);
-                    } finally {
-                      setIsUploading(false);
-                      setUploadProgress("");
-                      e.target.value = "";
-                    }
-                  }}
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading || isPdfProcessing}
-                  className={`px-3 py-1 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all ${isUploading || isPdfProcessing
-                      ? "bg-accent text-background shadow-xs animate-pulse"
-                      : "bg-surface-200/70 hover:bg-accent hover:text-background text-foreground border border-surface-300/60"
-                    } disabled:opacity-80`}
+              {matrixData.zones.length > 0 && (
+                <select
+                  value={selectedZoneFilter}
+                  onChange={(e) => setSelectedZoneFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
+                  className="px-2 py-1 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg text-[9px] font-bold text-foreground outline-none focus:border-accent cursor-pointer"
                 >
-                  {isPdfProcessing ? "Converting PDF..." : isUploading ? `Uploading ${uploadProgress}...` : "Upload File"}
-                </button>
-              </div>
+                  <option value="all">All Zones ({matrixData.zones.length})</option>
+                  {matrixData.zones.map((z) => (
+                    <option key={z.id} value={z.id}>
+                      📍 {z.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {matrixData.phases.length > 0 && (
+                <select
+                  value={selectedPhaseFilter}
+                  onChange={(e) => setSelectedPhaseFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
+                  className="px-2 py-1 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg text-[9px] font-bold text-foreground outline-none focus:border-accent cursor-pointer"
+                >
+                  <option value="all">All Phases ({matrixData.phases.length})</option>
+                  {matrixData.phases.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      ⚡ {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
-            {activeHubCategory === "contractor_revisions" ? (
-              <div className="space-y-3">
-                {markups.length === 0 ? (
-                  <div className="py-16 text-center text-surface-400">
-                    <p className="text-xs font-bold">No contractor revision requests found.</p>
-                  </div>
-                ) : (
-                  markups.map((m, idx) => (
-                    <div
-                      key={m.id}
-                      className="p-4 rounded-2xl border border-surface-200/80 dark:border-surface-800 bg-surface-card space-y-2.5 shadow-xs"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[10px] font-black border border-amber-500/20">
-                            ☁️ Cloud #{idx + 1}
-                          </span>
-                          <span className="text-xs font-black text-accent uppercase">{m.category}</span>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                          m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
-                        }`}>
-                          {m.status}
+            <div className="flex flex-wrap gap-2 shrink-0">
+              {activeHubCategory === "sketch" && (
+                <button
+                  onClick={() => setIsCreateSketchModalOpen(true)}
+                  className="px-3 py-1 bg-accent text-background font-black text-[9px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all shadow-xs"
+                >
+                  New Design Sketch
+                </button>
+              )}
+              {activeHubCategory === "3d_model" && (
+                <button
+                  onClick={() => setIsCreate3DModalOpen(true)}
+                  className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all duration-200 border border-emerald-500/30 flex items-center gap-1 shadow-xs"
+                >
+                  <span>🏠</span> Create SH3D Model
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={
+                  activeHubCategory === "3d_model"
+                    ? ".ifc,.glb,.gltf,.obj,.stl,.fbx,.dae,.ply,.skp,.sh3d,.sh3x,.zip"
+                    : activeHubCategory === "2d_plan"
+                      ? "image/png,image/jpeg,image/jpg,image/webp,.pdf,.dwg,.dxf"
+                      : activeHubCategory === "document"
+                        ? ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                        : "image/png,image/jpeg,image/jpg,image/webp,image/gif,.excalidraw,.json"
+                }
+                className="hidden"
+                onChange={async (e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (!files.length || !project.id) return;
+
+                  // Handle 2D Floor Plan PDF Upload with PDF -> JPEG conversion & Naming Modal
+                  if (activeHubCategory === "2d_plan") {
+                    const pdfFile = files.find((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+                    if (pdfFile) {
+                      try {
+                        setIsPdfProcessing(true);
+                        const sheets = await convertPdfToJpegSheets(pdfFile);
+                        setPendingPdfFileName(pdfFile.name);
+                        setExtractedSheets(sheets);
+                        setPdfModalOpen(true);
+                      } catch (err: any) {
+                        alert(`Failed to convert PDF pages to JPEG: ${err.message}`);
+                      } finally {
+                        setIsPdfProcessing(false);
+                        e.target.value = "";
+                      }
+                      return;
+                    }
+                  }
+
+                  setIsUploading(true);
+                  setUploadProgress(`0 / ${files.length}`);
+                  let successCount = 0;
+                  let lastUploadedAsset: ProjectAsset | null = null;
+                  try {
+                    for (let i = 0; i < files.length; i++) {
+                      const file = files[i];
+                      const title = file.name.replace(/\.[^/.]+$/, "");
+                      const uploaded = await projectsApi.uploadProjectAsset(project.id, activeHubCategory, file, title);
+                      lastUploadedAsset = uploaded;
+                      successCount++;
+                      setUploadProgress(`${successCount} / ${files.length}`);
+                    }
+                    await fetchProject(project.uid);
+                    if (lastUploadedAsset && (activeHubCategory === "2d_plan" || activeHubCategory === "3d_model")) {
+                      setAllocationAsset(lastUploadedAsset);
+                      setIsAllocationModalOpen(true);
+                    }
+                  } catch (err: any) {
+                    alert(`Upload failed on file ${successCount + 1}: ${err.message}`);
+                  } finally {
+                    setIsUploading(false);
+                    setUploadProgress("");
+                    e.target.value = "";
+                  }
+
+                }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading || isPdfProcessing}
+                className={`px-3 py-1 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all ${isUploading || isPdfProcessing
+                  ? "bg-accent text-background shadow-xs animate-pulse"
+                  : "bg-surface-200/70 hover:bg-accent hover:text-background text-foreground border border-surface-300/60"
+                  } disabled:opacity-80`}
+              >
+                {isPdfProcessing ? "Converting PDF..." : isUploading ? `Uploading ${uploadProgress}...` : "Upload File"}
+              </button>
+            </div>
+          </div>
+
+          {activeHubCategory === "contractor_revisions" ? (
+            <div className="space-y-3">
+              {markups.length === 0 ? (
+                <div className="py-16 text-center text-surface-400">
+                  <p className="text-xs font-bold">No contractor revision requests found.</p>
+                </div>
+              ) : (
+                markups.map((m, idx) => (
+                  <div
+                    key={m.id}
+                    className="p-4 rounded-2xl border border-surface-200/80 dark:border-surface-800 bg-surface-card space-y-2.5 shadow-xs"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[10px] font-black border border-amber-500/20">
+                          ☁️ Cloud #{idx + 1}
                         </span>
+                        <span className="text-xs font-black text-accent uppercase">{m.category}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                        }`}>
+                        {m.status}
+                      </span>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-primary">{m.title}</h4>
+
+                    {m.description && (
+                      <p className="text-xs text-surface-600 dark:text-surface-300 font-medium whitespace-pre-wrap bg-surface-100/50 dark:bg-surface-900/50 p-2.5 rounded-xl border border-surface-200/50 dark:border-surface-800">
+                        {m.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between text-[10px] text-surface-400 pt-1 flex-wrap gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-primary">👤 Submitter: {m.author_name && m.author_name !== "Contractor" ? m.author_name : (m.author_username || "Demo User")}</span>
+                        {m.task_title && <span className="text-accent font-semibold">🏗️ Task: {m.task_title}</span>}
                       </div>
 
-                      <h4 className="text-xs font-bold text-primary">{m.title}</h4>
-
-                      {m.description && (
-                        <p className="text-xs text-surface-600 dark:text-surface-300 font-medium whitespace-pre-wrap bg-surface-100/50 dark:bg-surface-900/50 p-2.5 rounded-xl border border-surface-200/50 dark:border-surface-800">
-                          {m.description}
-                        </p>
-                      )}
-
-                      <div className="flex items-center justify-between text-[10px] text-surface-400 pt-1 flex-wrap gap-2">
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold text-primary">👤 Submitter: {m.author_name && m.author_name !== "Contractor" ? m.author_name : (m.author_username || "Demo User")}</span>
-                          {m.task_title && <span className="text-accent font-semibold">🏗️ Task: {m.task_title}</span>}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={async () => {
-                              const nextStatus = m.status === "OPEN" ? "RESOLVED" : "OPEN";
-                              await projectsApi.updateDrawingMarkupStatus(m.id, nextStatus as any);
-                              toast.success(`Updated status to ${nextStatus}`);
-                              const updated = await projectsApi.getDrawingMarkups({ project_uid: project.uid });
-                              setMarkups(updated || []);
-                            }}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer ${
-                              m.status === "RESOLVED" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500 text-white"
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            const nextStatus = m.status === "OPEN" ? "RESOLVED" : "OPEN";
+                            await projectsApi.updateDrawingMarkupStatus(m.id, nextStatus as any);
+                            toast.success(`Updated status to ${nextStatus}`);
+                            const updated = await projectsApi.getDrawingMarkups({ project_uid: project.uid });
+                            setMarkups(updated || []);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer ${m.status === "RESOLVED" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500 text-white"
                             }`}
-                          >
-                            {m.status === "RESOLVED" ? "Re-Open" : "Mark Resolved"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              const matchingAsset = project?.assets?.find(a => a.canonical_uid === m.canonical_uid || a.id === m.asset);
-                              if (matchingAsset) {
-                                setCloudModalAsset(matchingAsset);
-                              } else if (project?.assets && project.assets.length > 0) {
-                                const planAsset = project.assets.find(a => a.category === "2d_plan") || project.assets[0];
-                                setCloudModalAsset(planAsset);
-                              }
-                            }}
-                            className="px-3 py-1 bg-accent text-background font-black text-[10px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
-                          >
-                            <span>Open Revision Cloud</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </button>
-                        </div>
+                        >
+                          {m.status === "RESOLVED" ? "Re-Open" : "Mark Resolved"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            const matchingAsset = project?.assets?.find(a => a.canonical_uid === m.canonical_uid || a.id === m.asset);
+                            if (matchingAsset) {
+                              setCloudModalAsset(matchingAsset);
+                            } else if (project?.assets && project.assets.length > 0) {
+                              const planAsset = project.assets.find(a => a.category === "2d_plan") || project.assets[0];
+                              setCloudModalAsset(planAsset);
+                            }
+                          }}
+                          className="px-3 py-1 bg-accent text-background font-black text-[10px] uppercase tracking-wider rounded-lg hover:opacity-90 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+                        >
+                          <span>Open Revision Cloud</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {filteredAssets.length ? (
-                  visibleAssets.map((asset, idx) => (
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {filteredAssets.length ? (
+                visibleAssets.map((asset, idx) => (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 8 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -379,8 +454,8 @@ export const DataHubTab: React.FC = () => {
                   >
                     <div className="absolute top-2 left-2 z-10">
                       <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider ${asset.is_latest
-                          ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                          : "bg-surface-100 text-surface-400"
+                        ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                        : "bg-surface-100 text-surface-400"
                         }`}>
                         V{asset.version_number}
                       </span>
@@ -389,8 +464,8 @@ export const DataHubTab: React.FC = () => {
                     {asset.category === "2d_plan" && asset.drawing_tag && asset.drawing_tag !== "none" && (
                       <div className="absolute top-2 right-2 z-10">
                         <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border shadow-sm ${asset.drawing_tag === "gfc"
-                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25 shadow-blue-500/5"
-                            : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25 shadow-purple-500/5"
+                          ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25 shadow-blue-500/5"
+                          : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25 shadow-purple-500/5"
                           }`} title={asset.drawing_tag === "gfc" ? "Good For Construction" : "As Built Drawing"}>
                           {asset.drawing_tag.toUpperCase()}
                         </span>
@@ -412,11 +487,11 @@ export const DataHubTab: React.FC = () => {
                         </div>
                       ) : (asset.file?.toLowerCase().endsWith('.dwg') || asset.file?.toLowerCase().endsWith('.dxf') || asset.title?.toLowerCase().includes('dwg')) ? (
                         asset.thumbnail ? (
-                          <img 
-                            src={asset.thumbnail} 
-                            loading="lazy" 
-                            decoding="async" 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                          <img
+                            src={asset.thumbnail}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                           />
                         ) : (
@@ -430,19 +505,19 @@ export const DataHubTab: React.FC = () => {
                           </div>
                         )
                       ) : asset.thumbnail ? (
-                        <img 
-                          src={asset.thumbnail} 
-                          loading="lazy" 
-                          decoding="async" 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                        <img
+                          src={asset.thumbnail}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                         />
                       ) : isImageUrl(asset.file) ? (
-                        <img 
-                          src={asset.file} 
-                          loading="lazy" 
-                          decoding="async" 
-                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" 
+                        <img
+                          src={asset.file}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                         />
                       ) : asset.category === "sketch" ? (
@@ -473,9 +548,49 @@ export const DataHubTab: React.FC = () => {
                           <div className="flex-1 min-w-0 pr-1" onClick={() => handleOpenAsset(asset)}>
                             <p className="font-bold text-xs truncate text-foreground cursor-pointer hover:text-accent transition-colors">{asset.title}</p>
                             <p className="text-[9px] text-text-secondary font-semibold uppercase tracking-wider mt-0.5">{(asset.size / 1024).toFixed(1)} KB</p>
+
+                            {/* Zone & Phase Allocation Badges */}
+                            {((asset.zones && asset.zones.length > 0) || (asset.phases && asset.phases.length > 0)) && (
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {asset.zones?.map((z) => (
+                                  <span
+                                    key={z.id}
+                                    className="px-1.5 py-0.5 rounded-md bg-accent/10 text-accent font-bold text-[8px] uppercase tracking-wider border border-accent/20 flex items-center gap-0.5"
+                                    title={`Spatial Zone: ${z.name}`}
+                                  >
+                                    <MapPin className="w-2.5 h-2.5" />
+                                    <span className="truncate max-w-[80px]">{z.name}</span>
+                                  </span>
+                                ))}
+                                {asset.phases?.map((p) => (
+                                  <span
+                                    key={p.id}
+                                    className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-[8px] uppercase tracking-wider border border-purple-500/20 flex items-center gap-0.5"
+                                    title={`Milestone Phase: ${p.name}`}
+                                  >
+                                    <span
+                                      className="w-1.5 h-1.5 rounded-full"
+                                      style={{ backgroundColor: p.color_hex || "#8b5cf6" }}
+                                    />
+                                    <span className="truncate max-w-[80px]">{p.name}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAllocationAsset(asset);
+                                setIsAllocationModalOpen(true);
+                              }}
+                              className="w-5.5 h-5.5 flex items-center justify-center rounded hover:bg-surface-200 text-accent"
+                              title="Allocate to Zone / Phase"
+                            >
+                              <Layers className="w-3 h-3" />
+                            </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setHistoryAsset(asset); }}
                               className="w-5.5 h-5.5 flex items-center justify-center rounded hover:bg-surface-200 text-[10px]"
@@ -490,6 +605,7 @@ export const DataHubTab: React.FC = () => {
                             >
                               📝
                             </button>
+
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDeleteAsset(asset.id); }}
                               className="w-5.5 h-5.5 flex items-center justify-center rounded hover:bg-red-500/10 hover:text-red-500 text-[10px]"
@@ -548,27 +664,27 @@ export const DataHubTab: React.FC = () => {
                 </div>
               )}
             </div>
-            )}
+          )}
 
-            {filteredAssets.length > 0 && (
-              <div ref={assetsSentinelRef} className="col-span-full flex flex-col items-center justify-center py-6 gap-2">
-                {isLoadingMoreAssets && (
-                  <SkeletonGrid count={3} columns="grid-cols-1 md:grid-cols-3" />
-                )}
-                {!hasMoreAssets && loadedAssetCount > 15 && (
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">
-                    All {totalAssetCount} assets loaded
-                  </p>
-                )}
-                {hasMoreAssets && !isLoadingMoreAssets && (
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">
-                    Showing {loadedAssetCount} of {totalAssetCount} — scroll for more
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </motion.div>
+          {filteredAssets.length > 0 && (
+            <div ref={assetsSentinelRef} className="col-span-full flex flex-col items-center justify-center py-6 gap-2">
+              {isLoadingMoreAssets && (
+                <SkeletonGrid count={3} columns="grid-cols-1 md:grid-cols-3" />
+              )}
+              {!hasMoreAssets && loadedAssetCount > 15 && (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">
+                  All {totalAssetCount} assets loaded
+                </p>
+              )}
+              {hasMoreAssets && !isLoadingMoreAssets && (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-surface-400">
+                  Showing {loadedAssetCount} of {totalAssetCount} — scroll for more
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </motion.div>
 
       {historyAsset && (
         <RevisionHistoryModal
@@ -617,13 +733,13 @@ export const DataHubTab: React.FC = () => {
                 <h3 className="text-sm font-black text-primary dark:text-white/90 tracking-tight">Manage Task Links</h3>
                 <p className="text-[10px] uppercase tracking-widest font-bold text-surface-400 dark:text-white/40 mt-1 truncate max-w-[200px]">{manageLinksAsset.title}</p>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setManageLinksAsset(null);
                   setModalSearchTerm("");
                   setModalFilterTab("all");
                   setReallocateTarget(null);
-                }} 
+                }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200/50 dark:bg-white/5 text-surface-500 hover:bg-red-500 hover:text-white transition-all shadow-xs text-sm"
               >
                 ✕
@@ -647,8 +763,8 @@ export const DataHubTab: React.FC = () => {
                 const isLockedByOtherTask = !!existingLink;
 
                 // Lock Condition B: Task already has another 3D model linked
-                const isTaskLockedByOther3D = is3d && !isLinked && task.asset_links?.some((l: any) => 
-                  (l.latest_asset?.category === "3d_model" || l.latest_asset?.category === "sh3d") && 
+                const isTaskLockedByOther3D = is3d && !isLinked && task.asset_links?.some((l: any) =>
+                  (l.latest_asset?.category === "3d_model" || l.latest_asset?.category === "sh3d") &&
                   String(l.canonical_uid) !== String(manageLinksAsset.canonical_uid)
                 );
 
@@ -700,11 +816,10 @@ export const DataHubTab: React.FC = () => {
                           key={tab.id}
                           type="button"
                           onClick={() => setModalFilterTab(tab.id as any)}
-                          className={`px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded transition-colors whitespace-nowrap ${
-                            modalFilterTab === tab.id
+                          className={`px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded transition-colors whitespace-nowrap ${modalFilterTab === tab.id
                               ? "bg-surface-50 dark:bg-white/10 text-primary dark:text-white shadow-xs border border-surface-200/50 dark:border-white/5"
                               : "text-surface-400 hover:text-primary dark:hover:text-white"
-                          }`}
+                            }`}
                         >
                           {tab.label}
                         </button>
@@ -725,11 +840,10 @@ export const DataHubTab: React.FC = () => {
                           const isLocked = isTaskLockedByOther3D;
 
                           return (
-                            <div key={task.uid} className={`flex justify-between items-center p-2.5 px-3.5 rounded-xl border transition-colors ${
-                              isLocked 
+                            <div key={task.uid} className={`flex justify-between items-center p-2.5 px-3.5 rounded-xl border transition-colors ${isLocked
                                 ? "bg-surface-100/20 dark:bg-white/[0.005] border-surface-200/20 dark:border-white/5 opacity-50"
                                 : "bg-surface-100/50 dark:bg-white/[0.02] hover:bg-surface-200/50 dark:hover:bg-white/[0.05] border-surface-200/50 dark:border-white/5 hover:border-surface-300 dark:hover:border-white/10"
-                            }`}>
+                              }`}>
                               <div className="min-w-0 flex-1 pr-2">
                                 <p className="text-xs font-bold text-primary dark:text-white/90 truncate">{task.title}</p>
                                 <p className="text-[9px] uppercase tracking-widest text-surface-400 dark:text-white/40 font-bold flex items-center gap-1.5 flex-wrap mt-0.5">
@@ -755,7 +869,7 @@ export const DataHubTab: React.FC = () => {
                                     setReallocateTarget({ task, existingLink });
                                     return;
                                   }
-                                  
+
                                   setTogglingTaskUids(prev => ({ ...prev, [task.uid]: true }));
                                   try {
                                     await toggleTaskAssetLink(task.uid, manageLinksAsset.canonical_uid, link?.id);
@@ -765,17 +879,16 @@ export const DataHubTab: React.FC = () => {
                                     setTogglingTaskUids(prev => ({ ...prev, [task.uid]: false }));
                                   }
                                 }}
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md shrink-0 ${
-                                  togglingTaskUids[task.uid]
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md shrink-0 ${togglingTaskUids[task.uid]
                                     ? 'bg-surface-200/80 dark:bg-white/5 text-surface-400 cursor-wait'
                                     : isLinked
-                                    ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]'
-                                    : isLocked
-                                    ? 'bg-surface-100 dark:bg-white/5 text-surface-300 dark:text-white/20 border border-surface-200 dark:border-white/5 cursor-not-allowed'
-                                    : isLockedByOtherTask
-                                    ? 'bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]'
-                                    : 'bg-surface-200/50 dark:bg-white/10 text-surface-400 hover:bg-accent hover:text-white hover:shadow-[0_0_15px_var(--accent-glow)]'
-                                }`}
+                                      ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                                      : isLocked
+                                        ? 'bg-surface-100 dark:bg-white/5 text-surface-300 dark:text-white/20 border border-surface-200 dark:border-white/5 cursor-not-allowed'
+                                        : isLockedByOtherTask
+                                          ? 'bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]'
+                                          : 'bg-surface-200/50 dark:bg-white/10 text-surface-400 hover:bg-accent hover:text-white hover:shadow-[0_0_15px_var(--accent-glow)]'
+                                  }`}
                               >
                                 {togglingTaskUids[task.uid] ? (
                                   <div className="w-4 h-4 border-2 border-surface-400 border-t-transparent rounded-full animate-spin" />
@@ -834,11 +947,11 @@ export const DataHubTab: React.FC = () => {
                     await projectsApi.unlinkAssetFromTask(oldLinkId);
                     // Step 2: Link to new task
                     await projectsApi.linkAssetToTask(targetTaskUid, manageLinksAsset.canonical_uid);
-                    
+
                     // Fetch fresh details and show success toast
                     const freshData = await projectsApi.getProjectDetails(project.uid);
                     useProjectStore.setState({ project: freshData });
-                    
+
                     toast.success(`Successfully re-allocated model to "${reallocateTarget.task.title}"`);
                   } catch (err) {
                     toast.error("Failed to re-allocate model link.");
@@ -920,9 +1033,8 @@ export const DataHubTab: React.FC = () => {
                         </span>
                         <span className="text-xs font-black text-accent uppercase">{m.category}</span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                        m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${m.status === "RESOLVED" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                        }`}>
                         {m.status}
                       </span>
                     </div>
@@ -935,11 +1047,11 @@ export const DataHubTab: React.FC = () => {
                       </p>
                     )}
 
-                      <div className="flex items-center justify-between text-[10px] text-surface-400 pt-1 flex-wrap gap-2">
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold text-primary">👤 Submitter: {m.author_name && m.author_name !== "Contractor" ? m.author_name : (m.author_username || "Demo User")}</span>
-                          {m.task_title && <span className="text-accent font-semibold">🏗️ Task: {m.task_title}</span>}
-                        </div>
+                    <div className="flex items-center justify-between text-[10px] text-surface-400 pt-1 flex-wrap gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-primary">👤 Submitter: {m.author_name && m.author_name !== "Contractor" ? m.author_name : (m.author_username || "Demo User")}</span>
+                        {m.task_title && <span className="text-accent font-semibold">🏗️ Task: {m.task_title}</span>}
+                      </div>
 
                       <div className="flex items-center gap-2">
                         <button
@@ -950,9 +1062,8 @@ export const DataHubTab: React.FC = () => {
                             const updated = await projectsApi.getDrawingMarkups({ project_uid: project.uid });
                             setMarkups(updated || []);
                           }}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
-                            m.status === "RESOLVED" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500 text-white"
-                          }`}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${m.status === "RESOLVED" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500 text-white"
+                            }`}
                         >
                           {m.status === "RESOLVED" ? "Re-Open" : "Mark Resolved"}
                         </button>
@@ -989,6 +1100,20 @@ export const DataHubTab: React.FC = () => {
           onRefresh={() => fetchProject(project.uid)}
         />
       )}
+
+      {allocationAsset && (
+        <AssetAllocationModal
+          isOpen={isAllocationModalOpen}
+          onClose={() => {
+            setIsAllocationModalOpen(false);
+            setAllocationAsset(null);
+          }}
+          asset={allocationAsset}
+          projectUid={project.uid}
+          onSuccess={() => fetchProject(project.uid)}
+        />
+      )}
     </>
   );
 };
+

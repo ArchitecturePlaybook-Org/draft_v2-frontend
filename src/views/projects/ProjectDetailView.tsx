@@ -24,6 +24,7 @@ import { TaskAccessRequestsList } from "@/components/projects/TaskAccessRequests
 import { KanbanTab } from "@/components/projects/KanbanTab";
 import { GanttTab } from "@/components/projects/GanttTab";
 import { DataHubTab } from "@/components/projects/DataHubTab";
+import { ProjectSharedTasksTab } from "@/components/projects/ProjectSharedTasksTab";
 import { useProjectStore } from "@/store/project-store";
 import { motion } from "framer-motion";
 import { Plus, HardHat } from "lucide-react";
@@ -268,6 +269,14 @@ export function ProjectDetailView({ projectUid }: ProjectDetailViewProps) {
             projectUid={project.uid} 
             projectTasks={project.tasks}
             fetchProject={() => fetchProject(project.uid)}
+          />
+        )}
+
+        {activeTab === "shared_tasks" && (
+          <ProjectSharedTasksTab 
+            projectUid={project.uid} 
+            projectTasks={project.tasks}
+            onTaskUpdated={() => fetchProject(project.uid)}
           />
         )}
       </div>

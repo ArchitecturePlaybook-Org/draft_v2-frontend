@@ -136,7 +136,7 @@ export interface OpportunityPosting {
   project_details?: any;
   task?: number;
   task_details?: any;
-  type: "MATERIAL_REQUIRED" | "SERVICE_REQUIRED";
+  type: "MATERIAL_REQUIRED" | "SERVICE_REQUIRED" | "PROJECT_LEAD";
   title: string;
   description: string;
   location: string;

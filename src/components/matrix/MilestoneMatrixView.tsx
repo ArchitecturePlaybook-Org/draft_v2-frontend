@@ -9,12 +9,14 @@ import { MatrixBlockCell } from "./MatrixBlockCell";
 import { KanbanDrawer } from "./KanbanDrawer";
 import { MatrixOnboardingWizard } from "./MatrixOnboardingWizard";
 import { ApplyMatrixPresetModal } from "./ApplyMatrixPresetModal";
+import { ZonePhaseDrawersModal } from "./ZonePhaseDrawersModal";
 import { toast } from "sonner";
 import { useProjectNavStore } from "@/store/project-nav-store";
 import { TaskExecutionSidePanel } from "@/components/projects/TaskExecutionSidePanel";
 import { AnimatePresence, motion } from "framer-motion";
 import { getWebSocketUrl } from "@/lib/api/constants";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, FolderKanban, MapPin, Flag } from "lucide-react";
+
 
 interface MilestoneMatrixViewProps {
   projectUid: string;
@@ -57,6 +59,12 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
   const [editedZoneName, setEditedZoneName] = useState("");
   const [editingPhaseId, setEditingPhaseId] = useState<number | null>(null);
   const [editedPhaseName, setEditedPhaseName] = useState("");
+
+  // Drawers Modal State for Spatial Zone / Milestone Phase allocated drawings
+  const [drawerModalZone, setDrawerModalZone] = useState<SpatialZone | null>(null);
+  const [drawerModalPhase, setDrawerModalPhase] = useState<MilestonePhase | null>(null);
+  const [isDrawersModalOpen, setIsDrawersModalOpen] = useState(false);
+
 
   // ── Split-pane state ──────────────────────────────────────────────────────────
   const { isSidebarCollapsed } = useProjectNavStore();
@@ -557,28 +565,43 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                           >
                             {zone.name}
                           </p>
-                          {!readOnly && userRole === "admin" && (
-                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setEditingZoneId(zone.id); setEditedZoneName(zone.name); }}
-                                title="Edit Zone Name"
-                                className="p-0.5 rounded text-surface-400 hover:text-accent"
-                              >
-                                <Pencil className="w-2.5 h-2.5" />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteZone(zone); }}
-                                disabled={hasStartedTasks}
-                                title={hasStartedTasks ? "Cannot delete zone: tasks have already been started" : "Delete Zone (no tasks started)"}
-                                className={`p-0.5 rounded ${hasStartedTasks
-                                    ? "text-surface-300 cursor-not-allowed"
-                                    : "text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
-                                  }`}
-                              >
-                                <Trash2 className="w-2.5 h-2.5" />
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDrawerModalZone(zone);
+                                setDrawerModalPhase(null);
+                                setIsDrawersModalOpen(true);
+                              }}
+                              title={`View Drawings & Models allocated to ${zone.name}`}
+                              className="p-0.5 rounded text-surface-400 hover:text-accent"
+                            >
+                              <FolderKanban className="w-2.5 h-2.5" />
+                            </button>
+                            {!readOnly && userRole === "admin" && (
+                              <>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setEditingZoneId(zone.id); setEditedZoneName(zone.name); }}
+                                  title="Edit Zone Name"
+                                  className="p-0.5 rounded text-surface-400 hover:text-accent"
+                                >
+                                  <Pencil className="w-2.5 h-2.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteZone(zone); }}
+                                  disabled={hasStartedTasks}
+                                  title={hasStartedTasks ? "Cannot delete zone: tasks have already been started" : "Delete Zone (no tasks started)"}
+                                  className={`p-0.5 rounded ${hasStartedTasks
+                                      ? "text-surface-300 cursor-not-allowed"
+                                      : "text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                    }`}
+                                >
+                                  <Trash2 className="w-2.5 h-2.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+
                         </div>
                       )}
                       {zone.zone_type && (
@@ -674,28 +697,43 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
                                 {phase.name}
                               </span>
                             </div>
-                            {!readOnly && userRole === "admin" && (
-                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setEditingPhaseId(phase.id); setEditedPhaseName(phase.name); }}
-                                  title="Edit Phase Name"
-                                  className="p-1 rounded text-surface-400 hover:text-accent"
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleDeletePhase(phase); }}
-                                  disabled={hasStartedTasksInPhase}
-                                  title={hasStartedTasksInPhase ? "Cannot delete phase: tasks have already been started" : "Delete Phase (no tasks started)"}
-                                  className={`p-1 rounded ${hasStartedTasksInPhase
-                                      ? "text-surface-300 cursor-not-allowed"
-                                      : "text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
-                                    }`}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDrawerModalPhase(phase);
+                                  setDrawerModalZone(null);
+                                  setIsDrawersModalOpen(true);
+                                }}
+                                title={`View Drawings & Models allocated to ${phase.name}`}
+                                className="p-1 rounded text-surface-400 hover:text-purple-500"
+                              >
+                                <FolderKanban className="w-3 h-3" />
+                              </button>
+                              {!readOnly && userRole === "admin" && (
+                                <>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setEditingPhaseId(phase.id); setEditedPhaseName(phase.name); }}
+                                    title="Edit Phase Name"
+                                    className="p-1 rounded text-surface-400 hover:text-accent"
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleDeletePhase(phase); }}
+                                    disabled={hasStartedTasksInPhase}
+                                    title={hasStartedTasksInPhase ? "Cannot delete phase: tasks have already been started" : "Delete Phase (no tasks started)"}
+                                    className={`p-1 rounded ${hasStartedTasksInPhase
+                                        ? "text-surface-300 cursor-not-allowed"
+                                        : "text-surface-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                      }`}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+
                           </div>
                         )}
                         {/* Phase progress summary */}
@@ -1001,8 +1039,23 @@ export const MilestoneMatrixView: React.FC<MilestoneMatrixViewProps> = ({
         projectUid={projectUid}
         onSuccess={refreshMatrix}
       />
+
+      {isDrawersModalOpen && (
+        <ZonePhaseDrawersModal
+          isOpen={isDrawersModalOpen}
+          onClose={() => {
+            setIsDrawersModalOpen(false);
+            setDrawerModalZone(null);
+            setDrawerModalPhase(null);
+          }}
+          projectUid={projectUid}
+          zone={drawerModalZone}
+          phase={drawerModalPhase}
+        />
+      )}
     </>
   );
 };
+
 
 export default MilestoneMatrixView;

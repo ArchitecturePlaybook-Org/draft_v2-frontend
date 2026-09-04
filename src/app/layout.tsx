@@ -4,7 +4,6 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/QueryProvider";
-import Script from "next/script";
 import Navbar from "@/components/shared/Navbar";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { Toaster } from "sonner";
@@ -120,6 +119,8 @@ const themeInitScript = `
   })();
 `;
 
+import { InitClientScripts } from "@/components/shared/InitClientScripts";
+
 export default function RootLayout({
   children,
 }: {
@@ -127,12 +128,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <head>
-        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <Script id="perf-polyfill" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: performancePolyfillScript }} />
-        <Script id="sw-reg" strategy="lazyOnload" dangerouslySetInnerHTML={{ __html: swRegistrationScript }} />
-      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <InitClientScripts />
         <QueryProvider>
           <AuthProvider>
             <ThemeProvider>

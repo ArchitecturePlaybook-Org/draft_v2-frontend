@@ -42,8 +42,11 @@ export function resolveAssetFileUrl(url: string): string {
 
   // Handle Relative media paths (user uploaded files, 3D models)
   if (url.startsWith("/media/") || url.startsWith("media/")) {
-    const cleanPath = url.startsWith("/") ? url.slice(1) : url;
-    return CDN_URL ? `/s3-assets/${cleanPath}` : `${DJANGO_API_URL}/${cleanPath}`;
+    const cleanPath = url.startsWith("/") ? url : `/${url}`;
+    if (CDN_URL) {
+      return `/s3-assets/${cleanPath.replace(/^\/media\//, "")}`;
+    }
+    return typeof window !== "undefined" ? cleanPath : `${DJANGO_API_URL}${cleanPath}`;
   }
 
   // Local static SH3D HTML viewer & UI icons (aboutIcon.png, cursors, toolbar)

@@ -74,20 +74,16 @@ function signS3Url(rawUrl: string): string {
 export async function GET(req: NextRequest) {
   let targetUrl = req.nextUrl.searchParams.get("url");
 
-  if (targetUrl) {
-    const rawUrl = req.url;
-    const match = rawUrl.match(/[?&]url=(.+)$/);
-    if (match && match[1]) {
-      try {
-        targetUrl = decodeURIComponent(match[1]);
-      } catch {
-        targetUrl = match[1];
-      }
-    }
-  }
-
   if (!targetUrl) {
     return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
+  }
+
+  try {
+    if (targetUrl.includes("%3A") || targetUrl.includes("%2F")) {
+      targetUrl = decodeURIComponent(targetUrl);
+    }
+  } catch {
+    // ignore decoding errors
   }
 
   try {
