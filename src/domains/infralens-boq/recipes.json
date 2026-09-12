@@ -1,0 +1,3717 @@
+[
+  {
+    "slug": "m10-concrete",
+    "name": "M10 Concrete (design mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 4.4,
+        "display": "4.4 bags OPC 43 (≈220 kg)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.74,
+        "display": "0.46 cum sand (≈0.74 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.32,
+        "display": "0.88 cum 20mm aggregate (≈1.32 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.25
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 2.8
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer",
+        "cost": 100
+      }
+    ]
+  },
+  {
+    "slug": "m15-concrete",
+    "name": "M15 Concrete (design mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 5,
+        "display": "5.0 bags OPC 43 (≈250 kg)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.72,
+        "display": "0.45 cum sand (≈0.72 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.3,
+        "display": "0.87 cum 20mm aggregate (≈1.30 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.28
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 2.9
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + vibrator",
+        "cost": 120
+      }
+    ]
+  },
+  {
+    "slug": "m20-concrete",
+    "name": "M20 Concrete (RCC, design mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 6.4,
+        "display": "6.4 bags OPC 43 (≈320 kg)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.7,
+        "display": "0.44 cum sand (≈0.70 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.26,
+        "display": "0.84 cum 20mm aggregate (≈1.26 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + needle vibrator",
+        "cost": 130
+      }
+    ]
+  },
+  {
+    "slug": "m25-concrete",
+    "name": "M25 Concrete (RCC, design mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 7.2,
+        "display": "7.2 bags OPC 43 (≈360 kg)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.69,
+        "display": "0.43 cum sand (≈0.69 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.23,
+        "display": "0.82 cum 20mm aggregate (≈1.23 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + needle vibrator",
+        "cost": 130
+      }
+    ]
+  },
+  {
+    "slug": "m30-concrete",
+    "name": "M30 Concrete (RCC, design mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc53",
+        "qty": 8,
+        "display": "8.0 bags OPC 53 (≈400 kg)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.67,
+        "display": "0.42 cum sand (≈0.67 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.2,
+        "display": "0.80 cum 20mm aggregate (≈1.20 t)"
+      },
+      {
+        "priceId": "admix_superplast",
+        "qty": 2,
+        "display": "2.0 kg superplasticizer"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.32
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + needle vibrator",
+        "cost": 140
+      }
+    ]
+  },
+  {
+    "slug": "pcc-1-4-8",
+    "name": "PCC 1:4:8 (lean concrete, nominal)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 3.36,
+        "display": "3.36 bags OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.75,
+        "display": "0.468 cum sand (≈0.75 t)"
+      },
+      {
+        "priceId": "agg_40mm",
+        "qty": 1.4,
+        "display": "0.936 cum 40mm aggregate (≈1.40 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.2
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 2.5
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer",
+        "cost": 90
+      }
+    ]
+  },
+  {
+    "slug": "rmc-m20-placed",
+    "name": "RMC M20 (supplied + placed)",
+    "unit": "cum",
+    "group": "Concrete (RMC)",
+    "materials": [
+      {
+        "priceId": "rmc_m20",
+        "qty": 1,
+        "display": "1.0 m³ RMC M20 (transit-mixed)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.6
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Boom/line pump + vibrator",
+        "cost": 280
+      }
+    ]
+  },
+  {
+    "slug": "rmc-m25-placed",
+    "name": "RMC M25 (supplied + placed)",
+    "unit": "cum",
+    "group": "Concrete (RMC)",
+    "materials": [
+      {
+        "priceId": "rmc_m25",
+        "qty": 1,
+        "display": "1.0 m³ RMC M25 (transit-mixed)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.6
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Boom/line pump + vibrator",
+        "cost": 280
+      }
+    ]
+  },
+  {
+    "slug": "rcc-reinforcement-steel",
+    "name": "RCC Reinforcement Steel (Fe500D, cut–bend–place)",
+    "unit": "tonne",
+    "group": "Reinforcement",
+    "materials": [
+      {
+        "priceId": "tmt_12mm",
+        "qty": 1050,
+        "display": "1050 kg TMT (incl. 5% wastage)"
+      },
+      {
+        "priceId": "binding_wire",
+        "qty": 9,
+        "display": "9 kg binding wire"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_bar_bender",
+        "qty": 9
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 5
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Bar cutting/bending machine",
+        "cost": 350
+      }
+    ]
+  },
+  {
+    "slug": "brickwork-cm-1-6",
+    "name": "Brickwork in CM 1:6 (red brick)",
+    "unit": "cum",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "red_brick",
+        "qty": 500,
+        "display": "500 red bricks"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 1.4,
+        "display": "1.4 bags OPC 43 (mortar)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.5,
+        "display": "0.31 cum sand (≈0.50 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.9
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 1
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "brickwork-flyash-1-6",
+    "name": "Fly-ash Brick Masonry in CM 1:6",
+    "unit": "cum",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "fly_ash_brick",
+        "qty": 500,
+        "display": "500 fly-ash bricks"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 1.4,
+        "display": "1.4 bags OPC 43 (mortar)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.5,
+        "display": "0.31 cum sand (≈0.50 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.9
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 1
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "aac-block-masonry",
+    "name": "AAC Block Masonry (200mm)",
+    "unit": "cum",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "aac_block",
+        "qty": 40,
+        "display": "≈40 AAC blocks (600×200×200)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.5,
+        "display": "0.5 bag OPC 43 (jointing)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.16,
+        "display": "0.10 cum sand (≈0.16 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.6
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.7
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "plaster-12mm-1-4",
+    "name": "12mm Cement Plaster (1:4, internal)",
+    "unit": "sqm",
+    "group": "Plastering",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 0.1,
+        "display": "0.10 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.025,
+        "display": "0.012 cum sand (≈0.025 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.12
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.12
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "plaster-12mm-1-6",
+    "name": "12mm Cement Plaster (1:6)",
+    "unit": "sqm",
+    "group": "Plastering",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 0.066,
+        "display": "0.066 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.026,
+        "display": "0.012 cum sand (≈0.026 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.12
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.12
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "plaster-15mm-1-6-external",
+    "name": "15mm Cement Plaster (1:6, external)",
+    "unit": "sqm",
+    "group": "Plastering",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 0.083,
+        "display": "0.083 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.033,
+        "display": "0.015 cum sand (≈0.033 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.14
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.14
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "vitrified-tile-flooring",
+    "name": "Vitrified Tile Flooring (incl. bedding)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "vitrified_tile",
+        "qty": 11.3,
+        "display": "11.3 sqft vitrified tile (+5% wastage)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.2,
+        "display": "0.20 bag OPC 43 (bedding + grout)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.05,
+        "display": "0.03 cum sand (≈0.05 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_tilelayer",
+        "qty": 0.15
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Tile cutter",
+        "cost": 15
+      }
+    ]
+  },
+  {
+    "slug": "ceramic-tile-flooring",
+    "name": "Ceramic Tile Flooring (incl. bedding)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "ceramic_tile",
+        "qty": 11.3,
+        "display": "11.3 sqft ceramic tile (+5% wastage)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.2,
+        "display": "0.20 bag OPC 43 (bedding + grout)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.05,
+        "display": "0.03 cum sand (≈0.05 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_tilelayer",
+        "qty": 0.15
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Tile cutter",
+        "cost": 15
+      }
+    ]
+  },
+  {
+    "slug": "granite-flooring",
+    "name": "Granite Slab Flooring (incl. bedding)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "granite_slab",
+        "qty": 11,
+        "display": "11.0 sqft granite slab"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.25,
+        "display": "0.25 bag OPC 43 (bedding)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.06,
+        "display": "0.04 cum sand (≈0.06 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_tilelayer",
+        "qty": 0.25
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.25
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Cutter/polisher",
+        "cost": 30
+      }
+    ]
+  },
+  {
+    "slug": "kota-stone-flooring",
+    "name": "Kota Stone Flooring (incl. bedding)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "kota_stone",
+        "qty": 11,
+        "display": "11.0 sqft Kota stone"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.25,
+        "display": "0.25 bag OPC 43 (bedding)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.06,
+        "display": "0.04 cum sand (≈0.06 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_tilelayer",
+        "qty": 0.22
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.22
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Cutter/polisher",
+        "cost": 25
+      }
+    ]
+  },
+  {
+    "slug": "interior-emulsion-2coat",
+    "name": "Interior Emulsion Paint (putty + primer + 2 coats)",
+    "unit": "sqm",
+    "group": "Painting",
+    "materials": [
+      {
+        "priceId": "putty",
+        "qty": 0.5,
+        "display": "0.50 kg wall putty (2 coats)"
+      },
+      {
+        "priceId": "primer",
+        "qty": 0.1,
+        "display": "0.10 L primer"
+      },
+      {
+        "priceId": "interior_paint",
+        "qty": 0.18,
+        "display": "0.18 L emulsion (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_painter",
+        "qty": 0.12
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "exterior-emulsion-2coat",
+    "name": "Exterior Emulsion Paint (primer + 2 coats)",
+    "unit": "sqm",
+    "group": "Painting",
+    "materials": [
+      {
+        "priceId": "primer",
+        "qty": 0.1,
+        "display": "0.10 L exterior primer"
+      },
+      {
+        "priceId": "exterior_paint",
+        "qty": 0.2,
+        "display": "0.20 L exterior emulsion (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_painter",
+        "qty": 0.12
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "waterproofing-coating",
+    "name": "Waterproofing — Acrylic/Chemical Coating",
+    "unit": "sqm",
+    "group": "Waterproofing",
+    "materials": [
+      {
+        "priceId": "wp_chemical",
+        "qty": 0.45,
+        "display": "0.45 L waterproofing chemical (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.1
+      },
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.05
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "earthwork-excavation-soft",
+    "name": "Earthwork Excavation in Soft Soil (manual)",
+    "unit": "cum",
+    "group": "Earthwork",
+    "materials": [],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.9
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "pcc-1-3-6",
+    "name": "PCC 1:3:6 (nominal mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 4.4,
+        "display": "4.4 bags OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.75,
+        "display": "0.47 cum sand (≈0.75 t)"
+      },
+      {
+        "priceId": "agg_40mm",
+        "qty": 1.4,
+        "display": "0.94 cum 40mm aggregate (≈1.40 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.2
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 2.5
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer",
+        "cost": 90
+      }
+    ]
+  },
+  {
+    "slug": "pcc-1-2-4",
+    "name": "PCC 1:2:4 (M15 nominal mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 6.3,
+        "display": "6.3 bags OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.69,
+        "display": "0.43 cum sand (≈0.69 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.29,
+        "display": "0.86 cum 20mm aggregate (≈1.29 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.28
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 2.9
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + vibrator",
+        "cost": 120
+      }
+    ]
+  },
+  {
+    "slug": "m35-concrete",
+    "name": "M35 Concrete (RCC, design mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc53",
+        "qty": 8.6,
+        "display": "8.6 bags OPC 53 (≈430 kg)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.66,
+        "display": "0.41 cum sand (≈0.66 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.19,
+        "display": "0.79 cum 20mm aggregate (≈1.19 t)"
+      },
+      {
+        "priceId": "admix_superplast",
+        "qty": 3,
+        "display": "3.0 kg superplasticizer"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.32
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + needle vibrator",
+        "cost": 140
+      }
+    ]
+  },
+  {
+    "slug": "rmc-m10-placed",
+    "name": "RMC M10 (levelling course, placed)",
+    "unit": "cum",
+    "group": "Concrete (RMC)",
+    "materials": [
+      {
+        "priceId": "rmc_m10",
+        "qty": 1,
+        "display": "1.0 m³ RMC M10 (transit-mixed)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.5
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Line pump + vibrator",
+        "cost": 250
+      }
+    ]
+  },
+  {
+    "slug": "rmc-m30-placed",
+    "name": "RMC M30 (supplied + placed)",
+    "unit": "cum",
+    "group": "Concrete (RMC)",
+    "materials": [
+      {
+        "priceId": "rmc_m30",
+        "qty": 1,
+        "display": "1.0 m³ RMC M30 (transit-mixed)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.6
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Boom/line pump + vibrator",
+        "cost": 280
+      }
+    ]
+  },
+  {
+    "slug": "rmc-m35-placed",
+    "name": "RMC M35 (supplied + placed)",
+    "unit": "cum",
+    "group": "Concrete (RMC)",
+    "materials": [
+      {
+        "priceId": "rmc_m35",
+        "qty": 1,
+        "display": "1.0 m³ RMC M35 (transit-mixed)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.6
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Boom/line pump + vibrator",
+        "cost": 280
+      }
+    ]
+  },
+  {
+    "slug": "rmc-m40-placed",
+    "name": "RMC M40 (supplied + placed)",
+    "unit": "cum",
+    "group": "Concrete (RMC)",
+    "materials": [
+      {
+        "priceId": "rmc_m40",
+        "qty": 1,
+        "display": "1.0 m³ RMC M40 (transit-mixed)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.6
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Boom/line pump + vibrator",
+        "cost": 280
+      }
+    ]
+  },
+  {
+    "slug": "structural-steelwork",
+    "name": "Structural Steelwork (MS sections, fabricated + erected)",
+    "unit": "tonne",
+    "group": "Reinforcement",
+    "materials": [
+      {
+        "priceId": "structural_steel",
+        "qty": 1050,
+        "display": "1050 kg MS sections (incl. 5% wastage)"
+      },
+      {
+        "priceId": "primer",
+        "qty": 5,
+        "display": "5 L zinc/red-oxide primer"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_bar_bender",
+        "qty": 8
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 6
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Welding sets, gas cutting, cranage (LS)",
+        "cost": 3000
+      }
+    ]
+  },
+  {
+    "slug": "formwork-slab",
+    "name": "Shuttering — Slab Soffit (plywood)",
+    "unit": "sqm",
+    "group": "Formwork & Shuttering",
+    "materials": [
+      {
+        "priceId": "plywood_comm",
+        "qty": 1.6,
+        "display": "1.6 sqft plywood share (amortised over ~6 uses)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.22
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.22
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Props, spans, battens (amortised)",
+        "cost": 50
+      }
+    ]
+  },
+  {
+    "slug": "formwork-column",
+    "name": "Shuttering — Columns (plywood)",
+    "unit": "sqm",
+    "group": "Formwork & Shuttering",
+    "materials": [
+      {
+        "priceId": "plywood_comm",
+        "qty": 1.8,
+        "display": "1.8 sqft plywood share (amortised over ~6 uses)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.25
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.25
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Clamps, props, ties (amortised)",
+        "cost": 45
+      }
+    ]
+  },
+  {
+    "slug": "formwork-beam",
+    "name": "Shuttering — Beams, Sides + Soffit (plywood)",
+    "unit": "sqm",
+    "group": "Formwork & Shuttering",
+    "materials": [
+      {
+        "priceId": "plywood_comm",
+        "qty": 1.7,
+        "display": "1.7 sqft plywood share (amortised over ~6 uses)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.24
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.24
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Props, clamps, battens (amortised)",
+        "cost": 50
+      }
+    ]
+  },
+  {
+    "slug": "brickwork-cm-1-4",
+    "name": "Brickwork in CM 1:4 (red brick)",
+    "unit": "cum",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "red_brick",
+        "qty": 500,
+        "display": "500 red bricks"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 2,
+        "display": "2.0 bags OPC 43 (mortar)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.45,
+        "display": "0.28 cum sand (≈0.45 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.9
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 1
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "half-brick-partition",
+    "name": "Half-Brick Partition 115mm (CM 1:4)",
+    "unit": "sqm",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "red_brick",
+        "qty": 60,
+        "display": "60 red bricks (incl. wastage)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.25,
+        "display": "0.25 bag OPC 43 (mortar)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.06,
+        "display": "0.04 cum sand (≈0.06 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.18
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.18
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "solid-block-masonry",
+    "name": "Solid Concrete Block Masonry 200mm (CM 1:6)",
+    "unit": "cum",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "solid_block",
+        "qty": 63,
+        "display": "63 solid blocks (400×200×200)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.9,
+        "display": "0.9 bag OPC 43 (mortar)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.35,
+        "display": "0.22 cum sand (≈0.35 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.75
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.85
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "hollow-block-masonry",
+    "name": "Hollow Concrete Block Masonry 200mm (CM 1:6)",
+    "unit": "cum",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "hollow_block",
+        "qty": 63,
+        "display": "63 hollow blocks (400×200×200)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.9,
+        "display": "0.9 bag OPC 43 (mortar)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.35,
+        "display": "0.22 cum sand (≈0.35 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.7
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.8
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "plaster-20mm-1-4-double",
+    "name": "20mm Cement Plaster (1:4, double coat)",
+    "unit": "sqm",
+    "group": "Plastering",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 0.17,
+        "display": "0.17 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.042,
+        "display": "0.02 cum sand (≈0.042 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.18
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.18
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "ceiling-plaster-6mm-1-3",
+    "name": "6mm Ceiling Plaster (1:3)",
+    "unit": "sqm",
+    "group": "Plastering",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 0.06,
+        "display": "0.06 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.012,
+        "display": "0.006 cum sand (≈0.012 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.15
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "pop-punning",
+    "name": "POP Punning (6mm, over plaster)",
+    "unit": "sqm",
+    "group": "Plastering",
+    "materials": [
+      {
+        "priceId": "pop_powder",
+        "qty": 5,
+        "display": "5 kg plaster of Paris"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.1
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.08
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "wall-putty-2coat",
+    "name": "Wall Putty (2 coats)",
+    "unit": "sqm",
+    "group": "Plastering",
+    "materials": [
+      {
+        "priceId": "putty",
+        "qty": 0.5,
+        "display": "0.50 kg wall putty (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_painter",
+        "qty": 0.06
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "marble-flooring",
+    "name": "Marble Slab Flooring (incl. bedding)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "marble_slab",
+        "qty": 11,
+        "display": "11.0 sqft marble slab"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.25,
+        "display": "0.25 bag OPC 43 (bedding)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.06,
+        "display": "0.04 cum sand (≈0.06 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_tilelayer",
+        "qty": 0.28
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.28
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Cutter/polisher",
+        "cost": 40
+      }
+    ]
+  },
+  {
+    "slug": "ips-flooring-40mm",
+    "name": "IPS Flooring 40mm (1:2:4, cement finish)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 0.3,
+        "display": "0.30 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.028,
+        "display": "0.018 cum sand (≈0.028 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 0.055,
+        "display": "0.037 cum aggregate (≈0.055 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.12
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.12
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "paver-block-60mm",
+    "name": "Interlocking Paver 60mm (over sand bed)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "paver_60mm",
+        "qty": 11.3,
+        "display": "11.3 sqft pavers (+5% wastage)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.08,
+        "display": "50mm sand bed (≈0.08 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.1
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Plate compactor",
+        "cost": 20
+      }
+    ]
+  },
+  {
+    "slug": "paver-block-80mm",
+    "name": "Interlocking Paver 80mm (heavy-duty, over sand bed)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "paver_80mm",
+        "qty": 11.3,
+        "display": "11.3 sqft pavers (+5% wastage)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.08,
+        "display": "50mm sand bed (≈0.08 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.1
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Plate compactor",
+        "cost": 20
+      }
+    ]
+  },
+  {
+    "slug": "laminate-wooden-flooring",
+    "name": "Laminate Wooden Flooring (click-lock)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "floor_wood_laminate",
+        "qty": 11.3,
+        "display": "11.3 sqft laminate planks (+5% wastage)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.12
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Underlay foam + beading (LS)",
+        "cost": 60
+      }
+    ]
+  },
+  {
+    "slug": "vinyl-spc-flooring",
+    "name": "Vinyl / SPC Flooring (click-lock)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "floor_vinyl_spc",
+        "qty": 11.3,
+        "display": "11.3 sqft SPC planks (+5% wastage)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.1
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Underlay + trims (LS)",
+        "cost": 40
+      }
+    ]
+  },
+  {
+    "slug": "ceramic-wall-dado",
+    "name": "Ceramic Wall Tiling / Dado (incl. bedding)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "ceramic_tile",
+        "qty": 11.3,
+        "display": "11.3 sqft ceramic tile (+5% wastage)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.22,
+        "display": "0.22 bag OPC 43 (bedding + grout)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.04,
+        "display": "0.025 cum sand (≈0.04 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_tilelayer",
+        "qty": 0.2
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.2
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Tile cutter",
+        "cost": 15
+      }
+    ]
+  },
+  {
+    "slug": "enamel-paint-2coat",
+    "name": "Enamel Paint on Wood/Metal (primer + 2 coats)",
+    "unit": "sqm",
+    "group": "Painting",
+    "materials": [
+      {
+        "priceId": "primer",
+        "qty": 0.09,
+        "display": "0.09 L primer"
+      },
+      {
+        "priceId": "enamel_paint",
+        "qty": 0.15,
+        "display": "0.15 L synthetic enamel (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_painter",
+        "qty": 0.14
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "app-membrane-3mm",
+    "name": "APP Membrane Waterproofing (3mm, torch-applied)",
+    "unit": "sqm",
+    "group": "Waterproofing",
+    "materials": [
+      {
+        "priceId": "wp_membrane",
+        "qty": 1.05,
+        "display": "1.05 sqm APP membrane (incl. laps)"
+      },
+      {
+        "priceId": "wp_bitumen_coat",
+        "qty": 0.4,
+        "display": "0.4 kg bitumen primer"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.1
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.08
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Torch + LPG",
+        "cost": 35
+      }
+    ]
+  },
+  {
+    "slug": "pu-waterproofing",
+    "name": "PU Liquid Membrane Waterproofing (2 coats)",
+    "unit": "sqm",
+    "group": "Waterproofing",
+    "materials": [
+      {
+        "priceId": "wp_pu_liquid",
+        "qty": 1.5,
+        "display": "1.5 kg PU liquid membrane (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.06
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.06
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "bitumen-coating-2coat",
+    "name": "Hot Bitumen Coating (2 coats)",
+    "unit": "sqm",
+    "group": "Waterproofing",
+    "materials": [
+      {
+        "priceId": "wp_bitumen_coat",
+        "qty": 1.5,
+        "display": "1.5 kg bitumen (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.08
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "earthwork-excavation-hard",
+    "name": "Earthwork Excavation in Hard Soil / Murrum (manual)",
+    "unit": "cum",
+    "group": "Earthwork",
+    "materials": [],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 1.3
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "excavation-machine-jcb",
+    "name": "Machine Excavation (JCB, incl. 50m lead)",
+    "unit": "cum",
+    "group": "Earthwork",
+    "materials": [],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.06
+      }
+    ],
+    "machinery": [
+      {
+        "name": "JCB hire (prorated)",
+        "cost": 110
+      }
+    ]
+  },
+  {
+    "slug": "earthwork-backfilling",
+    "name": "Backfilling in Layers with Compaction",
+    "unit": "cum",
+    "group": "Earthwork",
+    "materials": [],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.5
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Plate compactor + watering",
+        "cost": 15
+      }
+    ]
+  },
+  {
+    "slug": "sand-filling-plinth",
+    "name": "Sand Filling in Plinth (compacted)",
+    "unit": "cum",
+    "group": "Earthwork",
+    "materials": [
+      {
+        "priceId": "river_sand",
+        "qty": 1.6,
+        "display": "1.0 cum sand (≈1.6 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.4
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Compaction + watering",
+        "cost": 10
+      }
+    ]
+  },
+  {
+    "slug": "gsb-laying",
+    "name": "Granular Sub-Base (GSB) Laid + Compacted",
+    "unit": "cum",
+    "group": "Earthwork",
+    "materials": [
+      {
+        "priceId": "gsb",
+        "qty": 2.1,
+        "display": "2.1 t GSB (compacted cum)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Roller/compactor (prorated)",
+        "cost": 100
+      }
+    ]
+  },
+  {
+    "slug": "stone-soling",
+    "name": "Boulder / Stone Soling (hand-packed)",
+    "unit": "cum",
+    "group": "Earthwork",
+    "materials": [
+      {
+        "priceId": "boulder_soling",
+        "qty": 1.8,
+        "display": "1.8 t boulders (hand-packed cum)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.5
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Hand ramming",
+        "cost": 10
+      }
+    ]
+  },
+  {
+    "slug": "flush-door-installed",
+    "name": "Flush Door 35mm (fixed, incl. hardware)",
+    "unit": "sqm",
+    "group": "Doors & Windows",
+    "materials": [
+      {
+        "priceId": "flush_door",
+        "qty": 10.76,
+        "display": "10.76 sqft flush door shutter"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.5
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.25
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Hinges, screws, hardware (LS)",
+        "cost": 350
+      }
+    ]
+  },
+  {
+    "slug": "door-frame-installed",
+    "name": "Door Frame / Chowkat (fixed in masonry)",
+    "unit": "piece",
+    "group": "Doors & Windows",
+    "materials": [
+      {
+        "priceId": "door_frame_chowkat",
+        "qty": 1,
+        "display": "1 door frame (chowkat)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.6
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Hold-fasts, screws (LS)",
+        "cost": 150
+      }
+    ]
+  },
+  {
+    "slug": "wpc-door-installed",
+    "name": "WPC Door 7×3 ft (fixed, incl. hardware)",
+    "unit": "piece",
+    "group": "Doors & Windows",
+    "materials": [
+      {
+        "priceId": "wpc_door_7x3",
+        "qty": 1,
+        "display": "1 WPC door shutter 7×3 ft"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.7
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Hinges, lockset, hardware (LS)",
+        "cost": 400
+      }
+    ]
+  },
+  {
+    "slug": "aluminium-sliding-window",
+    "name": "Aluminium Sliding Window (2-track, glazed)",
+    "unit": "sqm",
+    "group": "Doors & Windows",
+    "materials": [
+      {
+        "priceId": "aluminium_section",
+        "qty": 4.5,
+        "display": "4.5 kg aluminium sections"
+      },
+      {
+        "priceId": "glass_plain",
+        "qty": 10.76,
+        "display": "10.76 sqft 5mm plain glass"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.4
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.2
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Rollers, locks, gaskets (LS)",
+        "cost": 300
+      }
+    ]
+  },
+  {
+    "slug": "upvc-sliding-window",
+    "name": "uPVC Sliding Window (branded, installed)",
+    "unit": "sqm",
+    "group": "Doors & Windows",
+    "materials": [
+      {
+        "priceId": "upvc_fenesta",
+        "qty": 10.76,
+        "display": "10.76 sqft uPVC window (supplied + fitted)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.2
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "cpvc-concealed-piping",
+    "name": "CPVC Piping 20–25mm (concealed, incl. fittings)",
+    "unit": "metre",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "cpvc_pipe",
+        "qty": 1.05,
+        "display": "1.05 m CPVC pipe"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.09
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.04
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Fittings, clamps, solvent (LS)",
+        "cost": 30
+      }
+    ]
+  },
+  {
+    "slug": "pvc-swr-piping",
+    "name": "PVC SWR Piping 110mm (incl. fittings)",
+    "unit": "metre",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "pvc_pipe",
+        "qty": 1.05,
+        "display": "1.05 m PVC SWR pipe"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.08
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.05
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Fittings, clamps (LS)",
+        "cost": 60
+      }
+    ]
+  },
+  {
+    "slug": "gi-piping-20mm",
+    "name": "GI Piping 20mm Class B (incl. fittings)",
+    "unit": "metre",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "gi_pipe",
+        "qty": 1.05,
+        "display": "1.05 m GI pipe"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.1
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.05
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Fittings, threading (LS)",
+        "cost": 45
+      }
+    ]
+  },
+  {
+    "slug": "wc-installation",
+    "name": "Floor-Mount WC (supplied + installed)",
+    "unit": "piece",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "wc_floor",
+        "qty": 1,
+        "display": "1 floor-mount WC"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.8
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.4
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Seat, flush pipe, fittings (LS)",
+        "cost": 800
+      }
+    ]
+  },
+  {
+    "slug": "washbasin-installation",
+    "name": "Pedestal Wash Basin (supplied + installed)",
+    "unit": "piece",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "wash_basin_pedestal",
+        "qty": 1,
+        "display": "1 pedestal wash basin"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.6
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Bottle trap, angle valves, brackets (LS)",
+        "cost": 600
+      }
+    ]
+  },
+  {
+    "slug": "kitchen-sink-installation",
+    "name": "SS Kitchen Sink (supplied + installed)",
+    "unit": "piece",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "kitchen_sink_ss",
+        "qty": 1,
+        "display": "1 SS kitchen sink"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.5
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.25
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Waste coupling, trap (LS)",
+        "cost": 400
+      }
+    ]
+  },
+  {
+    "slug": "overhead-tank-1000l",
+    "name": "1000L Overhead Water Tank (placed + connected)",
+    "unit": "piece",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "tank_sintex_1000",
+        "qty": 1,
+        "display": "1 × 1000L HDPE tank"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.6
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.6
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Float valve, fittings (LS)",
+        "cost": 500
+      }
+    ]
+  },
+  {
+    "slug": "point-wiring",
+    "name": "Light / Fan Point Wiring (concealed, per point)",
+    "unit": "point",
+    "group": "Electrical",
+    "materials": [
+      {
+        "priceId": "wire_1mm",
+        "qty": 18,
+        "display": "≈18 m 1.5 sqmm FR wire (2 runs)"
+      },
+      {
+        "priceId": "switch_1way_6a",
+        "qty": 1,
+        "display": "1 modular 6A switch"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_electrician",
+        "qty": 0.35
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Conduit, boxes, sundries (LS)",
+        "cost": 150
+      }
+    ]
+  },
+  {
+    "slug": "power-point-16a",
+    "name": "16A Power Point (concealed, per point)",
+    "unit": "point",
+    "group": "Electrical",
+    "materials": [
+      {
+        "priceId": "wire_2.5mm",
+        "qty": 16,
+        "display": "≈16 m 2.5 sqmm FR wire"
+      },
+      {
+        "priceId": "modular_socket_16a",
+        "qty": 1,
+        "display": "1 modular 16A socket"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_electrician",
+        "qty": 0.4
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Conduit, box, switch (LS)",
+        "cost": 180
+      }
+    ]
+  },
+  {
+    "slug": "mcb-installation",
+    "name": "MCB Single-Pole (supplied + installed)",
+    "unit": "piece",
+    "group": "Electrical",
+    "materials": [
+      {
+        "priceId": "mcb_sp",
+        "qty": 1,
+        "display": "1 single-pole MCB"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_electrician",
+        "qty": 0.15
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Sundries",
+        "cost": 30
+      }
+    ]
+  },
+  {
+    "slug": "gypsum-false-ceiling",
+    "name": "Gypsum Board False Ceiling (GI grid)",
+    "unit": "sqm",
+    "group": "False Ceiling",
+    "materials": [
+      {
+        "priceId": "gypsum_board",
+        "qty": 10.76,
+        "display": "10.76 sqft 12.5mm gypsum board"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.28
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.2
+      }
+    ],
+    "machinery": [
+      {
+        "name": "GI perimeter + intermediate channels, screws (LS)",
+        "cost": 250
+      }
+    ]
+  },
+  {
+    "slug": "pop-false-ceiling",
+    "name": "POP False Ceiling (on GI mesh)",
+    "unit": "sqm",
+    "group": "False Ceiling",
+    "materials": [
+      {
+        "priceId": "pop_powder",
+        "qty": 9,
+        "display": "9 kg plaster of Paris"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.35
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.25
+      }
+    ],
+    "machinery": [
+      {
+        "name": "GI mesh + suspenders (LS)",
+        "cost": 180
+      }
+    ]
+  },
+  {
+    "slug": "dismantle-brickwork",
+    "name": "Dismantling Brick Masonry (manual)",
+    "unit": "cum",
+    "group": "Dismantling",
+    "materials": [],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 1.6
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "dismantle-plaster",
+    "name": "Removing Old Plaster",
+    "unit": "sqm",
+    "group": "Dismantling",
+    "materials": [],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.08
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "dismantle-flooring",
+    "name": "Breaking Floor / Tile Work",
+    "unit": "sqm",
+    "group": "Dismantling",
+    "materials": [],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "m20-concrete-msand",
+    "name": "M20 Concrete with M-Sand (RCC, design mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 6.4,
+        "display": "6.4 bags OPC 43 (≈320 kg)"
+      },
+      {
+        "priceId": "msand",
+        "qty": 0.7,
+        "display": "0.44 cum M-sand (≈0.70 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.26,
+        "display": "0.84 cum 20mm aggregate (≈1.26 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + needle vibrator",
+        "cost": 130
+      }
+    ]
+  },
+  {
+    "slug": "m20-concrete-ppc",
+    "name": "M20 Concrete with PPC (design mix)",
+    "unit": "cum",
+    "group": "Concrete (site-mixed)",
+    "materials": [
+      {
+        "priceId": "ppc",
+        "qty": 6.7,
+        "display": "6.7 bags PPC (≈335 kg)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.7,
+        "display": "0.44 cum sand (≈0.70 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.26,
+        "display": "0.84 cum 20mm aggregate (≈1.26 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + needle vibrator",
+        "cost": 130
+      }
+    ]
+  },
+  {
+    "slug": "rcc-footing-complete",
+    "name": "RCC Footing — Complete (M25 + 80 kg steel + shuttering)",
+    "unit": "cum",
+    "group": "RCC Complete (steel + shuttering incl.)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 7.2,
+        "display": "7.2 bags OPC 43 (M25)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.69,
+        "display": "0.43 cum sand (≈0.69 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.23,
+        "display": "0.82 cum 20mm aggregate (≈1.23 t)"
+      },
+      {
+        "priceId": "tmt_16mm",
+        "qty": 84,
+        "display": "80 kg TMT Fe500D (+5% wastage)"
+      },
+      {
+        "priceId": "binding_wire",
+        "qty": 0.7,
+        "display": "0.7 kg binding wire"
+      },
+      {
+        "priceId": "plywood_comm",
+        "qty": 3.2,
+        "display": "shuttering plywood share (≈2 sqm sides)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3.5
+      },
+      {
+        "priceId": "lab_bar_bender",
+        "qty": 0.72
+      },
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.44
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + vibrator + props",
+        "cost": 230
+      }
+    ]
+  },
+  {
+    "slug": "rcc-column-complete",
+    "name": "RCC Column — Complete (M25 + 180 kg steel + shuttering)",
+    "unit": "cum",
+    "group": "RCC Complete (steel + shuttering incl.)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 7.2,
+        "display": "7.2 bags OPC 43 (M25)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.69,
+        "display": "0.43 cum sand (≈0.69 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.23,
+        "display": "0.82 cum 20mm aggregate (≈1.23 t)"
+      },
+      {
+        "priceId": "tmt_16mm",
+        "qty": 189,
+        "display": "180 kg TMT Fe500D (+5% wastage)"
+      },
+      {
+        "priceId": "binding_wire",
+        "qty": 1.6,
+        "display": "1.6 kg binding wire"
+      },
+      {
+        "priceId": "plywood_comm",
+        "qty": 16,
+        "display": "shuttering plywood share (≈10 sqm/cum)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.32
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3.5
+      },
+      {
+        "priceId": "lab_bar_bender",
+        "qty": 1.62
+      },
+      {
+        "priceId": "lab_carpenter",
+        "qty": 2.5
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + vibrator + clamps/props",
+        "cost": 590
+      }
+    ]
+  },
+  {
+    "slug": "rcc-beam-complete",
+    "name": "RCC Beam — Complete (M25 + 140 kg steel + shuttering)",
+    "unit": "cum",
+    "group": "RCC Complete (steel + shuttering incl.)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 7.2,
+        "display": "7.2 bags OPC 43 (M25)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.69,
+        "display": "0.43 cum sand (≈0.69 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.23,
+        "display": "0.82 cum 20mm aggregate (≈1.23 t)"
+      },
+      {
+        "priceId": "tmt_16mm",
+        "qty": 147,
+        "display": "140 kg TMT Fe500D (+5% wastage)"
+      },
+      {
+        "priceId": "binding_wire",
+        "qty": 1.2,
+        "display": "1.2 kg binding wire"
+      },
+      {
+        "priceId": "plywood_comm",
+        "qty": 14.5,
+        "display": "shuttering plywood share (≈8.5 sqm/cum)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3.2
+      },
+      {
+        "priceId": "lab_bar_bender",
+        "qty": 1.26
+      },
+      {
+        "priceId": "lab_carpenter",
+        "qty": 2.04
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + vibrator + props",
+        "cost": 555
+      }
+    ]
+  },
+  {
+    "slug": "rcc-slab-complete",
+    "name": "RCC Slab — Complete (M25 + 90 kg steel + shuttering)",
+    "unit": "cum",
+    "group": "RCC Complete (steel + shuttering incl.)",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 7.2,
+        "display": "7.2 bags OPC 43 (M25)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.69,
+        "display": "0.43 cum sand (≈0.69 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 1.23,
+        "display": "0.82 cum 20mm aggregate (≈1.23 t)"
+      },
+      {
+        "priceId": "tmt_12mm",
+        "qty": 94.5,
+        "display": "90 kg TMT Fe500D (+5% wastage)"
+      },
+      {
+        "priceId": "binding_wire",
+        "qty": 0.8,
+        "display": "0.8 kg binding wire"
+      },
+      {
+        "priceId": "plywood_comm",
+        "qty": 10.7,
+        "display": "shuttering plywood share (≈6.7 sqm/cum @150mm)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 3
+      },
+      {
+        "priceId": "lab_bar_bender",
+        "qty": 0.81
+      },
+      {
+        "priceId": "lab_carpenter",
+        "qty": 1.47
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Mixer + vibrator + props/spans",
+        "cost": 465
+      }
+    ]
+  },
+  {
+    "slug": "rr-stone-masonry",
+    "name": "Random Rubble Stone Masonry (CM 1:6)",
+    "unit": "cum",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "boulder_soling",
+        "qty": 2,
+        "display": "2.0 t rubble stone (≈1.25 cum)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 1.34,
+        "display": "1.34 bags OPC 43 (mortar)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.47,
+        "display": "0.29 cum sand (≈0.47 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 1.4
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 1.7
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "clc-block-masonry",
+    "name": "CLC Block Masonry 150mm (CM 1:6)",
+    "unit": "cum",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "clc_block_6",
+        "qty": 58,
+        "display": "58 CLC blocks (600×200×150, incl. wastage)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.9,
+        "display": "0.9 bag OPC 43 (mortar)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.35,
+        "display": "0.22 cum sand (≈0.35 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.7
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.8
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "aac-partition-100mm",
+    "name": "AAC Block Partition 100mm (per sqm)",
+    "unit": "sqm",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "aac_siporex_4",
+        "qty": 8.7,
+        "display": "8.7 AAC blocks 600×200×100 (incl. wastage)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.15,
+        "display": "0.15 bag OPC 43 (jointing)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.05,
+        "display": "0.03 cum sand (≈0.05 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.25
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.25
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "brick-on-edge-flooring",
+    "name": "Brick-on-Edge Flooring / Paving",
+    "unit": "sqm",
+    "group": "Masonry",
+    "materials": [
+      {
+        "priceId": "red_brick",
+        "qty": 32,
+        "display": "32 red bricks on edge"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.1,
+        "display": "0.10 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.05,
+        "display": "sand bed + joint filling (≈0.05 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.12
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.12
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "gypsum-plaster-12mm",
+    "name": "Gypsum Plaster 12mm (machine-ready, POP-based)",
+    "unit": "sqm",
+    "group": "Plastering",
+    "materials": [
+      {
+        "priceId": "pop_powder",
+        "qty": 9,
+        "display": "9 kg gypsum/POP plaster"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.09
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.06
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "italian-marble-flooring",
+    "name": "Italian Marble Flooring (incl. bedding + polish)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "marble_italian",
+        "qty": 11,
+        "display": "11.0 sqft Italian marble"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.25,
+        "display": "0.25 bag OPC 43 (bedding)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.06,
+        "display": "0.04 cum sand (≈0.06 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_tilelayer",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Diamond polish (7-step)",
+        "cost": 80
+      }
+    ]
+  },
+  {
+    "slug": "makrana-marble-flooring",
+    "name": "Makrana Marble Flooring (incl. bedding + polish)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "marble_makrana",
+        "qty": 11,
+        "display": "11.0 sqft Makrana marble"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.25,
+        "display": "0.25 bag OPC 43 (bedding)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.06,
+        "display": "0.04 cum sand (≈0.06 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_tilelayer",
+        "qty": 0.28
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.28
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Polish",
+        "cost": 60
+      }
+    ]
+  },
+  {
+    "slug": "granite-counter-platform",
+    "name": "Granite Counter / Kitchen Platform (laid + nosing)",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "granite_slab",
+        "qty": 11.5,
+        "display": "11.5 sqft granite slab (incl. wastage)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.3,
+        "display": "0.30 bag OPC 43 (bedding + support)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.05,
+        "display": "0.03 cum sand (≈0.05 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.5
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Cutting, nosing, polish",
+        "cost": 100
+      }
+    ]
+  },
+  {
+    "slug": "cuddapah-stone-shelf",
+    "name": "Cuddapah Stone Shelving / Slab Work",
+    "unit": "sqm",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "cuddapah_stone",
+        "qty": 11,
+        "display": "11.0 sqft Cuddapah stone"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.2,
+        "display": "0.20 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.04,
+        "display": "0.025 cum sand (≈0.04 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.2
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "vitrified-skirting",
+    "name": "Vitrified Tile Skirting 100mm (per metre)",
+    "unit": "metre",
+    "group": "Flooring",
+    "materials": [
+      {
+        "priceId": "vitrified_tile",
+        "qty": 1.2,
+        "display": "1.2 sqft tile strip (incl. wastage)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.05,
+        "display": "0.05 bag OPC 43"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_tilelayer",
+        "qty": 0.06
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.04
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Tile cutter",
+        "cost": 5
+      }
+    ]
+  },
+  {
+    "slug": "brickbat-coba",
+    "name": "Brick-Bat Coba Waterproofing (100mm avg)",
+    "unit": "sqm",
+    "group": "Waterproofing",
+    "materials": [
+      {
+        "priceId": "red_brick",
+        "qty": 25,
+        "display": "brick bats from ≈25 bricks"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 0.3,
+        "display": "0.30 bag OPC 43 (slurry + joints)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.05,
+        "display": "0.03 cum sand (≈0.05 t)"
+      },
+      {
+        "priceId": "wp_drfixit_lw",
+        "qty": 0.2,
+        "display": "0.2 kg integral waterproofing compound"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.15
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "dpc-40mm",
+    "name": "Damp-Proof Course 40mm (1:2:4 + WP compound)",
+    "unit": "sqm",
+    "group": "Waterproofing",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 0.28,
+        "display": "0.28 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.028,
+        "display": "0.018 cum sand (≈0.028 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 0.055,
+        "display": "0.037 cum aggregate (≈0.055 t)"
+      },
+      {
+        "priceId": "wp_drfixit_lw",
+        "qty": 0.15,
+        "display": "0.15 kg integral waterproofing compound"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.08
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.08
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "premium-emulsion-interior",
+    "name": "Premium Interior Emulsion (Royale-class, putty + primer + 2 coats)",
+    "unit": "sqm",
+    "group": "Painting",
+    "materials": [
+      {
+        "priceId": "putty",
+        "qty": 0.5,
+        "display": "0.50 kg wall putty (2 coats)"
+      },
+      {
+        "priceId": "primer",
+        "qty": 0.1,
+        "display": "0.10 L primer"
+      },
+      {
+        "priceId": "paint_asian_royale",
+        "qty": 0.18,
+        "display": "0.18 L luxury emulsion (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_painter",
+        "qty": 0.14
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "premium-exterior-emulsion",
+    "name": "Premium Exterior Emulsion (Apex-class, primer + 2 coats)",
+    "unit": "sqm",
+    "group": "Painting",
+    "materials": [
+      {
+        "priceId": "primer",
+        "qty": 0.1,
+        "display": "0.10 L exterior primer"
+      },
+      {
+        "priceId": "paint_asian_apex",
+        "qty": 0.2,
+        "display": "0.20 L premium exterior emulsion (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_painter",
+        "qty": 0.12
+      }
+    ],
+    "machinery": []
+  },
+  {
+    "slug": "panel-door-teak-installed",
+    "name": "Teak Panel Door (supplied + fixed, incl. hardware)",
+    "unit": "piece",
+    "group": "Doors & Windows",
+    "materials": [
+      {
+        "priceId": "panel_door_teak",
+        "qty": 1,
+        "display": "1 teak panel door shutter"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 1
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.4
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Hinges, mortice lock, hardware (LS)",
+        "cost": 600
+      }
+    ]
+  },
+  {
+    "slug": "wardrobe-shutter-laminate",
+    "name": "Wardrobe Shutter — MDF + Laminate (fabricated + hung)",
+    "unit": "sqm",
+    "group": "Doors & Windows",
+    "materials": [
+      {
+        "priceId": "mdf_19mm",
+        "qty": 10.76,
+        "display": "10.76 sqft 19mm MDF"
+      },
+      {
+        "priceId": "laminate",
+        "qty": 11.3,
+        "display": "11.3 sqft laminate (face + balancing)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.6
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.1
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Hinges, handles, adhesive (LS)",
+        "cost": 250
+      }
+    ]
+  },
+  {
+    "slug": "ms-window-grille",
+    "name": "MS Window Grille (≈10 kg/sqm, painted)",
+    "unit": "sqm",
+    "group": "Metal, Glazing & Façade",
+    "materials": [
+      {
+        "priceId": "structural_steel",
+        "qty": 10,
+        "display": "10 kg MS square bars / flats"
+      },
+      {
+        "priceId": "primer",
+        "qty": 0.1,
+        "display": "0.10 L red-oxide primer"
+      },
+      {
+        "priceId": "enamel_paint",
+        "qty": 0.1,
+        "display": "0.10 L enamel (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_bar_bender",
+        "qty": 0.25
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.1
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Welding + grinding",
+        "cost": 60
+      }
+    ]
+  },
+  {
+    "slug": "ms-staircase-railing",
+    "name": "MS Staircase Railing (≈9 kg/m, painted)",
+    "unit": "metre",
+    "group": "Metal, Glazing & Façade",
+    "materials": [
+      {
+        "priceId": "structural_steel",
+        "qty": 9,
+        "display": "9 kg MS pipe/flat per metre"
+      },
+      {
+        "priceId": "primer",
+        "qty": 0.1,
+        "display": "0.10 L primer"
+      },
+      {
+        "priceId": "enamel_paint",
+        "qty": 0.15,
+        "display": "0.15 L enamel (2 coats)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_bar_bender",
+        "qty": 0.3
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.15
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Welding + fixing",
+        "cost": 80
+      }
+    ]
+  },
+  {
+    "slug": "acp-cladding",
+    "name": "ACP Cladding on Aluminium Frame",
+    "unit": "sqm",
+    "group": "Metal, Glazing & Façade",
+    "materials": [
+      {
+        "priceId": "acp_alstrong",
+        "qty": 10.76,
+        "display": "10.76 sqft 4mm ACP sheet"
+      },
+      {
+        "priceId": "aluminium_section",
+        "qty": 1.5,
+        "display": "1.5 kg aluminium sub-frame"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.35
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.2
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Screws, sealant, backer rod (LS)",
+        "cost": 120
+      }
+    ]
+  },
+  {
+    "slug": "toughened-glass-partition",
+    "name": "Toughened Glass Partition (frameless, patch-fitted)",
+    "unit": "sqm",
+    "group": "Metal, Glazing & Façade",
+    "materials": [
+      {
+        "priceId": "glass_toughened",
+        "qty": 10.76,
+        "display": "10.76 sqft 10–12mm toughened glass"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Patch fittings, U-channel, silicone (LS)",
+        "cost": 400
+      }
+    ]
+  },
+  {
+    "slug": "dgu-glazing",
+    "name": "DGU Insulated Glazing (fitted in frame)",
+    "unit": "sqm",
+    "group": "Metal, Glazing & Façade",
+    "materials": [
+      {
+        "priceId": "glass_dgu",
+        "qty": 10.76,
+        "display": "10.76 sqft double-glazed unit"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_carpenter",
+        "qty": 0.3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Gaskets, setting blocks, silicone (LS)",
+        "cost": 200
+      }
+    ]
+  },
+  {
+    "slug": "wallhung-wc-installation",
+    "name": "Wall-Hung WC (supplied + installed, excl. concealed cistern)",
+    "unit": "piece",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "wc_wallhung",
+        "qty": 1,
+        "display": "1 wall-hung WC pan"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 1
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.5
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Seat, mounting bolts, sundries (LS)",
+        "cost": 800
+      }
+    ]
+  },
+  {
+    "slug": "wallhung-basin-installation",
+    "name": "Wall-Hung Wash Basin (supplied + installed)",
+    "unit": "piece",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "wash_basin_wallhung",
+        "qty": 1,
+        "display": "1 wall-hung basin"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.5
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.25
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Brackets, bottle trap, angle valves (LS)",
+        "cost": 500
+      }
+    ]
+  },
+  {
+    "slug": "cp-faucet-installation",
+    "name": "CP Faucet / Mixer (mid-range, supplied + installed)",
+    "unit": "piece",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "faucet_jaquar_mid",
+        "qty": 1,
+        "display": "1 CP faucet/mixer (mid-range)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.15
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Teflon, connectors (LS)",
+        "cost": 60
+      }
+    ]
+  },
+  {
+    "slug": "shower-diverter-installation",
+    "name": "Concealed Shower Diverter Set (supplied + installed)",
+    "unit": "set",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "shower_diverter",
+        "qty": 1,
+        "display": "1 concealed diverter set + shower"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.4
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Concealed body sundries (LS)",
+        "cost": 250
+      }
+    ]
+  },
+  {
+    "slug": "upvc-piping-25mm",
+    "name": "uPVC Piping 25mm (incl. fittings)",
+    "unit": "metre",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "upvc_finolex_25",
+        "qty": 1.05,
+        "display": "1.05 m uPVC pipe 25mm"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.07
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.03
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Fittings, solvent (LS)",
+        "cost": 22
+      }
+    ]
+  },
+  {
+    "slug": "ppr-piping-25mm",
+    "name": "PPR Piping 25mm (heat-fused, incl. fittings)",
+    "unit": "metre",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "ppr_prince_25",
+        "qty": 1.05,
+        "display": "1.05 m PPR pipe 25mm"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_plumber",
+        "qty": 0.08
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.03
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Fusion welding + fittings (LS)",
+        "cost": 28
+      }
+    ]
+  },
+  {
+    "slug": "inspection-chamber-450",
+    "name": "Brick Inspection Chamber 450×450 (complete with CI cover)",
+    "unit": "piece",
+    "group": "Plumbing & Sanitary",
+    "materials": [
+      {
+        "priceId": "red_brick",
+        "qty": 200,
+        "display": "200 bricks (walls)"
+      },
+      {
+        "priceId": "opc43",
+        "qty": 2,
+        "display": "2.0 bags OPC 43 (base + plaster)"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.35,
+        "display": "0.22 cum sand (≈0.35 t)"
+      },
+      {
+        "priceId": "agg_20mm",
+        "qty": 0.15,
+        "display": "0.10 cum aggregate (base PCC)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 1.2
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 1.5
+      }
+    ],
+    "machinery": [
+      {
+        "name": "CI cover + frame (LS)",
+        "cost": 1500
+      }
+    ]
+  },
+  {
+    "slug": "ceiling-fan-installation",
+    "name": "Ceiling Fan (branded BLDC/premium, supplied + installed)",
+    "unit": "piece",
+    "group": "Electrical",
+    "materials": [
+      {
+        "priceId": "ceiling_fan_havells",
+        "qty": 1,
+        "display": "1 branded ceiling fan"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_electrician",
+        "qty": 0.3
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Fan box, hook, canopy sundries (LS)",
+        "cost": 80
+      }
+    ]
+  },
+  {
+    "slug": "submain-wiring-2.5sqmm",
+    "name": "Circuit / Sub-Main Wiring 2.5 sqmm (per m, concealed)",
+    "unit": "metre",
+    "group": "Electrical",
+    "materials": [
+      {
+        "priceId": "wire_2.5mm",
+        "qty": 2.1,
+        "display": "2 runs 2.5 sqmm FR wire (+5%)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_electrician",
+        "qty": 0.04
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.02
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Conduit + accessories (per m)",
+        "cost": 25
+      }
+    ]
+  },
+  {
+    "slug": "switchboard-6module",
+    "name": "6-Module Switchboard (3 switches, installed)",
+    "unit": "piece",
+    "group": "Electrical",
+    "materials": [
+      {
+        "priceId": "switch_plate_6m",
+        "qty": 1,
+        "display": "1 × 6-module plate + frame"
+      },
+      {
+        "priceId": "switch_1way_6a",
+        "qty": 3,
+        "display": "3 modular 6A switches"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_electrician",
+        "qty": 0.25
+      }
+    ],
+    "machinery": [
+      {
+        "name": "GI box + sundries (LS)",
+        "cost": 80
+      }
+    ]
+  },
+  {
+    "slug": "double-scaffolding",
+    "name": "Double Scaffolding (per sqm of façade)",
+    "unit": "sqm",
+    "group": "Site & Misc Works",
+    "materials": [],
+    "labour": [
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.05
+      }
+    ],
+    "machinery": [
+      {
+        "name": "Pipes, couplers, planks (amortised)",
+        "cost": 45
+      }
+    ]
+  },
+  {
+    "slug": "plinth-protection-50mm",
+    "name": "Plinth Protection 50mm PCC (1:3:6)",
+    "unit": "sqm",
+    "group": "Site & Misc Works",
+    "materials": [
+      {
+        "priceId": "opc43",
+        "qty": 0.18,
+        "display": "0.18 bag OPC 43"
+      },
+      {
+        "priceId": "river_sand",
+        "qty": 0.04,
+        "display": "0.025 cum sand (≈0.04 t)"
+      },
+      {
+        "priceId": "agg_40mm",
+        "qty": 0.07,
+        "display": "0.047 cum 40mm aggregate (≈0.07 t)"
+      }
+    ],
+    "labour": [
+      {
+        "priceId": "lab_mason_skilled",
+        "qty": 0.06
+      },
+      {
+        "priceId": "lab_unskilled",
+        "qty": 0.12
+      }
+    ],
+    "machinery": []
+  }
+]

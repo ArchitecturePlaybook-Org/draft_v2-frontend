@@ -181,6 +181,12 @@ export const API_ROUTES: ApiRouteConfig[] = [
     auth: true,
   },
   {
+    prefix: "v1/projects/estimation/export-excel",
+    target: "/api/v1/projects/estimation/export-excel/",
+    methods: ["POST"],
+    auth: false,
+  },
+  {
     prefix: "v1/projects",
     target: "/api/v1/projects/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],

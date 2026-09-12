@@ -95,14 +95,20 @@ export async function handleProxy(req: NextRequest, ctx: ProxyContext) {
     } else if (currentStatus === 204) {
       response = new NextResponse(null, { status: 204 });
     } else {
-      // Stream binary data directly (images, pdfs, etc)
+      // Stream binary data directly (images, pdfs, spreadsheets, etc)
       const blob = await finalRes.blob();
+      const responseHeaders: Record<string, string> = {
+        "Content-Type": contentType,
+        "Cache-Control": finalRes.headers.get("cache-control") || "no-store",
+      };
+      const contentDisposition = finalRes.headers.get("content-disposition");
+      if (contentDisposition) {
+        responseHeaders["Content-Disposition"] = contentDisposition;
+        responseHeaders["Access-Control-Expose-Headers"] = "Content-Disposition";
+      }
       response = new NextResponse(blob, {
         status: currentStatus,
-        headers: {
-          "Content-Type": contentType,
-          "Cache-Control": finalRes.headers.get("cache-control") || "no-store",
-        }
+        headers: responseHeaders,
       });
     }
 

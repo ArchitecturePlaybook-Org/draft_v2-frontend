@@ -32,6 +32,7 @@ import {
   Tag,
   Box,
   Layers,
+  Coins,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -52,6 +53,7 @@ export const Sidebar: React.FC = () => {
   ] : [
     { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
     { label: "Projects", href: "/dashboard/projects", icon: <FolderKanban className="w-4 h-4" /> },
+    { label: "Items of Work", href: "/dashboard/items-of-work", icon: <BookOpen className="w-4 h-4" /> },
     { label: "Shared Tasks", href: "/dashboard/shared-tasks", icon: <Share2 className="w-4 h-4" /> },
     { label: "Templates", href: "/dashboard/templates", icon: <FileSpreadsheet className="w-4 h-4" /> },
     { label: "Business Leads", href: "/dashboard/leads", icon: <Briefcase className="w-4 h-4" /> },
@@ -72,6 +74,7 @@ export const Sidebar: React.FC = () => {
     { label: "User Directory", href: "/dashboard/users", icon: <Users className="w-4 h-4 text-accent" /> },
     { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> },
     { label: "CPWD Rate Master", href: "/dashboard/admin/cpwd-rates", icon: <BookOpen className="w-4 h-4 text-accent" /> },
+    { label: "City Market Rates", href: "/dashboard/admin/city-rates", icon: <Coins className="w-4 h-4 text-accent" /> },
     { label: "BOQ Rules & Rates", href: "/dashboard/admin/boq-rules", icon: <Calculator className="w-4 h-4 text-accent" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4 text-accent" /> },
     { label: "Trade Specializations", href: "/dashboard/admin/specializations", icon: <Tag className="w-4 h-4 text-accent" /> },

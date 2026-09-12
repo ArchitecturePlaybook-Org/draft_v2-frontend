@@ -33,7 +33,8 @@ export default function DashboardLayout({
     }
   }, [user, pathname, router]);
 
-  const hideTopbar = pathname.includes('/estimation') || pathname.includes('/editor') || pathname.includes('/sketch') || pathname.includes('/bim-viewer');
+  const isEstimationPage = pathname.includes('/estimation');
+  const hideTopbar = isEstimationPage || pathname.includes('/editor') || pathname.includes('/sketch') || pathname.includes('/bim-viewer');
   const isEditorFullscreen = pathname.includes('/editor') || pathname.includes('/sketch') || pathname.includes('/bim-viewer');
   const isFullWidthPage = pathname.includes('/showroom/chats') || hideTopbar || pathname.includes('/report');
 
@@ -54,9 +55,15 @@ export default function DashboardLayout({
           <SidebarShell />
 
           {/* Main Execution Area */}
-          <main className={`main-area ${isFullWidthPage ? "overflow-hidden" : ""}`}>
+          <main className={`main-area ${isFullWidthPage && !isEstimationPage ? "overflow-hidden" : ""}`}>
             {!hideTopbar && <Topbar />}
-            <div className={`min-w-0 max-w-full ${isFullWidthPage ? "h-full w-full flex-1 overflow-hidden p-0 m-0" : "page-content flex-1"}`}>
+            <div className={`min-w-0 max-w-full ${
+              isFullWidthPage 
+                ? isEstimationPage 
+                  ? "w-full flex-1 p-0 m-0" 
+                  : "h-full w-full flex-1 overflow-hidden p-0 m-0" 
+                : "page-content flex-1"
+            }`}>
               {children}
             </div>
           </main>

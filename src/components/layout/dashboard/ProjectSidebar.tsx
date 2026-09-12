@@ -18,6 +18,7 @@ import {
   Ruler,
   FileText,
   ArrowLeft,
+  BookOpen,
 } from "lucide-react";
 
 export const ProjectSidebar: React.FC = () => {
@@ -57,6 +58,7 @@ export const ProjectSidebar: React.FC = () => {
 
   const toolsLinks: { label: string; href: string; icon: React.ReactNode; target?: string }[] = [
     { label: "Estimation", href: `/dashboard/projects/${currentProjectUid}/estimation`, icon: <Ruler className="w-4 h-4" /> },
+    { label: "Items of Work", href: "/dashboard/items-of-work", icon: <BookOpen className="w-4 h-4" /> },
     { label: "Reports", href: `/dashboard/projects/${currentProjectUid}/report/project-summary`, icon: <FileText className="w-4 h-4" /> },
   ];
 
