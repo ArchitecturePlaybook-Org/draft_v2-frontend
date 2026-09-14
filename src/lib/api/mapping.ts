@@ -151,6 +151,12 @@ export const API_ROUTES: ApiRouteConfig[] = [
     auth: true,
   },
   {
+    prefix: "v1/accounts",
+    target: "/api/v1/accounts/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  {
     prefix: "v1/projects/assets/presigned-upload-url",
     target: "/api/v1/projects/assets/presigned-upload-url/",
     methods: ["POST"],
@@ -310,6 +316,13 @@ export const API_ROUTES: ApiRouteConfig[] = [
   {
     prefix: "v1/ai",
     target: "/api/v1/ai/",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    auth: true,
+  },
+  // ── Invoices ────────────────────────────────────────────────────────────────
+  {
+    prefix: "v1/invoices",
+    target: "/api/v1/invoices/",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     auth: true,
   },

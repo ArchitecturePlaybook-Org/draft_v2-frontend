@@ -19,6 +19,7 @@ import {
   FileText,
   ArrowLeft,
   BookOpen,
+  Receipt,
 } from "lucide-react";
 
 export const ProjectSidebar: React.FC = () => {
@@ -59,6 +60,7 @@ export const ProjectSidebar: React.FC = () => {
   const toolsLinks: { label: string; href: string; icon: React.ReactNode; target?: string }[] = [
     { label: "Estimation", href: `/dashboard/projects/${currentProjectUid}/estimation`, icon: <Ruler className="w-4 h-4" /> },
     { label: "Items of Work", href: "/dashboard/items-of-work", icon: <BookOpen className="w-4 h-4" /> },
+    { label: "Invoices", href: `/dashboard/projects/${currentProjectUid}/invoices`, icon: <Receipt className="w-4 h-4" /> },
     { label: "Reports", href: `/dashboard/projects/${currentProjectUid}/report/project-summary`, icon: <FileText className="w-4 h-4" /> },
   ];
 
@@ -79,7 +81,7 @@ export const ProjectSidebar: React.FC = () => {
         </svg>
       </button>
 
-      {/* Back to Global Portfolio Link */}
+      {/* Back to Projects Link */}
       <div className={`flex items-center mb-2 min-w-0 ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
         <button 
           onClick={() => {
@@ -87,14 +89,14 @@ export const ProjectSidebar: React.FC = () => {
             router.push("/dashboard/projects");
           }}
           className={`flex items-center gap-1.5 text-[10px] font-bold text-surface-400 hover:text-primary transition-colors min-w-0 ${isSidebarCollapsed ? 'justify-center w-8 h-8 bg-surface-100 dark:bg-surface-800 rounded-lg shrink-0' : 'uppercase tracking-wider'}`}
-          title="Back to Global Projects"
+          title="Back to Projects"
         >
           {isSidebarCollapsed ? (
             <ArrowLeft className="w-3.5 h-3.5 text-surface-400" />
           ) : (
             <>
               <ArrowLeft className="w-3 h-3 text-accent shrink-0" />
-              <span className="truncate">Global Portfolio</span>
+              <span className="truncate">Back to Projects</span>
             </>
           )}
         </button>
