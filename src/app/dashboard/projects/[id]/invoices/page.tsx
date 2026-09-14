@@ -8,6 +8,7 @@ import {
   Loader2, FileText, Search, RefreshCw, LayoutGrid, List,
 } from "lucide-react";
 import { invoicesApi } from "@/domains/invoices/api";
+import { toast } from "sonner";
 import type { InvoiceListItem, InvoiceStatus, CompanyProfile } from "@/domains/invoices/types";
 import { InvoiceKanban } from "@/components/invoices/InvoiceKanban";
 import { InvoiceStatusBadge } from "@/components/invoices/InvoiceStatusBadge";
@@ -89,12 +90,6 @@ export default function InvoiceListPage() {
     e.preventDefault(); e.stopPropagation();
     setActionLoading(inv.id);
     try { const u = await invoicesApi.markPaid(inv.id); handleUpdate(u); } catch {}
-    setActionLoading(null);
-  };
-  const handleDownload = async (inv: InvoiceListItem, e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation();
-    setActionLoading(inv.id);
-    try { await invoicesApi.downloadPDF(inv.id, inv.invoice_number); } catch {}
     setActionLoading(null);
   };
 
@@ -239,7 +234,7 @@ export default function InvoiceListPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-surface-100/60 border-b border-surface-200">
-                {["Invoice #", "Client", "Issue Date", "Due Date", "Amount", "Status", "Actions"].map(h => (
+                {["Invoice #", "Client", "Issue Date", "Due Date", "Amount", "Status"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest text-surface-400">{h}</th>
                 ))}
               </tr>
@@ -263,13 +258,6 @@ export default function InvoiceListPage() {
                   </td>
                   <td className="px-4 py-3"><span className="text-sm font-bold text-foreground">{fmtINR(inv.total_amount)}</span></td>
                   <td className="px-4 py-3"><InvoiceStatusBadge status={inv.status as InvoiceStatus} size="sm" /></td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={e => handleDownload(inv, e)} disabled={actionLoading === inv.id} className="p-1.5 rounded-md text-surface-400 hover:text-accent hover:bg-surface-100 transition-colors" title="Download PDF">
-                        {actionLoading === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span className="text-[9px] font-bold">PDF</span>}
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>

@@ -117,13 +117,6 @@ export const InvoiceKanban: React.FC<Props> = ({ invoices, projectUid, onUpdate 
     setActionLoading(null);
   };
 
-  const handleDownload = async (inv: InvoiceListItem, e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation();
-    setActionLoading(inv.id);
-    try { await invoicesApi.downloadPDF(inv.id, inv.invoice_number); } catch {}
-    setActionLoading(null);
-  };
-
   return (
     <>
       <InvoiceTransitionConfirmModal
@@ -186,7 +179,6 @@ export const InvoiceKanban: React.FC<Props> = ({ invoices, projectUid, onUpdate 
                                 actionLoading={actionLoading}
                                 onMarkSent={handleMarkSent}
                                 onMarkPaid={handleMarkPaid}
-                                onDownload={handleDownload}
                                 onDuplicate={handleDuplicate}
                                 isDragging={snap.isDragging}
                               />

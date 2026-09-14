@@ -4,9 +4,10 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Download, Send, CheckCircle, XCircle,
+  ArrowLeft, Send, CheckCircle, XCircle,
   Loader2, AlertCircle, Edit3, X, Printer, Palette, Check, Copy, Clock,
 } from "lucide-react";
+import { toast } from "sonner";
 import { invoicesApi, companyProfileApi } from "@/domains/invoices/api";
 import { projectsApi } from "@/domains/projects/api";
 import type { Invoice, CompanyProfile, InvoiceTemplate, InvoiceStatus } from "@/domains/invoices/types";
@@ -43,7 +44,6 @@ export default function InvoiceDetailPage() {
 
   const [actionState, setActionState] = useState<ActionState>("idle");
   const [actionError, setActionError] = useState<string | null>(null);
-  const [downloadLoading, setDownloadLoading] = useState(false);
   const [profile, setProfile] = useState<CompanyProfile | null>(null);
   const [currentTemplate, setCurrentTemplate] = useState<InvoiceTemplate>("classic");
   const [templateSaving, setTemplateSaving] = useState(false);
@@ -123,17 +123,6 @@ export default function InvoiceDetailPage() {
       setActionError(e instanceof Error ? e.message : "Duplication failed");
       setActionState("idle");
     }
-  };
-
-  const handleDownload = async () => {
-    if (!invoice) return;
-    setDownloadLoading(true);
-    try {
-      await invoicesApi.downloadPDF(invoiceId, invoice.invoice_number);
-    } catch {
-      window.print();
-    }
-    setDownloadLoading(false);
   };
 
   const handleTemplateChange = async (newT: InvoiceTemplate) => {
@@ -238,16 +227,6 @@ export default function InvoiceDetailPage() {
           >
             <Printer className="w-3.5 h-3.5" />
             Print
-          </button>
-
-          {/* Download PDF */}
-          <button
-            onClick={handleDownload}
-            disabled={downloadLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-surface-200 bg-surface-50 text-xs font-bold text-foreground hover:bg-surface-100 transition-colors disabled:opacity-50 shadow-xs"
-          >
-            {downloadLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-            Download PDF
           </button>
 
           {/* Edit Button (Toggles two-column Edit Mode) */}

@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, AlertCircle, Download, Send, CheckCircle, Loader2, Copy } from "lucide-react";
+import { Calendar, AlertCircle, Send, CheckCircle, Loader2, Copy } from "lucide-react";
 import type { InvoiceListItem, InvoiceStatus } from "@/domains/invoices/types";
 
 interface Props {
@@ -10,7 +10,6 @@ interface Props {
   actionLoading: number | null;
   onMarkSent: (inv: InvoiceListItem, e: React.MouseEvent) => void;
   onMarkPaid: (inv: InvoiceListItem, e: React.MouseEvent) => void;
-  onDownload: (inv: InvoiceListItem, e: React.MouseEvent) => void;
   onDuplicate?: (inv: InvoiceListItem, e: React.MouseEvent) => void;
   isDragging?: boolean;
 }
@@ -37,7 +36,7 @@ const AMOUNT_COLORS: Record<InvoiceStatus, string> = {
 };
 
 export const InvoiceKanbanCard: React.FC<Props> = ({
-  invoice, projectUid, actionLoading, onMarkSent, onMarkPaid, onDownload, onDuplicate, isDragging,
+  invoice, projectUid, actionLoading, onMarkSent, onMarkPaid, onDuplicate, isDragging,
 }) => {
   const router = useRouter();
   const overdue = isOverdue(invoice.due_date, invoice.status);
@@ -56,14 +55,6 @@ export const InvoiceKanbanCard: React.FC<Props> = ({
       <div className="flex items-start justify-between gap-2 mb-2">
         <span className="font-mono text-xs font-bold text-accent">{invoice.invoice_number}</span>
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-          <button
-            onClick={e => onDownload(invoice, e)}
-            disabled={isLoading}
-            title="Download PDF"
-            className="p-1 rounded text-surface-400 hover:text-foreground hover:bg-surface-100 transition-colors"
-          >
-            {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-          </button>
           {onDuplicate && (
             <button
               onClick={e => onDuplicate(invoice, e)}

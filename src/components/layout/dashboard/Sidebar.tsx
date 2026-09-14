@@ -28,10 +28,7 @@ import {
   CreditCard,
   Building2,
   Search,
-  Calculator,
   Tag,
-  Box,
-  Layers,
   Coins,
 } from "lucide-react";
 
@@ -73,18 +70,13 @@ export const Sidebar: React.FC = () => {
   const orgLinks = isSuperAdmin ? [
     { label: "User Directory", href: "/dashboard/users", icon: <Users className="w-4 h-4 text-accent" /> },
     { label: "Tenants & Workspaces", href: "/dashboard/admin/tenants", icon: <Building2 className="w-4 h-4 text-accent" /> },
-    { label: "CPWD Rate Master", href: "/dashboard/admin/cpwd-rates", icon: <BookOpen className="w-4 h-4 text-accent" /> },
     { label: "City Market Rates", href: "/dashboard/admin/city-rates", icon: <Coins className="w-4 h-4 text-accent" /> },
-    { label: "BOQ Rules & Rates", href: "/dashboard/admin/boq-rules", icon: <Calculator className="w-4 h-4 text-accent" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4 text-accent" /> },
     { label: "Trade Specializations", href: "/dashboard/admin/specializations", icon: <Tag className="w-4 h-4 text-accent" /> },
   ] : [
     { label: "Team & Members", href: "/dashboard/organization", icon: <Users className="w-4 h-4" /> },
     { label: "Master Catalog", href: "/dashboard/catalog", icon: <BookOpen className="w-4 h-4" /> },
     { label: "Task Templates", href: "/dashboard/task-templates", icon: <ClipboardList className="w-4 h-4" /> },
-    { label: "BOQ Builder", href: "/dashboard/tools/boq-builder", icon: <Calculator className="w-4 h-4" /> },
-    { label: "BOQ Builder V2 ✦", href: "/dashboard/tools/boq-builder-v2", icon: <Box className="w-4 h-4" /> },
-    { label: "Turnkey Studio ✦", href: "/dashboard/tools/boq-turnkey", icon: <Layers className="w-4 h-4 text-emerald-500" /> },
   ];
 
   const settingsLinks = [

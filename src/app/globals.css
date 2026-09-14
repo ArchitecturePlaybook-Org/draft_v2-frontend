@@ -816,8 +816,10 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: none !important;
   }
 
-  /* Target and isolate the printable invoice area */
-  #invoice-printable-area {
+  /* Target and isolate the printable invoice & report areas */
+  #invoice-printable-area,
+  .report-root,
+  .pdf-page {
     width: 100% !important;
     max-width: 100% !important;
     min-height: 0 !important;
